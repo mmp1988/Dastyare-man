@@ -2836,12 +2836,6 @@
       const photos=[item.beforePhotoRef,item.afterPhotoRef,item.photoRef,item.photo,p.photoRef,p.photo].filter(Boolean);
       await shareClientPayload(buildClientShareText(key,{...item,source}), photos, 'سابقه مشتری');
     }
-    async function shareClientRecord() {
-      const key = document.getElementById('clientRecordKey').value;
-      if (!key) return;
-      const p = getClientProfile(key);
-      await shareClientPayload(buildClientShareText(key), p.photoRef || p.photo, 'پرونده مشتری');
-    }
     async function shareClientPayload(text, photoData, title) {
       try {
         const refs=Array.isArray(photoData)?photoData:(photoData?[photoData]:[]);
