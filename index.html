@@ -4315,7 +4315,7 @@
       const q=(raw||'').trim();const t=q.replace(/[؟?!،,.]/g,' ').replace(/\s+/g,' ').toLowerCase();
       const today=minaTodayAppointments();
       if(/یاددا(?:شت|ش) کن|این(?:و|ارو|ها)? یاددا(?:شت|ش) کن/.test(t)){
-        let body=q.replace(/^مینا[،\\s]*/,'').replace(/^(?:این(?:و|ارو|ها)?\\s*)?یاددا(?:شت|ش) کن(?: که)?/,'').replace(/لطفا|لطفاً/g,'').trim();
+        let body=q.replace(/^مینا[،\s]*/,'').replace(/^(?:این(?:و|ارو|ها)?\\s*)?یاددا(?:شت|ش) کن(?: که)?/,'').replace(/لطفا|لطفاً/g,'').trim();
         if(!body) return 'حتماً عزیزم. بگو دقیقاً چی رو برات یادداشت کنم؟';
         const note={id:'note_mina_'+Date.now(),title:body.length>42?body.slice(0,42)+'…':body,category:'شخصی و کاری',pinned:true,body,dateKey:getTodayKey()};
         appData.notes.unshift(note);saveData();if(typeof renderNotebook==='function')renderNotebook();
