@@ -621,6 +621,7 @@ public class MainActivity extends Activity {
                     notifyVoiceMessage("فیلد انتخاب‌شده معتبر نیست.");
                     return;
                 }
+                // Mina's chat input uses the same Persian speech path as appointment and note fields.
                 // Online recognition works on older Android versions too.
                 // Offline availability is checked separately in startNativeSpeechOnUi().
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
