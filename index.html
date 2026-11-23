@@ -4446,9 +4446,44 @@
           phone: phoneMatch ? phoneMatch[0] : '',
           price: priceMatch ? Number(priceMatch[1]) : 0
         };
-        if (!clientName) return 'حتماً عزیزم 💗 نوبت ' + (/فردا/.test(t) ? 'فردا' : 'برای امروز') +
-          ' ساعت ' + minaPendingBooking.time + (service ? ' برای ' + service : '') +
-          ' رو آماده کردم؛ فقط اسم مشتری رو بگو تا ثبتش کنیم 🌸';
+        if (!clientName) {
+          const p = minaPendingBooking;
+          const duplicate = (appData.appointments || []).some(a =>
+            a.dateKey === p.dateKey && a.time === p.time &&
+            (a.clientNameMissing === true || !String(a.clientName || '').trim() || a.clientName === '—' || a.clientName === 'نام درج نشده') &&
+            String(a.service || '') === String(p.service || 'خدمت ثبت‌نشده') && a.status !== 'canceled');
+          minaPendingBooking = null;
+          if (duplicate) return 'برای همین خدمت، تاریخ و ساعت از قبل یک نوبت بدون نام ثبت شده؛ دوباره تکرارش نکردم عزیزم 💗';
+          const conflict = (appData.appointments || []).some(a =>
+            a.dateKey === p.dateKey && a.time === p.time && a.status !== 'canceled');
+          const appointment = {
+            id: 'appt_mina_' + Date.now(),
+            dateKey: p.dateKey,
+            time: p.time,
+            clientName: '—',
+            clientNameMissing: true,
+            phone: p.phone || '',
+            service: p.service || 'خدمت ثبت‌نشده',
+            price: Number(p.price) || 0,
+            deposit: 0,
+            commPercent: Number(appData.settings.defaultComm) || 0,
+            payMethod: 'کارت‌به‌کارت',
+            alarm: '15',
+            status: 'pending',
+            notified: false
+          };
+          appData.appointments.push(appointment);
+          saveData();
+          if (typeof renderCalendar === 'function') renderCalendar();
+          if (typeof renderDaySchedule === 'function') renderDaySchedule();
+          if (typeof renderFinanceTab === 'function') renderFinanceTab();
+          return 'انجام شد عزیزم 🌸 نوبت ثبت شد؛ چون اسم مشتری رو نگفتی، نام رو با علامت «—» خالی گذاشتم.\n📅 تاریخ: ' +
+            formatJalaliFull(p.dateKey) + '\n⏰ ساعت: ' + p.time +
+            '\n💅 خدمت: ' + appointment.service +
+            (appointment.price ? '\n💰 مبلغ: ' + formatMoney(appointment.price) + ' تومان' : '') +
+            (conflict ? '\n⚠️ این ساعت نوبت دیگری هم داری؛ تقویم رو بررسی کن.' : '') +
+            '\nاطلاعات روی همین گوشی ذخیره شد و آفلاین هم در دسترسه 💗';
+        }
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === minaPendingBooking.time &&
           a.clientName === clientName && a.status !== 'canceled');
