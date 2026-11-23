@@ -62,28 +62,64 @@ jobs:
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           mkdir -p android-build && cd android-build
 
-          # ایجاد twa-manifest.json پایه و بروزرسانی از manifest آنلاین
-          bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json < /dev/null || true
+          MANIFEST_URL="https://mmp1988.github.io/Dastyare-man/manifest.json"
+          echo "دریافت $MANIFEST_URL ..."
+          curl -fsSL "$MANIFEST_URL" -o web-manifest.json
 
-          if [ ! -f twa-manifest.json ]; then
-            echo "خطا: twa-manifest.json ساخته نشد. دسترسی به manifest.json را بررسی کنید."
-            exit 1
-          fi
-
-          # تنظیم مستقیم مسیرهای JDK و Android SDK تا پرامپت نپرسد
+          # ساخت مستقیم twa-manifest.json بدون نیاز به bubblewrap init تعاملی
           node -e '
             const fs = require("fs");
-            const p = "twa-manifest.json";
-            const manifest = JSON.parse(fs.readFileSync(p, "utf8"));
-            manifest.jdkPath = process.env.JAVA_HOME;
-            manifest.androidSdkPath = process.env.ANDROID_HOME;
-            fs.writeFileSync(p, JSON.stringify(manifest, null, 2));
+            const webManifest = JSON.parse(fs.readFileSync("web-manifest.json", "utf8"));
+            const startUrl = new URL(webManifest.start_url || "/Dastyare-man/", "https://mmp1988.github.io/Dastyare-man/").pathname;
+            const iconRel = (webManifest.icons && webManifest.icons[0] && webManifest.icons[0].src) || "icon-512.png";
+            const iconUrl = new URL(iconRel, "https://mmp1988.github.io/Dastyare-man/").href;
+
+            const twaManifest = {
+              packageId: "app.github.mmp1988.dastyareman",
+              host: "mmp1988.github.io",
+              name: webManifest.name || "دستیار من",
+              launcherName: webManifest.short_name || "دستیار من",
+              display: webManifest.display || "standalone",
+              orientation: webManifest.orientation || "portrait",
+              themeColor: webManifest.theme_color || "#1a73e8",
+              themeColorDark: webManifest.theme_color || "#1a73e8",
+              navigationColor: webManifest.background_color || "#ffffff",
+              navigationColorDark: webManifest.background_color || "#121212",
+              navigationDividerColor: "#00000000",
+              navigationDividerColorDark: "#00000000",
+              backgroundColor: webManifest.background_color || "#ffffff",
+              enableNotifications: true,
+              startUrl: startUrl,
+              iconUrl: iconUrl,
+              maskableIconUrl: iconUrl,
+              splashScreenFadeOutDuration: 300,
+              signingKey: {
+                path: "./release.keystore",
+                alias: "dastyare"
+              },
+              appVersionName: "1.0.0",
+              appVersionCode: 1,
+              shortcuts: [],
+              generatorApp: "bubblewrap-cli",
+              webManifestUrl: "https://mmp1988.github.io/Dastyare-man/manifest.json",
+              fallbackType: "customtabs",
+              features: {},
+              alphaDependencies: {
+                enabled: false
+              },
+              enableSiteSettingsShortcut: true,
+              isChromeOSOnly: false,
+              isMetaQuest: false,
+              fullScopeUrl: "https://mmp1988.github.io/Dastyare-man/",
+              minSdkVersion: 21,
+              jdkPath: process.env.JAVA_HOME,
+              androidSdkPath: process.env.ANDROID_HOME
+            };
+
+            fs.writeFileSync("twa-manifest.json", JSON.stringify(twaManifest, null, 2));
           '
 
-          bubblewrap update --skipPwaValidation
-          bubblewrap build --skipPwaValidation
-
-          # ساخت Keystore و امضای نهایی فایل APK
+          # ساخت Keystore پیش از build تا Bubblewrap بتواند مستقیم امضا کند
           keytool -genkeypair -v \
             -keystore release.keystore \
             -alias dastyare \
@@ -93,6 +129,9 @@ jobs:
             -storepass dastyare123 \
             -keypass dastyare123 \
             -dname "CN=Mina-Msvm, OU=Dastyare-man, O=Dastyare-man, L=Tehran, S=Tehran, C=IR"
+
+          printf "dastyare123\ndastyare123\n" | bubblewrap update --skipPwaValidation
+          printf "dastyare123\ndastyare123\n" | bubblewrap build --skipPwaValidation
 
           BUILD_TOOLS=$(ls -d "$ANDROID_HOME/build-tools"/* | sort -V | tail -n 1)
           APK_UNSIGNED=$(find . -name "app-release-unsigned.apk" -o -name "*.apk" | grep -v "aligned.apk" | head -n 1)
