@@ -1324,6 +1324,11 @@
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
           <button class="btn-primary" style="grid-column:1 / -1;" onclick="checkForAppUpdate(true); checkNativeContentUpdate(true)">🔄 بررسی و نصب به‌روزرسانی خودکار</button>
+          <div style="grid-column:1 / -1; background:var(--bg-input); border:1px solid var(--border-color); border-radius:12px; padding:10px;">
+            <div style="font-weight:800; margin-bottom:5px;">🎙️ بسته گفتار فارسی برای استفاده آفلاین</div>
+            <div style="font-size:.78rem; line-height:1.8; color:var(--text-muted); margin-bottom:8px;">در اندروید ۱۳ به بعد، اگر سرویس گفتار گوشی مدل فارسی آفلاین داشته باشد، از همین‌جا درخواست دانلود آن ارسال می‌شود. تشخیص گفتار هنگام اتصال اینترنت مستقل از این بسته کار می‌کند.</div>
+            <button type="button" class="btn-secondary" style="width:100%;" onclick="downloadPersianOfflineSpeechModel()">⬇️ بررسی و دانلود بسته فارسی آفلاین</button>
+          </div>
           <button class="btn-secondary" onclick="exportBackup()">💾 دانلود فایل پشتیبان</button>
           <label class="btn-secondary" style="cursor:pointer;">
             📂 بازیابی فایل پشتیبان
@@ -3881,6 +3886,15 @@
       input.value = input.value ? (input.value + ' ' + transcript) : transcript;
       input.dispatchEvent(new Event('input', { bubbles: true }));
     };
+
+    function downloadPersianOfflineSpeechModel() {
+      if (window.AndroidApp && typeof AndroidApp.downloadPersianOfflineSpeechModel === 'function') {
+        try { AndroidApp.downloadPersianOfflineSpeechModel(); }
+        catch (e) { showToast('امکان شروع دانلود بسته فارسی وجود ندارد.'); }
+      } else {
+        showToast('دانلود مدل گفتار آفلاین فقط در نسخه اندروید برنامه پشتیبانی می‌شود.');
+      }
+    }
 
     function startVoiceInput(targetInputId, btnId) {
       // Native APK: Android selects online recognition when validated internet exists,
