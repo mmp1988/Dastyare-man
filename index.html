@@ -838,6 +838,7 @@
       <div class="card">
         <div class="section-head">
           <div class="section-title">👥 پرونده مشتریان و سوابق</div>
+          <button class="btn-primary" type="button" onclick="openAddClientModal()">➕ افزودن مشتری</button>
         </div>
         <div class="form-group">
           <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
@@ -1055,6 +1056,17 @@
   </nav>
 
 
+  <!-- افزودن پرونده مستقل مشتری -->
+  <div class="modal-backdrop" id="addClientModal">
+    <div class="modal-box" style="max-width:460px;">
+      <div class="modal-head"><div class="modal-title">➕ پرونده مشتری جدید</div><button class="icon-btn" onclick="closeModal('addClientModal')">✕</button></div>
+      <div class="form-group"><label>نام مشتری *</label><input id="newClientName" class="form-control" type="text" autocomplete="name" placeholder="نام و نام خانوادگی" /></div>
+      <div class="form-group"><label>شماره تماس (اختیاری)</label><input id="newClientPhone" class="form-control" type="tel" dir="ltr" autocomplete="tel" placeholder="09..." /></div>
+      <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.8;margin:8px 0 14px;">ثبت پرونده بدون نوبت هم امکان‌پذیر است. عکس و بقیه اطلاعات را هر زمان خواستی اضافه کن.</div>
+      <button class="btn-primary" style="width:100%;" onclick="createClientProfile()">ساخت پرونده مشتری</button>
+    </div>
+  </div>
+
   <!-- ==================== CLIENT PROFILE & SERVICE HISTORY ==================== -->
   <div class="modal-backdrop" id="clientProfileModal">
     <div class="modal-box" style="max-height:92vh;">
@@ -1107,6 +1119,10 @@
             </div>
             <input type="text" id="clientCustomChecklist" class="form-control" style="margin-top:8px;" placeholder="خدمت دیگر (اختیاری)" />
           </div>
+          <div class="form-group">
+            <label>مبلغ دریافت‌شده (تومان) — اختیاری</label>
+            <input type="number" min="0" id="clientWorkPrice" class="form-control" inputmode="numeric" placeholder="مثلاً ۸۰۰۰۰۰" />
+          </div>
           <div class="form-group full">
             <label>توضیحات و نکات این جلسه</label>
             <textarea id="clientWorkNotes" class="form-control" rows="2" placeholder="چه کاری انجام شد؟ چه موادی یا مدلی استفاده شد؟"></textarea>
@@ -1156,8 +1172,20 @@
         <div class="section-title" style="margin-bottom:9px;">🧾 سوابق کارهای انجام‌شده</div>
         <div id="clientHistoryList" style="display:flex;flex-direction:column;gap:9px;"></div>
       </div>
+      <div style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:12px;">
+        <div style="font-weight:800;font-size:.82rem;margin-bottom:8px;">📤 انتخاب مواردی که برای مشتری ارسال شود</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.78rem;">
+          <label><input type="checkbox" id="shareClientIdentity" checked /> نام و شماره تماس</label>
+          <label><input type="checkbox" id="shareClientNotes" checked /> یادداشت‌ها</label>
+          <label><input type="checkbox" id="shareClientHistory" checked /> سوابق خدمات</label>
+          <label><input type="checkbox" id="shareClientPrices" checked /> قیمت‌ها</label>
+          <label><input type="checkbox" id="shareClientPhotos" checked /> عکس‌های انتخاب‌شده</label>
+          <label><input type="checkbox" id="shareClientNext" /> نوبت بعدی</label>
+        </div>
+        <small style="display:block;color:var(--text-secondary);margin-top:7px;">فقط گزینه‌های فعال و اطلاعاتی که واقعاً ثبت کرده‌ای ارسال می‌شوند؛ موارد خالی حذف می‌شوند.</small>
+      </div>
       <div style="display:flex;gap:8px;margin-top:14px;">
-        <button class="btn-primary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال مشخصات و سوابق</button>
+        <button class="btn-primary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال موارد انتخاب‌شده</button>
         <button class="btn-secondary" onclick="closeModal('clientProfileModal')">بستن</button>
       </div>
     </div>
@@ -2387,6 +2415,25 @@
         </div>
       `).join('');
     }
+    function openAddClientModal() {
+      document.getElementById('newClientName').value = '';
+      document.getElementById('newClientPhone').value = '';
+      document.getElementById('addClientModal').classList.add('open');
+      setTimeout(() => document.getElementById('newClientName').focus(), 80);
+    }
+    function createClientProfile() {
+      const name = document.getElementById('newClientName').value.trim();
+      const phone = document.getElementById('newClientPhone').value.trim();
+      if (!name) { showToast('نام مشتری را وارد کن.'); return; }
+      const key = clientKeyFromFields(phone, name);
+      const p = getClientProfile(key);
+      p.name = name; p.phone = phone;
+      saveData();
+      closeModal('addClientModal');
+      renderClientsTab();
+      openClientRecord(key);
+      showToast('پرونده مشتری ساخته شد ✅');
+    }
     function renderClientsTab() {
       const q = (document.getElementById('globalSearchInput').value || '').trim().toLowerCase();
       const c = document.getElementById('clientsListContainer');
@@ -2403,7 +2450,7 @@
       });
       const clients = Object.values(map).filter(x => !q || (x.name || '').toLowerCase().includes(q) || (x.phone && x.phone.includes(q)));
       if (clients.length === 0) {
-        c.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.82rem;">مشتری‌ای یافت نشد. برای ساخت پرونده، ابتدا یک نوبت برای مشتری ثبت کن.</div>`;
+        c.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.82rem;">هنوز مشتری‌ای ثبت نشده؛ از دکمه «افزودن مشتری» یک پرونده بساز.</div>`;
         return;
       }
       c.innerHTML = clients.map(cl => {
@@ -2473,6 +2520,7 @@
       document.getElementById('clientWorkDate').value = iranNow.getFullYear()+'-'+pad2(iranNow.getMonth()+1)+'-'+pad2(iranNow.getDate());
       document.getElementById('clientWorkTime').value = getIranNow().toTimeString().slice(0,5);
       document.getElementById('clientWorkService').value = '';
+      document.getElementById('clientWorkPrice').value = '';
       document.getElementById('clientWorkNotes').value = '';
       document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]').forEach(el => el.checked=false);
       document.getElementById('clientCustomChecklist').value = '';
@@ -2590,16 +2638,19 @@
       const time = document.getElementById('clientWorkTime').value || '00:00';
       const service = document.getElementById('clientWorkService').value.trim();
       const notes = document.getElementById('clientWorkNotes').value.trim();
+      const priceValue = document.getElementById('clientWorkPrice').value.trim();
+      const price = priceValue === '' ? null : Math.max(0, Number(priceValue) || 0);
       const checklist = Array.from(document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]:checked')).map(el=>el.value);
       const customChecklist = document.getElementById('clientCustomChecklist').value.trim();
       if (customChecklist) checklist.push(customChecklist);
       if (!service) { showToast('نوع خدمت را وارد کن.'); return; }
-      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, checklist, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
+      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, price, checklist, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
       pendingClientWorkPhoto = '';
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
       saveData();
       document.getElementById('clientWorkService').value = '';
+      document.getElementById('clientWorkPrice').value = '';
       document.getElementById('clientWorkNotes').value = '';
       document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]').forEach(el => el.checked=false);
       document.getElementById('clientCustomChecklist').value = '';
@@ -2680,29 +2731,54 @@
     }
     function buildClientShareText(key, onlyItem) {
       const p = getClientProfile(key);
+      const checked = id => { const el=document.getElementById(id); return !el || el.checked; };
+      const lines = ['📁 پرونده مشتری'];
+      if (checked('shareClientIdentity') && p.name) lines.push('نام: '+p.name);
+      if (checked('shareClientIdentity') && p.phone) lines.push('شماره تماس: '+p.phone);
+      if (checked('shareClientNotes') && p.notes) lines.push('یادداشت: '+p.notes);
       const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone,a.clientName) === key);
-      const next = appointments.filter(a => a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
-      const lines = ['📁 پرونده مشتری: '+(p.name || key), '📞 تماس: '+(p.phone || 'ثبت نشده')];
-      if (p.notes) lines.push('⭐ نکات مهم: '+p.notes+(p.notesUpdatedAt ? ' (ثبت/ویرایش: '+formatClientTimestamp(p.notesUpdatedAt)+')' : ''));
       if (onlyItem) {
-        const item = onlyItem.source === 'appointment'
-          ? appointments.find(a => a.id === onlyItem.id)
-          : (p.records || []).find(a => a.id === onlyItem.id);
+        const item = onlyItem.source === 'appointment' ? appointments.find(a=>a.id===onlyItem.id) : (p.records||[]).find(a=>a.id===onlyItem.id);
         if (item) {
-          lines.push('🧾 خدمت: '+(item.service || ''), '📅 تاریخ: '+formatJalaliFull(item.dateKey), '🕒 ساعت: '+(item.time || '—'), '📝 توضیحات: '+(item.notes || '—'));
-          if (item.checklist && item.checklist.length) lines.push('☑ چک‌لیست خدمات: '+item.checklist.join('، '));
-          if (item.createdAt) lines.push('⏱ زمان ثبت در برنامه: '+formatClientTimestamp(item.createdAt));
+          if(item.service) lines.push('خدمت: '+item.service);
+          if(item.dateKey) lines.push('تاریخ: '+formatJalaliFull(item.dateKey));
+          if(item.time) lines.push('ساعت: '+item.time);
+          if(checked('shareClientPrices') && item.price!=null && item.price!=='') lines.push('مبلغ: '+formatMoney(item.price)+' تومان');
+          if(item.notes) lines.push('توضیحات: '+item.notes);
+          if(item.checklist && item.checklist.length) lines.push('خدمات: '+item.checklist.join('، '));
         }
-      } else {
-        lines.push('🧾 سوابق انجام‌شده:');
-        const doneAppts = appointments.filter(a => a.status === 'done').map(a => ({...a, source:'appointment'}));
-        const records = (p.records || []).map(a => ({...a, source:'record'}));
-        doneAppts.concat(records).sort((a,b)=>(b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||''))).forEach((a,i) => {
-          lines.push((i+1)+') '+(a.service || 'خدمت')+' | '+formatJalaliFull(a.dateKey)+' | '+(a.time || '—')+(a.checklist && a.checklist.length ? ' | چک‌لیست: '+a.checklist.join('، ') : '')+(a.notes ? ' | '+a.notes : '')+(a.createdAt ? ' | زمان ثبت: '+formatClientTimestamp(a.createdAt) : ''));
-        });
-        lines.push(next ? '📅 نوبت بعدی: '+formatJalaliFull(next.dateKey)+' ساعت '+next.time+' — '+next.service : '📅 نوبت بعدی: هنوز ثبت نشده');
+      } else if (checked('shareClientHistory')) {
+        const done = appointments.filter(a=>a.status==='done').map(a=>({...a,source:'appointment'}));
+        const records = (p.records||[]).map(a=>({...a,source:'record'}));
+        const history=done.concat(records).sort((a,b)=>(b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
+        if(history.length) {
+          lines.push('سوابق خدمات:');
+          history.forEach((a,i)=>{
+            const parts=[(i+1)+') '+(a.service||'خدمت')];
+            if(a.dateKey) parts.push(formatJalaliFull(a.dateKey));
+            if(a.time) parts.push(a.time);
+            if(checked('shareClientPrices') && a.price!=null && a.price!=='') parts.push('مبلغ: '+formatMoney(a.price)+' تومان');
+            if(a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
+            if(a.notes) parts.push(a.notes);
+            lines.push(parts.join(' | '));
+          });
+        }
+        if(checked('shareClientNext')) {
+          const next=appointments.filter(a=>a.status!=='canceled'&&a.dateKey>=getTodayKey()).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
+          if(next) lines.push('نوبت بعدی: '+formatJalaliFull(next.dateKey)+(next.time?' ساعت '+next.time:'')+(next.service?' — '+next.service:''));
+        }
       }
-      return lines.join('\n');
+      return lines.length>1?lines.join('\\n'):'پرونده مشتری: '+(p.name||'بدون مشخصات ثبت‌شده');
+    }
+    async function shareClientRecord() {
+      const key=document.getElementById('clientRecordKey').value;
+      if(!key)return;
+      const p=getClientProfile(key), refs=[];
+      if(document.getElementById('shareClientPhotos')?.checked!==false) {
+        if(p.photoRef||p.photo) refs.push(p.photoRef||p.photo);
+        if(document.getElementById('shareClientHistory')?.checked!==false) (p.records||[]).forEach(r=>[r.beforePhotoRef,r.afterPhotoRef,r.photoRef,r.photo].filter(Boolean).forEach(x=>refs.push(x)));
+      }
+      await shareClientPayload(buildClientShareText(key),refs,'پرونده مشتری');
     }
     async function shareClientHistoryItem(encodedKey, encodedId, source) {
       const key = decodeURIComponent(encodedKey), id = decodeURIComponent(encodedId), p = getClientProfile(key);
