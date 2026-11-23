@@ -511,60 +511,6 @@
         <div class="days-grid" id="calendarGrid"></div>
       </div>
 
-      <!-- Custom Appointment Booking (نوبت‌دهی دلخواه) -->
-      <div class="card" id="customBookingCard">
-        <div class="section-head">
-          <div class="section-title">🗓️ نوبت‌دهی دلخواه و یادآوری زمانی</div>
-          <span style="font-size:0.73rem; color:var(--text-secondary);">ثبت تاریخ/ساعت یا تعداد روز دلخواه</span>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>نام مشتری *</label>
-            <input type="text" id="customBookName" class="form-control" placeholder="نام مشتری..." />
-          </div>
-          <div class="form-group">
-            <label>شماره موبایل (برای ارسال پیام‌رسان)</label>
-            <input type="tel" id="customBookPhone" class="form-control" placeholder="0912..." dir="ltr" />
-          </div>
-          <div class="form-group">
-            <label>چند روز بعد از روز انتخاب‌شده؟</label>
-            <input type="number" id="customBookDays" class="form-control" min="0" max="365" value="14" onchange="syncCustomDateFromDays()" />
-          </div>
-          <div class="form-group">
-            <label>ساعت دلخواه</label>
-            <input type="time" id="customBookTime" class="form-control" value="11:00" />
-          </div>
-          <div class="form-group full">
-            <label>نوع خدمت / توضیح نوبت دلخواه</label>
-            <input type="text" id="customBookService" class="form-control" placeholder="مثلاً ترمیم، مشاوره یا زمان دلخواه..." />
-          </div>
-          <div class="form-group">
-            <label>مبلغ (تومان)</label>
-            <input type="number" id="customBookPrice" class="form-control" placeholder="۰" />
-          </div>
-          <div class="form-group">
-            <label>هشدار</label>
-            <select id="customBookAlarm" class="form-control">
-              <option value="none">بدون هشدار</option>
-              <option value="0">سرِ ساعت</option>
-              <option value="15" selected>۱۵ دقیقه قبل</option>
-              <option value="60">۱ ساعت قبل</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="font-size:0.75rem; color:var(--accent); font-weight:700; margin-bottom:9px;" id="customTargetDatePreview">
-          تاریخ محاسبه‌شده نوبت دلخواه: —
-        </div>
-
-        <div style="display:flex; flex-wrap:wrap; gap:7px;">
-          <button class="btn-primary" style="flex:1;" onclick="saveCustomAppointment(false)">✅ ثبت نوبت دلخواه</button>
-          <button class="btn-secondary" onclick="saveCustomAppointment(true)">📲 ثبت و ارسال در پیام‌رسان</button>
-          <button class="btn-secondary" onclick="resetCustomBookingForm()">🧹 خالی کردن فرم</button>
-        </div>
-      </div>
-
       <!-- Selected Date Schedule -->
       <div class="card">
         <div class="section-head" style="padding-bottom:9px; border-bottom:1px solid var(--border-subtle);">
@@ -860,11 +806,12 @@
         </div>
       </div>
 
-      <!-- 3. Backup, Clear User Entries & Offline Tools -->
+      <!-- 3. Security PIN & Backup -->
       <div class="card">
-        <div class="section-title" style="margin-bottom:10px;">💾 پشتیبان‌گیری، مدیریت داده‌ها و ابزارهای آفلاین</div>
-        <div style="font-size:0.76rem; color:var(--text-secondary); margin-bottom:10px; line-height:1.6;">
-          تمام اطلاعات شما به‌صورت کاملاً آفلاین در حافظه دستگاه ذخیره می‌شود و هیچ‌چیز به صورت خودکار پاک نمی‌شود؛ هر زمان بخواهید می‌توانید موارد ثبت‌شده را با اختیار خودتان حذف یا پاک کنید.
+        <div class="section-title" style="margin-bottom:10px;">🔒 امنیت (رمز ورود) و پشتیبان‌گیری</div>
+        <div class="form-group">
+          <label>رمز عبور ۴ رقمی ورود به برنامه (برای حذف رمز، کادر را خالی بگذارید)</label>
+          <input type="tel" maxlength="4" id="settingAppPin" class="form-control" dir="ltr" placeholder="مثلاً: 1234" onchange="saveSettings()" />
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
@@ -875,7 +822,7 @@
             <input type="file" accept=".json" style="display:none;" onchange="importBackup(event)" />
           </label>
           <button class="btn-secondary" onclick="testAlarmSound()">🔔 تست زنگ هشدار</button>
-          <button class="btn-secondary" onclick="openShareModal()">📤 ارسال در پیام‌رسان</button>
+          <button class="btn-secondary" onclick="openShareModal()">📤 ارسال اپ / لینک APK</button>
           <button class="btn-secondary" style="grid-column:1 / -1; color:var(--danger); border-color:rgba(239,68,68,0.4);" onclick="clearAllUserEntries()">🗑️ پاک کردن همه موارد نوشته‌شده و اضافه‌شده توسط من</button>
         </div>
       </div>
@@ -1023,12 +970,17 @@
         </div>
         <div class="form-group">
           <label>رزرو خودکار نوبت ترمیم بعدی</label>
-          <select id="apptNextFollowup" class="form-control">
+          <select id="apptNextFollowup" class="form-control" onchange="toggleCustomFollowupDays()">
             <option value="0">بدون نوبت ترمیم</option>
             <option value="14">۲ هفته بعد (۱۴ روز)</option>
             <option value="21">۳ هفته بعد (۲۱ روز)</option>
             <option value="28">۴ هفته بعد (۲۸ روز)</option>
+            <option value="custom">دلخواه (تعداد روز دلخواه)</option>
           </select>
+        </div>
+        <div class="form-group" id="customFollowupDaysGroup" style="display:none;">
+          <label>تعداد روز دلخواه بعد از این نوبت</label>
+          <input type="number" id="apptCustomFollowupDays" class="form-control" min="1" max="365" value="10" placeholder="مثلاً: 10" />
         </div>
         <div class="form-group full">
           <label>وضعیت نوبت</label>
@@ -1394,7 +1346,6 @@
       if (viewMonth > 12) { viewMonth = 1; viewYear++; }
       if (viewMonth < 1) { viewMonth = 12; viewYear--; }
       renderCalendar();
-    syncCustomDateFromDays();
       updateDashboardStats();
     }
 
@@ -1556,6 +1507,8 @@
       document.getElementById('editApptId').value = editId || '';
       document.getElementById('conflictWarningBox').style.display = 'none';
       document.getElementById('apptNextFollowup').value = '0';
+      document.getElementById('apptCustomFollowupDays').value = '10';
+      toggleCustomFollowupDays();
 
       const chipsWrap = document.getElementById('quickServiceChipsWrap');
       const chipsBox = document.getElementById('quickServiceChips');
@@ -1612,6 +1565,15 @@
       document.getElementById('conflictWarningBox').style.display = hasConflict ? 'block' : 'none';
     }
 
+
+    function toggleCustomFollowupDays() {
+      const sel = document.getElementById('apptNextFollowup');
+      const grp = document.getElementById('customFollowupDaysGroup');
+      if (sel && grp) {
+        grp.style.display = sel.value === 'custom' ? 'flex' : 'none';
+      }
+    }
+
     function saveAppointment() {
       const clientName = document.getElementById('apptClientName').value.trim();
       const time = document.getElementById('apptTime').value;
@@ -1641,8 +1603,11 @@
         appData.appointments.push(payload);
       }
 
-      // Auto-schedule follow-up repair appointment if chosen
-      const followupDays = Number(document.getElementById('apptNextFollowup').value) || 0;
+      // Auto-schedule follow-up repair appointment if chosen (including custom days)
+      const followupSelVal = document.getElementById('apptNextFollowup').value;
+      const followupDays = followupSelVal === 'custom'
+        ? (Number(document.getElementById('apptCustomFollowupDays').value) || 0)
+        : (Number(followupSelVal) || 0);
       if (followupDays > 0) {
         const nextDateKey = addDaysToJalaliKey(selectedDateKey, followupDays);
         appData.appointments.push({
@@ -2261,81 +2226,6 @@
     }
 
 
-    // --- CUSTOM APPOINTMENT BOOKING & USER DATA CLEAR ---
-    function syncCustomDateFromDays() {
-      const days = Number(document.getElementById('customBookDays').value) || 0;
-      const targetKey = addDaysToJalaliKey(selectedDateKey, days);
-      document.getElementById('customTargetDatePreview').textContent =
-        `تاریخ نوبت دلخواه: ${formatJalaliFull(targetKey)}`;
-      return targetKey;
-    }
-
-    function resetCustomBookingForm() {
-      document.getElementById('customBookName').value = '';
-      document.getElementById('customBookPhone').value = '';
-      document.getElementById('customBookDays').value = '14';
-      document.getElementById('customBookTime').value = '11:00';
-      document.getElementById('customBookService').value = '';
-      document.getElementById('customBookPrice').value = '';
-      document.getElementById('customBookAlarm').value = '15';
-      syncCustomDateFromDays();
-    }
-
-    function saveCustomAppointment(sendMsgAfter) {
-      const clientName = document.getElementById('customBookName').value.trim();
-      if (!clientName) { showToast('نام مشتری را وارد کنید ⚠️'); return; }
-      const targetDateKey = syncCustomDateFromDays();
-      const time = document.getElementById('customBookTime').value || '11:00';
-      const phone = document.getElementById('customBookPhone').value.trim();
-      const service = document.getElementById('customBookService').value.trim() || 'نوبت دلخواه';
-      const price = Number(document.getElementById('customBookPrice').value) || 0;
-      const alarm = document.getElementById('customBookAlarm').value;
-
-      const newAppt = {
-        id: 'appt_c_' + Date.now(),
-        dateKey: targetDateKey,
-        time,
-        clientName,
-        phone,
-        service,
-        price,
-        deposit: 0,
-        commPercent: Number(appData.settings.defaultComm) || 0,
-        payMethod: 'کارت‌به‌کارت',
-        alarm,
-        status: 'pending',
-        notified: false
-      };
-
-      appData.appointments.push(newAppt);
-      selectedDateKey = targetDateKey;
-      const [ty, tm] = targetDateKey.split('-').map(Number);
-      viewYear = ty; viewMonth = tm;
-      saveData();
-      renderCalendar();
-    syncCustomDateFromDays();
-      renderDaySchedule();
-      resetCustomBookingForm();
-      showToast('نوبت دلخواه ثبت شد ✅');
-
-      if (sendMsgAfter) {
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
-        const waPhone = cleanPhone.startsWith('0') ? '98' + cleanPhone.slice(1) : cleanPhone;
-        const tpl = appData.settings.msgTemplate || 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
-        const txt = tpl
-          .replace(/\{name\}/g, clientName)
-          .replace(/\{date\}/g, formatJalaliFull(targetDateKey))
-          .replace(/\{time\}/g, toPersianDigits(time))
-          .replace(/\{service\}/g, service);
-        if (waPhone) {
-          window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(txt)}`, '_blank');
-        } else {
-          navigator.clipboard?.writeText(txt);
-          showToast('متن پیام برای ارسال کپی شد 📤');
-        }
-      }
-    }
-
     function clearAllUserEntries() {
       if (!confirm('همه نوبت‌ها، یادداشت‌ها، چک‌لیست و تراکنش‌هایی که ثبت کرده‌اید پاک شوند؟')) return;
       appData.appointments = [];
@@ -2345,7 +2235,6 @@
       appData.clientNotes = {};
       saveData();
       renderCalendar();
-    syncCustomDateFromDays();
       renderDaySchedule();
       renderTodos();
       renderNotebook();
@@ -2359,7 +2248,6 @@
     applySettingsUI();
     updateClockAndDate();
     renderCalendar();
-    syncCustomDateFromDays();
     renderDaySchedule();
     renderTodos();
     renderNotebook();
