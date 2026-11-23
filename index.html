@@ -3891,19 +3891,50 @@
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
-    function exportBackup() {
-      const payload = { ...appData, backupMeta: { app:'Dastyare-man', schema:2, createdAt:new Date().toISOString(), jalaliDate:getTodayKey() } };
-      const json = JSON.stringify(payload);
-      const filename = `dastyare-man-backup-${getTodayKey()}.json`;
+    function readBlobAsDataUrl(blob) {
+      return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob);});
+    }
+    async function collectClientPhotoArchive() {
+      const db=await openClientPhotoDB();
       try {
-        if (window.AndroidApp && typeof window.AndroidApp.exportBackup === 'function' && json.length < 19000000) {
-          window.AndroidApp.exportBackup(json, filename);
-          showToast('ساخت فایل پشتیبان آغاز شد 💾');
-          return;
-        }
-      } catch (e) {}
-      downloadBackupPayload(payload);
-      showToast('فایل پشتیبان دانلود شد 💾');
+        const items=await new Promise((resolve,reject)=>{
+          const tx=db.transaction('photos','readonly'),store=tx.objectStore('photos');
+          const keysReq=store.getAllKeys(),valuesReq=store.getAll();
+          tx.oncomplete=async()=>{try{const out=[];for(let i=0;i<keysReq.result.length;i++){const blob=valuesReq.result[i];if(blob instanceof Blob)out.push({id:String(keysReq.result[i]),type:blob.type||'image/jpeg',data:await readBlobAsDataUrl(blob)});}resolve(out);}catch(e){reject(e);}};
+          tx.onerror=()=>reject(tx.error);
+        });
+        return items;
+      } finally { db.close(); }
+    }
+    async function restoreClientPhotoArchive(items) {
+      if(!Array.isArray(items)||!items.length)return;
+      const db=await openClientPhotoDB();
+      try {
+        await new Promise((resolve,reject)=>{
+          const tx=db.transaction('photos','readwrite'),store=tx.objectStore('photos');
+          (async()=>{try{for(const item of items){if(!item||!item.id||typeof item.data!=='string'||!item.data.startsWith('data:image/'))continue;const blob=await (await fetch(item.data)).blob();store.put(blob,item.id);}}catch(e){try{tx.abort();}catch(_){}reject(e);}})();
+          tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Photo restore failed'));
+        });
+      } finally { db.close(); }
+    }
+    async function exportBackup() {
+      try {
+        const photos=await collectClientPhotoArchive();
+        const payload = { ...appData, _photoArchive:photos, backupMeta: { app:'Dastyare-man', schema:3, createdAt:new Date().toISOString(), jalaliDate:getTodayKey(), photoCount:photos.length } };
+        const json = JSON.stringify(payload);
+        const filename = `dastyare-man-backup-${getTodayKey()}.json`;
+        try {
+          if (window.AndroidApp && typeof window.AndroidApp.exportBackup === 'function' && json.length < 145000000) {
+            window.AndroidApp.exportBackup(json, filename);
+            showToast('پشتیبان اطلاعات و عکس‌ها آماده ذخیره است 💾');
+            return;
+          }
+        } catch (e) {}
+        downloadBackupPayload(payload);
+        showToast('پشتیبان اطلاعات و عکس‌ها دانلود شد 💾');
+      } catch(e) {
+        showToast('تهیه نسخه عکس‌ها ناموفق بود؛ پشتیبان اطلاعات بدون تغییر ساخته نشد.');
+      }
     }
     function validateBackupData(parsed) {
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
@@ -3917,12 +3948,15 @@
       const file = event.target.files && event.target.files[0]; if (!file) return;
       if (file.size > 100*1024*1024) { showToast('حجم فایل پشتیبان بیش از حد مجاز است.'); event.target.value=''; return; }
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const parsed = JSON.parse(e.target.result);
           if (!validateBackupData(parsed)) { showToast('ساختار فایل پشتیبان معتبر نیست؛ اطلاعات فعلی تغییر نکرد.'); return; }
-          if (!confirm('قبل از بازیابی، یک نسخه پشتیبان از اطلاعات فعلی ساخته می‌شود. سپس اطلاعات فایل انتخابی جایگزین می‌شود. ادامه می‌دهی؟')) return;
-          downloadBackupPayload({ ...appData, backupMeta:{ app:'Dastyare-man', schema:2, createdAt:new Date().toISOString(), reason:'pre-restore-safety-copy' } }, '-before-restore');
+          if (!confirm('قبل از بازیابی، یک نسخه پشتیبان از اطلاعات فعلی و عکس‌ها ساخته می‌شود. سپس اطلاعات فایل انتخابی بازیابی می‌شود. ادامه می‌دهی؟')) return;
+          const currentPhotos=await collectClientPhotoArchive();
+          downloadBackupPayload({ ...appData, _photoArchive:currentPhotos, backupMeta:{ app:'Dastyare-man', schema:3, createdAt:new Date().toISOString(), reason:'pre-restore-safety-copy', photoCount:currentPhotos.length } }, '-before-restore');
+          await restoreClientPhotoArchive(parsed._photoArchive || []);
+          delete parsed._photoArchive;
           const defaults = { appointments:[], notes:[], todos:[], transactions:[], services:[], clientNotes:{}, clientProfiles:{}, settings:{} };
           appData = { ...defaults, ...appData, ...parsed,
             appointments: parsed.appointments || appData.appointments || [],
