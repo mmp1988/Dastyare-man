@@ -3964,8 +3964,8 @@
           appData = { ...defaults, ...appData, ...parsed,
             appointments: parsed.appointments || appData.appointments || [],
             notes: parsed.notes || [], todos: parsed.todos || [], transactions: parsed.transactions || [],
-            services: parsed.services || [], clientNotes: { ...(appData.clientNotes||{}), ...(parsed.clientNotes||{}) },
-            clientProfiles: { ...(appData.clientProfiles||{}), ...(parsed.clientProfiles||{}) },
+            services: parsed.services || [], clientNotes: parsed.clientNotes && typeof parsed.clientNotes==='object' ? parsed.clientNotes : (appData.clientNotes||{}),
+            clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles==='object' ? parsed.clientProfiles : (appData.clientProfiles||{}),
             settings: { ...(appData.settings||{}), ...(parsed.settings||{}) } };
           saveData(); applySettingsUI(); renderCalendar(); renderDaySchedule(); renderNotebook(); renderTodos(); renderFinanceTab(); renderServicesTab(); renderClientsTab(); updateDashboardStats();
           showToast('بازیابی انجام شد؛ نسخه قبلی هم به‌عنوان پشتیبان ذخیره شد ✅');
