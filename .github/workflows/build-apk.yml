@@ -29,6 +29,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate web app JavaScript and manifest
+        run: |
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          html = Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\\b[^>]*>(.*?)</script\\s*>", html, flags=re.I | re.S)
+          if len(scripts) != 1:
+              raise SystemExit(f"Expected one inline app script, found {len(scripts)}")
+          Path("/tmp/dastyare-app.js").write_text(scripts[0], encoding="utf-8")
+          json.loads(Path("manifest.json").read_text(encoding="utf-8"))
+          print("Inline JavaScript extracted; manifest JSON is valid.")
+          PY
+          node --check /tmp/dastyare-app.js
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
