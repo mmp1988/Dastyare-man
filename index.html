@@ -4528,7 +4528,7 @@
         if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
         if (/صبح/.test(period) && hour === 12) hour = 0;
         if (hour > 23 || minute > 59) return 'ساعت رو درست متوجه نشدم گلم؛ یک بار دیگه می‌گی؟ 💗';
-        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(t)) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
+        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(t)) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
         let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
         const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
@@ -4704,7 +4704,7 @@
       const hasClock = /(?:ساعت\s*)?\d{1,2}(?::\d{1,2})?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized);
       const isBookingIntent = /(?:نوبت|رزرو|وقت)/.test(normalized) &&
         /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
-      const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) &&
+      const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized) &&
         /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
