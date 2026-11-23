@@ -2451,24 +2451,58 @@
     function copyTextValue(elId, msg) { navigator.clipboard?.writeText(document.getElementById(elId).textContent.trim()); showToast(msg); }
 
     // ==================== SPEECH TO TEXT ====================
+    function setVoiceButtonState(btnId, active) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      if (active) {
+        btn.classList.add('recording');
+        btn.textContent = '🔴 در حال شنیدن...';
+      } else {
+        btn.classList.remove('recording');
+        btn.textContent = btnId === 'voiceNoteBodyBtn' ? '🎤 تبدیل گفتار به متن یادداشت' : '🎤 گفتار';
+      }
+    }
+
+    // Called only by the native on-device Android speech recognizer.
+    window.receiveNativeSpeechResult = function(targetInputId, transcript) {
+      const input = document.getElementById(targetInputId);
+      if (!input || !transcript) return;
+      input.value = input.value ? (input.value + ' ' + transcript) : transcript;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
     function startVoiceInput(targetInputId, btnId) {
+      // Native APK: use Android's on-device recognizer only. Never silently send audio online.
+      if (window.AndroidApp && typeof AndroidApp.startOfflineSpeechRecognition === 'function') {
+        setVoiceButtonState(btnId, true);
+        try {
+          AndroidApp.startOfflineSpeechRecognition(targetInputId, btnId);
+        } catch (e) {
+          setVoiceButtonState(btnId, false);
+          showToast('تشخیص گفتار آفلاین در این گوشی در دسترس نیست؛ لطفاً تایپ کنید.');
+        }
+        return;
+      }
+
+      // PWA/browser: retain the existing system speech service, which may require internet.
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) { showToast('مرورگر از گفتار به متن پشتیبانی نمی‌کند ⚠️'); return; }
+      if (!SpeechRecognition) { showToast('گفتار به متن در این نسخه در دسترس نیست؛ لطفاً تایپ کنید.'); return; }
       const btn = document.getElementById(btnId);
       const input = document.getElementById(targetInputId);
       const recognition = new SpeechRecognition();
       recognition.lang = 'fa-IR';
-      btn.classList.add('recording');
-      btn.textContent = '🔴 در حال شنیدن...';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      setVoiceButtonState(btnId, true);
       recognition.onresult = (e) => {
         const t = e.results[0][0].transcript;
         input.value = input.value ? (input.value + ' ' + t) : t;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
       };
-      recognition.onend = () => {
-        btn.classList.remove('recording');
-        btn.textContent = btnId === 'voiceNoteBodyBtn' ? '🎤 تبدیل گفتار به متن یادداشت' : '🎤 گفتار';
-      };
-      recognition.start();
+      recognition.onerror = () => showToast('تشخیص گفتار انجام نشد؛ می‌توانید متن را تایپ کنید.');
+      recognition.onend = () => setVoiceButtonState(btnId, false);
+      try { recognition.start(); }
+      catch (e) { setVoiceButtonState(btnId, false); showToast('امکان شروع تشخیص گفتار نیست؛ لطفاً تایپ کنید.'); }
     }
 
     // ==================== CLOCK, ALARMS & STATS ====================
