@@ -4537,7 +4537,7 @@
         return 'انجام شد! به فهرست کارهات اضافه‌اش کردم تا یادت نره 🎀\n«' + task + '»';
       }
 
-      if ((/(?:نوبت|رزرو|وقت)/.test(t) || (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(t) && /(?:برای|خدمت)/.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|انجام\s*بده|انجامش\s*بده|بده)/.test(t) &&
+      if ((/(?:نوبت|رزرو|وقت)/.test(t) || (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(t) && /(?:برای|خدمت)/.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\\s*بده|انجامش\\s*بده|بده)/.test(t) &&
           (/(?:امروز|فردا|پس\s*فردا|تاریخ)/.test(t) || /\d{1,2}(?::\d{1,2})?/.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/.test(t))) {
         const clock = t.match(/ساعت\s*(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
           t.match(/(?:^|\s)(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)(?:\s|$)/);
@@ -4728,17 +4728,30 @@
       const hasClock = /(?:ساعت\s*)?\d{1,2}(?::\d{1,2})?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized);
       const isBookingIntent = (/(?:نوبت|رزرو|وقت)/.test(normalized) ||
         (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) && /(?:برای|خدمت)/.test(normalized))) &&
-        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
+        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\\s*بده|انجامش\\s*بده|بده)/.test(normalized);
       const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized) &&
         /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
+      // Multi-turn booking: preserve details when the user supplies date/time separately.
+      if (minaConversationBooking && hasDateAndService && !hasClock &&
+          /(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
+        const continuation = minaConversationBooking.original + ' ' + expandedRaw;
+        minaConversationBooking = null;
+        return minaBuildReplyCore(continuation);
+      }
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
-        const timeMatch = normalized.match(/(?:ساعت\s*)?(\d{1,2}(?::\d{1,2})?)\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
+        const timeMatch = normalized.match(/(?:ساعت\\s*)?(\\d{1,2}(?::\\d{1,2})?)\\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
         if (timeMatch) {
           const continuation = minaConversationBooking.original + ' ساعت ' + timeMatch[1] + ' ' + timeMatch[2];
           minaConversationBooking = null;
           return minaBuildReplyCore(continuation);
         }
+      }
+      if (isBookingIntent && hasClock && !hasDateAndService &&
+          /(?:کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین)/.test(normalized) &&
+          !/(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
+        minaConversationBooking = { original: expandedRaw };
+        return 'حتماً عزیزم 💗 فقط تاریخ نوبت رو هم بگو؛ مثلاً «فردا» یا «پنجشنبه».';
       }
       if (isBookingIntent && hasDateAndService && !hasClock) {
         minaConversationBooking = { original: expandedRaw };
