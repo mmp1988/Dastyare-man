@@ -937,6 +937,36 @@
     html[data-theme="dark"] .mina-suggestions button{background:var(--bg-input);color:var(--text-primary);border-color:var(--border-color)}
     html[data-theme="dark"] .mina-personalize-card{background:var(--bg-card)}
     @media(max-width:380px){.nav-item{font-size:.59rem}.nav-icon{font-size:1rem}.mina-suggestions{grid-template-columns:1fr}}
+  
+    /* ===== Professional UI refinement ===== */
+    .card { border-color: color-mix(in srgb, var(--accent) 20%, var(--border-subtle)); box-shadow: 0 10px 28px rgba(0,0,0,.16); }
+    .section-title { letter-spacing: -.2px; }
+    .stat-card { min-height: 68px; display:flex; flex-direction:column; justify-content:center; gap:3px; transition:transform .18s ease,border-color .18s ease; }
+    .stat-card:active { transform:scale(.985); }
+    .btn-primary,.btn-secondary,.btn-pill,.icon-btn,.mini-btn { transition:transform .16s ease,filter .16s ease,background .16s ease; }
+    .btn-primary:active,.btn-secondary:active,.btn-pill:active,.icon-btn:active,.mini-btn:active { transform:translateY(1px) scale(.98); }
+    .cal-header { gap:8px; flex-wrap:wrap; }
+    .cal-month-title { color:var(--accent); }
+    .cal-nav { flex-wrap:wrap; }
+    .day-cell { transition:border-color .16s ease,background .16s ease,transform .16s ease; }
+    .day-cell:not(.empty):active { transform:scale(.96); }
+    .day-cell.has-pending { border-color:rgba(245,158,11,.52); }
+    .day-cell.has-done { box-shadow:inset 0 -3px 0 rgba(16,185,129,.72); }
+    .day-cell.has-missing { outline:1px dashed var(--danger); outline-offset:-3px; }
+    .calendar-smart-insights { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px;padding-top:11px;border-top:1px solid var(--border-subtle); }
+    .calendar-insight { min-width:0;text-align:center;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:12px;padding:8px 4px; }
+    .calendar-insight strong { display:block;font-size:1rem;color:var(--accent); }
+    .calendar-insight span { display:block;font-size:.65rem;color:var(--text-secondary);margin-top:2px; }
+    .calendar-smart-legend { display:flex;flex-wrap:wrap;gap:10px;margin-top:9px;color:var(--text-secondary);font-size:.68rem; }
+    .calendar-smart-legend span { display:inline-flex;align-items:center;gap:4px; }
+    .calendar-smart-legend i { width:7px;height:7px;border-radius:50%;display:inline-block; }
+    .mina-message.assistant .mina-bubble { border:1px solid color-mix(in srgb,var(--accent) 18%,transparent); }
+    .mina-message.user .mina-bubble { box-shadow:0 5px 16px rgba(0,0,0,.10); }
+    @media(max-width:390px) {
+      .cal-nav .btn-pill { padding:6px 8px;font-size:.7rem; }
+      .calendar-insight span { font-size:.61rem; }
+    }
+
   </style>
 </head>
 <body>
@@ -4565,6 +4595,124 @@
       addMinaMessage(reply, 'assistant');
     }
 
+
+    // ===== SMART MINA + CALENDAR UPGRADE (offline-first, local data only) =====
+    const minaBuildReplyCore = minaBuildReply;
+    minaBuildReply = function(raw) {
+      const normalized = minaCleanText(minaNormalizeDigits(raw)).toLowerCase();
+      const all = (appData.appointments || []).filter(a => a.status !== 'canceled');
+      const todayKey = getTodayKey();
+      const nameFrom = (pattern) => {
+        const m = normalized.match(pattern);
+        return m ? m[1].trim() : '';
+      };
+      const refreshAfterMinaChange = () => {
+        saveData();
+        renderCalendar();
+        renderDaySchedule();
+        if (typeof renderFinanceTab === 'function') renderFinanceTab();
+        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+      };
+
+      if (/(?:نوبت|رزرو).*(?:بدون نام|اسم نداره|نام نداره)|(?:بدون نام|اسم ندارن|نام ندارن)/.test(normalized)) {
+        const missing = all.filter(a => a.clientNameMissing === true || !String(a.clientName || '').trim() ||
+          /^(?:—|نام درج نشده|⚠️ نام درج نشده)/u.test(String(a.clientName || '')));
+        return missing.length
+          ? 'این نوبت‌ها هنوز اسم مشتری ندارن عزیزم؛ می‌تونی از تقویم بازشون کنی و نام رو تکمیل کنی 🌷\n' +
+            missing.slice(0,10).map(a => '• '+formatJalaliFull(a.dateKey)+'، '+(a.time||'بدون ساعت')+' — '+(a.service||'خدمت ثبت‌نشده')).join('\n')
+          : 'آفرین عزیزم، نوبتِ بدون نامی توی تقویمت پیدا نکردم 💗';
+      }
+
+      if (/(?:تداخل|هم.?ساعت|ساعت مشترک|نوبت.*روی هم)/.test(normalized)) {
+        const groups = {};
+        all.forEach(a => { const k=a.dateKey+' '+(a.time||''); (groups[k] ||= []).push(a); });
+        const conflicts = Object.entries(groups).filter(([,items])=>items.length>1);
+        return conflicts.length
+          ? 'این ساعت‌ها بیش از یک نوبت دارن؛ بهتره بررسی‌شون کنی ⚠️\n'+conflicts.slice(0,10).map(([k,items])=>'• '+formatJalaliFull(k.split(' ')[0])+'، '+(k.split(' ')[1]||'بدون ساعت')+' ('+items.length+' نوبت)').join('\n')
+          : 'تقویمت رو بررسی کردم؛ تداخل زمانی ثبت‌شده‌ای پیدا نکردم عزیزم 💗';
+      }
+
+      if (/(?:این هفته|هفت روز آینده).*(?:نوبت|برنامه)|(?:نوبت|برنامه).*(?:این هفته|هفت روز آینده)/.test(normalized)) {
+        const end=addDaysToJalaliKey(todayKey,6);
+        const week=all.filter(a=>a.dateKey>=todayKey&&a.dateKey<=end)
+          .sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
+        return week.length ? 'برنامه هفت روز آینده‌ات اینه عزیزم 🌸\n'+week.slice(0,20).map(a=>'• '+formatJalaliFull(a.dateKey)+'، '+(a.time||'بدون ساعت')+' — '+(a.clientNameMissing?'⚠️ نام درج نشده':(a.clientName||'مشتری'))+'، '+(a.service||'خدمت')).join('\n')+'\n\nمجموع: '+toPersianDigits(week.length)+' نوبت'
+          : 'تا هفت روز آینده نوبتی ثبت نشده؛ وقت خوبیه برای برنامه‌ریزی 💗';
+      }
+
+      const moveName=nameFrom(/(?:نوبت|وقت)\s+(.+?)\s+(?:رو|را)\s+(?:به|برای)\s*(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|عصر|بعدازظهر|بعد از ظهر)?\s*(?:منتقل|جابجا|جابه.?جا) کن/);
+      if (moveName) {
+        const match=normalized.match(/(?:نوبت|وقت)\s+(.+?)\s+(?:رو|را)\s+(?:به|برای)\s*(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|عصر|بعدازظهر|بعد از ظهر)?\s*(?:منتقل|جابجا|جابه.?جا) کن/);
+        let hour=Number(match[2]), minute=Number(match[3]||0);
+        if(/عصر|بعدازظهر|بعد از ظهر/.test(match[4]||'')&&hour<12)hour+=12;
+        if(hour>23||minute>59)return 'ساعت جدید رو دقیق‌تر می‌گی عزیزم؟ 💗';
+        const found=all.filter(a=>String(a.clientName||'').toLowerCase().includes(match[1].trim()));
+        if(found.length!==1)return found.length?'چند نوبت با این اسم پیدا کردم؛ لطفاً نام کامل‌تر یا تاریخ رو بگو 🌷':'نوبتی با این اسم پیدا نکردم عزیزم.';
+        const appt=found[0], newTime=pad2(hour)+':'+pad2(minute);
+        const conflict=all.some(a=>a.id!==appt.id&&a.dateKey===appt.dateKey&&a.time===newTime);
+        appt.time=newTime; refreshAfterMinaChange();
+        return 'انجام شد عزیزم 🌸 ساعت نوبت '+(appt.clientName||'مشتری')+' به '+newTime+' تغییر کرد.'+(conflict?'\n⚠️ در ساعت جدید نوبت دیگری هم ثبت شده؛ تقویم رو بررسی کن.':'');
+      }
+
+      const cancelName=nameFrom(/(?:لغو|کنسل)\s+(?:نوبت\s+)?(.+)/);
+      if(cancelName && !/^(?:نوبت|رزرو)$/.test(cancelName)) {
+        const found=all.filter(a=>String(a.clientName||'').toLowerCase().includes(cancelName));
+        if(found.length===1){found[0].status='canceled';refreshAfterMinaChange();return 'نوبت '+(found[0].clientName||'مشتری')+' لغو شد عزیزم. اطلاعاتش حذف نشد و در سوابق می‌مونه 💗';}
+        if(found.length>1)return 'چند نوبت با این اسم پیدا کردم؛ لطفاً نام کامل‌تر رو بگو 🌷';
+      }
+
+      const doneName=nameFrom(/(?:انجام شد|تکمیل شد|تموم شد)\s+(?:نوبت\s+)?(.+)/);
+      if(doneName) {
+        const found=all.filter(a=>String(a.clientName||'').toLowerCase().includes(doneName));
+        if(found.length===1){found[0].status='done';refreshAfterMinaChange();return 'ثبت شد عزیزم 🌸 نوبت '+(found[0].clientName||'مشتری')+' به وضعیت «انجام شد» تغییر کرد.';}
+        if(found.length>1)return 'چند نوبت با این اسم دارم؛ لطفاً نام کامل‌تر رو بگو 💗';
+      }
+      return minaBuildReplyCore(raw);
+    };
+
+    function refreshSmartCalendarInsights() {
+      const root=document.getElementById('calendarSmartInsights');
+      if(!root)return;
+      const day=(appData.appointments||[]).filter(a=>a.dateKey===selectedDateKey&&a.status!=='canceled');
+      const pending=day.filter(a=>a.status!=='done').length;
+      const done=day.filter(a=>a.status==='done').length;
+      const missing=day.filter(a=>a.clientNameMissing===true||!String(a.clientName||'').trim()||/^(?:—|نام درج نشده|⚠️ نام درج نشده)/u.test(String(a.clientName||''))).length;
+      const byTime={};day.forEach(a=>{const k=a.time||'بدون ساعت';byTime[k]=(byTime[k]||0)+1;});
+      const conflicts=Object.values(byTime).filter(n=>n>1).reduce((n,x)=>n+x,0);
+      root.innerHTML='<div class="calendar-insight"><strong>'+toPersianDigits(day.length)+'</strong><span>کل نوبت‌ها</span></div>'+
+        '<div class="calendar-insight"><strong>'+toPersianDigits(pending)+'</strong><span>در انتظار</span></div>'+
+        '<div class="calendar-insight"><strong style="color:'+(missing||conflicts?'var(--danger)':'var(--success)')+'">'+toPersianDigits(missing+conflicts)+'</strong><span>نیازمند بررسی</span></div>'+
+        '<div class="calendar-smart-legend"><span><i style="background:var(--warning)"></i>در انتظار</span><span><i style="background:var(--success)"></i>انجام‌شده</span><span><i style="background:var(--danger)"></i>نام ناقص یا تداخل</span></div>';
+    }
+
+    function decorateSmartCalendar() {
+      const grid=document.getElementById('calendarGrid');
+      if(!grid)return;
+      const [gy,gm,gd]=jalaliToGregorian(viewYear,viewMonth,1);
+      const offset=(new Date(gy,gm-1,gd).getDay()+1)%7;
+      const cells=Array.from(grid.querySelectorAll('.day-cell:not(.empty)'));
+      cells.forEach((cell,index)=>{
+        const key=viewYear+'-'+pad2(viewMonth)+'-'+pad2(index+1);
+        const items=(appData.appointments||[]).filter(a=>a.dateKey===key&&a.status!=='canceled');
+        cell.classList.toggle('has-pending',items.some(a=>a.status!=='done'));
+        cell.classList.toggle('has-done',items.some(a=>a.status==='done'));
+        cell.classList.toggle('has-missing',items.some(a=>a.clientNameMissing===true||!String(a.clientName||'').trim()||/^(?:—|نام درج نشده|⚠️ نام درج نشده)/u.test(String(a.clientName||''))));
+        if(items.length)cell.setAttribute('aria-label',toPersianDigits(index+1)+'، '+toPersianDigits(items.length)+' نوبت');
+      });
+      refreshSmartCalendarInsights();
+    }
+    const renderCalendarCore = renderCalendar;
+    renderCalendar = function(){renderCalendarCore();decorateSmartCalendar();};
+    const renderDayScheduleCore = renderDaySchedule;
+    renderDaySchedule = function(){renderDayScheduleCore();refreshSmartCalendarInsights();};
+
+    function installSmartCalendarPanel() {
+      const grid=document.getElementById('calendarGrid');
+      if(grid&&!document.getElementById('calendarSmartInsights')){
+        grid.insertAdjacentHTML('afterend','<div id="calendarSmartInsights" class="calendar-smart-insights" aria-live="polite"></div>');
+      }
+    }
+
     // --- INIT ---
 
     // ===== SMART DASHBOARD / LOYALTY / GALLERY / ADVANCED SEARCH =====
@@ -4681,6 +4829,7 @@
 
     loadData();
     installEnhancementUI();
+    installSmartCalendarPanel();
     checkPinLockOnStartup();
     applySettingsUI();
     updateClockAndDate();
