@@ -2363,9 +2363,8 @@
     function exportBackup() {
       const backupJson = JSON.stringify(appData, null, 2);
       const backupName = `dastyare-man-backup-${getTodayKey()}.json`;
-      if (window.AndroidApp && typeof AndroidApp.saveBackup === 'function') {
-        AndroidApp.saveBackup(backupJson, backupName);
-        showToast('نسخه پشتیبان در پوشه امن برنامه ذخیره شد 💾');
+      if (window.AndroidApp && typeof AndroidApp.exportBackup === 'function') {
+        AndroidApp.exportBackup(backupJson, backupName);
         return;
       }
       const blob = new Blob([backupJson], { type: 'application/json' });
