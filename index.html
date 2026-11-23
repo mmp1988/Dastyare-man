@@ -644,6 +644,121 @@
       color: var(--accent-contrast);
     }
 
+  
+    /* Mobile-safe customer date/time controls: keep the Jalali calendar
+       full-width and below the date field, never beside/over the time input. */
+    .client-date-group,
+    .client-time-group {
+      grid-column: 1 / -1 !important;
+      width: 100%;
+      min-width: 0;
+    }
+    .client-date-group > div:first-of-type {
+      display: flex;
+      align-items: stretch;
+      gap: 7px;
+      width: 100%;
+      min-width: 0;
+    }
+    .client-date-group input.form-control {
+      flex: 1 1 auto;
+      width: 1%;
+      min-width: 0;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .client-date-group button {
+      flex: 0 0 auto;
+      min-height: 42px;
+    }
+    .client-time-group input[type="time"] {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      box-sizing: border-box;
+      direction: ltr;
+      text-align: center;
+    }
+    .client-jalali-picker {
+      position: relative;
+      z-index: 5;
+      display: none;
+      clear: both;
+      grid-column: 1 / -1;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+      margin: 10px 0 14px !important;
+      padding: 12px !important;
+      overflow: visible !important;
+      direction: rtl;
+    }
+    .client-jalali-picker .client-picker-weekdays,
+    .client-jalali-picker .client-picker-days {
+      display: grid !important;
+      grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+      gap: clamp(3px, 1.5vw, 7px) !important;
+      width: 100% !important;
+      direction: rtl;
+      align-items: stretch;
+    }
+    .client-jalali-picker .client-picker-weekdays {
+      margin: 5px 0 9px;
+      text-align: center;
+      font-size: clamp(0.56rem, 2.7vw, 0.72rem);
+      line-height: 1.35;
+      font-weight: 800;
+    }
+    .client-jalali-picker .client-picker-weekdays > div {
+      min-width: 0;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .client-jalali-picker .client-picker-days .day-cell {
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 0;
+      min-height: 48px;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      padding: 3px 1px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      overflow: hidden;
+      font-size: .95rem;
+      line-height: 1.15;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .client-jalali-picker .client-picker-days .day-cell.empty {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .client-jalali-picker .client-picker-days .day-num {
+      display: block;
+      font-size: clamp(.85rem, 3.8vw, 1rem);
+      line-height: 1.2;
+      font-weight: 900;
+    }
+    .client-jalali-picker .client-picker-days .holiday-sub {
+      display: block;
+      max-width: 100%;
+      font-size: .45rem;
+      line-height: 1.1;
+      white-space: normal;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+    @media (max-width: 380px) {
+      .client-jalali-picker { padding: 8px !important; }
+      .client-jalali-picker .client-picker-days .day-cell { min-height: 42px; }
+    }
+
   </style>
 </head>
 <body>
@@ -1068,7 +1183,7 @@
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
-          <button class="btn-primary" style="grid-column:1 / -1;" onclick="checkForAppUpdate(true)">🔄 بررسی و نصب به‌روزرسانی خودکار</button>
+          <button class="btn-primary" style="grid-column:1 / -1;" onclick="checkForAppUpdate(true); checkNativeContentUpdate(true)">🔄 بررسی و نصب به‌روزرسانی خودکار</button>
           <button class="btn-secondary" onclick="exportBackup()">💾 دانلود فایل پشتیبان</button>
           <label class="btn-secondary" style="cursor:pointer;">
             📂 بازیابی فایل پشتیبان
@@ -1230,13 +1345,13 @@
       <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">➕ ثبت کار انجام‌شده</div>
         <div class="form-grid">
-          <div class="form-group">
+          <div class="form-group full client-date-group">
             <label>تاریخ انجام کار</label>
             <div style="display:flex;gap:7px;align-items:center;">
               <input type="text" id="clientWorkDate" class="form-control" placeholder="انتخاب تاریخ از تقویم شمسی" dir="ltr" style="flex:1;cursor:pointer;" readonly onclick="toggleClientWorkJalaliPicker()" aria-label="انتخاب تاریخ شمسی انجام کار" />
               <button type="button" class="btn-secondary" onclick="toggleClientWorkJalaliPicker()" style="white-space:nowrap;">📅 انتخاب تاریخ</button>
             </div>
-            <div id="clientWorkJalaliPicker" class="card" style="display:none;margin-top:9px;padding:10px;">
+            <div id="clientWorkJalaliPicker" class="card client-jalali-picker" style="display:none;margin-top:9px;padding:10px;">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
                 <button type="button" class="btn-pill" onclick="changeClientWorkJalaliPickerMonth(-1)">ماه قبل</button>
                 <strong id="clientWorkJalaliPickerTitle"></strong>
@@ -1247,7 +1362,7 @@
               <button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="selectClientWorkJalaliToday()">امروز</button>
             </div>
           </div>
-          <div class="form-group">
+          <div class="form-group full client-time-group">
             <label>ساعت انجام کار</label>
             <input type="time" id="clientWorkTime" class="form-control" />
           </div>
@@ -1300,14 +1415,14 @@
       <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">📅 نوبت بعدی مشتری</div>
         <div class="form-grid">
-          <div class="form-group full">
+          <div class="form-group full client-date-group">
             <label>تاریخ شمسی نوبت</label>
             <div style="display:flex;gap:7px;align-items:center;">
               <input type="text" id="clientNextDate" class="form-control" placeholder="انتخاب تاریخ از تقویم" dir="ltr" style="flex:1;cursor:pointer;" readonly onclick="toggleClientJalaliPicker()" aria-label="انتخاب تاریخ شمسی از تقویم" />
               <button type="button" class="btn-secondary" onclick="toggleClientJalaliPicker()" style="white-space:nowrap;">📅 انتخاب تاریخ</button>
             </div>
             <small style="color:var(--text-secondary);">برای ثبت نوبت، روز موردنظر را از تقویم شمسی انتخاب کن.</small>
-            <div id="clientJalaliPicker" class="card" style="display:none;margin-top:9px;padding:10px;">
+            <div id="clientJalaliPicker" class="card client-jalali-picker" style="display:none;margin-top:9px;padding:10px;">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
                 <button type="button" class="btn-pill" onclick="changeClientJalaliPickerMonth(-1)">ماه قبل</button>
                 <strong id="clientJalaliPickerTitle"></strong>
@@ -1318,7 +1433,7 @@
               <button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="selectClientJalaliToday()">امروز</button>
             </div>
           </div>
-          <div class="form-group">
+          <div class="form-group full client-time-group">
             <label>ساعت نوبت</label>
             <input type="time" id="clientNextTime" class="form-control" value="10:00" />
           </div>
@@ -3826,13 +3941,20 @@ self.addEventListener('fetch', (e) => { if (e.request.method !== 'GET') return; 
       } catch (e) { if (manual) showToast('بررسی آپدیت نیازمند اینترنت است 🌐'); }
     }
 
-    function checkNativeContentUpdate() {
-      // Runs only in the Android APK. It is silent and non-blocking when GitHub is unreachable.
+    function checkNativeContentUpdate(manual = false) {
+      // Android APK content update; manual checks bypass the startup throttle.
       try {
-        if (window.AndroidApp && typeof window.AndroidApp.updateApp === 'function') {
+        if (window.AndroidApp && typeof window.AndroidApp.updateAppNow === 'function') {
+          window.AndroidApp.updateAppNow();
+        } else if (window.AndroidApp && typeof window.AndroidApp.updateApp === 'function') {
           window.AndroidApp.updateApp();
+          if (manual) showToast('درخواست بررسی به‌روزرسانی ارسال شد.');
+        } else if (manual) {
+          showToast('این قابلیت فقط در نسخه اندروید فعال است.');
         }
-      } catch (e) {}
+      } catch (e) {
+        if (manual) showToast('بررسی به‌روزرسانی انجام نشد؛ اینترنت را بررسی کن.');
+      }
     }
 
     window.addEventListener('load', () => {
