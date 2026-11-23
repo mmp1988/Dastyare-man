@@ -524,6 +524,14 @@ public class MainActivity extends Activity {
                                 finishVoskSpeech(buttonId, "تشخیص گفتار انجام نشد؛ دوباره تلاش کنید یا تایپ کنید.");
                             }
                             @Override public void onTimeout() {
+                                try {
+                                    if (voskRecognizer != null) {
+                                        String finalText = extractVoskText(voskRecognizer.getFinalResult());
+                                        if (!finalText.isEmpty() && webView != null) webView.post(() -> webView.evaluateJavascript(
+                                                "if(window.receiveNativeSpeechResult)window.receiveNativeSpeechResult("
+                                                        + JSONObject.quote(targetInputId) + "," + JSONObject.quote(finalText) + ");", null));
+                                    }
+                                } catch (Exception ignored) { }
                                 finishVoskSpeech(buttonId, "زمان ضبط تمام شد.");
                             }
                         }, 20000);
