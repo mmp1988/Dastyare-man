@@ -1411,11 +1411,6 @@
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
           <button class="btn-primary" style="grid-column:1 / -1;" onclick="checkForAppUpdate(true); checkNativeContentUpdate(true)">🔄 بررسی و نصب به‌روزرسانی خودکار</button>
-          <div style="grid-column:1 / -1; background:var(--bg-input); border:1px solid var(--border-color); border-radius:12px; padding:10px;">
-            <div style="font-weight:800; margin-bottom:5px;">🎙️ بسته گفتار فارسی برای استفاده آفلاین</div>
-            <div style="font-size:.78rem; line-height:1.8; color:var(--text-muted); margin-bottom:8px;">در اندروید ۱۳ به بعد، اگر سرویس گفتار گوشی مدل فارسی آفلاین داشته باشد، از همین‌جا درخواست دانلود آن ارسال می‌شود. تشخیص گفتار هنگام اتصال اینترنت مستقل از این بسته کار می‌کند.</div>
-            <button type="button" class="btn-secondary" style="width:100%;" onclick="downloadPersianOfflineSpeechModel()">⬇️ بررسی و دانلود بسته فارسی آفلاین</button>
-          </div>
           <button class="btn-secondary" onclick="exportBackup()">💾 دانلود فایل پشتیبان</button>
           <label class="btn-secondary" style="cursor:pointer;">
             📂 بازیابی فایل پشتیبان
@@ -4003,15 +3998,6 @@
       if (targetInputId === 'minaInput') setTimeout(sendMinaMessage, 250);
     };
 
-    function downloadPersianOfflineSpeechModel() {
-      if (window.AndroidApp && typeof AndroidApp.downloadPersianOfflineSpeechModel === 'function') {
-        try { AndroidApp.downloadPersianOfflineSpeechModel(); }
-        catch (e) { showToast('امکان شروع دانلود بسته فارسی وجود ندارد.'); }
-      } else {
-        showToast('دانلود مدل گفتار آفلاین فقط در نسخه اندروید برنامه پشتیبانی می‌شود.');
-      }
-    }
-
     function startVoiceInput(targetInputId, btnId) {
       // Native APK: Android selects online recognition when validated internet exists,
       // and uses its on-device engine only when offline. No Persian offline-pack warning online.
@@ -4279,10 +4265,8 @@
 
 
     // ==================== MINA PERSONAL ASSISTANT ====================
-    let minaRecognitionPending = false;
     function saveMinaPersonalization() {
       appData.settings.personalGreeting = (document.getElementById('minaPersonalGreeting')?.value || '').trim();
-      saveMinaVoiceSettings(false);
       saveData(); applySettingsUI(); showToast('سلیقه و تنظیمات مینا ذخیره شد 🌷');
     }
     function setMinaTheme(theme) {
@@ -4290,101 +4274,235 @@
       saveData(); applySettingsUI();
     }
     function addMinaMessage(text, who) {
-      const root=document.getElementById('minaChatMessages'); if(!root)return;
-      const row=document.createElement('div'); row.className='mina-message '+(who==='user'?'user':'assistant');
-      if(who!=='user'){const avatar=document.createElement('span');avatar.className='mina-message-avatar';avatar.textContent='M';row.appendChild(avatar);}
-      const bubble=document.createElement('div');bubble.className='mina-bubble';bubble.textContent=text;row.appendChild(bubble);root.appendChild(row);root.scrollTop=root.scrollHeight;
+      const root = document.getElementById('minaChatMessages');
+      if (!root) return;
+      const row = document.createElement('div');
+      row.className = 'mina-message ' + (who === 'user' ? 'user' : 'assistant');
+      if (who !== 'user') {
+        const avatar = document.createElement('span');
+        avatar.className = 'mina-message-avatar';
+        avatar.textContent = 'M';
+        row.appendChild(avatar);
+      }
+      const bubble = document.createElement('div');
+      bubble.className = 'mina-bubble';
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      root.appendChild(row);
+      root.scrollTop = root.scrollHeight;
     }
-    function clearMinaChat(){const root=document.getElementById('minaChatMessages');if(root)root.innerHTML='';addMinaMessage('گفتگوی تازه‌ای شروع کنیم عزیزم؟ 💗','assistant');}
-    function askMina(text){const input=document.getElementById('minaInput');if(input){input.value=text;sendMinaMessage();}}
-    function minaTodayAppointments(){
-      const key=getTodayKey();return (appData.appointments||[]).filter(a=>a.dateKey===key&&a.status!=='canceled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    function clearMinaChat() {
+      const root = document.getElementById('minaChatMessages');
+      if (root) root.innerHTML = '';
+      addMinaMessage('گفتگوی تازه‌ای شروع کنیم عزیزم؟ 💗', 'assistant');
+    }
+    function askMina(text) {
+      const input = document.getElementById('minaInput');
+      if (input) { input.value = text; sendMinaMessage(); }
+    }
+    function minaTodayAppointments() {
+      const key = getTodayKey();
+      return (appData.appointments || []).filter(a => a.dateKey === key && a.status !== 'canceled')
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
     }
     let minaPendingBooking = null;
-    function minaNormalizeDigits(value){
-      return String(value||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+    function minaNormalizeDigits(value) {
+      return String(value || '')
+        .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+        .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
     }
-    function minaCleanText(value){
-      return String(value||'').replace(/[؟?!،,.]/g,' ').replace(/\\s+/g,' ').trim();
+    function minaCleanText(value) {
+      return String(value || '').replace(/[؟?!،,.؛]/g, ' ').replace(/\s+/g, ' ').trim()
+        .replace(/ي/g, 'ی').replace(/ك/g, 'ک');
     }
-    function minaBuildReply(raw){
-      const q=String(raw||'').trim();
-      const t=minaCleanText(minaNormalizeDigits(q)).toLowerCase();
-      const todayKey=getTodayKey();
-      const today=minaTodayAppointments();
+    function minaStripPrefix(value) {
+      return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
+    }
+    function minaBuildReply(raw) {
+      const original = String(raw || '').trim();
+      const q = minaStripPrefix(minaNormalizeDigits(original));
+      const t = minaCleanText(q).toLowerCase();
+      const todayKey = getTodayKey();
+      const today = minaTodayAppointments();
+      const greeting = appData.settings.personalGreeting || 'عزیزم';
 
-      if(/^(?:بله|آره|تایید|تأیید|تایید کن|ثبت کن|درسته)$/.test(t) && minaPendingBooking){
-        const p=minaPendingBooking;minaPendingBooking=null;
-        const exists=(appData.appointments||[]).some(a=>a.dateKey===p.dateKey&&a.time===p.time&&String(a.clientName||'').trim()===p.clientName&&a.status!=='canceled');
-        if(exists)return 'عزیزم این نوبت از قبل با همین مشخصات ثبت شده بود؛ دوباره ثبتش نکردم 💗';
-        appData.appointments.push({id:'appt_mina_'+Date.now(),dateKey:p.dateKey,time:p.time,clientName:p.clientName,phone:'',service:p.service||'خدمت ثبت‌نشده',price:0,deposit:0,commPercent:0,payMethod:'cash',alarm:'60',status:'pending',notified:false});
+      if (/^(?:بله|آره|اره|تایید|تأیید|تایید کن|ثبت کن|درسته|اوکی|باشه)$/.test(t) && minaPendingBooking) {
+        const p = minaPendingBooking;
+        minaPendingBooking = null;
+        const exists = (appData.appointments || []).some(a =>
+          a.dateKey === p.dateKey && a.time === p.time &&
+          String(a.clientName || '').trim() === p.clientName && a.status !== 'canceled');
+        if (exists) return 'این نوبت با همین مشخصات از قبل ثبت شده بود؛ دوباره ثبتش نکردم 💗';
+        const conflict = (appData.appointments || []).some(a =>
+          a.dateKey === p.dateKey && a.time === p.time && a.status !== 'canceled');
+        const appointment = {
+          id: 'appt_mina_' + Date.now(),
+          dateKey: p.dateKey,
+          time: p.time,
+          clientName: p.clientName,
+          phone: p.phone || '',
+          service: p.service || 'خدمت ثبت‌نشده',
+          price: Number(p.price) || 0,
+          deposit: 0,
+          commPercent: Number(appData.settings.defaultComm) || 0,
+          payMethod: 'کارت‌به‌کارت',
+          alarm: '15',
+          status: 'pending',
+          notified: false
+        };
+        appData.appointments.push(appointment);
         saveData();
-        if(typeof renderCalendar==='function')renderCalendar();
-        if(typeof renderDaySchedule==='function')renderDaySchedule();
-        return 'یوهوو! نوبت ثبت شد عزیزم 🌸\\n'+p.clientName+'، '+formatJalaliFull(p.dateKey)+' ساعت '+p.time+'\\n'+(p.service||'خدمت ثبت‌نشده')+'\\nهر وقت خواستی می‌تونی از بخش نوبت‌ها جزئیات و مبلغش رو کامل کنی.';
+        if (typeof renderCalendar === 'function') renderCalendar();
+        if (typeof renderDaySchedule === 'function') renderDaySchedule();
+        if (typeof renderFinanceTab === 'function') renderFinanceTab();
+        const warning = conflict ? '\n⚠️ در این ساعت نوبت دیگری هم داری؛ لطفاً تقویم را بررسی کن.' : '';
+        return 'یوهوو! نوبت با موفقیت ثبت شد ' + greeting + ' 🌸\n' +
+          '👩🏻 مشتری: ' + p.clientName + '\n📅 تاریخ: ' + formatJalaliFull(p.dateKey) +
+          '\n⏰ ساعت: ' + p.time + '\n💅 خدمت: ' + appointment.service +
+          (appointment.price ? '\n💰 مبلغ: ' + formatMoney(appointment.price) + ' تومان' : '') +
+          warning + '\nهمه‌چیز ذخیره شد؛ حتی بدون اینترنت هم در همین گوشی می‌مونه 💗';
       }
-      if(/^(?:نه|لغو|بیخیال|بی خیال)$/.test(t) && minaPendingBooking){minaPendingBooking=null;return 'باشه گلم، نوبت ثبت نشد 💕';}
-
-      if(/یاددا(?:شت|ش) کن|این(?:و|ارو|ها)? یاددا(?:شت|ش) کن/.test(t)){
-        let body=q.replace(/^مینا[،\\s]*/,'').replace(/^(?:این(?:و|ارو|ها)?\\s*)?یاددا(?:شت|ش) کن(?: که)?/,'').replace(/لطفا|لطفاً/g,'').trim();
-        if(!body) return 'حتماً عزیزم 💗 بگو چی رو برات یادداشت کنم؟';
-        const note={id:'note_mina_'+Date.now(),title:body.length>42?body.slice(0,42)+'…':body,category:'شخصی و کاری',pinned:true,body,dateKey:getTodayKey()};
-        appData.notes.unshift(note);saveData();if(typeof renderNotebook==='function')renderNotebook();
-        return 'چشم گلم، با خیال راحت بسپرش به من 💗\\n«'+body+'»\\nیادداشتت ذخیره شد.';
-      }
-
-      if(/نوبت|رزرو/.test(t)&&/(?:برای|واسه)/.test(t)){
-        const timeMatch=t.match(/ساعت\\s*(\\d{1,2})(?::(\\d{2}))?/);
-        const nameMatch=t.match(/(?:برای|واسه)\\s+(.+?)(?=\\s+(?:ساعت|امروز|پس.?فردا|فردا|در تاریخ|تاریخ)|$)/);
-        if(!nameMatch||!nameMatch[1].trim())return 'قربونت، اسم مشتری رو هم بگو؛ مثلاً «برای نازنین ساعت ۴ نوبت اکستنشن ثبت کن» 🌷';
-        if(!timeMatch)return 'حتماً عزیزم! ساعت نوبت رو هم بگو؛ مثلاً «برای نازنین امروز ساعت ۴ نوبت ثبت کن».';
-        const hour=Number(timeMatch[1]),minute=Number(timeMatch[2]||0);
-        if(hour>23||minute>59)return 'ساعت رو یک بار دیگه برام می‌گی؟ مثلاً ۱۶:۳۰ 💗';
-        let dateKey=t.includes('پس فردا')||t.includes('پسفردا')?addDaysToJalaliKey(todayKey,2):(t.includes('فردا')&&!t.includes('امروز')?addDaysToJalaliKey(todayKey,1):todayKey);
-        const explicit=t.match(/(?:در تاریخ|تاریخ)\\s*(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);
-        if(explicit)dateKey=explicit[1]+'-'+pad2(Number(explicit[2]))+'-'+pad2(Number(explicit[3]));
-        const clientName=nameMatch[1].trim().replace(/\\s+(?:نوبت|رزرو).*$/,'').trim();
-        const service=(t.match(/(?:نوبت|رزرو)\\s+(.+?)(?:\\s+ثبت(?:ش)?\\s+کن)?$/)||[])[1]||'';
-        const cleanService=service.replace(/ثبت(?:ش)?\\s*کن/g,'').replace(/^ثبت$/,'').trim();
-        minaPendingBooking={clientName,dateKey,time:pad2(hour)+':'+pad2(minute),service:cleanService};
-        return 'عزیزم قبل از ثبت، این نوبت رو با هم چک کنیم؟ 🌸\\n\\n👩🏻 مشتری: '+clientName+'\\n📅 تاریخ: '+formatJalaliFull(dateKey)+'\\n⏰ ساعت: '+minaPendingBooking.time+'\\n💅 خدمت: '+(cleanService||'بعداً مشخص می‌کنی')+'\\n\\nاگر درسته بنویس «تأیید»؛ اگر نه بگو «لغو».';
+      if (/^(?:نه|لغو|بیخیال|بی خیال|منصرف شدم)$/.test(t) && minaPendingBooking) {
+        minaPendingBooking = null;
+        return 'چشم گلم، نوبت ثبت نشد 💕';
       }
 
-      if(/فردا/.test(t)&&/(نوبت|برنامه|مشتری|چکار|چه کار)/.test(t)){
-        const key=addDaysToJalaliKey(todayKey,1);
-        const list=(appData.appointments||[]).filter(a=>a.dateKey===key&&a.status!=='canceled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-        return list.length?'فردا این نوبت‌ها رو داری عزیزم 🌷\\n'+list.map((a,i)=>(i+1)+') '+(a.time||'بدون ساعت')+' — '+(a.clientName||'مشتری')+'، '+(a.service||'خدمت ثبت‌نشده')).join('\\n'):'فردا هنوز نوبتی برات ثبت نشده؛ چه روز آرومی! 💗';
+      if (/(?:یادداشت|یادداشتش|یادداشتو)\s*(?:کن|ثبت کن|ذخیره کن)|(?:این(?:و|رو|را))\s*یادداشت کن/.test(t)) {
+        let body = q.replace(/^(?:لطفاً?\s*)?(?:(?:این(?:و|رو|را)\s*)?یادداشت(?:ش|و)?\s*(?:کن|ثبت کن|ذخیره کن))(?:\s*که)?\s*/i, '').trim();
+        body = body.replace(/^که\s*/, '').trim();
+        if (!body) return 'حتماً گلم 💗 چی رو برات یادداشت کنم؟';
+        const note = {
+          id: 'note_mina_' + Date.now(),
+          title: body.length > 42 ? body.slice(0, 42) + '…' : body,
+          category: 'شخصی و کاری',
+          pinned: true,
+          body,
+          dateKey: getTodayKey()
+        };
+        appData.notes.unshift(note);
+        saveData();
+        if (typeof renderNotebook === 'function') renderNotebook();
+        return 'چشم! یادداشتت رو توی دفتر یادداشت ذخیره کردم 📝💗\n«' + body + '»';
       }
-      if(/امروز|چکار|چه کار|برنامه/.test(t)){
-        if(!today.length)return 'عزیزم امروز هنوز نوبتی برات ثبت نشده. اگر خواستی با هم یه نوبت ثبت کنیم 🌸';
-        return 'برنامه امروزت اینه عزیزم 🌷\\n'+today.map((a,i)=>(i+1)+') '+(a.time||'بدون ساعت')+' — '+(a.clientName||'مشتری')+'، '+(a.service||'خدمت ثبت‌نشده')).join('\\n')+'\\n\\nدر مجموع '+today.length+' نوبت داری.';
+
+      if (/(?:به\s*)?(?:لیست کارها|چک.?لیست|کارهای روزانه)\s*(?:اضافه|ثبت|ذخیره)|(?:یادم بنداز|یادآوری کن)/.test(t)) {
+        let task = q.replace(/^(?:لطفاً?\s*)?(?:مینا\s*)?/, '')
+          .replace(/^(?:به\s*)?(?:لیست کارها|چک.?لیست|کارهای روزانه)\s*(?:اضافه کن|اضافه|ثبت کن|ذخیره کن)|^(?:یادم بنداز|یادآوری کن)(?:\s*که)?/i, '')
+          .trim();
+        if (!task) return 'حتماً عزیزم 🌷 چه کاری رو به فهرست کارهات اضافه کنم؟';
+        appData.todos.unshift({ id: 'td_mina_' + Date.now(), text: task, done: false });
+        saveData();
+        if (typeof renderTodos === 'function') renderTodos();
+        return 'انجام شد! به فهرست کارهات اضافه‌اش کردم تا یادت نره 🎀\n«' + task + '»';
       }
-      if(/این هفته/.test(t)&&/درآمد|فروش|پول|دریافتی/.test(t)){
-        const from=addDaysToJalaliKey(todayKey,-6);
-        const total=(appData.transactions||[]).filter(x=>x.type==='income'&&x.dateKey>=from&&x.dateKey<=todayKey).reduce((n,x)=>n+(Number(x.amount)||0),0);
-        return 'از هفت روز اخیر تا امروز، مجموع درآمدهای ثبت‌شده‌ات '+formatMoney(total)+' تومان بوده عزیزم. 💕';
+
+      if (/(?:نوبت|رزرو|وقت)/.test(t) && /(?:برای|واسه)\s+/.test(t)) {
+        const timeMatch = t.match(/ساعت\s*(\d{1,2})(?::(\d{1,2}))?/);
+        const nameMatch = t.match(/(?:برای|واسه)\s+(.+?)(?=\s+(?:ساعت|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ)|$)/);
+        if (!nameMatch || !nameMatch[1].trim()) return 'اسم مشتری رو هم بهم بگو قشنگم؛ مثلاً «برای نازنین فردا ساعت ۴ نوبت اکستنشن ثبت کن» 🌷';
+        if (!timeMatch) return 'حتماً! ساعت نوبت رو هم بگو؛ مثلاً «برای نازنین فردا ساعت ۱۶:۳۰ نوبت لیفت ثبت کن» 💗';
+        const hour = Number(timeMatch[1]), minute = Number(timeMatch[2] || 0);
+        if (hour > 23 || minute > 59) return 'ساعت رو یک بار دیگه برام می‌گی؟ مثلاً ۱۶:۳۰ 💗';
+        let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
+          : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
+        const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+        if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
+        let clientName = nameMatch[1].trim().replace(/\s+(?:نوبت|رزرو|وقت).*$/, '').trim();
+        const phoneMatch = q.match(/09\d{9}/);
+        const priceMatch = t.match(/(?:با هزینه|هزینه|مبلغ|قیمت)\s*(\d{3,})/);
+        let service = '';
+        const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
+        if (knownService) service = knownService.name;
+        else {
+          const serviceMatch = t.match(/(?:نوبت|رزرو|وقت)\s+(.+?)(?=\s+(?:ثبت|رزرو|برای|ساعت|امروز|فردا|پس\s*فردا|در تاریخ|با هزینه|هزینه|مبلغ)|$)/);
+          if (serviceMatch) service = serviceMatch[1].trim();
+        }
+        if (/^(?:ثبت|جدید)$/.test(service)) service = '';
+        minaPendingBooking = {
+          clientName,
+          dateKey,
+          time: pad2(hour) + ':' + pad2(minute),
+          service,
+          phone: phoneMatch ? phoneMatch[0] : '',
+          price: priceMatch ? Number(priceMatch[1]) : 0
+        };
+        const duplicate = (appData.appointments || []).some(a =>
+          a.dateKey === dateKey && a.time === minaPendingBooking.time &&
+          a.clientName === clientName && a.status !== 'canceled');
+        if (duplicate) {
+          minaPendingBooking = null;
+          return 'این نوبت با همین مشخصات از قبل توی تقویمت هست عزیزم؛ دوباره ثبتش نمی‌کنم 💗';
+        }
+        return 'قبل از ثبت، با هم چکش کنیم؟ 🌸\n👩🏻 مشتری: ' + clientName +
+          '\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\n⏰ ساعت: ' + minaPendingBooking.time +
+          '\n💅 نوع خدمت: ' + (service || 'هنوز مشخص نشده') +
+          (minaPendingBooking.price ? '\n💰 مبلغ: ' + formatMoney(minaPendingBooking.price) + ' تومان' : '') +
+          (minaPendingBooking.phone ? '\n📱 تماس: ' + minaPendingBooking.phone : '') +
+          '\n\nاگر درسته «تأیید» و اگر نه «لغو» رو بفرست 💗';
       }
-      if(/ترمیم|موعد|سررسید/.test(t)){
-        const due=(appData.appointments||[]).filter(a=>a.status!=='canceled'&&((a.followupDateKey&&a.followupDateKey<=todayKey)||(a.nextFollowupDateKey&&a.nextFollowupDateKey<=todayKey)||a.isFollowupDue===true));
-        return due.length?'این مشتری‌ها برای ترمیم سررسید شده‌اند 🌷:\\n'+due.map(a=>'• '+(a.clientName||'مشتری')+' — '+(a.service||'خدمت')+'، '+(a.dateKey||'')).join('\\n'):'فعلاً موعد ترمیم مشخصی در اطلاعات ثبت‌شده پیدا نکردم. اگر تاریخ ترمیم رو در پرونده مشتری وارد کنی، پیگیری‌اش می‌کنم 💗';
+
+      if (/فردا/.test(t) && /(نوبت|برنامه|مشتری|چکار|چه کار)/.test(t)) {
+        const key = addDaysToJalaliKey(todayKey, 1);
+        const list = (appData.appointments || []).filter(a => a.dateKey === key && a.status !== 'canceled')
+          .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        return list.length ? 'فردا این نوبت‌ها رو داری عزیزم 🌷\n' +
+          list.map((a, i) => (i + 1) + ') ' + (a.time || 'بدون ساعت') + ' — ' +
+            (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت ثبت‌نشده')).join('\n')
+          : 'فردا هنوز نوبتی برات ثبت نشده؛ چه روز آرومی! 💗';
       }
-      if(/آخرین بار|آخرین خدمت|چی کار کرده|چه خدمتی/.test(t)){
-        const found=(appData.appointments||[]).filter(a=>a.status==='done'&&t.includes(String(a.clientName||'').toLowerCase())).sort((a,b)=>(b.dateKey||'').localeCompare(a.dateKey||''))[0];
-        return found?'آخرین خدمت ثبت‌شده برای '+found.clientName+': '+(found.service||'خدمت نامشخص')+' در تاریخ '+formatJalaliFull(found.dateKey)+'.':'اسم مشتری رو کامل‌تر بگو یا مطمئن شو سابقه خدمتش ثبت شده.';
+      if (/(?:امروز|چکار|چه کار|برنامه)/.test(t) && /(نوبت|مشتری|کار|برنامه|چیکار)/.test(t)) {
+        if (!today.length) return 'امروز هنوز نوبتی برات ثبت نشده عزیزم؛ اگه بخوای همین‌جا یکی ثبت می‌کنیم 🌸';
+        return 'برنامه امروزت اینه عزیزم 🌷\n' +
+          today.map((a, i) => (i + 1) + ') ' + (a.time || 'بدون ساعت') + ' — ' +
+            (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت ثبت‌نشده')).join('\n') +
+          '\n\nدر مجموع ' + today.length + ' نوبت داری.';
       }
-      if(/یادداشت/.test(t)&&/من|هام|هامو/.test(t)){
-        return appData.notes.length?'اینم آخرین یادداشت‌هات عزیزم 📝\\n'+appData.notes.slice(0,5).map(n=>'• '+n.title+' — '+n.body).join('\\n'):'هنوز یادداشتی ثبت نکردی. هر وقت خواستی بگو «مینا یادداشت کن که...»';
+      if (/این هفته/.test(t) && /درآمد|فروش|پول|دریافتی/.test(t)) {
+        const from = addDaysToJalaliKey(todayKey, -6);
+        const total = (appData.transactions || []).filter(x => x.type === 'income' && x.dateKey >= from && x.dateKey <= todayKey)
+          .reduce((n, x) => n + (Number(x.amount) || 0), 0);
+        return 'در هفت روز اخیر، مجموع درآمدهای ثبت‌شده‌ات ' + formatMoney(total) + ' تومان بوده عزیزم 💕';
       }
-      if(/مواد|انبار|رو به اتمام|تموم شده/.test(t))return 'عزیزم بخش موجودی مواد هنوز فعال نیست؛ نمی‌خوام چیزی رو حدس بزنم. فعلاً حواسم به یادداشت‌ها و نوبت‌هات هست 🌷';
-      return 'من مینام، رفیق و دستیار کوچولوی توام 💗 می‌تونم یادداشت‌هات رو نگه دارم، نوبت ثبت کنم و برنامه‌ات رو از روی اطلاعات خودت بهت بگم.\\nمثلاً بگو: «مینا یادداشت کن که به سارا زنگ بزنم» یا «برای نازنین فردا ساعت ۴ نوبت اکستنشن ثبت کن».';
+      if (/ترمیم|موعد|سررسید/.test(t)) {
+        const due = (appData.appointments || []).filter(a => a.status !== 'canceled' &&
+          ((a.followupDateKey && a.followupDateKey <= todayKey) ||
+           (a.nextFollowupDateKey && a.nextFollowupDateKey <= todayKey) || a.isFollowupDue === true));
+        return due.length ? 'این مشتری‌ها برای ترمیم سررسید شده‌اند 🌷\n' +
+          due.map(a => '• ' + (a.clientName || 'مشتری') + ' — ' + (a.service || 'خدمت') + '، ' + (a.dateKey || '')).join('\n')
+          : 'فعلاً موعد ترمیمی در اطلاعات ثبت‌شده پیدا نکردم. تاریخ ترمیم رو در پرونده مشتری وارد کنی، پیگیری‌اش می‌کنم 💗';
+      }
+      if (/آخرین بار|آخرین خدمت|چی کار کرده|چه خدمتی/.test(t)) {
+        const found = (appData.appointments || []).filter(a => a.status === 'done' &&
+          t.includes(String(a.clientName || '').toLowerCase()))
+          .sort((a, b) => (b.dateKey || '').localeCompare(a.dateKey || ''))[0];
+        return found ? 'آخرین خدمت ثبت‌شده برای ' + found.clientName + ': ' +
+          (found.service || 'خدمت نامشخص') + ' در تاریخ ' + formatJalaliFull(found.dateKey) + ' 💗'
+          : 'اسم مشتری رو کامل‌تر بگو یا مطمئن شو سابقه خدمتش ثبت شده عزیزم 🌷';
+      }
+      if (/یادداشت/.test(t) && /من|هام|هامو|همه/.test(t)) {
+        return appData.notes.length ? 'اینم آخرین یادداشت‌هات عزیزم 📝\n' +
+          appData.notes.slice(0, 5).map(n => '• ' + n.title + ' — ' + n.body).join('\n')
+          : 'هنوز یادداشتی ثبت نکردی. هر وقت خواستی بگو «مینا یادداشت کن که...» 💗';
+      }
+      if (/کارها|چک.?لیست|وظایف/.test(t) && /من|امروز|لیست|نشون|بگو/.test(t)) {
+        const open = (appData.todos || []).filter(x => !x.done);
+        return open.length ? 'این کارها هنوز مونده عزیزم 🎀\n' + open.slice(0, 8).map((x, i) => (i + 1) + ') ' + x.text).join('\n')
+          : 'آفرین! فعلاً کار ناتمومی توی فهرستت نیست 💗';
+      }
+      if (/سلام|درود|خوبی|چه خبر|چطوری/.test(t)) return 'سلام خوشگلم! چه خوب که اومدی 💗 بگو ببینم امروز چه کاری رو با هم انجام بدیم؟ 🌸';
+      if (/مواد|انبار|رو به اتمام|تموم شده/.test(t)) return 'عزیزم بخش موجودی مواد هنوز فعال نیست؛ نمی‌خوام چیزی رو حدس بزنم. فعلاً حواسم به یادداشت‌ها، کارها و نوبت‌هاته 🌷';
+      return 'من مینام، دستیار سبک و همراهتم 💗 می‌تونم نوبت ثبت کنم، یادداشت و کار به فهرستت اضافه کنم، برنامه و درآمد ثبت‌شده رو نشون بدم و موعد ترمیم‌ها رو پیدا کنم.\nمثلاً بگو: «برای نازنین فردا ساعت ۴ نوبت اکستنشن ثبت کن»، «یادداشت کن به سارا زنگ بزنم» یا «این کار رو به لیستم اضافه کن: خرید مواد» 🌷';
     }
-    function sendMinaMessage(){
-      const input=document.getElementById('minaInput');if(!input)return;
-      const text=input.value.trim();if(!text)return;
-      addMinaMessage(text,'user');input.value='';
-      let reply=minaBuildReply(text);
-      if(!/[💗💕💖💞🌸🌷🎀✨🥰😊😉😄]/u.test(reply)) reply += ' 💗🌸✨';
-      addMinaMessage(reply,'assistant');
+    function sendMinaMessage() {
+      const input = document.getElementById('minaInput');
+      if (!input) return;
+      const message = input.value.trim();
+      if (!message) return;
+      addMinaMessage(message, 'user');
+      input.value = '';
+      let reply = minaBuildReply(message);
+      if (!/[💗💕💖💞🌸🌷🎀✨🥰😊😉😄]/u.test(reply)) reply += ' 💗🌸✨';
+      addMinaMessage(reply, 'assistant');
     }
 
     // --- INIT ---
