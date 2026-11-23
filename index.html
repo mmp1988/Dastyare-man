@@ -3895,17 +3895,64 @@
     }
     function copyEmail() { navigator.clipboard?.writeText('minamsvm@gmail.com'); showToast('ایمیل کپی شد 📋'); }
     function toggleFabMenu() { document.getElementById('fabMenu').classList.toggle('open'); }
+    let handlingAppPopState = false;
+    let lastRootBackAt = 0;
     function switchTab(tabName, btnEl) {
       document.getElementById('fabMenu').classList.remove('open');
       document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
-      document.getElementById('tab-' + tabName).classList.add('active');
+      const targetTab = document.getElementById('tab-' + tabName);
+      if (!targetTab) return;
+      targetTab.classList.add('active');
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       if (btnEl) btnEl.classList.add('active');
+      if (!handlingAppPopState && window.history && window.history.pushState) {
+        const current = window.history.state || {};
+        if (current.dastyareAppTab !== tabName) {
+          window.history.pushState({ dastyareAppTab: tabName }, '', window.location.href);
+        }
+      }
       if (tabName === 'notebook') { renderTodos(); renderNotebook(); }
       if (tabName === 'finance') renderFinanceTab();
       if (tabName === 'clients') { renderClientsTab(); renderServicesTab(); }
       if (tabName === 'settings') { syncShareUrls(); }
     }
+
+    // Keep browser/phone Back inside the single-page app: move through
+    // previously visited sections instead of leaving the site immediately.
+    if (window.history && window.history.replaceState) {
+      const initialTab = document.querySelector('.tab-section.active')?.id?.replace('tab-', '') || 'calendar';
+      window.history.replaceState({ dastyareAppTab: initialTab, dastyareAppRoot: true }, '', window.location.href);
+    }
+    window.addEventListener('popstate', function(event) {
+      const state = event.state || {};
+      const activeModal = document.querySelector('.modal-backdrop.open');
+      if (activeModal) {
+        activeModal.classList.remove('open');
+        return;
+      }
+      const fab = document.getElementById('fabMenu');
+      if (fab && fab.classList.contains('open')) {
+        fab.classList.remove('open');
+        return;
+      }
+      if (state.dastyareAppTab) {
+        handlingAppPopState = true;
+        try { switchTab(state.dastyareAppTab, null); }
+        finally { handlingAppPopState = false; }
+        return;
+      }
+      // At the app's first page, require a second Back within two seconds
+      // before allowing the browser to navigate away.
+      const now = Date.now();
+      if (now - lastRootBackAt <= 2000) return;
+      lastRootBackAt = now;
+      const currentTab = document.querySelector('.tab-section.active')?.id?.replace('tab-', '') || 'calendar';
+      if (window.history && window.history.pushState) {
+        window.history.pushState({ dastyareAppTab: currentTab, dastyareAppRoot: true }, '', window.location.href);
+      }
+      if (typeof showToast === 'function') showToast('برای خروج، دوباره دکمه برگشت را بزنید');
+    });
+
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
     function showToast(msg) {
       const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
