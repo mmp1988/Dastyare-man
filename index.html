@@ -4407,7 +4407,7 @@
             '\n\nاگر درسته «تأیید» رو بفرست تا ذخیره‌اش کنم 💗';
         }
       }
-      if (/^(?:بله|آره|اره|تایید|تأیید|تایید کن|ثبت کن|درسته|اوکی|باشه)$/.test(t) && minaPendingBooking) {
+      if (/^(?:(?:بله|آره|اره)\s*)?(?:تایید|تأیید)(?:\s*(?:ثبتش کن|ثبت کن|کن))?$|^(?:بله|آره|اره|تایید کن|تأیید کن|ثبت کن|درسته|اوکی|باشه)$/u.test(t) && minaPendingBooking) {
         const p = minaPendingBooking;
         minaPendingBooking = null;
         const exists = (appData.appointments || []).some(a =>
@@ -4490,13 +4490,13 @@
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
         const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
         if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
-        const serviceMatch = t.match(/(?:برای|واسه)\s*(لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)(?=\s|$)/);
+        const serviceMatch = t.match(/(?:برای|واسه)\s*(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)(?=\s|$)/);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
         if (knownService) service = knownService.name;
-        const nameMatch = t.match(/(?:برای|واسه)\s+(.+?)(?=\s+(?:ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|صبح)|$)/);
+        const nameMatch = t.match(/(?:برای|واسه)\s+(.+?)(?=\s+(?:ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت)|$)/);
         let clientName = nameMatch ? nameMatch[1].trim() : '';
-        if (/^(?:امروز|فردا|پس فردا|لیفت|لیفت مژه|لیفت ابرو|اکستنشن|مژه)$/.test(clientName)) clientName = '';
+        if (/^(?:امروز|فردا|پس\s*فردا|امروز|لیفت|لیفت مژه|لیفت ابرو|کاشت مژه|کاشت ابرو|اکستنشن|مژه|نوبت|رزرو|وقت)$/u.test(clientName) || /(?:پس\s*فردا|فردا|امروز|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
         const priceMatch = t.match(/(?:با هزینه|هزینه|مبلغ|قیمت)\s*(\d{3,})/);
