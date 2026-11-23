@@ -2146,14 +2146,21 @@
             clientProfiles: parsed.clientProfiles || {},
             settings: { ...appData.settings, ...(parsed.settings || {}) }
           };
-          // Keep appointments in a dedicated local key as an additional offline recovery layer.
+          // The main record is authoritative when present. Use the dedicated appointment
+          // backup only to recover legacy records that genuinely lack an appointments array;
+          // never let an older backup overwrite newer bookings or resurrect deleted ones.
           try {
-            const appointmentBackup = localStorage.getItem('dastyare_man_appointments_v1');
-            if (appointmentBackup !== null) {
-              const recoveredAppointments = JSON.parse(appointmentBackup);
-              if (Array.isArray(recoveredAppointments)) appData.appointments = recoveredAppointments;
+            if (!Array.isArray(parsed.appointments)) {
+              const appointmentBackup = localStorage.getItem('dastyare_man_appointments_v1');
+              if (appointmentBackup !== null) {
+                const recoveredAppointments = JSON.parse(appointmentBackup);
+                if (Array.isArray(recoveredAppointments)) appData.appointments = recoveredAppointments;
+              }
             } else {
-              localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments || []));
+              appData.appointments = parsed.appointments;
+              if (localStorage.getItem('dastyare_man_appointments_v1') === null) {
+                localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments));
+              }
             }
           } catch (e) {}
           // One-time visual refresh: migrate the legacy dark/gold default to Mina's pastel identity.
@@ -4544,7 +4551,10 @@
           const [wy, wm, wd] = dateKey.split('-').map(Number);
           const [gy, gm, gd] = jalaliToGregorian(wy, wm, wd);
           const currentWeekday = (new Date(gy, gm - 1, gd).getDay() + 1) % 7;
-          const delta = (requestedWeekday.day - currentWeekday + 7) % 7 || 7;
+          let delta = (requestedWeekday.day - currentWeekday + 7) % 7;
+          // If the user explicitly said tomorrow/the day after, allow that base date
+          // to match the named weekday instead of incorrectly moving it a full week.
+          if (delta === 0 && !/(?:امروز|فردا|پس\\s*فردا)/.test(t)) delta = 7;
           dateKey = addDaysToJalaliKey(dateKey, delta);
         }
         const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*پوست|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
@@ -4566,7 +4576,9 @@
         const nameMatches = Array.from(t.matchAll(/(?:برای|واسه)\s+(.+?)(?=\s+(?:برای|ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت|کوتاهی|اصلاح|رنگ|مش|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین|بوتاکس|پروتئین|احیا|شینیون|براشینگ|سشوار|بافت|اکستنشن|فر|صافی|کاشت|لیفت|لمینت|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|ژلیش|مانیکور|پدیکور|طراحی|فیشیال|پاکسازی|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|میکاپ|گریم|کلاسیک|والیوم|ترمیم)|$)/g));
         const clientCandidates = nameMatches.map(m => m[1].trim()).filter(name =>
           name && !/^(?:امروز|فردا|پس|پس\s*فردا|صبح|ظهر|بعدازظهر|عصر|شب|نوبت|رزرو|وقت)$/u.test(name) &&
-          (!service || name.toLowerCase() !== service.toLowerCase()) &&
+          (!service || (name.toLowerCase() !== service.toLowerCase() &&
+            !service.toLowerCase().includes(name.toLowerCase()) &&
+            !name.toLowerCase().includes(service.toLowerCase()))) &&
           !servicePattern.test(name)
         );
         let clientName = clientCandidates.length ? clientCandidates[clientCandidates.length - 1] : '';
