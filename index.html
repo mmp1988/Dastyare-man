@@ -2146,6 +2146,16 @@
             clientProfiles: parsed.clientProfiles || {},
             settings: { ...appData.settings, ...(parsed.settings || {}) }
           };
+          // Keep appointments in a dedicated local key as an additional offline recovery layer.
+          try {
+            const appointmentBackup = localStorage.getItem('dastyare_man_appointments_v1');
+            if (appointmentBackup !== null) {
+              const recoveredAppointments = JSON.parse(appointmentBackup);
+              if (Array.isArray(recoveredAppointments)) appData.appointments = recoveredAppointments;
+            } else {
+              localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments || []));
+            }
+          } catch (e) {}
           // One-time visual refresh: migrate the legacy dark/gold default to Mina's pastel identity.
           if (!appData.settings.minaStyleMigrated) {
             if (appData.settings.palette === 'gold' || !appData.settings.palette) {
@@ -2165,6 +2175,8 @@
       const serialized = JSON.stringify(appData);
       // Browser storage is the primary store; Android's private backup is a second recovery layer.
       try { localStorage.setItem(STORAGE_KEY, serialized); } catch (e) {}
+      // Appointment records get their own durable local backup so they survive app restarts/offline use.
+      try { localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments || [])); } catch (e) {}
       try {
         if (window.AndroidApp && typeof window.AndroidApp.backupData === 'function') {
           window.AndroidApp.backupData(serialized);
@@ -4517,7 +4529,17 @@
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
         if (knownService) service = knownService.name;
-        if (!service) return 'نوع خدمت رو متوجه نشدم عزیزم؛ کاشت مژه، لیفت یا چه خدمتیه؟ 💗';
+        // Generic service support: accept any user-described profession/service, not only a fixed beauty list.
+        if (!service) {
+          const explicitService = q.match(/(?:نوع\s*خدمت|خدمت|برای)\s+(.+?)(?=\s+(?:نوبت|رزرو|وقت|ثبت\s*کن|بذار|بزار|بده|بگیر)|$)/i);
+          if (explicitService) {
+            let candidate = explicitService[1].trim();
+            if (candidate.includes('برای')) candidate = candidate.split('برای').pop().trim();
+            candidate = candidate.replace(/\s*(?:ثبت\s*کن|نوبت\s*ثبت\s*کن|بذار|بزار|بده|بگیر)\s*$/i, '').trim();
+            if (candidate && candidate.length <= 80) service = candidate;
+          }
+        }
+        if (!service) return 'نوع خدمت رو متوجه نشدم عزیزم؛ اسم هر خدمتی رو که می‌خوای ثبت کنم بگو 💗';
         const nameMatches = Array.from(t.matchAll(/(?:برای|واسه)\s+(.+?)(?=\s+(?:برای|ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت|کوتاهی|اصلاح|رنگ|مش|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین|بوتاکس|پروتئین|احیا|شینیون|براشینگ|سشوار|بافت|اکستنشن|فر|صافی|کاشت|لیفت|لمینت|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|ژلیش|مانیکور|پدیکور|طراحی|فیشیال|پاکسازی|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|میکاپ|گریم|کلاسیک|والیوم|ترمیم)|$)/g));
         const clientCandidates = nameMatches.map(m => m[1].trim()).filter(name =>
           name && !/^(?:امروز|فردا|پس|پس\s*فردا|صبح|ظهر|بعدازظهر|عصر|شب|نوبت|رزرو|وقت)$/u.test(name) &&
@@ -4660,7 +4682,7 @@
       const isBookingIntent = /(?:نوبت|رزرو|وقت)/.test(normalized) &&
         /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
       const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) &&
-        /(?:کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن|کلاسیک|والیوم|ترمیم)/.test(normalized);
+        /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
         const timeMatch = normalized.match(/(?:ساعت\s*)?(\d{1,2}(?::\d{1,2})?)\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
