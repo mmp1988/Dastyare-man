@@ -109,6 +109,36 @@
     .splash-sub { color: #94a3b8; font-size: 0.86rem; }
     @keyframes pulseLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
 
+    /* PIN Lock Screen */
+    #pinLockScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9500;
+      background: var(--bg-primary);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #pinLockScreen.active { display: flex; }
+    .pin-dots { display: flex; gap: 14px; margin: 18px 0 24px; }
+    .pin-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid var(--accent); background: transparent;
+      transition: background 0.15s ease;
+    }
+    .pin-dot.filled { background: var(--accent); }
+    .pin-pad {
+      display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; direction: ltr;
+    }
+    .pin-key {
+      height: 60px; border-radius: 18px; border: 1px solid var(--border-color);
+      background: var(--bg-input); color: var(--text-primary);
+      font-size: 1.3rem; font-weight: 800; cursor: pointer;
+    }
+    .pin-key:active { background: var(--accent); color: var(--accent-contrast); }
+
     /* Header */
     .app-header {
       position: sticky;
@@ -433,6 +463,30 @@
 </head>
 <body>
 
+  <!-- PIN Lock Screen -->
+  <div id="pinLockScreen">
+    <img src="./icon-192.png" alt="Logo" style="width:76px; height:76px; border-radius:22px; border:2px solid var(--accent); margin-bottom:10px;" />
+    <div style="font-weight:800; font-size:1.1rem; color:var(--accent);">قفل امنیتی دستیار من</div>
+    <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">رمز ۴ رقمی خود را وارد کنید</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pressPinKey('1')">1</button>
+      <button class="pin-key" onclick="pressPinKey('2')">2</button>
+      <button class="pin-key" onclick="pressPinKey('3')">3</button>
+      <button class="pin-key" onclick="pressPinKey('4')">4</button>
+      <button class="pin-key" onclick="pressPinKey('5')">5</button>
+      <button class="pin-key" onclick="pressPinKey('6')">6</button>
+      <button class="pin-key" onclick="pressPinKey('7')">7</button>
+      <button class="pin-key" onclick="pressPinKey('8')">8</button>
+      <button class="pin-key" onclick="pressPinKey('9')">9</button>
+      <button class="pin-key" onclick="clearPinInput()" style="font-size:0.9rem;">پاک</button>
+      <button class="pin-key" onclick="pressPinKey('0')">0</button>
+      <button class="pin-key" onclick="backspacePin()" style="font-size:1rem;">⌫</button>
+    </div>
+  </div>
+
   <!-- Splash Screen -->
   <div id="splashScreen">
     <div class="splash-logo-wrap">
@@ -518,7 +572,10 @@
             <div class="section-title" id="selectedDateLabel">برنامه روز انتخاب‌شده</div>
             <div style="font-size:0.74rem; color:var(--text-secondary);" id="selectedDaySummary">جمع دریافتی: ۰ تومان</div>
           </div>
-          <button class="btn-primary" onclick="openApptModal()">➕ ثبت نوبت</button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn-secondary" id="toggleFollowupFilterBtn" onclick="toggleFollowupOnlyView()">🔁 نوبت‌های ترمیم</button>
+            <button class="btn-primary" onclick="openApptModal()">➕ ثبت نوبت</button>
+          </div>
         </div>
 
         <div class="table-wrap">
@@ -594,6 +651,9 @@
           <button class="filter-pill" onclick="setFinancePeriod('all', this)">کل سوابق</button>
         </div>
 
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-subtle); border-radius:13px; padding:8px 11px; margin-bottom:11px; font-size:0.75rem; color:var(--text-secondary);" id="finSourceBreakdown">
+          سود نوبت‌های انجام‌شده: ۰ ت • سود ثبت دستی: ۰ ت
+        </div>
         <div class="finance-hero">
           <div class="fin-kpi">
             <div class="fin-kpi-title">کل پول دریافتی (ناخالص)</div>
@@ -810,8 +870,14 @@
       <div class="card">
         <div class="section-title" style="margin-bottom:10px;">🔒 امنیت (رمز ورود) و پشتیبان‌گیری</div>
         <div class="form-group">
-          <label>رمز عبور ۴ رقمی ورود به برنامه (برای حذف رمز، کادر را خالی بگذارید)</label>
-          <input type="tel" maxlength="4" id="settingAppPin" class="form-control" dir="ltr" placeholder="مثلاً: 1234" onchange="saveSettings()" />
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <label style="margin-bottom:0;">رمز عبور ۴ رقمی ورود به برنامه</label>
+            <span style="font-size:0.72rem; font-weight:800;" id="pinStatusBadge">وضعیت رمز: غیرفعال</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <input type="tel" maxlength="4" id="settingAppPin" class="form-control" dir="ltr" placeholder="مثلاً: 1234" onchange="saveSettings()" />
+            <button type="button" class="btn-secondary" onclick="quickClearAppPin()" title="حذف سریع رمز">حذف رمز</button>
+          </div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
@@ -970,7 +1036,7 @@
         </div>
         <div class="form-group">
           <label>رزرو خودکار نوبت ترمیم بعدی</label>
-          <select id="apptNextFollowup" class="form-control" onchange="toggleFollowupCustomDays()">
+          <select id="apptNextFollowup" class="form-control" onchange="updateFollowupUI()">
             <option value="0">بدون نوبت ترمیم</option>
             <option value="14">۲ هفته بعد (۱۴ روز)</option>
             <option value="21">۳ هفته بعد (۲۱ روز)</option>
@@ -980,7 +1046,10 @@
         </div>
         <div class="form-group" id="followupCustomDaysBox" style="display:none;">
           <label>چند روز بعد ترمیم ثبت شود؟</label>
-          <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" placeholder="تعداد روز..." />
+          <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" oninput="updateFollowupUI()" />
+        </div>
+        <div class="form-group full" id="followupDatePreviewBox" style="display:none; margin-bottom:4px;">
+          <div style="font-size:0.75rem; font-weight:800; color:var(--accent);" id="followupDatePreviewText">تاریخ ترمیم محاسبه‌شده: —</div>
         </div>
         <div class="form-group full">
           <label>وضعیت نوبت</label>
@@ -1292,6 +1361,38 @@
       updateDashboardStats();
     }
 
+    // --- PIN LOCK ---
+    let enteredPin = '';
+    function checkPinLockOnStartup() {
+      const pin = (appData.settings.appPin || '').trim();
+      if (pin.length === 4) {
+        document.getElementById('pinLockScreen').classList.add('active');
+      }
+    }
+    function pressPinKey(digit) {
+      if (enteredPin.length >= 4) return;
+      enteredPin += digit;
+      updatePinDots();
+      if (enteredPin.length === 4) {
+        if (enteredPin === appData.settings.appPin) {
+          document.getElementById('pinLockScreen').classList.remove('active');
+          enteredPin = '';
+          updatePinDots();
+        } else {
+          showToast('رمز اشتباه است ❌');
+          enteredPin = '';
+          setTimeout(updatePinDots, 250);
+        }
+      }
+    }
+    function backspacePin() { enteredPin = enteredPin.slice(0, -1); updatePinDots(); }
+    function clearPinInput() { enteredPin = ''; updatePinDots(); }
+    function updatePinDots() {
+      document.querySelectorAll('#pinDots .pin-dot').forEach((dot, idx) => {
+        dot.classList.toggle('filled', idx < enteredPin.length);
+      });
+    }
+
     // --- CALENDAR ---
     const iranInit = getIranNow();
     const todayJalali = gregorianToJalali(iranInit.getFullYear(), iranInit.getMonth() + 1, iranInit.getDate());
@@ -1358,9 +1459,11 @@
 
     // --- DAY SCHEDULE & RECEIPT CARD ---
     function renderDaySchedule() {
-      document.getElementById('selectedDateLabel').textContent = `برنامه ${formatJalaliFull(selectedDateKey)}`;
+      document.getElementById('selectedDateLabel').textContent = showFollowupOnly ? 'نوبت‌های ترمیم ثبت‌شده' : `برنامه ${formatJalaliFull(selectedDateKey)}`;
       const tbody = document.getElementById('dayAppointmentsBody');
-      const list = appData.appointments.filter(a => a.dateKey === selectedDateKey).sort((a, b) => a.time.localeCompare(b.time));
+      const list = showFollowupOnly
+        ? appData.appointments.filter(a => (a.service || '').includes('ترمیم') && a.status !== 'canceled').sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.time.localeCompare(b.time))
+        : appData.appointments.filter(a => a.dateKey === selectedDateKey).sort((a, b) => a.time.localeCompare(b.time));
 
       let totalIncome = 0, totalDeposit = 0;
       list.forEach(a => {
@@ -1508,7 +1611,7 @@
       document.getElementById('conflictWarningBox').style.display = 'none';
       document.getElementById('apptNextFollowup').value = '0';
       document.getElementById('apptFollowupCustomDays').value = '10';
-      toggleFollowupCustomDays();
+      updateFollowupUI();
 
       const chipsWrap = document.getElementById('quickServiceChipsWrap');
       const chipsBox = document.getElementById('quickServiceChips');
@@ -1566,12 +1669,60 @@
     }
 
 
-    function toggleFollowupCustomDays() {
+    let showFollowupOnly = false;
+    function toggleFollowupOnlyView() {
+      showFollowupOnly = !showFollowupOnly;
+      const btn = document.getElementById('toggleFollowupFilterBtn');
+      if (btn) {
+        btn.style.borderColor = showFollowupOnly ? 'var(--accent)' : '';
+        btn.style.color = showFollowupOnly ? 'var(--accent)' : '';
+      }
+      renderDaySchedule();
+    }
+
+    function updateFollowupUI() {
       const sel = document.getElementById('apptNextFollowup');
       const box = document.getElementById('followupCustomDaysBox');
-      if (sel && box) {
-        box.style.display = sel.value === 'custom' ? 'flex' : 'none';
+      const prevBox = document.getElementById('followupDatePreviewBox');
+      const prevTxt = document.getElementById('followupDatePreviewText');
+      if (!sel) return;
+      const val = sel.value;
+      if (box) box.style.display = val === 'custom' ? 'flex' : 'none';
+      const days = val === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value) || 0) : (Number(val) || 0);
+      if (prevBox && prevTxt) {
+        if (days > 0) {
+          const targetKey = addDaysToJalaliKey(selectedDateKey, days);
+          prevBox.style.display = 'block';
+          prevTxt.textContent = `تاریخ ترمیم محاسبه‌شده: ${formatJalaliFull(targetKey)}`;
+        } else {
+          prevBox.style.display = 'none';
+        }
       }
+    }
+
+    function quickClearAppPin() {
+      appData.settings.appPin = '';
+      document.getElementById('settingAppPin').value = '';
+      saveData();
+      applySettingsUI();
+      showToast('رمز ورود حذف شد 🔓');
+    }
+
+    function clearAllUserEntries() {
+      if (!confirm('همه نوبت‌ها، یادداشت‌ها، چک‌لیست و تراکنش‌هایی که ثبت کرده‌اید پاک شوند؟')) return;
+      appData.appointments = [];
+      appData.notes = [];
+      appData.todos = [];
+      appData.transactions = [];
+      appData.clientNotes = {};
+      saveData();
+      renderCalendar();
+      renderDaySchedule();
+      renderTodos();
+      renderNotebook();
+      renderFinanceTab();
+      renderClientsTab();
+      showToast('همه موارد ثبت‌شده توسط شما پاک شد 🗑️');
     }
 
     function saveAppointment() {
@@ -1856,6 +2007,15 @@
         }
       });
 
+      let apptProfit = 0, manualProfit = 0;
+      list.forEach(t => {
+        if (t.type === 'income') {
+          if (t.sourceApptId) apptProfit += Number(t.netAmount) || 0;
+          else manualProfit += Number(t.netAmount) || 0;
+        }
+      });
+      document.getElementById('finSourceBreakdown').textContent =
+        `سود نوبت‌های انجام‌شده: ${formatMoney(apptProfit)} ت • سود ثبت دستی: ${formatMoney(manualProfit)} ت`;
       const netProfit = grossIncome - totalComm - totalExpenses;
       const margin = grossIncome > 0 ? Math.round((netProfit / grossIncome) * 100) : 0;
 
@@ -2006,6 +2166,13 @@
       document.getElementById('settingDefaultComm').value = s.defaultComm || 0;
       document.getElementById('settingMonthlyGoal').value = s.monthlyGoal || '';
       document.getElementById('settingMsgTemplate').value = s.msgTemplate || '';
+      document.getElementById('settingAppPin').value = s.appPin || '';
+      const badge = document.getElementById('pinStatusBadge');
+      if (badge) {
+        const active = (s.appPin || '').trim().length === 4;
+        badge.textContent = active ? 'وضعیت رمز: فعال 🔒' : 'وضعیت رمز: غیرفعال';
+        badge.style.color = active ? 'var(--success)' : 'var(--text-secondary)';
+      }
       document.getElementById('settingCustomApkUrl').value = s.customApkUrl || '';
       document.getElementById('settingFontScale').value = s.fontScale || '16px';
 
@@ -2041,6 +2208,7 @@
       appData.settings.defaultComm = Number(document.getElementById('settingDefaultComm').value) || 0;
       appData.settings.monthlyGoal = Number(document.getElementById('settingMonthlyGoal').value) || 0;
       appData.settings.msgTemplate = document.getElementById('settingMsgTemplate').value;
+      appData.settings.appPin = document.getElementById('settingAppPin').value.replace(/[^0-9]/g, '').slice(0, 4);
       appData.settings.customApkUrl = document.getElementById('settingCustomApkUrl').value.trim();
       appData.settings.fontScale = document.getElementById('settingFontScale').value;
       saveData(); applySettingsUI();
@@ -2225,26 +2393,9 @@
       setTimeout(() => t.classList.remove('show'), 2800);
     }
 
-
-    function clearAllUserEntries() {
-      if (!confirm('همه نوبت‌ها، یادداشت‌ها، چک‌لیست و تراکنش‌هایی که ثبت کرده‌اید پاک شوند؟')) return;
-      appData.appointments = [];
-      appData.notes = [];
-      appData.todos = [];
-      appData.transactions = [];
-      appData.clientNotes = {};
-      saveData();
-      renderCalendar();
-      renderDaySchedule();
-      renderTodos();
-      renderNotebook();
-      renderFinanceTab();
-      renderClientsTab();
-      showToast('همه موارد ثبت‌شده توسط شما پاک شد 🗑️');
-    }
-
     // --- INIT ---
     loadData();
+    checkPinLockOnStartup();
     applySettingsUI();
     updateClockAndDate();
     renderCalendar();
