@@ -619,40 +619,49 @@ public class MainActivity extends Activity {
         super.onPause();
     }
 
+    private long lastBackPressAt = 0L;
+
     @Override public void onBackPressed() {
         if (webView == null) {
-            super.onBackPressed();
             return;
         }
 
-        // The app is a single-page interface: handle its open dialogs and tabs
-        // before falling back to WebView history or exiting the Activity.
+        // Resolve SPA navigation in JavaScript first. Never finish the Activity
+        // when the page cannot be inspected (for example while it is loading).
         webView.evaluateJavascript(
                 "(function() {" +
-                "  var modals = document.querySelectorAll('.modal.open');" +
-                "  if (modals.length) {" +
-                "    modals[modals.length - 1].classList.remove('open');" +
-                "    return true;" +
-                "  }" +
-                "  var fab = document.getElementById('fabMenu');" +
-                "  if (fab && fab.classList.contains('open')) {" +
-                "    fab.classList.remove('open');" +
-                "    return true;" +
-                "  }" +
-                "  var activeTab = document.querySelector('.tab-section.active');" +
-                "  if (activeTab && activeTab.id !== 'tab-calendar' && typeof switchTab === 'function') {" +
-                "    var calendarButton = Array.from(document.querySelectorAll('.nav-item'))" +
-                "      .find(function(button) { return (button.getAttribute('onclick') || '').indexOf('calendar') !== -1; });" +
-                "    switchTab('calendar', calendarButton || null);" +
-                "    return true;" +
-                "  }" +
-                "  return false;" +
+                "  try {" +
+                "    var modals = document.querySelectorAll('.modal.open');" +
+                "    if (modals.length) { modals[modals.length - 1].classList.remove('open'); return 'handled'; }" +
+                "    var fab = document.getElementById('fabMenu');" +
+                "    if (fab && fab.classList.contains('open')) { fab.classList.remove('open'); return 'handled'; }" +
+                "    var activeTab = document.querySelector('.tab-section.active');" +
+                "    if (activeTab && activeTab.id !== 'tab-calendar' && typeof window.switchTab === 'function') {" +
+                "      window.switchTab('calendar', null); return 'handled';" +
+                "    }" +
+                "    if (!activeTab && document.getElementById('tab-calendar') && typeof window.switchTab === 'function') {" +
+                "      window.switchTab('calendar', null); return 'handled';" +
+                "    }" +
+                "    return 'at-root';" +
+                "  } catch (e) { return 'unknown'; }" +
                 "})()",
                 value -> {
                     if (isFinishing() || isDestroyed()) return;
-                    if ("true".equals(value)) return;
-                    if (webView != null && webView.canGoBack()) webView.goBack();
-                    else finish();
+                    if ("\"handled\"".equals(value)) return;
+                    if (!"\"at-root\"".equals(value)) return;
+
+                    if (webView != null && webView.canGoBack()) {
+                        webView.goBack();
+                        return;
+                    }
+
+                    long now = System.currentTimeMillis();
+                    if (now - lastBackPressAt < 2000L) {
+                        finish();
+                    } else {
+                        lastBackPressAt = now;
+                        Toast.makeText(MainActivity.this, "برای خروج، دوباره دکمه برگشت را بزنید", Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 
