@@ -2923,7 +2923,7 @@
         if(!before||!after)return null;
         const canvas=document.createElement('canvas');canvas.width=1600;canvas.height=900;
         const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,1600,900);
-        const draw=(img,x)=>{const maxW=800,maxH=900,scale=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);const w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,x+(maxW-w)/2,(maxH-h)/2,w,h);};
+        const draw=(img,x)=>{const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,maxW=800,maxH=900,scale=Math.min(maxW/iw,maxH/ih);const w=iw*scale,h=ih*scale;ctx.drawImage(img,x+(maxW-w)/2,(maxH-h)/2,w,h);};
         draw(before,0);draw(after,800);
         if(before._temporaryObjectUrl)URL.revokeObjectURL(before._temporaryObjectUrl);
         if(after._temporaryObjectUrl)URL.revokeObjectURL(after._temporaryObjectUrl);
