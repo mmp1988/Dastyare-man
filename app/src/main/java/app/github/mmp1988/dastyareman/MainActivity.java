@@ -65,6 +65,7 @@ public class MainActivity extends Activity {
     private String pendingNativeSpeechTarget;
     private String pendingNativeSpeechButton;
     private SpeechRecognizer nativeSpeechRecognizer;
+    private SpeechRecognizer speechModelDownloadRecognizer;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
@@ -531,7 +532,86 @@ public class MainActivity extends Activity {
         });
     }
 
+    private Intent buildPersianSpeechIntent() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR");
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR");
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        return intent;
+    }
+
+    private void requestPersianOfflineSpeechModel() {
+        if (android.os.Build.VERSION.SDK_INT < 33) {
+            notifyVoiceMessage("دانلود مستقیم مدل آفلاین از داخل برنامه از اندروید ۱۳ به بعد پشتیبانی می‌شود؛ در این گوشی باید بسته گفتار فارسی را از تنظیمات سرویس گفتار نصب کنید.");
+            return;
+        }
+        try {
+            if (speechModelDownloadRecognizer != null) {
+                try { speechModelDownloadRecognizer.destroy(); } catch (Exception ignored) { }
+            }
+            speechModelDownloadRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            final SpeechRecognizer recognizer = speechModelDownloadRecognizer;
+            final Intent intent = buildPersianSpeechIntent();
+            recognizer.checkRecognitionSupport(intent, getMainExecutor(), new android.speech.RecognitionSupportCallback() {
+                @Override public void onError(int error) {
+                    notifyVoiceMessage("سرویس گفتار گوشی امکان بررسی بسته فارسی را نداد؛ سرویس گفتار را به‌روز کنید یا از تشخیص آنلاین استفاده کنید.");
+                    try { recognizer.destroy(); } catch (Exception ignored) { }
+                    if (speechModelDownloadRecognizer == recognizer) speechModelDownloadRecognizer = null;
+                }
+                @Override public void onSupportResult(android.speech.RecognitionSupport support) {
+                    java.util.List<String> installed = support.getInstalledOnDeviceLanguages();
+                    java.util.List<String> supported = support.getSupportedOnDeviceLanguages();
+                    java.util.List<String> pending = support.getPendingOnDeviceLanguages();
+                    boolean alreadyInstalled = containsPersianLanguage(installed);
+                    boolean canDownload = containsPersianLanguage(supported);
+                    boolean isPending = containsPersianLanguage(pending);
+                    if (alreadyInstalled) {
+                        notifyVoiceMessage("بسته گفتار فارسی آفلاین از قبل نصب است؛ می‌توانید بدون اینترنت از گفتار به متن استفاده کنید.");
+                        try { recognizer.destroy(); } catch (Exception ignored) { }
+                        if (speechModelDownloadRecognizer == recognizer) speechModelDownloadRecognizer = null;
+                    } else if (isPending) {
+                        notifyVoiceMessage("دانلود بسته فارسی قبلاً در صف قرار گرفته است؛ پس از تکمیل دانلود، گفتار آفلاین فعال می‌شود.");
+                    } else if (canDownload) {
+                        try {
+                            recognizer.triggerModelDownload(intent);
+                            notifyVoiceMessage("درخواست دانلود بسته فارسی ارسال شد؛ اگر اندروید تأیید خواست، دانلود را تأیید کنید. پس از پایان، گفتار فارسی آفلاین آماده است.");
+                        } catch (Exception e) {
+                            notifyVoiceMessage("شروع دانلود بسته فارسی ممکن نشد؛ سرویس گفتار گوشی را بررسی کنید.");
+                            try { recognizer.destroy(); } catch (Exception ignored) { }
+                            if (speechModelDownloadRecognizer == recognizer) speechModelDownloadRecognizer = null;
+                        }
+                    } else {
+                        notifyVoiceMessage("سرویس گفتار نصب‌شده روی این گوشی مدل فارسی آفلاین ارائه نمی‌کند. گفتار آنلاین همچنان قابل استفاده است؛ برای آفلاین باید موتور مستقل فارسی به برنامه اضافه شود.");
+                        try { recognizer.destroy(); } catch (Exception ignored) { }
+                        if (speechModelDownloadRecognizer == recognizer) speechModelDownloadRecognizer = null;
+                    }
+                }
+            });
+        } catch (Exception e) {
+            notifyVoiceMessage("سرویس گفتار گوشی برای دانلود مدل در دسترس نیست؛ آن را به‌روز کنید.");
+            if (speechModelDownloadRecognizer != null) {
+                try { speechModelDownloadRecognizer.destroy(); } catch (Exception ignored) { }
+                speechModelDownloadRecognizer = null;
+            }
+        }
+    }
+
+    private boolean containsPersianLanguage(java.util.List<String> languages) {
+        if (languages == null) return false;
+        for (String language : languages) {
+            if (language != null && (language.equalsIgnoreCase("fa")
+                    || language.toLowerCase(Locale.ROOT).startsWith("fa-"))) return true;
+        }
+        return false;
+    }
+
     private class AppBridge {
+        @JavascriptInterface public void downloadPersianOfflineSpeechModel() {
+            runOnUiThread(() -> requestPersianOfflineSpeechModel());
+        }
+
         @JavascriptInterface public void startOfflineSpeechRecognition(String targetInputId, String buttonId) {
             runOnUiThread(() -> {
                 if (!("apptClientName".equals(targetInputId) || "apptService".equals(targetInputId)
@@ -702,6 +782,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (speechModelDownloadRecognizer != null) { try { speechModelDownloadRecognizer.destroy(); } catch (Exception ignored) { } speechModelDownloadRecognizer = null; }
         if (connectivityManager != null && networkCallback != null) {
             try { connectivityManager.unregisterNetworkCallback(networkCallback); } catch (Exception ignored) { }
         }
