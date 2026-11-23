@@ -2855,7 +2855,7 @@
     function buildClientShareText(key, onlyItem) {
       const p = getClientProfile(key);
       const checked = id => { const el=document.getElementById(id); return !el || el.checked; };
-      const lines = ['📁 پرونده مشتری'];
+      const lines = [];
       if (checked('shareClientIdentity') && p.name) lines.push('نام: '+p.name);
       if (checked('shareClientIdentity') && p.phone) lines.push('شماره تماس: '+p.phone);
       if (checked('shareClientNotes') && p.notes) lines.push('یادداشت: '+p.notes);
@@ -2877,24 +2877,27 @@
         const records = (p.records||[]).map(a=>({...a,source:'record'}));
         const history=done.concat(records).sort((a,b)=>(b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
         if(history.length) {
-          lines.push('سوابق خدمات:');
+          const historyLines=[];
           history.forEach((a,i)=>{
-            const parts=[(i+1)+') '+(checked('shareClientService')?(a.service||'خدمت'):'سابقه')];
+            const parts=[];
+            if(checked('shareClientService') && a.service) parts.push((i+1)+') '+a.service);
             if(checked('shareClientDate') && a.dateKey) parts.push(formatJalaliFull(a.dateKey));
             if(checked('shareClientTime') && a.time) parts.push(a.time);
             if(checked('shareClientPrices') && a.price!=null && a.price!=='') parts.push('مبلغ: '+formatMoney(a.price)+' تومان');
             if(a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
             if(checked('shareClientWorkCustom') && a.customValues) Object.entries(a.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))parts.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
             if(checked('shareClientWorkNotes') && a.notes) parts.push(a.notes);
-            lines.push(parts.join(' | '));
+            if(parts.length) historyLines.push(parts.join(' | '));
           });
+          if(historyLines.length) lines.push('سوابق خدمات:',...historyLines);
         }
         if(checked('shareClientNext')) {
           const next=appointments.filter(a=>a.status!=='canceled'&&a.dateKey>=getTodayKey()).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
           if(next) lines.push('نوبت بعدی: '+formatJalaliFull(next.dateKey)+(next.time?' ساعت '+next.time:'')+(next.service?' — '+next.service:''));
         }
       }
-      return lines.length>1?lines.join('\n'):'پرونده مشتری: '+(p.name||'بدون مشخصات ثبت‌شده');
+      if(lines.length) lines.unshift('📁 پرونده مشتری'+(p.name?' — '+p.name:''));
+      return lines.join('\n');
     }
     async function shareClientRecord() {
       const key=document.getElementById('clientRecordKey').value;
@@ -2913,7 +2916,9 @@
           }
         }
       }
-      await shareClientPayload(buildClientShareText(key),refs.filter(Boolean),'پرونده مشتری');
+      const message=buildClientShareText(key),attachments=refs.filter(Boolean);
+      if(!message&&!attachments.length){showToast('هیچ موردی برای ارسال انتخاب نشده است.');return;}
+      await shareClientPayload(message,attachments,'پرونده مشتری');
     }
     async function createClientBeforeAfterImage(item) {
       if(!item.beforePhotoRef||!item.afterPhotoRef||!window.document.createElement('canvas').toBlob)return null;
@@ -2961,7 +2966,9 @@
         } else photos.push(item.beforePhotoRef,item.afterPhotoRef);
         photos.push(item.photoRef,item.photo,p.photoRef,p.photo);
       }
-      await shareClientPayload(buildClientShareText(key,{...item,source}), photos.filter(Boolean), 'سابقه مشتری');
+      const message=buildClientShareText(key,{...item,source}),attachments=photos.filter(Boolean);
+      if(!message&&!attachments.length){showToast('هیچ موردی برای ارسال انتخاب نشده است.');return;}
+      await shareClientPayload(message,attachments,'سابقه مشتری');
     }
     async function shareClientPayload(text, photoData, title) {
       try {
