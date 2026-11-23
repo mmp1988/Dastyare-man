@@ -2686,8 +2686,11 @@
       const checklist = Array.from(document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]:checked')).map(el=>el.value);
       const customChecklist = document.getElementById('clientCustomChecklist').value.trim();
       if (customChecklist) checklist.push(customChecklist);
-      if (!service) { showToast('نوع خدمت را وارد کن.'); return; }
-      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, price, checklist, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
+      if (!service && !notes && price === null && !checklist.length && !pendingClientWorkPhoto && !pendingClientBeforePhoto && !pendingClientAfterPhoto) {
+        showToast('حداقل یک مورد مثل خدمت، توضیح، قیمت یا عکس اضافه کن.');
+        return;
+      }
+      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service:service || 'سابقه خدمت', notes, price, checklist, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
       pendingClientWorkPhoto = '';
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
