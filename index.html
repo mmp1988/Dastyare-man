@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1117" id="metaThemeColor" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="دستیار من" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/png" href="./icon-192.png" />
+  <title>دستیار من | تقویم شمسی و نوبت‌دهی هوشمند</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0d12;
+      --bg-secondary: #131722;
+      --bg-card: rgba(23, 28, 40, 0.88);
+      --bg-card-solid: #171c28;
+      --bg-input: #1d2332;
+      --border-color: rgba(212, 175, 55, 0.22);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --gold: #d4af37;
+      --gold-light: #f3d474;
+      --gold-dark: #a6821c;
+      --gold-glow: rgba(212, 175, 55, 0.18);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #38bdf8;
+      --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55);
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #faf7f2;
+      --bg-secondary: #f2ece1;
+      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-card-solid: #ffffff;
+      --bg-input: #f6f1e9;
+      --border-color: rgba(180, 134, 24, 0.28);
+      --border-subtle: rgba(15, 23, 42, 0.08);
+      --text-primary: #1e293b;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --gold: #b48618;
+      --gold-light: #d4af37;
+      --gold-dark: #8c650d;
+      --gold-glow: rgba(180, 134, 24, 0.14);
+      --shadow-lg: 0 14px 32px rgba(30, 41, 59, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding-top: var(--safe-top);
+      padding-bottom: calc(88px + var(--safe-bottom));
+      overflow-x: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Splash Screen */
+    #splashScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(circle at top, #1d2230 0%, #090b10 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      transition: opacity 0.55s ease, visibility 0.55s ease;
+    }
+    #splashScreen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .splash-logo-wrap {
+      width: 112px;
+      height: 112px;
+      border-radius: 30px;
+      padding: 4px;
+      background: linear-gradient(135deg, #f3d474, #a6821c);
+      box-shadow: 0 0 40px rgba(212, 175, 55, 0.35);
+      animation: pulseLogo 1.8s infinite ease-in-out;
+    }
+    .splash-logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 26px;
+      display: block;
+    }
+    .splash-title {
+      font-family: 'Lalezar', 'Vazirmatn', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #f8e39c, #d4af37);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .splash-sub {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+    @keyframes pulseLogo {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    /* Header */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg-card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+    }
+    .header-top {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+    .brand-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1.5px solid var(--gold);
+      object-fit: cover;
+      box-shadow: 0 4px 14px var(--gold-glow);
+    }
+    .brand-title {
+      font-family: 'Lalezar', 'Vazirmatn', sans-serif;
+      font-size: 1.45rem;
+      color: var(--gold);
+      line-height: 1.1;
+    }
+    .brand-subtitle {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: transform 0.15s ease, border-color 0.2s ease;
+    }
+    .icon-btn:active { transform: scale(0.93); }
+
+    /* Live Iran Clock Bar */
+    .clock-bar {
+      max-width: 720px;
+      margin: 10px auto 0;
+      background: linear-gradient(135deg, var(--gold-glow), transparent);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.83rem;
+    }
+    .iran-time {
+      font-weight: 800;
+      color: var(--gold);
+      font-size: 1.02rem;
+      direction: ltr;
+      letter-spacing: 0.6px;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 14px 14px 24px;
+    }
+    .tab-section { display: none; animation: fadeIn 0.25s ease; }
+    .tab-section.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stats Strip */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin-bottom: 14px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 10px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 2px;
+    }
+    .stat-lbl {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    /* Calendar Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 16px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 14px;
+    }
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .cal-month-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .cal-nav {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .btn-pill {
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .weekdays-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .weekdays-row div:last-child { color: var(--danger); }
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .day-cell {
+      aspect-ratio: 1 / 1.08;
+      border-radius: 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .day-cell.empty {
+      background: transparent;
+      border: none;
+      cursor: default;
+    }
+    .day-cell:not(.empty):hover {
+      border-color: var(--gold);
+      transform: translateY(-1px);
+    }
+    .day-cell.today {
+      border: 1.5px solid var(--gold);
+      background: var(--gold-glow);
+    }
+    .day-cell.selected {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: #0b0d12;
+      border-color: var(--gold-light);
+      box-shadow: 0 6px 18px var(--gold-glow);
+    }
+    .day-cell.selected .day-num,
+    .day-cell.selected.friday .day-num { color: #0b0d12; font-weight: 900; }
+    .day-cell.friday .day-num { color: var(--danger); }
+    .day-num {
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+    .day-badge {
+      position: absolute;
+      bottom: 4px;
+      min-width: 18px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 8px;
+      background: var(--gold);
+      color: #0b0d12;
+      font-size: 0.66rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .day-cell.selected .day-badge {
+      background: #0b0d12;
+      color: var(--gold-light);
+    }
+
+    /* Quick Search */
+    .search-box {
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 11px 40px 11px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      outline: none;
+    }
+    .search-box span {
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gold);
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: #0b0d12;
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px var(--gold-glow);
+      transition: transform 0.15s ease;
+    }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-secondary {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Day Schedule Sheet / View */
+    .day-view-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-secondary);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 560px;
+      font-size: 0.82rem;
+    }
+    th {
+      background: var(--bg-input);
+      color: var(--gold);
+      font-weight: 700;
+      padding: 10px 8px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    .status-pill {
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .status-pending { background: rgba(245, 158, 11, 0.16); color: var(--warning); }
+    .status-done { background: rgba(16, 185, 129, 0.16); color: var(--success); }
+    .status-canceled { background: rgba(239, 68, 68, 0.16); color: var(--danger); }
+
+    .action-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: nowrap;
+    }
+    .mini-btn {
+      padding: 5px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mini-btn.wa { color: #22c55e; border-color: rgba(34, 197, 94, 0.3); }
+    .mini-btn.sms { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+    .mini-btn.call { color: var(--gold); border-color: var(--border-color); }
+    .mini-btn.del { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--bg-card-solid);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--gold); }
+    .voice-wrap {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .voice-btn {
+      flex-shrink: 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--gold-glow);
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .voice-btn.recording {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+      animation: pulseLogo 1s infinite;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-color);
+      padding: 8px 10px calc(8px + var(--safe-bottom));
+    }
+    .nav-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .nav-item {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 4px;
+      border-radius: 12px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .nav-item.active {
+      color: var(--gold);
+      background: var(--gold-glow);
+      font-weight: 800;
+    }
+    .nav-icon { font-size: 1.2rem; }
+
+    /* Toast & Alarm Overlay */
+    #toast {
+      position: fixed;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: var(--bg-card-solid);
+      border: 1px solid var(--gold);
+      color: var(--text-primary);
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      max-width: 90%;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .install-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .install-tab-btn {
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .install-tab-btn.active {
+      background: var(--gold);
+      color: #0b0d12;
+    }
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.86rem;
+      line-height: 1.65;
+    }
+    .step-list li {
+      background: var(--bg-input);
+      padding: 10px 12px;
+      border-radius: 12px;
+      border-right: 3px solid var(--gold);
+    }
+
+    .service-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 20px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      font-size: 0.78rem;
+      cursor: pointer;
+      margin: 3px;
+    }
+    .service-chip:hover {
+      background: var(--gold-glow);
+      border-color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Splash Screen -->
+  <div id="splashScreen">
+    <div class="splash-logo-wrap">
+      <img src="./icon-512.png" alt="لوگوی دستیار من" id="splashLogoImg" />
+    </div>
+    <div class="splash-title">دستیار من</div>
+    <div class="splash-sub">تقویم هوشمند، نوبت‌دهی و مدیریت مشتریان</div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand-box">
+        <img src="./icon-192.png" alt="لوگو" class="brand-avatar" id="headerLogoImg" />
+        <div>
+          <div class="brand-title" id="appBrandTitle">دستیار من</div>
+          <div class="brand-subtitle" id="appBrandSub">مدیریت هوشمند نوبت‌دهی و مشتریان</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="openInstallModal()" title="نصب روی آیفون و اندروید">📲</button>
+        <button class="icon-btn" onclick="toggleTheme()" id="themeToggleBtn" title="تغییر تم شب و روز">☀️</button>
+      </div>
+    </div>
+    <div class="clock-bar">
+      <span id="todayJalaliText">در حال بارگذاری تاریخ...</span>
+      <span class="iran-time" id="iranClock">--:--:--</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- TAB 1: CALENDAR & DAILY SCHEDULE -->
+    <section id="tab-calendar" class="tab-section active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="statTodayCount">۰</div>
+          <div class="stat-lbl">نوبت‌های امروز</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statMonthCount">۰</div>
+          <div class="stat-lbl">نوبت‌های این ماه</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statMonthIncome">۰</div>
+          <div class="stat-lbl">درآمد ماه (تومان)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cal-header">
+          <div class="cal-month-title" id="calMonthYear">آبان ۱۴۰۵</div>
+          <div class="cal-nav">
+            <button class="btn-pill" onclick="changeMonth(-1)">ماه قبل</button>
+            <button class="btn-pill" onclick="goToday()">امروز</button>
+            <button class="btn-pill" onclick="changeMonth(1)">ماه بعد</button>
+          </div>
+        </div>
+        <div class="weekdays-row">
+          <div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div>
+        </div>
+        <div class="days-grid" id="calendarGrid"></div>
+      </div>
+
+      <!-- Selected Date Schedule Card -->
+      <div class="card" id="dayScheduleCard">
+        <div class="day-view-header">
+          <div>
+            <div style="font-weight:800; font-size:1.02rem; color:var(--gold);" id="selectedDateLabel">برنامه روز انتخاب‌شده</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary);" id="selectedDayFinancialSummary">جمع درآمد: ۰ تومان | بیعانه: ۰ تومان</div>
+          </div>
+          <button class="btn-primary" onclick="openApptModal()">➕ ثبت نوبت جدید</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ساعت</th>
+                <th>نام مشتری</th>
+                <th>نوع خدمت / کار</th>
+                <th>مبلغ / بیعانه</th>
+                <th>هشدار</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+              </tr>
+            </thead>
+            <tbody id="dayAppointmentsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CLIENTS & GLOBAL SEARCH -->
+    <section id="tab-clients" class="tab-section">
+      <div class="card">
+        <div style="font-weight:800; font-size:1.05rem; color:var(--gold); margin-bottom:10px;">🔍 جستجوی سریع و پرونده مشتریان</div>
+        <div class="search-box">
+          <span>🔎</span>
+          <input type="text" id="globalSearchInput" placeholder="جستجو بر اساس نام مشتری، شماره تماس یا نوع خدمت..." oninput="renderClientsTab()" />
+        </div>
+        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CUSTOM SERVICES & PRICING -->
+    <section id="tab-services" class="tab-section">
+      <div class="card">
+        <div style="font-weight:800; font-size:1.05rem; color:var(--gold); margin-bottom:6px;">✨ خدمات و تعرفه‌های شخصی‌سازی‌شده</div>
+        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:14px; line-height:1.6;">
+          هیچ خدمت یا قیمت از پیش تعیین‌شده‌ای در برنامه وجود ندارد تا هر همکار یا متخصص بتواند دقیقاً خدمات و تعرفه‌های اختصاصی خودش (مو، ناخن، مژه، پوست و...) را ثبت و شخصی‌سازی کند.
+        </p>
+
+        <div class="form-grid" style="background:var(--bg-input); padding:12px; border-radius:16px; border:1px solid var(--border-subtle); margin-bottom:14px;">
+          <div class="form-group full">
+            <label>عنوان خدمت (دلخواه شما)</label>
+            <input type="text" id="newServiceName" class="form-control" placeholder="مثلاً: رنگ و لایت، کاشت ناخن، اکستنشن، فیشیال..." />
+          </div>
+          <div class="form-group">
+            <label>قیمت پیش‌فرض (تومان)</label>
+            <input type="number" id="newServicePrice" class="form-control" placeholder="مثلاً: 850000" />
+          </div>
+          <div class="form-group">
+            <label>مدت زمان تقریبی (دقیقه)</label>
+            <input type="number" id="newServiceDuration" class="form-control" value="60" placeholder="60" />
+          </div>
+          <div class="form-group full" style="margin-bottom:0;">
+            <button class="btn-primary" style="width:100%;" onclick="addCustomService()">➕ افزودن به لیست خدمات من</button>
+          </div>
+        </div>
+
+        <div id="customServicesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SETTINGS, BRANDING, BACKUP & SUPPORT -->
+    <section id="tab-settings" class="tab-section">
+      <div class="card">
+        <div style="font-weight:800; font-size:1.05rem; color:var(--gold); margin-bottom:12px;">⚙️ تنظیمات و شخصی‌سازی برند</div>
+
+        <div class="form-group">
+          <label>نام نمایشی بالای برنامه (نام شما یا لاین کاری)</label>
+          <input type="text" id="settingBrandName" class="form-control" placeholder="دستیار من" onchange="saveSettings()" />
+        </div>
+        <div class="form-group">
+          <label>زیرعنوان / نام مجموعه</label>
+          <input type="text" id="settingBrandSub" class="form-control" placeholder="مدیریت هوشمند نوبت‌دهی و مشتریان" onchange="saveSettings()" />
+        </div>
+        <div class="form-group">
+          <label>آدرس یا توضیحات پیامک یادآوری مشتری</label>
+          <input type="text" id="settingSalonAddress" class="form-control" placeholder="مثلاً: منتظر دیدار شما هستیم" onchange="saveSettings()" />
+        </div>
+
+        <div class="form-group">
+          <label>تغییر لوگوی برنامه (انتخاب تصویر از گالری گوشی)</label>
+          <input type="file" accept="image/*" class="form-control" onchange="handleLogoUpload(event)" />
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+          <button class="btn-secondary" onclick="testAlarmSound()">🔔 تست صدای زنگ هشدار</button>
+          <button class="btn-secondary" onclick="openInstallModal()">📲 راهنمای نصب آیفون و اندروید</button>
+          <button class="btn-secondary" onclick="exportBackup()">💾 دانلود فایل پشتیبان</button>
+          <label class="btn-secondary" style="cursor:pointer;">
+            📂 بازیابی فایل پشتیبان
+            <input type="file" accept=".json" style="display:none;" onchange="importBackup(event)" />
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:800; font-size:1rem; color:var(--gold); margin-bottom:8px;">📩 ارتباط و پشتیبانی</div>
+        <p style="font-size:0.83rem; color:var(--text-secondary); margin-bottom:10px;">
+          برای ارتباط مستقیم، ارسال پیشنهاد یا پشتیبانی می‌توانید از طریق ایمیل زیر در تماس باشید:
+        </p>
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-input); padding:10px 14px; border-radius:12px; border:1px solid var(--border-color);">
+          <span style="font-weight:700; direction:ltr; color:var(--gold);">minamsvm@gmail.com</span>
+          <div style="display:flex; gap:6px;">
+            <button class="mini-btn" onclick="copyEmail()">کپی ایمیل</button>
+            <a class="mini-btn call" href="mailto:minamsvm@gmail.com?subject=پشتیبانی اپلیکیشن دستیار من">ارسال ایمیل</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="nav-inner">
+      <button class="nav-item active" onclick="switchTab('calendar', this)">
+        <span class="nav-icon">📅</span>
+        <span>تقویم و نوبت</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('clients', this)">
+        <span class="nav-icon">👥</span>
+        <span>مشتریان</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('services', this)">
+        <span class="nav-icon">✨</span>
+        <span>خدمات من</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('settings', this)">
+        <span class="nav-icon">⚙️</span>
+        <span>تنظیمات</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Appointment Modal -->
+  <div class="modal-backdrop" id="apptModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="apptModalTitle">ثبت نوبت جدید</div>
+        <button class="icon-btn" onclick="closeApptModal()">✕</button>
+      </div>
+
+      <input type="hidden" id="editApptId" />
+
+      <!-- Quick Custom Service Chips (if user created any) -->
+      <div id="quickServiceChipsWrap" style="margin-bottom:10px; display:none;">
+        <div style="font-size:0.76rem; color:var(--text-secondary); margin-bottom:4px;">انتخاب سریع از خدمات ثبت‌شده شما:</div>
+        <div id="quickServiceChips"></div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>نام و نام خانوادگی مشتری *</label>
+          <div class="voice-wrap">
+            <input type="text" id="apptClientName" class="form-control" placeholder="نام مشتری را بنویسید یا بگویید..." />
+            <button type="button" class="voice-btn" id="voiceNameBtn" onclick="startVoiceInput('apptClientName', 'voiceNameBtn')">🎤 گفتار</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>شماره موبایل مشتری</label>
+          <input type="tel" id="apptPhone" class="form-control" placeholder="0912..." dir="ltr" />
+        </div>
+
+        <div class="form-group">
+          <label>ساعت نوبت *</label>
+          <input type="time" id="apptTime" class="form-control" value="10:00" />
+        </div>
+
+        <div class="form-group full">
+          <label>نوع خدمت / توضیحات کار (کاملاً دلخواه)</label>
+          <div class="voice-wrap">
+            <input type="text" id="apptService" class="form-control" placeholder="نوع خدمت را تایپ کنید یا با میکروفون بگویید..." />
+            <button type="button" class="voice-btn" id="voiceServiceBtn" onclick="startVoiceInput('apptService', 'voiceServiceBtn')">🎤 گفتار</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>مبلغ کل خدمت (تومان)</label>
+          <input type="number" id="apptPrice" class="form-control" placeholder="۰" />
+        </div>
+
+        <div class="form-group">
+          <label>مبلغ بیعانه دریافتی (تومان)</label>
+          <input type="number" id="apptDeposit" class="form-control" placeholder="۰" />
+        </div>
+
+        <div class="form-group">
+          <label>مدت زمان کار (دقیقه)</label>
+          <input type="number" id="apptDuration" class="form-control" value="60" />
+        </div>
+
+        <div class="form-group">
+          <label>زنگ هشدار یادآوری</label>
+          <select id="apptAlarm" class="form-control">
+            <option value="none">بدون زنگ هشدار</option>
+            <option value="0">سرِ ساعت نوبت</option>
+            <option value="5">۵ دقیقه قبل</option>
+            <option value="15" selected>۱۵ دقیقه قبل</option>
+            <option value="30">۳۰ دقیقه قبل</option>
+            <option value="60">۱ ساعت قبل</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>وضعیت نوبت</label>
+          <select id="apptStatus" class="form-control">
+            <option value="pending">در انتظار مراجعه</option>
+            <option value="done">انجام شد</option>
+            <option value="canceled">لغو شد</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="conflictWarningBox" style="display:none; background:rgba(239,68,68,0.14); border:1px solid var(--danger); color:var(--danger); padding:9px 12px; border-radius:12px; font-size:0.8rem; margin-bottom:10px;">
+        ⚠️ هشدار تداخل زمانی: در این ساعت نوبت دیگری ثبت شده است!
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn-primary" style="flex:1;" onclick="saveAppointment()">✅ ذخیره نوبت</button>
+        <button class="btn-secondary" onclick="closeApptModal()">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Install Guide Modal (iPhone & Android) -->
+  <div class="modal-backdrop" id="installModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">📲 نصب اپلیکیشن روی گوشی (بدون نیاز به اپ‌استور)</div>
+        <button class="icon-btn" onclick="closeInstallModal()">✕</button>
+      </div>
+
+      <div class="install-tabs">
+        <button class="install-tab-btn active" id="btnGuideIphone" onclick="switchInstallGuide('iphone')">🍎 نصب روی آیفون (iOS)</button>
+        <button class="install-tab-btn" id="btnGuideAndroid" onclick="switchInstallGuide('android')">🤖 نصب روی اندروید</button>
+      </div>
+
+      <ul class="step-list" id="guideIphone">
+        <li>۱. لینک این برنامه را در مرورگر <b>Safari</b> آیفون باز کنید.</li>
+        <li>۲. در نوار پایین صفحه، روی دکمه <b>Share</b> (آیکون مربع با فلش رو به بالا ⬆️) ضربه بزنید.</li>
+        <li>۳. صفحه را کمی به بالا بکشید و گزینه <b>Add to Home Screen</b> را انتخاب کنید.</li>
+        <li>۴. در بالا سمت راست روی <b>Add</b> بزنید. اپلیکیشن «دستیار من» با آیکون اختصاصی روی صفحه اصلی آیفون نصب می‌شود و کاملاً آفلاین کار می‌کند.</li>
+      </ul>
+
+      <ul class="step-list" id="guideAndroid" style="display:none;">
+        <li>۱. لینک این برنامه را در مرورگر <b>Google Chrome</b> باز کنید.</li>
+        <li>۲. روی دکمه <b>سه نقطه (⋮)</b> در بالای صفحه ضربه بزنید.</li>
+        <li>۳. گزینه <b>Install app</b> یا <b>Add to Home screen</b> را انتخاب کنید.</li>
+        <li>۴. دکمه <b>Install</b> را بزنید تا آیکون «دستیار من» روی صفحه گوشی نصب شود و بدون اینترنت اجرا شود.</li>
+      </ul>
+
+      <div id="nativeInstallPromptWrap" style="margin-top:12px; display:none;">
+        <button class="btn-primary" style="width:100%;" onclick="triggerNativeInstall()">⚡ نصب مستقیم همین الان</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alarm Ringing Modal -->
+  <div class="modal-backdrop" id="alarmRingingModal" style="z-index:200;">
+    <div class="modal-box" style="text-align:center; border:2px solid var(--gold);">
+      <div style="font-size:3rem; margin-bottom:8px;">⏰</div>
+      <div class="modal-title" style="font-size:1.25rem; margin-bottom:6px;">یادآور نوبت مشتری</div>
+      <div id="alarmRingingText" style="font-size:0.95rem; line-height:1.7; margin-bottom:16px;"></div>
+      <button class="btn-primary" style="width:100%;" onclick="stopAlarm()">باشه، متوجه شدم</button>
+    </div>
+  </div>
+
+  <script>
+    // --- JALALI CALENDAR CONVERTER (Accurate Algorithmic) ---
+    function gregorianToJalali(gy, gm, gd) {
+      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+      let jy = (gy <= 1600) ? 0 : 979;
+      gy -= (gy <= 1600) ? 621 : 1600;
+      const gy2 = (gm > 2) ? (gy + 1) : gy;
+      let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) +
+                 Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+      jy += 33 * Math.floor(days / 12053);
+      days %= 12053;
+      jy += 4 * Math.floor(days / 1461);
+      days %= 1461;
+      jy += Math.floor((days - 1) / 365);
+      if (days > 365) days = (days - 1) % 365;
+      const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+      const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+      return [jy, jm, jd];
+    }
+
+    function jalaliToGregorian(jy, jm, jd) {
+      jy += 1595;
+      let days = -355668 + (365 * jy) + (Math.floor(jy / 33) * 8) + Math.floor(((jy % 33) + 3) / 4) +
+                 jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+      let gy = 400 * Math.floor(days / 146097);
+      days %= 146097;
+      if (days > 36524) {
+        gy += 100 * Math.floor(--days / 36524);
+        days %= 36524;
+        if (days >= 365) days++;
+      }
+      gy += 4 * Math.floor(days / 1461);
+      days %= 1461;
+      if (days > 365) {
+        gy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+      }
+      let gd = days + 1;
+      const sal_a = [0, 31, ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      let gm;
+      for (gm = 1; gm <= 12 && gd > sal_a[gm]; gm++) gd -= sal_a[gm];
+      return [gy, gm, gd];
+    }
+
+    function isJalaliLeap(jy) {
+      const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+      let jp = breaks[0], jump = 0;
+      for (let i = 1; i < breaks.length; i++) {
+        const jm = breaks[i];
+        jump = jm - jp;
+        if (jy < jm) break;
+        jp = jm;
+      }
+      let n = jy - jp;
+      if (jump - n < 6) n = n - jump + Math.floor((jump + 4) / 33) * 33;
+      let leap = (((n + 1) % 33) - 1) % 4;
+      if (leap === -1) leap = 4;
+      return leap === 0;
+    }
+
+    function jalaliMonthDays(jy, jm) {
+      if (jm <= 6) return 31;
+      if (jm <= 11) return 30;
+      return isJalaliLeap(jy) ? 30 : 29;
+    }
+
+    const JALALI_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    const WEEKDAY_NAMES = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
+
+    function toPersianDigits(str) {
+      return String(str).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    }
+
+    function formatMoney(num) {
+      const n = Number(num) || 0;
+      return toPersianDigits(n.toLocaleString('en-US'));
+    }
+
+    function pad2(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function getIranNow() {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      // Iran Standard Time is UTC+3:30
+      return new Date(utc + (3.5 * 3600000));
+    }
+
+    // --- STATE & STORAGE ---
+    const STORAGE_KEY = 'dastyare_man_data_v3';
+    let appData = {
+      appointments: [], // {id, dateKey, time, clientName, phone, service, price, deposit, duration, alarm, status, notified}
+      services: [],     // Empty by default so every specialist customizes their own services & prices
+      clientNotes: {},  // {phoneOrName: note}
+      settings: {
+        brandName: 'دستیار من',
+        brandSub: 'مدیریت هوشمند نوبت‌دهی و مشتریان',
+        salonAddress: 'منتظر دیدار شما هستیم',
+        theme: 'dark',
+        customLogo: ''
+      }
+    };
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          appData = {
+            ...appData,
+            ...parsed,
+            settings: { ...appData.settings, ...(parsed.settings || {}) }
+          };
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      updateStats();
+    }
+
+    // --- CALENDAR STATE ---
+    const iranInit = getIranNow();
+    const todayJalali = gregorianToJalali(iranInit.getFullYear(), iranInit.getMonth() + 1, iranInit.getDate());
+    let viewYear = todayJalali[0];
+    let viewMonth = todayJalali[1];
+    let selectedDateKey = `${todayJalali[0]}-${pad2(todayJalali[1])}-${pad2(todayJalali[2])}`;
+
+    function renderCalendar() {
+      document.getElementById('calMonthYear').textContent = `${JALALI_MONTHS[viewMonth - 1]} ${toPersianDigits(viewYear)}`;
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const [gy, gm, gd] = jalaliToGregorian(viewYear, viewMonth, 1);
+      const firstDayWeek = new Date(gy, gm - 1, gd).getDay(); // 0=Sun..6=Sat
+      // Convert to Saturday=0 .. Friday=6
+      const startOffset = (firstDayWeek + 1) % 7;
+      const totalDays = jalaliMonthDays(viewYear, viewMonth);
+
+      for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'day-cell empty';
+        grid.appendChild(empty);
+      }
+
+      const todayKey = `${todayJalali[0]}-${pad2(todayJalali[1])}-${pad2(todayJalali[2])}`;
+
+      for (let d = 1; d <= totalDays; d++) {
+        const dateKey = `${viewYear}-${pad2(viewMonth)}-${pad2(d)}`;
+        const cell = document.createElement('div');
+        const colIndex = (startOffset + d - 1) % 7;
+        cell.className = 'day-cell';
+        if (colIndex === 6) cell.classList.add('friday');
+        if (dateKey === todayKey) cell.classList.add('today');
+        if (dateKey === selectedDateKey) cell.classList.add('selected');
+
+        const dayAppts = appData.appointments.filter(a => a.dateKey === dateKey && a.status !== 'canceled');
+        cell.innerHTML = `
+          <span class="day-num">${toPersianDigits(d)}</span>
+          ${dayAppts.length > 0 ? `<span class="day-badge">${toPersianDigits(dayAppts.length)}</span>` : ''}
+        `;
+        cell.onclick = () => {
+          selectedDateKey = dateKey;
+          renderCalendar();
+          renderDaySchedule();
+        };
+        grid.appendChild(cell);
+      }
+    }
+
+    function changeMonth(delta) {
+      viewMonth += delta;
+      if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+      if (viewMonth < 1) { viewMonth = 12; viewYear--; }
+      renderCalendar();
+      updateStats();
+    }
+
+    function goToday() {
+      const now = getIranNow();
+      const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      viewYear = j[0];
+      viewMonth = j[1];
+      selectedDateKey = `${j[0]}-${pad2(j[1])}-${pad2(j[2])}`;
+      renderCalendar();
+      renderDaySchedule();
+      updateStats();
+    }
+
+    // --- DAY SCHEDULE TABLE ---
+    function formatJalaliFull(dateKey) {
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const [gy, gm, gd] = jalaliToGregorian(y, m, d);
+      const wd = WEEKDAY_NAMES[new Date(gy, gm - 1, gd).getDay()];
+      return `${wd} ${toPersianDigits(d)} ${JALALI_MONTHS[m - 1]} ${toPersianDigits(y)}`;
+    }
+
+    function renderDaySchedule() {
+      document.getElementById('selectedDateLabel').textContent = `برنامه ${formatJalaliFull(selectedDateKey)}`;
+      const tbody = document.getElementById('dayAppointmentsBody');
+      const list = appData.appointments
+        .filter(a => a.dateKey === selectedDateKey)
+        .sort((a, b) => a.time.localeCompare(b.time));
+
+      let totalIncome = 0;
+      let totalDeposit = 0;
+      list.forEach(a => {
+        if (a.status !== 'canceled') {
+          totalIncome += Number(a.price) || 0;
+          totalDeposit += Number(a.deposit) || 0;
+        }
+      });
+
+      document.getElementById('selectedDayFinancialSummary').textContent =
+        `جمع درآمد: ${formatMoney(totalIncome)} تومان | بیعانه: ${formatMoney(totalDeposit)} تومان | مانده: ${formatMoney(Math.max(0, totalIncome - totalDeposit))} تومان`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-secondary);">هنوز نوبتی برای این تاریخ ثبت نشده است. روی «➕ ثبت نوبت جدید» بزنید.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(appt => {
+        const statusMap = {
+          pending: ['در انتظار', 'status-pending'],
+          done: ['انجام شد', 'status-done'],
+          canceled: ['لغو شد', 'status-canceled']
+        };
+        const [stLabel, stClass] = statusMap[appt.status || 'pending'];
+        const alarmLabel = appt.alarm === 'none' ? 'خاموش' : (appt.alarm === '0' ? 'سرِ ساعت' : `${toPersianDigits(appt.alarm)} د قبل`);
+        const cleanPhone = (appt.phone || '').replace(/[^0-9]/g, '');
+        const waPhone = cleanPhone.startsWith('0') ? '98' + cleanPhone.slice(1) : cleanPhone;
+        const msgText = encodeURIComponent(
+          `سلام ${appt.clientName} عزیز 🌸
+یادآوری نوبت شما در تاریخ ${formatJalaliFull(appt.dateKey)} ساعت ${toPersianDigits(appt.time)}${appt.service ? ` (${appt.service})` : ''}.
+${appData.settings.salonAddress || ''}`
+        );
+
+        return `
+          <tr>
+            <td style="font-weight:800; color:var(--gold); direction:ltr;">${toPersianDigits(appt.time)}</td>
+            <td style="font-weight:700;">
+              ${appt.clientName}
+              ${appt.phone ? `<div style="font-size:0.72rem; color:var(--text-secondary); direction:ltr;">${toPersianDigits(appt.phone)}</div>` : ''}
+            </td>
+            <td>${appt.service || '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td>
+              <div>${formatMoney(appt.price)} ت</div>
+              ${Number(appt.deposit) > 0 ? `<div style="font-size:0.7rem; color:var(--success);">بیعانه: ${formatMoney(appt.deposit)}</div>` : ''}
+            </td>
+            <td style="font-size:0.75rem;">🔔 ${alarmLabel}</td>
+            <td><span class="status-pill ${stClass}" onclick="cycleStatus('${appt.id}')">${stLabel}</span></td>
+            <td>
+              <div class="action-row">
+                ${cleanPhone ? `<a class="mini-btn call" href="tel:${cleanPhone}" title="تماس">📞</a>` : ''}
+                ${cleanPhone ? `<a class="mini-btn wa" href="https://wa.me/${waPhone}?text=${msgText}" target="_blank" title="واتساپ">💬</a>` : ''}
+                ${cleanPhone ? `<a class="mini-btn sms" href="sms:${cleanPhone}?body=${msgText}" title="پیامک">✉️</a>` : ''}
+                <button class="mini-btn" onclick="cloneNextVisit('${appt.id}', 21)" title="ثبت نوبت ترمیم ۲۱ روز بعد">+۲۱روز</button>
+                <button class="mini-btn" onclick="openApptModal('${appt.id}')" title="ویرایش">✏️</button>
+                <button class="mini-btn del" onclick="deleteAppointment('${appt.id}')" title="حذف">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function cycleStatus(id) {
+      const item = appData.appointments.find(a => a.id === id);
+      if (!item) return;
+      const order = ['pending', 'done', 'canceled'];
+      item.status = order[(order.indexOf(item.status || 'pending') + 1) % order.length];
+      saveData();
+      renderCalendar();
+      renderDaySchedule();
+    }
+
+    function cloneNextVisit(id, daysAhead) {
+      const src = appData.appointments.find(a => a.id === id);
+      if (!src) return;
+      const [y, m, d] = src.dateKey.split('-').map(Number);
+      const [gy, gm, gd] = jalaliToGregorian(y, m, d);
+      const nextG = new Date(gy, gm - 1, gd + daysAhead);
+      const [ny, nm, nd] = gregorianToJalali(nextG.getFullYear(), nextG.getMonth() + 1, nextG.getDate());
+      const nextKey = `${ny}-${pad2(nm)}-${pad2(nd)}`;
+
+      appData.appointments.push({
+        ...src,
+        id: 'appt_' + Date.now(),
+        dateKey: nextKey,
+        status: 'pending',
+        notified: false
+      });
+      saveData();
+      renderCalendar();
+      showToast(`نوبت بعدی برای ${src.clientName} در تاریخ ${formatJalaliFull(nextKey)} ثبت شد ✅`);
+    }
+
+    // --- APPOINTMENT MODAL & CONFLICT CHECK ---
+    function openApptModal(editId = null) {
+      const modal = document.getElementById('apptModal');
+      document.getElementById('editApptId').value = editId || '';
+      document.getElementById('conflictWarningBox').style.display = 'none';
+
+      // Render user's custom service chips if any exist
+      const chipsWrap = document.getElementById('quickServiceChipsWrap');
+      const chipsBox = document.getElementById('quickServiceChips');
+      if (appData.services.length > 0) {
+        chipsWrap.style.display = 'block';
+        chipsBox.innerHTML = appData.services.map(s => `
+          <span class="service-chip" onclick="applyServiceChip('${s.id}')">
+            ${s.name} ${s.price ? `(${formatMoney(s.price)} ت)` : ''}
+          </span>
+        `).join('');
+      } else {
+        chipsWrap.style.display = 'none';
+      }
+
+      if (editId) {
+        const appt = appData.appointments.find(a => a.id === editId);
+        if (!appt) return;
+        document.getElementById('apptModalTitle').textContent = 'ویرایش نوبت مشتری';
+        document.getElementById('apptClientName').value = appt.clientName || '';
+        document.getElementById('apptPhone').value = appt.phone || '';
+        document.getElementById('apptTime').value = appt.time || '10:00';
+        document.getElementById('apptService').value = appt.service || '';
+        document.getElementById('apptPrice').value = appt.price || '';
+        document.getElementById('apptDeposit').value = appt.deposit || '';
+        document.getElementById('apptDuration').value = appt.duration || 60;
+        document.getElementById('apptAlarm').value = appt.alarm || '15';
+        document.getElementById('apptStatus').value = appt.status || 'pending';
+      } else {
+        document.getElementById('apptModalTitle').textContent = `ثبت نوبت برای ${formatJalaliFull(selectedDateKey)}`;
+        document.getElementById('apptClientName').value = '';
+        document.getElementById('apptPhone').value = '';
+        document.getElementById('apptTime').value = '10:00';
+        document.getElementById('apptService').value = '';
+        document.getElementById('apptPrice').value = '';
+        document.getElementById('apptDeposit').value = '';
+        document.getElementById('apptDuration').value = 60;
+        document.getElementById('apptAlarm').value = '15';
+        document.getElementById('apptStatus').value = 'pending';
+      }
+
+      checkTimeConflict();
+      modal.classList.add('open');
+    }
+
+    function closeApptModal() {
+      document.getElementById('apptModal').classList.remove('open');
+    }
+
+    function applyServiceChip(serviceId) {
+      const s = appData.services.find(x => x.id === serviceId);
+      if (!s) return;
+      document.getElementById('apptService').value = s.name;
+      if (s.price) document.getElementById('apptPrice').value = s.price;
+      if (s.duration) document.getElementById('apptDuration').value = s.duration;
+      checkTimeConflict();
+    }
+
+    function timeToMinutes(t) {
+      const [h, m] = (t || '00:00').split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function checkTimeConflict() {
+      const editId = document.getElementById('editApptId').value;
+      const start = timeToMinutes(document.getElementById('apptTime').value);
+      const dur = Number(document.getElementById('apptDuration').value) || 60;
+      const end = start + dur;
+
+      const hasConflict = appData.appointments.some(a => {
+        if (a.dateKey !== selectedDateKey || a.id === editId || a.status === 'canceled') return false;
+        const aStart = timeToMinutes(a.time);
+        const aEnd = aStart + (Number(a.duration) || 60);
+        return start < aEnd && end > aStart;
+      });
+
+      document.getElementById('conflictWarningBox').style.display = hasConflict ? 'block' : 'none';
+    }
+
+    document.getElementById('apptTime').addEventListener('change', checkTimeConflict);
+    document.getElementById('apptDuration').addEventListener('input', checkTimeConflict);
+
+    function saveAppointment() {
+      const clientName = document.getElementById('apptClientName').value.trim();
+      const time = document.getElementById('apptTime').value;
+      if (!clientName) {
+        showToast('لطفاً نام مشتری را وارد کنید ⚠️');
+        return;
+      }
+      if (!time) {
+        showToast('لطفاً ساعت نوبت را انتخاب کنید ⚠️');
+        return;
+      }
+
+      const editId = document.getElementById('editApptId').value;
+      const payload = {
+        id: editId || ('appt_' + Date.now()),
+        dateKey: selectedDateKey,
+        time,
+        clientName,
+        phone: document.getElementById('apptPhone').value.trim(),
+        service: document.getElementById('apptService').value.trim(),
+        price: Number(document.getElementById('apptPrice').value) || 0,
+        deposit: Number(document.getElementById('apptDeposit').value) || 0,
+        duration: Number(document.getElementById('apptDuration').value) || 60,
+        alarm: document.getElementById('apptAlarm').value,
+        status: document.getElementById('apptStatus').value,
+        notified: false
+      };
+
+      if (editId) {
+        const idx = appData.appointments.findIndex(a => a.id === editId);
+        if (idx > -1) appData.appointments[idx] = payload;
+      } else {
+        appData.appointments.push(payload);
+      }
+
+      saveData();
+      closeApptModal();
+      renderCalendar();
+      renderDaySchedule();
+      showToast('نوبت با موفقیت ثبت شد ✨');
+    }
+
+    function deleteAppointment(id) {
+      if (!confirm('آیا از حذف این نوبت مطمئن هستید؟')) return;
+      appData.appointments = appData.appointments.filter(a => a.id !== id);
+      saveData();
+      renderCalendar();
+      renderDaySchedule();
+      showToast('نوبت حذف شد');
+    }
+
+    // --- CUSTOM SERVICES TAB ---
+    function addCustomService() {
+      const name = document.getElementById('newServiceName').value.trim();
+      const price = Number(document.getElementById('newServicePrice').value) || 0;
+      const duration = Number(document.getElementById('newServiceDuration').value) || 60;
+      if (!name) {
+        showToast('عنوان خدمت را بنویسید ⚠️');
+        return;
+      }
+      appData.services.push({
+        id: 'srv_' + Date.now(),
+        name,
+        price,
+        duration
+      });
+      document.getElementById('newServiceName').value = '';
+      document.getElementById('newServicePrice').value = '';
+      saveData();
+      renderServicesTab();
+      showToast('خدمت جدید به لیست شما اضافه شد ✅');
+    }
+
+    function deleteCustomService(id) {
+      appData.services = appData.services.filter(s => s.id !== id);
+      saveData();
+      renderServicesTab();
+    }
+
+    function renderServicesTab() {
+      const container = document.getElementById('customServicesList');
+      if (appData.services.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:0.84rem;">هنوز خدمتی تعریف نکرده‌اید. از فرم بالا خدمات و قیمت‌های خودتان را اضافه کنید.</div>`;
+        return;
+      }
+      container.innerHTML = appData.services.map(s => `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-input); padding:11px 14px; border-radius:14px; border:1px solid var(--border-subtle);">
+          <div>
+            <div style="font-weight:700; font-size:0.92rem;">${s.name}</div>
+            <div style="font-size:0.76rem; color:var(--gold);">
+              ${s.price > 0 ? `${formatMoney(s.price)} تومان` : 'بدون قیمت ثابت'} • ${toPersianDigits(s.duration)} دقیقه
+            </div>
+          </div>
+          <button class="mini-btn del" onclick="deleteCustomService('${s.id}')">حذف</button>
+        </div>
+      `).join('');
+    }
+
+    // --- CLIENTS & GLOBAL SEARCH TAB ---
+    function renderClientsTab() {
+      const q = (document.getElementById('globalSearchInput').value || '').trim().toLowerCase();
+      const container = document.getElementById('clientsListContainer');
+
+      // Group appointments by client
+      const map = {};
+      appData.appointments.forEach(a => {
+        const key = (a.phone || a.clientName).trim();
+        if (!map[key]) {
+          map[key] = {
+            key,
+            name: a.clientName,
+            phone: a.phone,
+            visits: [],
+            totalSpent: 0
+          };
+        }
+        map[key].visits.push(a);
+        if (a.status !== 'canceled') map[key].totalSpent += Number(a.price) || 0;
+      });
+
+      const clients = Object.values(map).filter(c => {
+        if (!q) return true;
+        return c.name.toLowerCase().includes(q) ||
+               (c.phone && c.phone.includes(q)) ||
+               c.visits.some(v => (v.service || '').toLowerCase().includes(q));
+      });
+
+      if (clients.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-secondary); font-size:0.85rem;">مشتری‌ای با این مشخصات یافت نشد.</div>`;
+        return;
+      }
+
+      container.innerHTML = clients.map(c => {
+        const note = appData.clientNotes[c.key] || '';
+        const lastVisit = c.visits.sort((a, b) => b.dateKey.localeCompare(a.dateKey))[0];
+        return `
+          <div style="background:var(--bg-input); border:1px solid var(--border-subtle); border-radius:16px; padding:12px 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-weight:800; font-size:0.95rem;">${c.name}</div>
+              <span style="font-size:0.75rem; color:var(--gold); font-weight:700;">${toPersianDigits(c.visits.length)} مراجعه</span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:8px;">
+              ${c.phone ? `شماره: <span dir="ltr">${toPersianDigits(c.phone)}</span> • ` : ''}
+              آخرین نوبت: ${formatJalaliFull(lastVisit.dateKey)} (${lastVisit.service || 'ثبت‌شده'})
+            </div>
+            <input type="text" class="form-control" style="font-size:0.8rem; padding:8px 10px;"
+              value="${note.replace(/"/g, '&quot;')}"
+              placeholder="یادداشت اختصاصی پرونده مشتری (سایز، فرمول رنگ، حساسیت و...)"
+              onchange="saveClientNote('${c.key.replace(/'/g, "\'")}', this.value)" />
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveClientNote(key, val) {
+      appData.clientNotes[key] = val;
+      saveData();
+      showToast('یادداشت پرونده مشتری ذخیره شد ✅');
+    }
+
+    // --- SPEECH TO TEXT (PERSIAN) ---
+    function startVoiceInput(targetInputId, btnId) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast('مرورگر شما از تبدیل گفتار به متن پشتیبانی نمی‌کند ⚠️');
+        return;
+      }
+      const btn = document.getElementById(btnId);
+      const input = document.getElementById(targetInputId);
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'fa-IR';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      btn.classList.add('recording');
+      btn.textContent = '🔴 در حال شنیدن...';
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        input.value = input.value ? (input.value + ' ' + transcript) : transcript;
+      };
+      recognition.onerror = () => {
+        showToast('صدایی دریافت نشد، دوباره تلاش کنید');
+      };
+      recognition.onend = () => {
+        btn.classList.remove('recording');
+        btn.textContent = '🎤 گفتار';
+      };
+      recognition.start();
+    }
+
+    // --- OFFLINE WEB AUDIO ALARM ENGINE ---
+    let audioCtx = null;
+    let alarmInterval = null;
+
+    function playChime() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.16);
+          gain.gain.setValueAtTime(0.18, audioCtx.currentTime + i * 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.16 + 0.45);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + i * 0.16);
+          osc.stop(audioCtx.currentTime + i * 0.16 + 0.5);
+        });
+      } catch (e) { console.error(e); }
+    }
+
+    function testAlarmSound() {
+      playChime();
+      showToast('🔔 صدای زنگ هشدار پخش شد');
+    }
+
+    function triggerAlarmModal(appt) {
+      document.getElementById('alarmRingingText').innerHTML = `
+        نوبت <b>${appt.clientName}</b><br/>
+        ساعت <b>${toPersianDigits(appt.time)}</b><br/>
+        ${appt.service ? `خدمت: ${appt.service}` : ''}
+      `;
+      document.getElementById('alarmRingingModal').classList.add('open');
+      playChime();
+      clearInterval(alarmInterval);
+      alarmInterval = setInterval(playChime, 3500);
+    }
+
+    function stopAlarm() {
+      clearInterval(alarmInterval);
+      document.getElementById('alarmRingingModal').classList.remove('open');
+    }
+
+    function checkAlarms() {
+      const now = getIranNow();
+      const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      const todayKey = `${j[0]}-${pad2(j[1])}-${pad2(j[2])}`;
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+      appData.appointments.forEach(appt => {
+        if (appt.dateKey !== todayKey || appt.status === 'canceled' || appt.alarm === 'none' || appt.notified) return;
+        const targetMinutes = timeToMinutes(appt.time) - Number(appt.alarm);
+        if (nowMinutes === targetMinutes) {
+          appt.notified = true;
+          saveData();
+          triggerAlarmModal(appt);
+        }
+      });
+    }
+
+    // --- CLOCK & STATS ---
+    function updateClockAndDate() {
+      const now = getIranNow();
+      const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      const wd = WEEKDAY_NAMES[now.getDay()];
+      document.getElementById('todayJalaliText').textContent =
+        `امروز: ${wd} ${toPersianDigits(j[2])} ${JALALI_MONTHS[j[1] - 1]} ${toPersianDigits(j[0])}`;
+      document.getElementById('iranClock').textContent =
+        `${toPersianDigits(pad2(now.getHours()))}:${toPersianDigits(pad2(now.getMinutes()))}:${toPersianDigits(pad2(now.getSeconds()))}`;
+    }
+
+    function updateStats() {
+      const now = getIranNow();
+      const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      const todayKey = `${j[0]}-${pad2(j[1])}-${pad2(j[2])}`;
+      const monthPrefix = `${viewYear}-${pad2(viewMonth)}-`;
+
+      const todayCount = appData.appointments.filter(a => a.dateKey === todayKey && a.status !== 'canceled').length;
+      const monthAppts = appData.appointments.filter(a => a.dateKey.startsWith(monthPrefix) && a.status !== 'canceled');
+      const monthIncome = monthAppts.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+
+      document.getElementById('statTodayCount').textContent = toPersianDigits(todayCount);
+      document.getElementById('statMonthCount').textContent = toPersianDigits(monthAppts.length);
+      document.getElementById('statMonthIncome').textContent = formatMoney(monthIncome);
+    }
+
+    // --- SETTINGS, THEME, BACKUP & INSTALL ---
+    function applySettingsUI() {
+      document.getElementById('appBrandTitle').textContent = appData.settings.brandName || 'دستیار من';
+      document.getElementById('appBrandSub').textContent = appData.settings.brandSub || 'مدیریت هوشمند نوبت‌دهی و مشتریان';
+      document.getElementById('settingBrandName').value = appData.settings.brandName || '';
+      document.getElementById('settingBrandSub').value = appData.settings.brandSub || '';
+      document.getElementById('settingSalonAddress').value = appData.settings.salonAddress || '';
+
+      document.documentElement.setAttribute('data-theme', appData.settings.theme || 'dark');
+      document.getElementById('themeToggleBtn').textContent = appData.settings.theme === 'light' ? '🌙' : '☀️';
+
+      if (appData.settings.customLogo) {
+        document.getElementById('headerLogoImg').src = appData.settings.customLogo;
+        document.getElementById('splashLogoImg').src = appData.settings.customLogo;
+      }
+    }
+
+    function saveSettings() {
+      appData.settings.brandName = document.getElementById('settingBrandName').value.trim() || 'دستیار من';
+      appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'مدیریت هوشمند نوبت‌دهی و مشتریان';
+      appData.settings.salonAddress = document.getElementById('settingSalonAddress').value.trim();
+      saveData();
+      applySettingsUI();
+      showToast('تنظیمات ذخیره شد ✅');
+    }
+
+    function toggleTheme() {
+      appData.settings.theme = appData.settings.theme === 'light' ? 'dark' : 'light';
+      saveData();
+      applySettingsUI();
+    }
+
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        appData.settings.customLogo = e.target.result;
+        saveData();
+        applySettingsUI();
+        showToast('لوگوی اختصاصی شما تغییر کرد ✨');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function exportBackup() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dastyare-man-backup-${selectedDateKey}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('فایل پشتیبان دانلود شد 💾');
+    }
+
+    function importBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && Array.isArray(parsed.appointments)) {
+            appData = { ...appData, ...parsed };
+            saveData();
+            applySettingsUI();
+            renderCalendar();
+            renderDaySchedule();
+            renderServicesTab();
+            showToast('اطلاعات با موفقیت بازیابی شد ✅');
+          }
+        } catch (err) {
+          showToast('فایل پشتیبان معتبر نیست ⚠️');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function copyEmail() {
+      navigator.clipboard?.writeText('minamsvm@gmail.com');
+      showToast('ایمیل minamsvm@gmail.com کپی شد 📋');
+    }
+
+    // --- TABS & INSTALL MODAL ---
+    function switchTab(tabName, btnEl) {
+      document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+
+      if (tabName === 'clients') renderClientsTab();
+      if (tabName === 'services') renderServicesTab();
+    }
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('nativeInstallPromptWrap').style.display = 'block';
+    });
+
+    function triggerNativeInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+      }
+    }
+
+    function openInstallModal() {
+      document.getElementById('installModal').classList.add('open');
+    }
+    function closeInstallModal() {
+      document.getElementById('installModal').classList.remove('open');
+    }
+    function switchInstallGuide(type) {
+      document.getElementById('btnGuideIphone').classList.toggle('active', type === 'iphone');
+      document.getElementById('btnGuideAndroid').classList.toggle('active', type === 'android');
+      document.getElementById('guideIphone').style.display = type === 'iphone' ? 'flex' : 'none';
+      document.getElementById('guideAndroid').style.display = type === 'android' ? 'flex' : 'none';
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // --- INIT ---
+    loadData();
+    applySettingsUI();
+    updateClockAndDate();
+    renderCalendar();
+    renderDaySchedule();
+    renderServicesTab();
+    updateStats();
+
+    setInterval(() => {
+      updateClockAndDate();
+      checkAlarms();
+    }, 1000);
+
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('splashScreen').classList.add('hidden');
+      }, 950);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
