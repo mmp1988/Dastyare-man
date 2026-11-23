@@ -2408,22 +2408,69 @@
 
     setInterval(() => { updateClockAndDate(); checkAlarms(); }, 1000);
 
-    // --- AUTO-UPDATE ENGINE ---
+    // --- MANUAL OFFLINE-FIRST UPDATE ENGINE ---
     let swRegistration = null;
     async function checkForAppUpdate(manual = false) {
-      if (!('serviceWorker' in navigator)) return;
+      if (!('serviceWorker' in navigator) || !('caches' in window)) {
+        if (manual) showToast('به‌روزرسانی در این نسخه پشتیبانی نمی‌شود ⚠️');
+        return;
+      }
+      if (!navigator.onLine) {
+        if (manual) showToast('برای دریافت نسخه جدید، اینترنت را وصل کنید 🌐');
+        return;
+      }
+
       try {
+        const cache = await caches.open('dastyare-man-shell-v8');
+        const assets = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+        let appChanged = false;
+
+        for (const asset of assets) {
+          const assetUrl = new URL(asset, location.href);
+          assetUrl.searchParams.set('_update', Date.now().toString());
+          const response = await fetch(assetUrl.toString(), { cache: 'no-store' });
+          if (!response.ok) throw new Error('Update download failed: ' + asset);
+          const cacheKey = new URL(asset, location.href).href;
+
+          if (asset === './index.html') {
+            const previous = await cache.match(cacheKey);
+            const previousText = previous ? await previous.clone().text() : '';
+            const latestText = await response.clone().text();
+            if (!previous || previousText !== latestText) appChanged = true;
+            await cache.put(cacheKey, response.clone());
+            await cache.put(new URL('./', location.href).href, response.clone());
+          } else {
+            await cache.put(cacheKey, response.clone());
+          }
+        }
+
         const reg = swRegistration || await navigator.serviceWorker.getRegistration();
         if (reg) {
           await reg.update();
-          if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            showToast('نسخه جدید یافت شد! در حال به‌روزرسانی... 🔄');
-          } else if (manual) {
-            showToast('برنامه شما روی آخرین نسخه است ✅');
+          let installing = reg.installing;
+          if (installing) {
+            await new Promise((resolve) => {
+              if (installing.state === 'installed' || installing.state === 'activated' || installing.state === 'redundant') {
+                resolve();
+                return;
+              }
+              installing.addEventListener('statechange', () => {
+                if (['installed', 'activated', 'redundant'].includes(installing.state)) resolve();
+              });
+            });
           }
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
-      } catch (e) { if (manual) showToast('بررسی آپدیت نیازمند اینترنت است 🌐'); }
+
+        if (appChanged) {
+          showToast('نسخه جدید دریافت شد؛ در حال اعمال تغییرات... 🔄');
+          setTimeout(() => window.location.reload(), 700);
+        } else if (manual) {
+          showToast('برنامه شما به‌روز است ✅');
+        }
+      } catch (e) {
+        if (manual) showToast('دریافت به‌روزرسانی ناموفق بود؛ اینترنت را بررسی کنید ⚠️');
+      }
     }
 
     window.addEventListener('load', () => {
@@ -2431,27 +2478,15 @@
       if ('serviceWorker' in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (refreshing) return; refreshing = true;
-          showToast('نسخه جدید نصب شد ✨');
-          setTimeout(() => window.location.reload(), 600);
+          if (refreshing) return;
+          refreshing = true;
+          showToast('نسخه جدید آماده شد ✨');
+          setTimeout(() => window.location.reload(), 500);
         });
         navigator.serviceWorker.register('./sw.js').then((reg) => {
           swRegistration = reg;
-          reg.update().catch(() => {});
-          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          reg.addEventListener('updatefound', () => {
-            const nw = reg.installing;
-            if (!nw) return;
-            nw.addEventListener('statechange', () => {
-              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                nw.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          });
+          // Updates are intentionally checked only when the user taps the update button.
         }).catch(() => {});
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') checkForAppUpdate(false);
-        });
       }
     });
   </script>
