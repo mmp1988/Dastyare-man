@@ -1340,7 +1340,11 @@
 
     function loadData() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('dastyare_man_v5_data') || localStorage.getItem('dastyare_man_data_v3');
+        let raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('dastyare_man_v5_data') || localStorage.getItem('dastyare_man_data_v3');
+        if (!raw && window.AndroidApp && typeof AndroidApp.getLatestBackup === 'function') {
+          raw = AndroidApp.getLatestBackup() || '';
+          if (raw) localStorage.setItem(STORAGE_KEY, raw);
+        }
         if (raw) {
           const parsed = JSON.parse(raw);
           appData = {
