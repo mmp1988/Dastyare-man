@@ -3,7 +3,6 @@ package app.github.mmp1988.dastyareman;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import org.vosk.Model;
@@ -14,7 +13,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import android.app.DownloadManager;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -625,7 +623,7 @@ public class MainActivity extends Activity {
 
     private class AppBridge {
         @JavascriptInterface public void getSpeechModelStatus() {
-            runOnUiThread(() -> {
+            speechModelExecutor.execute(() -> {
                 sendSpeechModelStatus("small");
                 sendSpeechModelStatus("large");
             });
