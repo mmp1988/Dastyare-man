@@ -4420,8 +4420,8 @@
           t.match(/(?:^|\s)(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|صبح)(?:\s|$)/);
         if (!clock) return 'زمان نوبت رو متوجه نشدم؛ مثلاً بگو «فردا ساعت ۴ بعدازظهر» 💗';
         let hour = Number(clock[1]), minute = Number(clock[2] || 0);
-        const period = clock[3] || '';
-        if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر)/.test(period) && hour < 12) hour += 12;
+        const period = clock[3] || (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(t) ? 'بعدازظهر' : /صبح/.test(t) ? 'صبح' : '');
+        if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
         if (/صبح/.test(period) && hour === 12) hour = 0;
         if (hour > 23 || minute > 59) return 'ساعت رو یک بار دیگه برام می‌گی؟ 💗';
         let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
