@@ -2,6 +2,10 @@ package app.github.mmp1988.dastyareman;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +35,8 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.ArrayList;
+import org.json.JSONObject;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -46,6 +52,9 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileChooserCallback;
     private String pendingExportJson;
     private String[] pendingAndroidPermissions;
+    private String pendingNativeSpeechTarget;
+    private String pendingNativeSpeechButton;
+    private SpeechRecognizer nativeSpeechRecognizer;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     @Override
@@ -190,6 +199,19 @@ public class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == REQUEST_MEDIA_PERMISSION && pendingNativeSpeechTarget != null) {
+            String target = pendingNativeSpeechTarget;
+            String button = pendingNativeSpeechButton;
+            pendingNativeSpeechTarget = null;
+            pendingNativeSpeechButton = null;
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                startNativeSpeechOnUi(target, button);
+            } else {
+                notifyVoiceButton(button, false);
+                notifyVoiceMessage("برای استفاده از میکروفون باید مجوز آن را بدهید؛ یا متن را تایپ کنید.");
+            }
+            return;
+        }
         if (requestCode == REQUEST_MEDIA_PERMISSION && pendingWebPermission != null) {
             boolean granted = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
             if (granted) pendingWebPermission.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
@@ -247,7 +269,111 @@ public class MainActivity extends Activity {
         if (old.exists()) old.delete();
     }
 
+    private void notifyVoiceButton(String buttonId, boolean active) {
+        if (webView == null || buttonId == null) return;
+        webView.post(() -> webView.evaluateJavascript(
+                "if(window.setVoiceButtonState)window.setVoiceButtonState(" + JSONObject.quote(buttonId) + "," + active + ");", null));
+    }
+
+    private void notifyVoiceMessage(String message) {
+        if (webView == null) return;
+        webView.post(() -> webView.evaluateJavascript(
+                "if(window.showToast)window.showToast(" + JSONObject.quote(message) + ");", null));
+    }
+
+    private void startNativeSpeechOnUi(String targetInputId, String buttonId) {
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            notifyVoiceButton(buttonId, false);
+            notifyVoiceMessage("تشخیص گفتار آفلاین در نسخه اندروید این گوشی پشتیبانی نمی‌شود؛ لطفاً تایپ کنید.");
+            return;
+        }
+        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            notifyVoiceButton(buttonId, false);
+            notifyVoiceMessage("موتور گفتار آفلاین روی این گوشی موجود نیست؛ لطفاً متن را تایپ کنید.");
+            return;
+        }
+        try {
+            if (nativeSpeechRecognizer != null) {
+                nativeSpeechRecognizer.destroy();
+                nativeSpeechRecognizer = null;
+            }
+            nativeSpeechRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+            nativeSpeechRecognizer.setRecognitionListener(new RecognitionListener() {
+                @Override public void onReadyForSpeech(Bundle params) { }
+                @Override public void onBeginningOfSpeech() { }
+                @Override public void onRmsChanged(float rmsdB) { }
+                @Override public void onBufferReceived(byte[] buffer) { }
+                @Override public void onEndOfSpeech() { }
+                @Override public void onError(int error) {
+                    notifyVoiceButton(buttonId, false);
+                    String message = (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+                            || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
+                            ? "بسته زبان فارسی آفلاین روی گوشی موجود نیست؛ لطفاً تایپ کنید."
+                            : "تشخیص گفتار آفلاین انجام نشد؛ لطفاً دوباره تلاش کنید یا تایپ کنید.";
+                    notifyVoiceMessage(message);
+                    releaseNativeSpeechRecognizer();
+                }
+                @Override public void onResults(Bundle results) {
+                    ArrayList<String> matches = results == null ? null
+                            : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (matches != null && !matches.isEmpty()) {
+                        String transcript = matches.get(0);
+                        if (webView != null) webView.post(() -> webView.evaluateJavascript(
+                                "if(window.receiveNativeSpeechResult)window.receiveNativeSpeechResult("
+                                        + JSONObject.quote(targetInputId) + "," + JSONObject.quote(transcript) + ");", null));
+                    } else {
+                        notifyVoiceMessage("صدایی تشخیص داده نشد؛ می‌توانید متن را تایپ کنید.");
+                    }
+                }
+                @Override public void onPartialResults(Bundle partialResults) { }
+                @Override public void onEvent(int eventType, Bundle params) { }
+            });
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR");
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR");
+            intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            nativeSpeechRecognizer.startListening(intent);
+        } catch (Exception e) {
+            notifyVoiceButton(buttonId, false);
+            notifyVoiceMessage("تشخیص گفتار آفلاین در این گوشی فعال نشد؛ لطفاً تایپ کنید.");
+            releaseNativeSpeechRecognizer();
+        }
+    }
+
+    private void releaseNativeSpeechRecognizer() {
+        if (nativeSpeechRecognizer != null) {
+            try { nativeSpeechRecognizer.destroy(); } catch (Exception ignored) { }
+            nativeSpeechRecognizer = null;
+        }
+    }
+
     private class AppBridge {
+        @JavascriptInterface public void startOfflineSpeechRecognition(String targetInputId, String buttonId) {
+            runOnUiThread(() -> {
+                if (!("apptClientName".equals(targetInputId) || "apptService".equals(targetInputId)
+                        || "noteTitleInput".equals(targetInputId) || "noteBodyInput".equals(targetInputId))) {
+                    notifyVoiceButton(buttonId, false);
+                    notifyVoiceMessage("فیلد انتخاب‌شده معتبر نیست.");
+                    return;
+                }
+                if (android.os.Build.VERSION.SDK_INT < 31) {
+                    notifyVoiceButton(buttonId, false);
+                    notifyVoiceMessage("تشخیص گفتار آفلاین در این نسخه اندروید پشتیبانی نمی‌شود؛ لطفاً تایپ کنید.");
+                    return;
+                }
+                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    pendingNativeSpeechTarget = targetInputId;
+                    pendingNativeSpeechButton = buttonId;
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_MEDIA_PERMISSION);
+                    return;
+                }
+                startNativeSpeechOnUi(targetInputId, buttonId);
+            });
+        }
+
         @JavascriptInterface public void shareText(String title, String text) {
             if (text == null || text.trim().isEmpty()) return;
             runOnUiThread(() -> {
@@ -367,6 +493,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        releaseNativeSpeechRecognizer();
         if (webView != null) { webView.destroy(); webView = null; }
         io.shutdown();
         super.onDestroy();
