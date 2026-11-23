@@ -235,7 +235,6 @@ public class MainActivity extends Activity {
             File image = File.createTempFile("customer_", ".jpg", directory);
             Uri output = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", image);
             Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            if (camera.resolveActivity(getPackageManager()) == null) throw new Exception("No camera app");
             camera.putExtra(MediaStore.EXTRA_OUTPUT, output);
             camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             camera.setClipData(ClipData.newUri(getContentResolver(), "Customer photo", output));
