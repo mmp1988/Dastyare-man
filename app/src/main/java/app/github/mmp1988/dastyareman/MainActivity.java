@@ -614,7 +614,9 @@ public class MainActivity extends Activity {
             saveBackupInternal(json, filename);
         }
         @JavascriptInterface public void exportBackup(String json, String filename) {
-            if (json == null || json.length() > 20_000_000) return;
+            // Explicit user-requested exports may include original customer photos.
+            // Keep the larger limit isolated from the small automatic recovery snapshot.
+            if (json == null || json.length() > 150_000_000) return;
             runOnUiThread(() -> {
                 pendingExportJson = json;
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
