@@ -3,6 +3,7 @@ package app.github.mmp1988.dastyareman;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ClipData;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -11,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.os.Bundle;
 import android.os.Environment;
 import android.webkit.JavascriptInterface;
@@ -24,6 +26,7 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import androidx.webkit.WebViewAssetLoader;
+import androidx.core.content.FileProvider;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -50,6 +53,8 @@ public class MainActivity extends Activity {
     private WebView webView;
     private PermissionRequest pendingWebPermission;
     private ValueCallback<Uri[]> fileChooserCallback;
+    private Uri pendingCameraUri;
+    private File pendingCameraFile;
     private String pendingExportJson;
     private String[] pendingAndroidPermissions;
     private String pendingNativeSpeechTarget;
@@ -105,10 +110,14 @@ public class MainActivity extends Activity {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
                 fileChooserCallback = callback;
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("*/*");
-                startActivityForResult(intent, REQUEST_FILE);
+                if (params.isCaptureEnabled()) {
+                    launchCameraForFileChooser();
+                } else {
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("*/*");
+                    startActivityForResult(intent, REQUEST_FILE);
+                }
                 return true;
             }
         });
@@ -220,10 +229,52 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void launchCameraForFileChooser() {
+        try {
+            File directory = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "customer-captures");
+            if (!directory.exists() && !directory.mkdirs()) throw new Exception("Cannot create photo directory");
+            File image = File.createTempFile("customer_", ".jpg", directory);
+            Uri output = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", image);
+            Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (camera.resolveActivity(getPackageManager()) == null) throw new Exception("No camera app");
+            camera.putExtra(MediaStore.EXTRA_OUTPUT, output);
+            camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            camera.setClipData(ClipData.newUri(getContentResolver(), "Customer photo", output));
+            pendingCameraUri = output;
+            pendingCameraFile = image;
+            startActivityForResult(camera, REQUEST_FILE);
+        } catch (Exception e) {
+            pendingCameraUri = null;
+            pendingCameraFile = null;
+            try {
+                Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                picker.addCategory(Intent.CATEGORY_OPENABLE);
+                picker.setType("image/*");
+                startActivityForResult(picker, REQUEST_FILE);
+                Toast.makeText(this, "دوربین باز نشد؛ گالری را انتخاب کن", Toast.LENGTH_LONG).show();
+            } catch (Exception ignored) {
+                if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
+                fileChooserCallback = null;
+                Toast.makeText(this, "دوربین یا گالری در دسترس نیست", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_FILE && fileChooserCallback != null) {
-            Uri[] result = resultCode == RESULT_OK && data != null && data.getData() != null ? new Uri[]{data.getData()} : null;
+            Uri[] result = null;
+            if (pendingCameraUri != null) {
+                if (resultCode == RESULT_OK && pendingCameraFile != null && pendingCameraFile.exists() && pendingCameraFile.length() > 0) {
+                    result = new Uri[]{pendingCameraUri};
+                } else if (pendingCameraFile != null) {
+                    pendingCameraFile.delete();
+                }
+                pendingCameraUri = null;
+                pendingCameraFile = null;
+            } else if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                result = new Uri[]{data.getData()};
+            }
             fileChooserCallback.onReceiveValue(result); fileChooserCallback = null;
         } else if (requestCode == REQUEST_EXPORT_BACKUP) {
             if (resultCode == RESULT_OK && data != null && data.getData() != null && pendingExportJson != null) {
