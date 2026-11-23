@@ -4,15 +4,15 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'index.html'
-      - 'manifest.json'
-      - 'icon-192.png'
-      - 'icon-512.png'
-      - 'app/**'
+      # Website HTML/CSS/JS changes are delivered by the app's in-app updater.
+      # Build a new APK only for Android/native code or build configuration changes.
+      - 'app/src/main/java/**'
+      - 'app/src/main/res/**'
+      - 'app/src/main/AndroidManifest.xml'
+      - 'app/build.gradle'
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
-      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 permissions:
