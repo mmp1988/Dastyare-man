@@ -116,7 +116,16 @@ public class MainActivity extends Activity {
                 } else {
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    intent.setType("*/*");
+                    String[] acceptedTypes = params.getAcceptTypes();
+                    boolean imagesOnly = acceptedTypes != null && acceptedTypes.length > 0;
+                    if (imagesOnly) {
+                        for (String accepted : acceptedTypes) {
+                            if (accepted == null || accepted.isEmpty() || (!accepted.startsWith("image/") && !"image/*".equals(accepted))) {
+                                imagesOnly = false; break;
+                            }
+                        }
+                    }
+                    intent.setType(imagesOnly ? "image/*" : "*/*");
                     startActivityForResult(intent, REQUEST_FILE);
                 }
                 return true;
@@ -443,7 +452,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void shareFiles(String title, String text, String filesJson) {
             if (filesJson == null || filesJson.length() > 70_000_000) {
-                Toast.makeText(MainActivity.this, "حجم فایل‌های ارسالی بیش از حد مجاز است", Toast.LENGTH_LONG).show();
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "حجم فایل‌های ارسالی بیش از حد مجاز است", Toast.LENGTH_LONG).show());
                 return;
             }
             runOnUiThread(() -> {
