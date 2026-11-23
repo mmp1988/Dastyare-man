@@ -1147,17 +1147,17 @@
           </div>
           <div class="form-group full">
             <label>📸 عکس قبل از انجام خدمت (اختیاری)</label>
-            <input type="file" id="clientBeforePhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'before')" />
+            <input type="file" id="clientBeforePhotoInput" class="form-control" accept="image/*" onchange="handleClientPhoto(event,'before')" />
             <small id="clientBeforePhotoStatus" style="color:var(--text-secondary);">با دوربین پشت، قبل از شروع کار عکس بگیر.</small>
           </div>
           <div class="form-group full">
             <label>✨ عکس بعد از انجام خدمت (اختیاری)</label>
-            <input type="file" id="clientAfterPhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'after')" />
+            <input type="file" id="clientAfterPhotoInput" class="form-control" accept="image/*" onchange="handleClientPhoto(event,'after')" />
             <small id="clientAfterPhotoStatus" style="color:var(--text-secondary);">بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.</small>
           </div>
           <div class="form-group full">
             <label>عکس تکمیلی جلسه (اختیاری)</label>
-            <input type="file" id="clientWorkPhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'work')" />
+            <input type="file" id="clientWorkPhotoInput" class="form-control" accept="image/*" onchange="handleClientPhoto(event,'work')" />
             <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.</small>
           </div>
           <div class="form-group full">
@@ -1197,6 +1197,10 @@
           <label><input type="checkbox" id="shareClientNotes" checked /> یادداشت‌ها</label>
           <label><input type="checkbox" id="shareClientCustom" checked /> اطلاعات دلخواه مشتری</label>
           <label><input type="checkbox" id="shareClientWorkCustom" checked /> جزئیات اختصاصی خدمات</label>
+          <label><input type="checkbox" id="shareClientService" checked /> نوع خدمت</label>
+          <label><input type="checkbox" id="shareClientDate" checked /> تاریخ مراجعه</label>
+          <label><input type="checkbox" id="shareClientTime" checked /> ساعت مراجعه</label>
+          <label><input type="checkbox" id="shareClientWorkNotes" checked /> توضیحات کار
           <div id="shareClientProfileFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <div id="shareClientWorkFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <label><input type="checkbox" id="shareClientHistory" checked /> سوابق خدمات</label>
@@ -2774,6 +2778,8 @@
       document.getElementById('clientWorkPhotoStatus').textContent = 'عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.';
       document.getElementById('clientBeforePhotoStatus').textContent = 'با دوربین پشت، قبل از شروع کار عکس بگیر.';
       document.getElementById('clientAfterPhotoStatus').textContent = 'بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.';
+      document.getElementById('clientWorkDate').value='';
+      document.getElementById('clientWorkTime').value='';
       renderClientHistory(key);
       renderClientsTab();
       showToast('سابقه کار در پرونده مشتری ثبت شد ✅');
@@ -2823,6 +2829,9 @@
           <button class="mini-btn wa" style="margin-top:8px;" onclick="shareClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">📤 ارسال این سابقه</button>
         </div>
       `).join('');
+      box.querySelectorAll('img[data-photo-ref]').forEach(async img=>{
+        try { const url=await getClientPhotoUrl(img.getAttribute('data-photo-ref')); if(url)img.src=url; } catch(e) {}
+      });
     }
     function saveClientNextAppointment() {
       const key = document.getElementById('clientRecordKey').value;
@@ -2854,11 +2863,11 @@
       if (onlyItem) {
         const item = onlyItem.source === 'appointment' ? appointments.find(a=>a.id===onlyItem.id) : (p.records||[]).find(a=>a.id===onlyItem.id);
         if (item) {
-          if(item.service) lines.push('خدمت: '+item.service);
-          if(item.dateKey) lines.push('تاریخ: '+formatJalaliFull(item.dateKey));
-          if(item.time) lines.push('ساعت: '+item.time);
+          if(checked('shareClientService') && item.service) lines.push('خدمت: '+item.service);
+          if(checked('shareClientDate') && item.dateKey) lines.push('تاریخ: '+formatJalaliFull(item.dateKey));
+          if(checked('shareClientTime') && item.time) lines.push('ساعت: '+item.time);
           if(checked('shareClientPrices') && item.price!=null && item.price!=='') lines.push('مبلغ: '+formatMoney(item.price)+' تومان');
-          if(item.notes) lines.push('توضیحات: '+item.notes);
+          if(checked('shareClientWorkNotes') && item.notes) lines.push('توضیحات: '+item.notes);
           if(item.checklist && item.checklist.length) lines.push('خدمات: '+item.checklist.join('، '));
           if(checked('shareClientWorkCustom') && item.customValues) Object.entries(item.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))lines.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
         }
@@ -2869,13 +2878,13 @@
         if(history.length) {
           lines.push('سوابق خدمات:');
           history.forEach((a,i)=>{
-            const parts=[(i+1)+') '+(a.service||'خدمت')];
-            if(a.dateKey) parts.push(formatJalaliFull(a.dateKey));
-            if(a.time) parts.push(a.time);
+            const parts=[(i+1)+') '+(checked('shareClientService')?(a.service||'خدمت'):'سابقه')];
+            if(checked('shareClientDate') && a.dateKey) parts.push(formatJalaliFull(a.dateKey));
+            if(checked('shareClientTime') && a.time) parts.push(a.time);
             if(checked('shareClientPrices') && a.price!=null && a.price!=='') parts.push('مبلغ: '+formatMoney(a.price)+' تومان');
             if(a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
             if(checked('shareClientWorkCustom') && a.customValues) Object.entries(a.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))parts.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
-            if(a.notes) parts.push(a.notes);
+            if(checked('shareClientWorkNotes') && a.notes) parts.push(a.notes);
             lines.push(parts.join(' | '));
           });
         }
@@ -2903,7 +2912,7 @@
         if(!blob)return null;
         const url=URL.createObjectURL(blob);
         try { const img=new Image(); img.src=url; await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;}); return img; }
-        finally { /* URL remains valid until the image is drawn below */ }
+        finally { /* The object URL is revoked after drawing the loaded image. */ }
       };
       try {
         const before=await load(item.beforePhotoRef),after=await load(item.afterPhotoRef);
@@ -2912,6 +2921,8 @@
         const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,1600,900);
         const draw=(img,x)=>{const maxW=800,maxH=900,scale=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);const w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,x+(maxW-w)/2,(maxH-h)/2,w,h);};
         draw(before,0);draw(after,800);
+        if(before.src.startsWith('blob:'))URL.revokeObjectURL(before.src);
+        if(after.src.startsWith('blob:'))URL.revokeObjectURL(after.src);
         ctx.fillStyle='#111111';ctx.fillRect(796,0,8,900);
         ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(22,22,190,56);ctx.fillRect(1388,22,190,56);
         ctx.fillStyle='#ffffff';ctx.font='bold 30px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -2952,8 +2963,11 @@
             blob=new Blob([bytes],{type:mime});
           }
           if(blob){
-            const mime=blob.type||'image/jpeg',ext=mime.includes('png')?'png':(mime.includes('webp')?'webp':'jpg');
-            files.push(new File([blob],(index===0?'before':index===1?'after':'customer-photo-'+(index+1))+'.'+ext,{type:mime}));
+            if(ref instanceof File) files.push(ref);
+            else {
+              const mime=blob.type||'image/jpeg',ext=mime.includes('png')?'png':(mime.includes('webp')?'webp':'jpg');
+              files.push(new File([blob],(index===0?'before':index===1?'after':'customer-photo-'+(index+1))+'.'+ext,{type:mime}));
+            }
           }
         }
         if(files.length && navigator.share && navigator.canShare && window.File){
