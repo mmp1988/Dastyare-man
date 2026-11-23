@@ -251,8 +251,12 @@ public class MainActivity extends Activity {
             try {
                 File backup = new File(new File(getFilesDir(), "backups"), "latest-backup.json");
                 if (!backup.exists()) return "";
-                byte[] data = java.nio.file.Files.readAllBytes(backup.toPath());
-                return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                try (InputStream in = new java.io.FileInputStream(backup);
+                     ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[8192]; int n;
+                    while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+                    return out.toString("UTF-8");
+                }
             } catch (Exception e) { return ""; }
         }
         @JavascriptInterface public void updateApp() {
