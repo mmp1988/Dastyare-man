@@ -970,7 +970,7 @@
         </div>
         <div class="form-group">
           <label>رزرو خودکار نوبت ترمیم بعدی</label>
-          <select id="apptNextFollowup" class="form-control" onchange="toggleCustomFollowupDays()">
+          <select id="apptNextFollowup" class="form-control" onchange="toggleFollowupCustomDays()">
             <option value="0">بدون نوبت ترمیم</option>
             <option value="14">۲ هفته بعد (۱۴ روز)</option>
             <option value="21">۳ هفته بعد (۲۱ روز)</option>
@@ -978,9 +978,9 @@
             <option value="custom">دلخواه (تعداد روز دلخواه)</option>
           </select>
         </div>
-        <div class="form-group" id="customFollowupDaysGroup" style="display:none;">
-          <label>تعداد روز دلخواه بعد از این نوبت</label>
-          <input type="number" id="apptCustomFollowupDays" class="form-control" min="1" max="365" value="10" placeholder="مثلاً: 10" />
+        <div class="form-group" id="followupCustomDaysBox" style="display:none;">
+          <label>چند روز بعد ترمیم ثبت شود؟</label>
+          <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" placeholder="تعداد روز..." />
         </div>
         <div class="form-group full">
           <label>وضعیت نوبت</label>
@@ -1507,8 +1507,8 @@
       document.getElementById('editApptId').value = editId || '';
       document.getElementById('conflictWarningBox').style.display = 'none';
       document.getElementById('apptNextFollowup').value = '0';
-      document.getElementById('apptCustomFollowupDays').value = '10';
-      toggleCustomFollowupDays();
+      document.getElementById('apptFollowupCustomDays').value = '10';
+      toggleFollowupCustomDays();
 
       const chipsWrap = document.getElementById('quickServiceChipsWrap');
       const chipsBox = document.getElementById('quickServiceChips');
@@ -1566,11 +1566,11 @@
     }
 
 
-    function toggleCustomFollowupDays() {
+    function toggleFollowupCustomDays() {
       const sel = document.getElementById('apptNextFollowup');
-      const grp = document.getElementById('customFollowupDaysGroup');
-      if (sel && grp) {
-        grp.style.display = sel.value === 'custom' ? 'flex' : 'none';
+      const box = document.getElementById('followupCustomDaysBox');
+      if (sel && box) {
+        box.style.display = sel.value === 'custom' ? 'flex' : 'none';
       }
     }
 
@@ -1603,11 +1603,11 @@
         appData.appointments.push(payload);
       }
 
-      // Auto-schedule follow-up repair appointment if chosen (including custom days)
-      const followupSelVal = document.getElementById('apptNextFollowup').value;
-      const followupDays = followupSelVal === 'custom'
-        ? (Number(document.getElementById('apptCustomFollowupDays').value) || 0)
-        : (Number(followupSelVal) || 0);
+      // Auto-schedule follow-up repair appointment if chosen
+      const followupSel = document.getElementById('apptNextFollowup').value;
+      const followupDays = followupSel === 'custom'
+        ? (Number(document.getElementById('apptFollowupCustomDays').value) || 0)
+        : (Number(followupSel) || 0);
       if (followupDays > 0) {
         const nextDateKey = addDaysToJalaliKey(selectedDateKey, followupDays);
         appData.appointments.push({
