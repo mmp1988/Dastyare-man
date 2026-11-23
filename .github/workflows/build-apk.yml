@@ -62,7 +62,15 @@ jobs:
         run: |
           set -e
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
-          mkdir -p android-build && cd android-build
+          mkdir -p "$HOME/.bubblewrap" android-build
+
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' \
+            "$JAVA_HOME" \
+            "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
+
+          cat "$HOME/.bubblewrap/config.json"
+
+          cd android-build
 
           MANIFEST_URL="https://mmp1988.github.io/Dastyare-man/manifest.json"
           echo "دریافت $MANIFEST_URL ..."
@@ -130,7 +138,7 @@ jobs:
             -keypass dastyare123 \
             -dname "CN=Mina-Msvm, OU=Dastyare-man, O=Dastyare-man, L=Tehran, S=Tehran, C=IR"
 
-          bubblewrap update --skipVersionUpgrade --skipPwaValidation || bubblewrap update --skipPwaValidation
+          bubblewrap update --skipVersionUpgrade || bubblewrap update
           bubblewrap build --skipPwaValidation
 
           APK=$(find . -type f -name "app-release-signed.apk" | head -n 1)
