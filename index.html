@@ -4754,6 +4754,59 @@
     minaBuildReply = function(raw) {
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
+
+      // Friendly small-talk and remembering the visitor's preferred name (local/offline).
+      if (!appData.settings) appData.settings = {};
+      const nameMatch = normalized.match(/(?:من\s+([آ-یءئؤإأ‌\-]{2,24})\s+(?:هستم|ام)|اسمم\s+([آ-یءئؤإأ‌\-]{2,24})|اسم\s+من\s+([آ-یءئؤإأ‌\-]{2,24})\s+است)/u);
+      if (nameMatch && /(?:سلام|درود|من\s|اسمم|اسم\s+من)/u.test(normalized)) {
+        const introducedName = (nameMatch[1] || nameMatch[2] || nameMatch[3] || '').trim();
+        const reserved = /^(?:خوب|خوشحال|کاربر|مشتری|دستیار|من|تو|ما|شما)$/u;
+        if (introducedName && !reserved.test(introducedName)) {
+          appData.settings.minaUserName = introducedName;
+          saveData();
+          const namePraise = {
+            'مینا':'چه اسم قشنگ و لطیفی داری؛ پر از حس خوبه',
+            'نازنین':'چه اسم دلنشین و دوست‌داشتنی‌ای داری',
+            'زهرا':'چه اسم زیبا و پرمهری داری',
+            'فاطمه':'چه اسم اصیل و دوست‌داشتنی‌ای داری',
+            'سارا':'چه اسم شیرین و قشنگی داری',
+            'مریم':'چه اسم آرامش‌بخش و زیبایی داری',
+            'نگار':'چه اسم هنری و دلنشینی داری',
+            'نیلوفر':'چه اسم لطیف و خوش‌آهنگی داری'
+          };
+          const praise = namePraise[introducedName] || 'چه اسم قشنگ و دوست‌داشتنی‌ای داری';
+          return 'سلام ' + introducedName + ' جانِ عزیزم! 🌸 ' + praise +
+            '. خیلی خوش اومدی؛ من مینام و با خوشحالی کنارت هستم. امروز چطوری؟ 💗';
+        }
+      }
+
+      const visitorName = String(appData.settings.minaUserName || '').trim();
+      const hasGreeting = /^(?:سلام|درود|صبح\s+بخیر|صبح\s+به\s+خیر|عصر\s+بخیر|شب\s+بخیر|سلام\s+عزیزم|سلام\s+مینا)(?:\s|$)/u.test(normalized);
+      if (hasGreeting && !/(?:نوبت|رزرو|وقت|ثبت|حذف|تقویم|برنامه|درآمد)/u.test(normalized)) {
+        const hello = visitorName
+          ? 'سلام دوباره ' + visitorName + ' جانِ قشنگم! 🌷 از دیدنت خوشحال شدم. حالت چطوره؟'
+          : 'سلام به روی ماهت عزیزم! 🌷 خوش اومدی؛ حالت چطوره؟';
+        return hello + ' هرچی دوست داری بگو، با دقت گوش می‌دم 💗';
+      }
+      if (/(?:خوبی|حالت چطوره|چه خبر|چطوری)/u.test(normalized) && !/(?:نوبت|رزرو|وقت|ثبت|حذف|تقویم|درآمد)/u.test(normalized)) {
+        return (visitorName ? visitorName + ' جان، ' : '') +
+          'مرسی که پرسیدی عزیز دلم! من خوبم و آماده‌ام کمکت کنم 🥰 تو چطوری؟ امروز روزت چطور گذشته؟ 🌸';
+      }
+      if (/(?:ممنون|مرسی|متشکرم|دمت گرم|خیلی لطف کردی)/u.test(normalized) &&
+          !/(?:نوبت|رزرو|وقت|ثبت|حذف|تقویم)/u.test(normalized)) {
+        return 'قربون محبتت ' + (visitorName ? visitorName + ' جان' : 'عزیزم') +
+          '! 💗 خوشحالم که تونستم کمکت کنم. هر وقت کاری داشتی من اینجام 🌷';
+      }
+      if (/(?:خداحافظ|فعلا|فعلاً|شب بخیر|روز بخیر خداحافظ)/u.test(normalized) &&
+          !/(?:نوبت|رزرو|وقت|ثبت|حذف)/u.test(normalized)) {
+        return 'فعلاً ' + (visitorName ? visitorName + ' جانِ عزیزم' : 'عزیز دلم') +
+          '! مراقب خودت باش و روزت پر از اتفاق‌های قشنگ 💕 هر وقت برگشتی با عشق اینجام.';
+      }
+      if (/(?:دوستت دارم|عاشقتم|خیلی مهربونی|چه ماهی|چه خوبی)/u.test(normalized)) {
+        return 'وای چقدر مهربونی ' + (visitorName ? visitorName + ' جان' : 'قشنگم') +
+          '! 🥹💗 منم با کلی انرژی و محبت کنارتم؛ بگو ببینم چه خبر؟';
+      }
+
       const hasClock = /(?:ساعت\s*)?\d{1,2}(?::\d{1,2})?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized);
       const isBookingIntent = (/(?:نوبت|رزرو|وقت)/.test(normalized) ||
         (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) && /(?:برای|خدمت)/.test(normalized))) &&
