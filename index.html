@@ -3838,7 +3838,7 @@
         if (appt.dateKey !== todayKey || appt.status === 'canceled' || appt.alarm === 'none' || appt.notified) return;
         const [h, m] = (appt.time || '00:00').split(':').map(Number);
         const reminderAt=(h*60+m)-Math.max(0,Number(appt.alarm)||0);
-        if (nowMin >= reminderAt && nowMin <= reminderAt+2) {
+        if (nowMin >= reminderAt && nowMin <= h*60+m) {
           appt.notified = true; saveData();
           const message=`یادآوری نوبت ${appt.clientName}، ساعت ${appt.time||''}`;
           document.getElementById('alarmRingingText').textContent=message;
