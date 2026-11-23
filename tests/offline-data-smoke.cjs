@@ -49,6 +49,32 @@ const assert = require('assert');
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid'));
 
+    // Mina natural-language booking regression: no-name booking saves directly,
+    // date words are never treated as a client name, service is extracted,
+    // and a compound Persian confirmation commits a named pending booking.
+    const minaBookingResult = await page.evaluate(() => {
+      appData.appointments = [];
+      minaPendingBooking = null;
+      const noNameReply = minaBuildReply('برای پس فردا ۲ بعد از ظهر نوبت کاشت مژه رو ثبت کن');
+      const noName = appData.appointments[0];
+      const noNameOk = !!noName && noName.clientNameMissing === true &&
+        noName.time === '14:00' && noName.service.includes('کاشت مژه') &&
+        !String(noName.clientName).includes('پس');
+      appData.appointments = [];
+      minaPendingBooking = null;
+      const preview = minaBuildReply('برای مینا پس فردا ۲ بعد از ظهر نوبت کاشت مژه ثبت کن');
+      const previewOk = !!minaPendingBooking && minaPendingBooking.clientName === 'مینا' &&
+        minaPendingBooking.service.includes('کاشت مژه');
+      const confirmation = minaBuildReply('آره تأیید ثبتش کن');
+      const confirmed = appData.appointments.length === 1 &&
+        appData.appointments[0].clientName === 'مینا' &&
+        appData.appointments[0].time === '14:00';
+      return { noNameOk, previewOk, confirmed, noNameReply, preview, confirmation };
+    });
+    assert(minaBookingResult.noNameOk, 'Mina must save a no-name appointment and parse service/date/time');
+    assert(minaBookingResult.previewOk, 'Mina must preserve a real client name in pending booking');
+    assert(minaBookingResult.confirmed, 'Mina must save on compound Persian confirmation');
+
     // CRUD: create, edit and delete an appointment through the app's own form handlers.
     const appointmentResult = await page.evaluate(() => {
       const set = (id, value) => { document.getElementById(id).value = value; };
