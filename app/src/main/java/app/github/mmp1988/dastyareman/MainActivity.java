@@ -362,8 +362,26 @@ public class MainActivity extends Activity {
                 "if(window.showToast)window.showToast(" + JSONObject.quote(message) + ");", null));
     }
 
+    private boolean hasValidatedInternetConnection() {
+        try {
+            ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (manager == null || android.os.Build.VERSION.SDK_INT < 23) return false;
+            Network active = manager.getActiveNetwork();
+            if (active == null) return false;
+            NetworkCapabilities capabilities = manager.getNetworkCapabilities(active);
+            return capabilities != null
+                    && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private void startNativeSpeechOnUi(String targetInputId, String buttonId) {
-        boolean offlineAvailable = android.os.Build.VERSION.SDK_INT >= 31
+        // Prefer Android's regular speech service whenever internet is available.
+        // Use the on-device engine only when the device has no validated internet.
+        boolean online = hasValidatedInternetConnection();
+        boolean offlineAvailable = !online && android.os.Build.VERSION.SDK_INT >= 31
                 && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
         startSpeechRecognition(targetInputId, buttonId, offlineAvailable);
     }
