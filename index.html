@@ -2816,7 +2816,7 @@
           if(next) lines.push('نوبت بعدی: '+formatJalaliFull(next.dateKey)+(next.time?' ساعت '+next.time:'')+(next.service?' — '+next.service:''));
         }
       }
-      return lines.length>1?lines.join('\\n'):'پرونده مشتری: '+(p.name||'بدون مشخصات ثبت‌شده');
+      return lines.length>1?lines.join('\n'):'پرونده مشتری: '+(p.name||'بدون مشخصات ثبت‌شده');
     }
     async function shareClientRecord() {
       const key=document.getElementById('clientRecordKey').value;
