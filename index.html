@@ -3000,6 +3000,24 @@
       const phone = document.getElementById('newClientPhone').value.trim();
       if (!name) { showToast('نام مشتری را وارد کن.'); return; }
       const key = clientKeyFromFields(phone, name);
+      const normalizedDigits = value => String(value || '').replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/\\D/g, '');
+      const normalizedName = value => String(value || '').trim().replace(/\\s+/g, ' ').toLocaleLowerCase('fa');
+      const phoneDigits = normalizedDigits(phone);
+      const existingEntry = Object.entries(appData.clientProfiles || {}).find(([existingKey, profile]) => {
+        const existingPhone = normalizedDigits(profile.phone || (/^[0-9۰-۹٠-٩+() -]+$/.test(existingKey) ? existingKey : ''));
+        return (phoneDigits && existingPhone === phoneDigits) || existingKey === key;
+      });
+      if (existingEntry) {
+        const [existingKey, existingProfile] = existingEntry;
+        if (normalizedName(existingProfile.name || existingKey) !== normalizedName(name)) {
+          showToast('این مشتری قبلاً با همین شماره یا شناسه ثبت شده؛ برای جلوگیری از پرونده تکراری، اطلاعات قبلی را باز کردم.');
+          openClientRecord(existingKey);
+          return;
+        }
+        showToast('این مشتری از قبل ثبت شده است؛ پرونده تکراری ساخته نشد.');
+        openClientRecord(existingKey);
+        return;
+      }
       const p = getClientProfile(key);
       p.name = name; p.phone = phone;
       saveData();
