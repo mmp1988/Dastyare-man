@@ -3028,6 +3028,7 @@
       saveData(); renderServicesTab(); showToast('خدمت جدید اضافه شد ✅');
     }
     function deleteCustomService(id) {
+      if (!confirm('این خدمت از فهرست خدمات شما حذف شود؟')) return;
       appData.services = appData.services.filter(s => s.id !== id);
       saveData(); renderServicesTab();
     }
