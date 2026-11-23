@@ -615,7 +615,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void startOfflineSpeechRecognition(String targetInputId, String buttonId) {
             runOnUiThread(() -> {
                 if (!("apptClientName".equals(targetInputId) || "apptService".equals(targetInputId)
-                        || "noteTitleInput".equals(targetInputId) || "noteBodyInput".equals(targetInputId))) {
+                        || "noteTitleInput".equals(targetInputId) || "noteBodyInput".equals(targetInputId)
+                        || "minaInput".equals(targetInputId))) {
                     notifyVoiceButton(buttonId, false);
                     notifyVoiceMessage("فیلد انتخاب‌شده معتبر نیست.");
                     return;
