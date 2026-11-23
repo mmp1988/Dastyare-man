@@ -2976,6 +2976,20 @@
             }
           }
         }
+        if(files.length && window.AndroidApp && typeof window.AndroidApp.shareFiles==='function') {
+          const encoded=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{
+            const reader=new FileReader();
+            reader.onload=()=>resolve({name:file.name,type:file.type||'image/jpeg',data:String(reader.result).split(',')[1]||''});
+            reader.onerror=()=>reject(reader.error||new Error('File read failed'));
+            reader.readAsDataURL(file);
+          })));
+          window.AndroidApp.shareFiles(title,text,JSON.stringify(encoded));
+          return;
+        }
+        if(!files.length && window.AndroidApp && typeof window.AndroidApp.shareText==='function') {
+          window.AndroidApp.shareText(title,text);
+          return;
+        }
         if(files.length && navigator.share && navigator.canShare && window.File){
           const payload={title,text,files};
           if(navigator.canShare({files})){await navigator.share(payload);return;}
