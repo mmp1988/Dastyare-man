@@ -1067,6 +1067,17 @@
     </div>
   </div>
 
+  <!-- ویرایش اطلاعات مشتری -->
+  <div class="modal-backdrop" id="editClientModal">
+    <div class="modal-box" style="max-width:460px;">
+      <div class="modal-head"><div class="modal-title">✏️ ویرایش مشتری</div><button class="icon-btn" onclick="closeModal('editClientModal')">✕</button></div>
+      <input type="hidden" id="editClientOriginalKey" />
+      <div class="form-group"><label>نام و نام خانوادگی *</label><input id="editClientName" class="form-control" type="text" autocomplete="name" /></div>
+      <div class="form-group"><label>شماره تماس</label><input id="editClientPhone" class="form-control" type="tel" dir="ltr" autocomplete="tel" /></div>
+      <button class="btn-primary" style="width:100%;" onclick="saveEditedClient()">ذخیره تغییرات</button>
+    </div>
+  </div>
+
   <!-- ==================== CLIENT PROFILE & SERVICE HISTORY ==================== -->
   <div class="modal-backdrop" id="clientProfileModal">
     <div class="modal-box" style="max-height:92vh;">
@@ -2467,7 +2478,7 @@
       const c = document.getElementById('clientsListContainer');
       const map = {};
       appData.appointments.forEach(a => {
-        const key = (a.phone || a.clientName || '').trim();
+        const key = clientKeyFromFields(a.phone, a.clientName);
         if (!key) return;
         if (!map[key]) map[key] = { key, name: a.clientName || key, phone: a.phone || '', visits: [] };
         map[key].visits.push(a);
@@ -2475,6 +2486,7 @@
       Object.keys(appData.clientProfiles || {}).forEach(key => {
         const p = appData.clientProfiles[key] || {};
         if (!map[key]) map[key] = { key, name: p.name || key, phone: p.phone || '', visits: [] };
+        else { map[key].name = p.name || map[key].name; map[key].phone = p.phone || map[key].phone; }
       });
       const clients = Object.values(map).filter(x => !q || (x.name || '').toLowerCase().includes(q) || (x.phone && x.phone.includes(q)));
       if (clients.length === 0) {
@@ -2485,21 +2497,101 @@
         const p = (appData.clientProfiles || {})[cl.key] || {};
         const count = cl.visits.length + (p.records || []).length;
         const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : p.photoRef ? `<img data-client-photo-ref="${escapeClientText(p.photoRef)}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<div style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</div>`;
+        const encoded = encodeURIComponent(cl.key);
         return `
-          <button type="button" onclick="openClientRecord(decodeURIComponent('${encodeURIComponent(cl.key)}'))" style="width:100%;text-align:right;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:14px;padding:10px 12px;color:var(--text-primary);display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <div style="width:100%;text-align:right;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:14px;padding:10px 12px;color:var(--text-primary);display:flex;align-items:center;gap:10px;margin-bottom:8px;">
             ${photo}
-            <span style="flex:1;min-width:0;">
+            <button type="button" onclick="openClientRecord(decodeURIComponent('${encoded}'))" style="flex:1;min-width:0;text-align:right;background:transparent;border:0;padding:0;color:inherit;cursor:pointer;">
               <strong style="display:block;font-size:0.9rem;">${escapeClientText(cl.name)}</strong>
               <small style="display:block;color:var(--text-secondary);margin-top:3px;">${escapeClientText(cl.phone || 'بدون شماره تماس')}</small>
-              <small style="display:block;color:var(--accent);margin-top:3px;">${toPersianDigits(count)} سابقه • برای مشاهده پرونده بزن</small>
-            </span>
-            <span style="font-size:1.1rem;color:var(--accent);">‹</span>
-          </button>
+              <small style="display:block;color:var(--accent);margin-top:3px;">${toPersianDigits(count)} سابقه • مشاهده پرونده</small>
+            </button>
+            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+              <button type="button" class="mini-btn" onclick="openEditClientModal(decodeURIComponent('${encoded}'))" aria-label="ویرایش مشتری">✏️ ویرایش</button>
+              <button type="button" class="mini-btn del" onclick="deleteClient(decodeURIComponent('${encoded}'))" aria-label="حذف مشتری">🗑️ حذف</button>
+            </div>
+          </div>
         `;
       }).join('');
       c.querySelectorAll('img[data-client-photo-ref]').forEach(async img => {
         try { const url=await getClientPhotoUrl(img.dataset.clientPhotoRef); if(url) img.src=url; } catch(e) {}
       });
+    }
+
+    function openEditClientModal(key) {
+      const p = getClientProfile(key);
+      const visits = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
+      document.getElementById('editClientOriginalKey').value = key;
+      document.getElementById('editClientName').value = p.name || visits[0]?.clientName || key;
+      document.getElementById('editClientPhone').value = p.phone || visits[0]?.phone || '';
+      document.getElementById('editClientModal').classList.add('open');
+    }
+
+    function saveEditedClient() {
+      const oldKey = document.getElementById('editClientOriginalKey').value;
+      const name = document.getElementById('editClientName').value.trim();
+      const phone = document.getElementById('editClientPhone').value.trim();
+      if (!oldKey || !name) { showToast('نام مشتری را وارد کن.'); return; }
+      const newKey = clientKeyFromFields(phone, name);
+      if (newKey !== oldKey && appData.clientProfiles[newKey]) {
+        showToast('مشتری دیگری با این شماره یا شناسه وجود دارد؛ شماره را بررسی کن.');
+        return;
+      }
+      const profile = getClientProfile(oldKey);
+      if (newKey !== oldKey) {
+        appData.clientProfiles[newKey] = profile;
+        delete appData.clientProfiles[oldKey];
+        if (appData.clientNotes && Object.prototype.hasOwnProperty.call(appData.clientNotes, oldKey)) {
+          appData.clientNotes[newKey] = appData.clientNotes[oldKey];
+          delete appData.clientNotes[oldKey];
+        }
+      }
+      profile.name = name;
+      profile.phone = phone;
+      appData.appointments.forEach(a => {
+        if (clientKeyFromFields(a.phone, a.clientName) === oldKey) {
+          a.clientName = name;
+          a.phone = phone;
+        }
+      });
+      saveData();
+      closeModal('editClientModal');
+      renderClientsTab();
+      showToast('اطلاعات مشتری و سوابق نوبت‌هایش به‌روزرسانی شد ✅');
+    }
+
+    async function deleteClientPhotoRefs(profile) {
+      if (!profile) return;
+      const refs = new Set();
+      if (profile.photoRef) refs.add(profile.photoRef);
+      (profile.records || []).forEach(record => {
+        [record.photoRef, record.beforePhotoRef, record.afterPhotoRef].forEach(ref => { if (ref) refs.add(ref); });
+      });
+      if (!refs.size) return;
+      try {
+        const db = await openClientPhotoDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('photos', 'readwrite');
+          refs.forEach(ref => tx.objectStore('photos').delete(ref));
+          tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
+        });
+        db.close();
+      } catch (e) { /* Keep the rest of the local data operation intact if photo cleanup is unavailable. */ }
+    }
+
+    async function deleteClient(key) {
+      const profile = (appData.clientProfiles || {})[key] || null;
+      const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
+      const recordsCount = (profile && profile.records ? profile.records.length : 0) + appointments.length;
+      const name = (profile && profile.name) || appointments[0]?.clientName || key;
+      if (!confirm('مشتری «' + name + '» و پرونده، یادداشت‌ها، سوابق خدمات و نوبت‌های مرتبط حذف شوند؟ این کار برگشت‌پذیر نیست. تراکنش‌های مالی مستقل حذف نمی‌شوند.')) return;
+      if (profile) await deleteClientPhotoRefs(profile);
+      delete appData.clientProfiles[key];
+      if (appData.clientNotes) delete appData.clientNotes[key];
+      appData.appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) !== key);
+      saveData();
+      renderClientsTab();
+      showToast('پرونده مشتری و ' + recordsCount + ' سابقه/نوبت مرتبط حذف شد.');
     }
 
 
