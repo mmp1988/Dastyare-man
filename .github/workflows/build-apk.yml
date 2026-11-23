@@ -30,24 +30,23 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Android SDK & Build Tools
-        env:
-          ANDROID_HOME: /home/runner/android-sdk
-          ANDROID_SDK_ROOT: /home/runner/android-sdk
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
+
+      - name: Verify Android SDK
         run: |
           set -e
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
-          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
-          rm -f cmdline-tools.zip
-
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
-          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
-          sdkmanager --sdk_root="$ANDROID_HOME" \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -n "$ANDROID_HOME"
+          test -x "$ANDROID_HOME/platform-tools/adb"
+          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/zipalign"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
 
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
@@ -55,13 +54,13 @@ jobs:
       - name: Initialize & Build Signed APK
         env:
           JAVA_HOME: ${{ steps.java.outputs.path }}
-          ANDROID_HOME: /home/runner/android-sdk
-          ANDROID_SDK_ROOT: /home/runner/android-sdk
           BUBBLEWRAP_KEYSTORE_PASSWORD: dastyare123
           BUBBLEWRAP_KEY_PASSWORD: dastyare123
         run: |
           set -e
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
           mkdir -p "$HOME/.bubblewrap" android-build
 
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' \
