@@ -2902,9 +2902,18 @@
       const p=getClientProfile(key), refs=[];
       if(document.getElementById('shareClientPhotos')?.checked!==false) {
         if(p.photoRef||p.photo) refs.push(p.photoRef||p.photo);
-        if(document.getElementById('shareClientHistory')?.checked!==false) (p.records||[]).forEach(r=>[r.beforePhotoRef,r.afterPhotoRef,r.photoRef,r.photo].filter(Boolean).forEach(x=>refs.push(x)));
+        if(document.getElementById('shareClientHistory')?.checked!==false) {
+          for(const record of (p.records||[])) {
+            if(record.beforePhotoRef&&record.afterPhotoRef) {
+              const composite=await createClientBeforeAfterImage(record);
+              if(composite) refs.push(composite);
+              else refs.push(record.beforePhotoRef,record.afterPhotoRef);
+            } else refs.push(record.beforePhotoRef,record.afterPhotoRef);
+            refs.push(record.photoRef,record.photo);
+          }
+        }
       }
-      await shareClientPayload(buildClientShareText(key),refs,'پرونده مشتری');
+      await shareClientPayload(buildClientShareText(key),refs.filter(Boolean),'پرونده مشتری');
     }
     async function createClientBeforeAfterImage(item) {
       if(!item.beforePhotoRef||!item.afterPhotoRef||!window.document.createElement('canvas').toBlob)return null;
