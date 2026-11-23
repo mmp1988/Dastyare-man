@@ -1357,7 +1357,11 @@
     }
 
     function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      const serialized = JSON.stringify(appData);
+      localStorage.setItem(STORAGE_KEY, serialized);
+      if (window.AndroidApp && typeof AndroidApp.backupData === 'function') {
+        AndroidApp.backupData(serialized);
+      }
       updateDashboardStats();
     }
 
@@ -2353,7 +2357,14 @@
 
     // ==================== BACKUP & NAVIGATION ====================
     function exportBackup() {
-      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+      const backupJson = JSON.stringify(appData, null, 2);
+      const backupName = `dastyare-man-backup-${getTodayKey()}.json`;
+      if (window.AndroidApp && typeof AndroidApp.saveBackup === 'function') {
+        AndroidApp.saveBackup(backupJson, backupName);
+        showToast('نسخه پشتیبان در پوشه امن برنامه ذخیره شد 💾');
+        return;
+      }
+      const blob = new Blob([backupJson], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `dastyare-man-backup-${getTodayKey()}.json`; a.click();
@@ -2411,6 +2422,10 @@
     // --- MANUAL OFFLINE-FIRST UPDATE ENGINE ---
     let swRegistration = null;
     async function checkForAppUpdate(manual = false) {
+      if (window.AndroidApp && typeof AndroidApp.updateApp === 'function') {
+        AndroidApp.updateApp();
+        return;
+      }
       if (!('serviceWorker' in navigator) || !('caches' in window)) {
         if (manual) showToast('به‌روزرسانی در این نسخه پشتیبانی نمی‌شود ⚠️');
         return;
@@ -2475,7 +2490,7 @@
 
     window.addEventListener('load', () => {
       setTimeout(() => document.getElementById('splashScreen').classList.add('hidden'), 850);
-      if ('serviceWorker' in navigator) {
+      if (!window.AndroidApp && 'serviceWorker' in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (refreshing) return;
