@@ -49,9 +49,8 @@ const assert = require('assert');
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid'));
 
-    // Mina natural-language booking regression: no-name booking saves directly,
-    // date words are never treated as a client name, service is extracted,
-    // and a compound Persian confirmation commits a named pending booking.
+    // Mina Persian natural-language booking: clear commands save immediately,
+    // with or without a client name; ask only when a required detail is missing.
     const minaBookingResult = await page.evaluate(() => {
       appData.appointments = [];
       minaPendingBooking = null;
@@ -62,18 +61,19 @@ const assert = require('assert');
         !String(noName.clientName).includes('پس');
       appData.appointments = [];
       minaPendingBooking = null;
-      const preview = minaBuildReply('برای مینا پس فردا ۲ بعد از ظهر نوبت کاشت مژه ثبت کن');
-      const previewOk = !!minaPendingBooking && minaPendingBooking.clientName === 'مینا' &&
-        minaPendingBooking.service.includes('کاشت مژه');
-      const confirmation = minaBuildReply('آره تأیید ثبتش کن');
-      const confirmed = appData.appointments.length === 1 &&
-        appData.appointments[0].clientName === 'مینا' &&
-        appData.appointments[0].time === '14:00';
-      return { noNameOk, previewOk, confirmed, noNameReply, preview, confirmation };
+      const namedReply = minaBuildReply('برای مینا پس فردا ۲ ظهر نوبت کاشت مژه ثبت کن');
+      const named = appData.appointments[0];
+      const namedOk = !!named && named.clientName === 'مینا' &&
+        named.time === '14:00' && named.service.includes('کاشت مژه') && !minaPendingBooking;
+      appData.appointments = [];
+      const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
+      const missingTimeOk = appData.appointments.length === 0 &&
+        /ساعت/.test(missingTimeReply);
+      return { noNameOk, namedOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
-    assert(minaBookingResult.noNameOk, 'Mina must save a no-name appointment and parse service/date/time');
-    assert(minaBookingResult.previewOk, 'Mina must preserve a real client name in pending booking');
-    assert(minaBookingResult.confirmed, 'Mina must save on compound Persian confirmation');
+    assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
+    assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
+    assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
 
     // CRUD: create, edit and delete an appointment through the app's own form handlers.
     const appointmentResult = await page.evaluate(() => {
