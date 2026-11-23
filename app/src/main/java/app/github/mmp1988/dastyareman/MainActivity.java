@@ -297,39 +297,62 @@ public class MainActivity extends Activity {
             io.execute(() -> {
                 HttpURLConnection connection = null;
                 try {
+                    android.content.SharedPreferences prefs = getSharedPreferences("content_updates", MODE_PRIVATE);
+                    long lastSuccess = prefs.getLong("last_success_ms", 0L);
+                    // Check at most every six hours after a successful connection; failed/offline checks are retried.
+                    if (System.currentTimeMillis() - lastSuccess < 6L * 60L * 60L * 1000L) return;
+
                     connection = (HttpURLConnection)new URL(UPDATE_URL).openConnection();
-                    connection.setConnectTimeout(15000); connection.setReadTimeout(20000);
+                    connection.setConnectTimeout(4500);
+                    connection.setReadTimeout(6500);
                     connection.setRequestProperty("Cache-Control", "no-cache");
-                    if (connection.getResponseCode() != 200) throw new Exception("HTTP " + connection.getResponseCode());
+                    connection.setRequestProperty("Pragma", "no-cache");
+                    if (connection.getResponseCode() != 200) return;
+
                     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                     try (InputStream in = new BufferedInputStream(connection.getInputStream())) {
                         byte[] buffer = new byte[8192]; int n;
                         while ((n = in.read(buffer)) > 0) bytes.write(buffer, 0, n);
                     }
                     String html = bytes.toString("UTF-8");
-                    if (!html.contains("<html") || !html.contains("STORAGE_KEY")) throw new Exception("Invalid app bundle");
+                    if (!html.toLowerCase(Locale.ROOT).contains("<html") || !html.contains("STORAGE_KEY")) return;
+
                     File dir = new File(getFilesDir(), "content"); dir.mkdirs();
+                    File current = new File(dir, "index.html");
+                    boolean unchanged = false;
+                    if (current.exists() && current.length() == bytes.size()) {
+                        try (InputStream old = new java.io.FileInputStream(current);
+                             ByteArrayOutputStream oldBytes = new ByteArrayOutputStream()) {
+                            byte[] buffer = new byte[8192]; int n;
+                            while ((n = old.read(buffer)) > 0) oldBytes.write(buffer, 0, n);
+                            unchanged = java.util.Arrays.equals(oldBytes.toByteArray(), bytes.toByteArray());
+                        }
+                    }
+                    prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
+                    if (unchanged) return;
+
                     File temp = new File(dir, "index.html.new");
                     try (FileOutputStream out = new FileOutputStream(temp)) {
                         out.write(bytes.toByteArray()); out.getFD().sync();
                     }
-                    File current = new File(dir, "index.html");
                     File previous = new File(dir, "index.html.previous");
                     if (current.exists()) {
                         if (previous.exists()) previous.delete();
-                        current.renameTo(previous);
+                        if (!current.renameTo(previous)) throw new Exception("Cannot stage current app page");
                     }
                     if (!temp.renameTo(current)) {
                         if (previous.exists()) previous.renameTo(current);
                         throw new Exception("Atomic update failed");
                     }
                     runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "به‌روزرسانی دریافت شد؛ اطلاعات شما حفظ شده است", Toast.LENGTH_LONG).show();
-                        webView.loadUrl(APP_ORIGIN + "/content/index.html");
+                        Toast.makeText(MainActivity.this, "بخش‌های جدید دریافت شد؛ اطلاعات ذخیره‌شده حفظ شد", Toast.LENGTH_LONG).show();
+                        if (webView != null) webView.loadUrl(APP_ORIGIN + "/content/index.html");
                     });
-                } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "به‌روزرسانی انجام نشد؛ اطلاعات فعلی دست‌نخورده ماند", Toast.LENGTH_LONG).show());
-                } finally { if (connection != null) connection.disconnect(); }
+                } catch (Exception ignored) {
+                    // No network, blocked GitHub, or invalid response: keep running the installed offline copy.
+                } finally {
+                    if (connection != null) connection.disconnect();
+                }
             });
         }
     }
