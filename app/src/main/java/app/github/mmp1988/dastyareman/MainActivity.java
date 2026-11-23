@@ -128,17 +128,40 @@ public class MainActivity extends Activity {
         File updates = new File(getFilesDir(), "updates");
         content.mkdirs(); data.mkdirs(); backups.mkdirs(); updates.mkdirs();
         File index = new File(content, "index.html");
-        if (!index.exists()) {
-            try (InputStream in = getAssets().open("index.html"); FileOutputStream out = new FileOutputStream(index)) {
-                byte[] buffer = new byte[8192]; int n;
-                while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+        try {
+            long installedVersion;
+            if (android.os.Build.VERSION.SDK_INT >= 28) {
+                installedVersion = getPackageManager().getPackageInfo(getPackageName(), 0).getLongVersionCode();
+            } else {
+                installedVersion = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+            }
+            android.content.SharedPreferences prefs = getSharedPreferences("app_bundle", MODE_PRIVATE);
+            long bundledVersion = prefs.getLong("bundled_assets_version", -1L);
+
+            // WebView content lives in app-private storage and survives APK upgrades.
+            // Refresh bundled HTML only when the installed APK version changes, while
+            // preserving newer in-app downloaded updates during normal launches.
+            if (!index.exists() || bundledVersion != installedVersion) {
+                copyAssetAtomically("index.html", index);
                 copyAssetIfPresent("manifest.json", new File(content, "manifest.json"));
                 copyAssetIfPresent("icon-192.png", new File(content, "icon-192.png"));
                 copyAssetIfPresent("icon-512.png", new File(content, "icon-512.png"));
-            } catch (Exception e) {
-                Toast.makeText(this, "فایل‌های برنامه آماده نشدند", Toast.LENGTH_LONG).show();
+                prefs.edit().putLong("bundled_assets_version", installedVersion).apply();
             }
+        } catch (Exception e) {
+            Toast.makeText(this, "فایل‌های برنامه آماده نشدند", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void copyAssetAtomically(String name, File target) throws Exception {
+        File temp = new File(target.getParentFile(), target.getName() + ".new");
+        try (InputStream in = getAssets().open(name); FileOutputStream out = new FileOutputStream(temp)) {
+            byte[] buffer = new byte[8192]; int n;
+            while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+            out.getFD().sync();
+        }
+        if (target.exists() && !target.delete()) throw new Exception("Cannot replace " + target.getName());
+        if (!temp.renameTo(target)) throw new Exception("Cannot install " + target.getName());
     }
 
     private void copyAssetIfPresent(String name, File target) {
