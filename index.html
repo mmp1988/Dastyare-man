@@ -1081,8 +1081,12 @@
         <div style="flex:1;min-width:0;">
           <div id="clientProfileName" style="font-weight:900;font-size:1.02rem;"></div>
           <div id="clientProfilePhone" style="color:var(--text-secondary);font-size:0.78rem;margin-top:4px;"></div>
-          <label class="btn-secondary" for="clientProfilePhotoInput" style="margin-top:8px;cursor:pointer;">📷 ثبت / تغییر عکس مشتری</label>
-          <input id="clientProfilePhotoInput" type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleClientPhoto(event,'profile')" />
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">
+            <label class="btn-secondary" for="clientProfileCameraInput" style="cursor:pointer;">📷 عکس با دوربین</label>
+            <label class="btn-secondary" for="clientProfilePhotoInput" style="cursor:pointer;">🖼️ انتخاب از گالری</label>
+          </div>
+          <input id="clientProfileCameraInput" type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleClientPhoto(event,'profile')" />
+          <input id="clientProfilePhotoInput" type="file" accept="image/*" style="display:none;" onchange="handleClientPhoto(event,'profile')" />
         </div>
       </div>
       <div class="form-group">
