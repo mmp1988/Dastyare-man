@@ -11,6 +11,10 @@ import android.app.DownloadManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.provider.MediaStore;
 import android.os.Bundle;
 import android.os.Environment;
@@ -62,6 +66,8 @@ public class MainActivity extends Activity {
     private String pendingNativeSpeechButton;
     private SpeechRecognizer nativeSpeechRecognizer;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
 
     @Override
     public void onCreate(Bundle state) {
@@ -147,6 +153,21 @@ public class MainActivity extends Activity {
         });
 
         webView.loadUrl(APP_ORIGIN + "/content/index.html");
+        registerNetworkMonitoring();
+    }
+
+    private void registerNetworkMonitoring() {
+        try {
+            connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (connectivityManager == null) return;
+            networkCallback = new ConnectivityManager.NetworkCallback() {
+                @Override public void onAvailable(Network network) {
+                    // A fresh connection bypasses the six-hour startup throttle.
+                    performContentUpdate(true);
+                }
+            };
+            connectivityManager.registerDefaultNetworkCallback(networkCallback);
+        } catch (Exception ignored) { }
     }
 
     private void ensureFoldersAndInitialContent() {
@@ -410,6 +431,69 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void performContentUpdate(boolean force) {
+        io.execute(() -> {
+    HttpURLConnection connection = null;
+                    try {
+                        android.content.SharedPreferences prefs = getSharedPreferences("content_updates", MODE_PRIVATE);
+                        long lastSuccess = prefs.getLong("last_success_ms", 0L);
+                        // Check at most every six hours after a successful connection; failed/offline checks are retried.
+                        if (!force && System.currentTimeMillis() - lastSuccess < 6L * 60L * 60L * 1000L) return;
+    
+                        connection = (HttpURLConnection)new URL(UPDATE_URL).openConnection();
+                        connection.setConnectTimeout(4500);
+                        connection.setReadTimeout(6500);
+                        connection.setRequestProperty("Cache-Control", "no-cache");
+                        connection.setRequestProperty("Pragma", "no-cache");
+                        if (connection.getResponseCode() != 200) return;
+    
+                        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                        try (InputStream in = new BufferedInputStream(connection.getInputStream())) {
+                            byte[] buffer = new byte[8192]; int n;
+                            while ((n = in.read(buffer)) > 0) bytes.write(buffer, 0, n);
+                        }
+                        String html = bytes.toString("UTF-8");
+                        if (!html.toLowerCase(Locale.ROOT).contains("<html") || !html.contains("STORAGE_KEY")) return;
+    
+                        File dir = new File(getFilesDir(), "content"); dir.mkdirs();
+                        File current = new File(dir, "index.html");
+                        boolean unchanged = false;
+                        if (current.exists() && current.length() == bytes.size()) {
+                            try (InputStream old = new java.io.FileInputStream(current);
+                                 ByteArrayOutputStream oldBytes = new ByteArrayOutputStream()) {
+                                byte[] buffer = new byte[8192]; int n;
+                                while ((n = old.read(buffer)) > 0) oldBytes.write(buffer, 0, n);
+                                unchanged = java.util.Arrays.equals(oldBytes.toByteArray(), bytes.toByteArray());
+                            }
+                        }
+                        prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
+                        if (unchanged) return;
+    
+                        File temp = new File(dir, "index.html.new");
+                        try (FileOutputStream out = new FileOutputStream(temp)) {
+                            out.write(bytes.toByteArray()); out.getFD().sync();
+                        }
+                        File previous = new File(dir, "index.html.previous");
+                        if (current.exists()) {
+                            if (previous.exists()) previous.delete();
+                            if (!current.renameTo(previous)) throw new Exception("Cannot stage current app page");
+                        }
+                        if (!temp.renameTo(current)) {
+                            if (previous.exists()) previous.renameTo(current);
+                            throw new Exception("Atomic update failed");
+                        }
+                        runOnUiThread(() -> {
+                            Toast.makeText(MainActivity.this, "بخش‌های جدید دریافت شد؛ اطلاعات ذخیره‌شده حفظ شد", Toast.LENGTH_LONG).show();
+                            if (webView != null) webView.loadUrl(APP_ORIGIN + "/content/index.html");
+                        });
+                    } catch (Exception ignored) {
+                        // No network, blocked GitHub, or invalid response: keep running the installed offline copy.
+                    } finally {
+                        if (connection != null) connection.disconnect();
+                    }
+        });
+    }
+
     private class AppBridge {
         @JavascriptInterface public void startOfflineSpeechRecognition(String targetInputId, String buttonId) {
             runOnUiThread(() -> {
@@ -526,66 +610,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return ""; }
         }
         @JavascriptInterface public void updateApp() {
-            io.execute(() -> {
-                HttpURLConnection connection = null;
-                try {
-                    android.content.SharedPreferences prefs = getSharedPreferences("content_updates", MODE_PRIVATE);
-                    long lastSuccess = prefs.getLong("last_success_ms", 0L);
-                    // Check at most every six hours after a successful connection; failed/offline checks are retried.
-                    if (System.currentTimeMillis() - lastSuccess < 6L * 60L * 60L * 1000L) return;
-
-                    connection = (HttpURLConnection)new URL(UPDATE_URL).openConnection();
-                    connection.setConnectTimeout(4500);
-                    connection.setReadTimeout(6500);
-                    connection.setRequestProperty("Cache-Control", "no-cache");
-                    connection.setRequestProperty("Pragma", "no-cache");
-                    if (connection.getResponseCode() != 200) return;
-
-                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                    try (InputStream in = new BufferedInputStream(connection.getInputStream())) {
-                        byte[] buffer = new byte[8192]; int n;
-                        while ((n = in.read(buffer)) > 0) bytes.write(buffer, 0, n);
-                    }
-                    String html = bytes.toString("UTF-8");
-                    if (!html.toLowerCase(Locale.ROOT).contains("<html") || !html.contains("STORAGE_KEY")) return;
-
-                    File dir = new File(getFilesDir(), "content"); dir.mkdirs();
-                    File current = new File(dir, "index.html");
-                    boolean unchanged = false;
-                    if (current.exists() && current.length() == bytes.size()) {
-                        try (InputStream old = new java.io.FileInputStream(current);
-                             ByteArrayOutputStream oldBytes = new ByteArrayOutputStream()) {
-                            byte[] buffer = new byte[8192]; int n;
-                            while ((n = old.read(buffer)) > 0) oldBytes.write(buffer, 0, n);
-                            unchanged = java.util.Arrays.equals(oldBytes.toByteArray(), bytes.toByteArray());
-                        }
-                    }
-                    prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
-                    if (unchanged) return;
-
-                    File temp = new File(dir, "index.html.new");
-                    try (FileOutputStream out = new FileOutputStream(temp)) {
-                        out.write(bytes.toByteArray()); out.getFD().sync();
-                    }
-                    File previous = new File(dir, "index.html.previous");
-                    if (current.exists()) {
-                        if (previous.exists()) previous.delete();
-                        if (!current.renameTo(previous)) throw new Exception("Cannot stage current app page");
-                    }
-                    if (!temp.renameTo(current)) {
-                        if (previous.exists()) previous.renameTo(current);
-                        throw new Exception("Atomic update failed");
-                    }
-                    runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "بخش‌های جدید دریافت شد؛ اطلاعات ذخیره‌شده حفظ شد", Toast.LENGTH_LONG).show();
-                        if (webView != null) webView.loadUrl(APP_ORIGIN + "/content/index.html");
-                    });
-                } catch (Exception ignored) {
-                    // No network, blocked GitHub, or invalid response: keep running the installed offline copy.
-                } finally {
-                    if (connection != null) connection.disconnect();
-                }
-            });
+            performContentUpdate(false);
         }
     }
 
@@ -599,6 +624,9 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (connectivityManager != null && networkCallback != null) {
+            try { connectivityManager.unregisterNetworkCallback(networkCallback); } catch (Exception ignored) { }
+        }
         releaseNativeSpeechRecognizer();
         if (webView != null) { webView.destroy(); webView = null; }
         io.shutdown();
