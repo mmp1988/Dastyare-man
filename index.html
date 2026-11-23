@@ -4005,6 +4005,7 @@
       if (!input || !transcript) return;
       input.value = input.value ? (input.value + ' ' + transcript) : transcript;
       input.dispatchEvent(new Event('input', { bubbles: true }));
+      if (targetInputId === 'minaInput') setTimeout(sendMinaMessage, 250);
     };
 
     function downloadPersianOfflineSpeechModel() {
