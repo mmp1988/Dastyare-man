@@ -11,9 +11,6 @@
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="icon" type="image/png" href="./icon-192.png" />
   <title>دستیار من | نسخه نهایی و حرفه‌ای</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-primary: #0b0d12;
@@ -64,7 +61,7 @@
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
-      font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, 'Noto Naskh Arabic', 'Noto Sans Arabic', sans-serif;
     }
 
     html, body {
@@ -106,7 +103,7 @@
     }
     .splash-logo-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 24px; display: block; }
     .splash-title {
-      font-family: 'Lalezar', 'Vazirmatn', sans-serif;
+      font-family: system-ui, -apple-system, 'Noto Naskh Arabic', sans-serif;
       font-size: 2.1rem;
       color: var(--accent);
     }
@@ -1439,7 +1436,14 @@
 
     function loadData() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('dastyare_man_v5_data') || localStorage.getItem('dastyare_man_data_v3');
+        let raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('dastyare_man_v5_data') || localStorage.getItem('dastyare_man_data_v3');
+        // Native Android keeps a private backup as a recovery copy if WebView storage is unavailable.
+        if (!raw && window.AndroidApp && typeof window.AndroidApp.getLatestBackup === 'function') {
+          try {
+            raw = window.AndroidApp.getLatestBackup() || '';
+            if (raw) { try { localStorage.setItem(STORAGE_KEY, raw); } catch (e) {} }
+          } catch (e) {}
+        }
         if (raw) {
           const parsed = JSON.parse(raw);
           appData = {
@@ -1456,7 +1460,14 @@
     }
 
     function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      const serialized = JSON.stringify(appData);
+      // Browser storage is the primary store; Android's private backup is a second recovery layer.
+      try { localStorage.setItem(STORAGE_KEY, serialized); } catch (e) {}
+      try {
+        if (window.AndroidApp && typeof window.AndroidApp.backupData === 'function') {
+          window.AndroidApp.backupData(serialized);
+        }
+      } catch (e) {}
       updateDashboardStats();
     }
 
@@ -2663,8 +2674,21 @@ self.addEventListener('fetch', (e) => { if (e.request.method !== 'GET') return; 
       } catch (e) { if (manual) showToast('بررسی آپدیت نیازمند اینترنت است 🌐'); }
     }
 
+    function checkNativeContentUpdate() {
+      // Runs only in the Android APK. It is silent and non-blocking when GitHub is unreachable.
+      try {
+        if (window.AndroidApp && typeof window.AndroidApp.updateApp === 'function') {
+          window.AndroidApp.updateApp();
+        }
+      } catch (e) {}
+    }
+
     window.addEventListener('load', () => {
       setTimeout(() => document.getElementById('splashScreen').classList.add('hidden'), 850);
+      setTimeout(checkNativeContentUpdate, 1200);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkNativeContentUpdate();
+      });
       if ('serviceWorker' in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
