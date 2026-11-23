@@ -935,51 +935,38 @@
         </div>
       </div>
 
-      <!-- Offline Persian speech packages -->
-      <div class="card" id="offlineSpeechPackagesCard">
-        <div class="section-title" style="margin-bottom:8px;">🎙️ بسته‌های گفتار به متن آفلاین</div>
+      <!-- Optional offline Persian speech model; Vosk engine is bundled in the Android APK -->
+      <div class="card" id="offlineSpeechPackagesCard" style="border:1px solid var(--accent);">
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:8px;">
+          <div style="width:38px; height:38px; border-radius:12px; display:grid; place-items:center; background:rgba(212,175,55,.14); font-size:1.25rem;">🎙️</div>
+          <div>
+            <div class="section-title" style="margin:0;">گفتار به متن فارسی</div>
+            <div style="font-size:.7rem; color:var(--success); font-weight:800; margin-top:3px;">موتور گفتار داخل برنامه نصب است</div>
+          </div>
+        </div>
         <p style="font-size:0.78rem; color:var(--text-secondary); line-height:1.9; margin-bottom:12px;">
-          با دانلود یکی از بسته‌ها، گفتار فارسی روی خود گوشی به متن تبدیل می‌شود؛ پس از نصب بسته، برای استفاده از آن اینترنت لازم نیست. دانلود اختیاری است و هر زمان بخواهید می‌توانید بسته را حذف کنید.
+          با اینترنت، گفتار به متن بدون دانلود بسته زبان قابل استفاده است. برای تبدیل گفتار در حالت پرواز، فقط بسته فارسی سبک را یک‌بار دانلود کنید؛ پس از آن تشخیص گفتار روی خود گوشی انجام می‌شود.
         </p>
-        <div id="speechModelPlatformNotice" style="display:none; padding:9px 11px; border:1px solid var(--border-color); border-radius:12px; color:var(--text-secondary); font-size:0.75rem; line-height:1.8; margin-bottom:10px;"></div>
-
-        <div class="speech-model-card" id="speechModelSmallCard" style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:15px; padding:12px; margin-bottom:10px;">
+        <div class="speech-model-card" id="speechModelSmallCard" style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:15px; padding:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div style="font-weight:900; color:var(--text-primary);">⚡ بسته سبک فارسی</div>
-            <span style="font-size:0.75rem; color:var(--success); font-weight:800;">۵۳ مگابایت</span>
+            <div style="font-weight:900; color:var(--text-primary);">⚡ بسته فارسی آفلاین</div>
+            <span style="font-size:0.75rem; color:var(--success); font-weight:800;">حدود ۵۳ مگابایت</span>
           </div>
           <p style="font-size:0.73rem; color:var(--text-secondary); line-height:1.8; margin:7px 0;">
-            مناسب موبایل و پیشنهاد ما برای استفاده روزمره. فضای کمتر و اجرای سبک‌تر؛ ممکن است در تشخیص بعضی واژه‌ها و جمله‌ها دقت کمتری از مدل بزرگ داشته باشد.
+            دانلود اختیاری است. بسته روی حافظه داخلی برنامه ذخیره می‌شود و برای استفاده آفلاین به اینترنت نیاز ندارد.
           </p>
           <div style="height:9px; background:var(--bg-secondary); border-radius:20px; overflow:hidden; margin:8px 0 5px;">
             <div id="speechSmallProgress" style="height:100%; width:0%; border-radius:20px; background:linear-gradient(90deg,var(--accent),var(--success)); transition:width .25s ease;"></div>
           </div>
           <div id="speechSmallStatus" style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:9px;">هنوز دانلود نشده است</div>
           <div style="display:flex; gap:7px; flex-wrap:wrap;">
-            <button class="btn-primary" id="speechSmallDownloadBtn" onclick="manageSpeechModel('small','download')">⬇️ دانلود بسته سبک</button>
+            <button class="btn-primary" id="speechSmallDownloadBtn" onclick="manageSpeechModel('small','download')">⬇️ دانلود بسته فارسی</button>
             <button class="btn-secondary" id="speechSmallDeleteBtn" style="display:none; color:var(--danger);" onclick="manageSpeechModel('small','delete')">🗑️ حذف بسته</button>
           </div>
         </div>
-
-        <div class="speech-model-card" id="speechModelLargeCard" style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:15px; padding:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div style="font-weight:900; color:var(--text-primary);">🧠 بسته بزرگ فارسی</div>
-            <span style="font-size:0.75rem; color:var(--warning); font-weight:800;">حدود ۱.۶ گیگابایت</span>
-          </div>
-          <p style="font-size:0.73rem; color:var(--text-secondary); line-height:1.8; margin:7px 0;">
-            مدل بزرگ‌تر با واژگان گسترده‌تر و نتایج بهتر در آزمون‌های مرجع؛ اما دانلود و فضای نصب بسیار بیشتری می‌خواهد و برای موبایل توصیه نمی‌شود. ممکن است روی گوشی‌های معمولی کند باشد یا به حافظه RAM بیشتری نیاز داشته باشد. برای نصب، فضای خالی چند گیگابایتی لازم است.
-          </p>
-          <div style="height:9px; background:var(--bg-secondary); border-radius:20px; overflow:hidden; margin:8px 0 5px;">
-            <div id="speechLargeProgress" style="height:100%; width:0%; border-radius:20px; background:linear-gradient(90deg,var(--accent),var(--success)); transition:width .25s ease;"></div>
-          </div>
-          <div id="speechLargeStatus" style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:9px;">هنوز دانلود نشده است</div>
-          <div style="display:flex; gap:7px; flex-wrap:wrap;">
-            <button class="btn-primary" id="speechLargeDownloadBtn" onclick="manageSpeechModel('large','download')">⬇️ دانلود بسته بزرگ</button>
-            <button class="btn-secondary" id="speechLargeDeleteBtn" style="display:none; color:var(--danger);" onclick="manageSpeechModel('large','delete')">🗑️ حذف بسته</button>
-          </div>
-        </div>
+        <div id="speechModelPlatformNotice" style="display:none; padding:9px 11px; border:1px solid var(--border-color); border-radius:12px; color:var(--text-secondary); font-size:0.75rem; line-height:1.8; margin-top:10px;"></div>
         <p style="font-size:0.69rem; color:var(--text-muted); line-height:1.8; margin-top:10px;">
-          بسته‌ها جدا از اطلاعات برنامه ذخیره می‌شوند. حذف آن‌ها نوبت‌ها، مشتری‌ها و یادداشت‌های شما را پاک نمی‌کند. هنگام دانلود، اتصال اینترنت پایدار و شارژ کافی داشته باشید.
+          توجه: گفتار آنلاین به اتصال اینترنت و سرویس تشخیص گفتار گوشی وابسته است. گفتار آفلاین فقط پس از دانلود کامل بسته فارسی فعال می‌شود. اگر هیچ‌کدام در دسترس نباشد، می‌توانید متن را تایپ کنید.
         </p>
       </div>
 
@@ -2643,39 +2630,37 @@
     }
     function copyEmail() { navigator.clipboard?.writeText('minamsvm@gmail.com'); showToast('ایمیل کپی شد 📋'); }
     function toggleFabMenu() { document.getElementById('fabMenu').classList.toggle('open'); }
-    const speechModelUiState = { small: null, large: null };
+    const speechModelUiState = { small: null };
     function formatSpeechBytes(bytes) {
       if (!bytes || bytes < 0) return '۰ مگابایت';
       if (bytes >= 1024*1024*1024) return (bytes/(1024*1024*1024)).toFixed(2).replace(/\\.?0+$/,'') + ' گیگابایت';
       return Math.round(bytes/(1024*1024)).toLocaleString('fa-IR') + ' مگابایت';
     }
     function renderSpeechModelStatus(data) {
-      if (!data || !['small','large'].includes(data.modelId)) return;
-      const id=data.modelId, prefix=id==='small'?'speechSmall':'speechLarge';
-      speechModelUiState[id]=data;
-      const bar=document.getElementById(prefix+'Progress');
-      const label=document.getElementById(prefix+'Status');
-      const download=document.getElementById(prefix+'DownloadBtn');
-      const del=document.getElementById(prefix+'DeleteBtn');
+      if (!data || data.modelId !== 'small') return;
+      speechModelUiState.small = data;
+      const bar=document.getElementById('speechSmallProgress');
+      const label=document.getElementById('speechSmallStatus');
+      const download=document.getElementById('speechSmallDownloadBtn');
+      const del=document.getElementById('speechSmallDeleteBtn');
       if(!bar||!label||!download||!del)return;
       const pct=Math.max(0,Math.min(100,Number(data.percent)||0));
       bar.style.width=pct+'%';
       if(data.state==='installed'){
-        label.textContent='✓ بسته نصب و آماده استفاده است ('+formatSpeechBytes(data.size||data.total||0)+')';
+        label.textContent='✓ بسته فارسی نصب و آماده استفاده آفلاین است ('+formatSpeechBytes(data.size||data.total||0)+')';
         download.textContent='✓ نصب شده'; download.disabled=true; del.style.display='inline-flex';
       }else if(data.state==='downloading'){
         label.textContent='در حال دانلود: '+pct.toLocaleString('fa-IR')+'٪ — '+formatSpeechBytes(data.downloaded||0)+' از '+formatSpeechBytes(data.total||0);
         download.textContent='در حال دانلود…'; download.disabled=true; del.style.display='none';
       }else if(data.state==='extracting'){
-        label.textContent='دانلود تمام شد؛ در حال آماده‌سازی و نصب بسته…';
+        label.textContent='دانلود تمام شد؛ در حال آماده‌سازی بسته آفلاین…';
         download.textContent='در حال نصب…'; download.disabled=true; del.style.display='none'; bar.style.width='99%';
       }else if(data.state==='error'){
         label.textContent='دانلود یا نصب ناموفق بود. اتصال را بررسی و دوباره تلاش کنید.';
         download.textContent='↻ تلاش دوباره'; download.disabled=false; del.style.display='none';
       }else{
-        label.textContent='هنوز دانلود نشده است';
-        download.textContent=id==='small'?'⬇️ دانلود بسته سبک':'⬇️ دانلود بسته بزرگ';
-        download.disabled=false; del.style.display='none';
+        label.textContent='هنوز دانلود نشده است؛ گفتار آنلاین همچنان قابل استفاده است.';
+        download.textContent='⬇️ دانلود بسته فارسی'; download.disabled=false; del.style.display='none';
       }
     }
     window.onSpeechModelStatus = function(data) { renderSpeechModelStatus(data); };
@@ -2696,7 +2681,8 @@
         showToast('مدیریت بسته آفلاین در نسخه اندروید در دسترس است.');
         return;
       }
-      if(action==='delete' && !confirm('بسته گفتار به متن حذف شود؟ این کار فقط فایل همین بسته را پاک می‌کند و به اطلاعات برنامه دست نمی‌زند.')) return;
+      if(modelId!=='small'){ showToast('فقط بسته سبک فارسی پشتیبانی می‌شود.'); return; }
+      if(action==='delete' && !confirm('بسته گفتار آفلاین حذف شود؟ اطلاعات نوبت‌ها و یادداشت‌ها پاک نمی‌شود.')) return;
       try {
         if(action==='download') AndroidApp.downloadSpeechModel(modelId);
         else if(action==='delete') AndroidApp.deleteSpeechModel(modelId);
