@@ -1377,14 +1377,37 @@
           </div>
           <div class="form-group"><label>حالت نمایش</label><select id="minaThemeChoice" class="form-control" onchange="setMinaTheme(this.value)"><option value="light">روشن و پاستیلی</option><option value="dark">تاریک و ملایم</option></select></div>
           <div class="form-group" style="padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--surface-soft,rgba(215,127,162,.07));">
-            <label style="font-weight:700;">🎀 بسته صدای فارسی مینا</label>
-            <div class="mina-personal-note" style="margin:7px 0 12px;">برای اینکه مینا با صدای فارسی باهات حرف بزنه، بسته زبان فارسی موتور گفتار گوشی رو نصب کن. این بسته رو خود گوشی یا موتور گفتار ارائه می‌کنه؛ بعد از نصب، پاسخ‌های مینا بدون اینترنت هم قابل پخش می‌شن، اگر موتور گفتار صدای آفلاین فارسی داشته باشه.</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button type="button" class="btn-primary" onclick="downloadMinaPersianVoice()">⬇️ دریافت / نصب صدای فارسی</button>
-              <button type="button" class="btn-secondary" onclick="testMinaPersianVoice()">🔊 آزمایش صدای مینا</button>
+            <label style="font-weight:800;">🎀 استودیوی صدای مینا</label>
+            <div class="mina-personal-note" style="margin:7px 0 12px;">صدای فارسی را از موتورهای گفتار نصب‌شده انتخاب کن. وضعیت آفلاین هر صدا مشخص می‌شود؛ برای حرف‌زدن بدون اینترنت، صدای آفلاین را انتخاب کن. نام و کیفیت صداها به موتور گفتار گوشی بستگی دارد.</div>
+            <div class="form-group">
+              <label for="minaVoiceName">صدای فارسی مینا</label>
+              <select id="minaVoiceName" class="form-control" onchange="saveMinaVoiceSettings()"><option value="">انتخاب خودکار صدای زنانه (در صورت وجود)</option></select>
             </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="minaVoicePreset">شخصیت و لحن صدا</label>
+                <select id="minaVoicePreset" class="form-control" onchange="applyMinaVoiceStyle(this.value)">
+                  <option value="warm">گرم و صمیمی</option><option value="soft">لطیف و دخترانه</option><option value="cheerful">شاد و پرانرژی</option><option value="calm">آرام و دلنشین</option><option value="story">قصه‌گو و شمرده</option><option value="custom">تنظیم دستی</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="minaVoicePitch">زیر و بمی صدا: <strong id="minaVoicePitchValue">۱٫۱۲</strong></label>
+                <input id="minaVoicePitch" class="form-control" type="range" min="0.75" max="1.35" step="0.01" value="1.12" oninput="updateMinaVoiceLabels()" onchange="saveMinaVoiceSettings()" />
+              </div>
+              <div class="form-group">
+                <label for="minaVoiceRate">سرعت صحبت: <strong id="minaVoiceRateValue">۰٫۹۴×</strong></label>
+                <input id="minaVoiceRate" class="form-control" type="range" min="0.70" max="1.30" step="0.01" value="0.94" oninput="updateMinaVoiceLabels()" onchange="saveMinaVoiceSettings()" />
+              </div>
+            </div>
+            <div id="minaVoiceStatus" class="mina-personal-note" role="status" style="padding:9px;border-radius:10px;background:var(--bg-input);margin:8px 0;">در حال بررسی صداهای فارسی گوشی…</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-secondary" onclick="refreshMinaVoices()">🔄 بررسی صداها</button>
+              <button type="button" class="btn-secondary" onclick="downloadMinaPersianVoice()">⬇️ دریافت / مدیریت صدای فارسی</button>
+              <button type="button" class="btn-primary" onclick="testMinaPersianVoice()">🔊 شنیدن نمونه صدا</button>
+            </div>
+            <div class="mina-personal-note" style="margin-top:10px;">توجه: زیر و بمی و سرعت، لحن را تنظیم می‌کنند و جنس واقعی صدا را عوض نمی‌کنند. برای صدای واقعاً زنانه باید موتور، صدای زنانهٔ فارسی داشته باشد؛ مینا صدای انگلیسی یا زبان دیگری را جای فارسی پخش نمی‌کند.</div>
           </div>
-          <div class="mina-personal-note">تنظیمات ظاهری روی همین حساب و دستگاه ذخیره می‌شود و با بستن برنامه از بین نمی‌رود.</div>
+          <div class="mina-personal-note">تنظیمات صدا و شخصی‌سازی روی همین دستگاه ذخیره می‌شوند و با بستن برنامه از بین نمی‌روند.</div>
         </div>
 
       <!-- 2. Business & Financial Preferences -->
@@ -2102,6 +2125,10 @@
         palette: 'blossom',
         customHex: '#d77fa2',
         minaVoiceReplies: true,
+        minaVoiceName: '',
+        minaVoicePitch: 1.12,
+        minaVoiceRate: 0.94,
+        minaVoiceStyle: 'warm',
         personalGreeting: '',
         fontScale: '16px',
         customLogo: ''
@@ -3884,6 +3911,11 @@
       document.getElementById('settingFontScale').value = s.fontScale || '16px';
       const greet = document.getElementById('minaPersonalGreeting'); if (greet) greet.value = s.personalGreeting || '';
       const voiceChoice = document.getElementById('minaVoiceReplies'); if (voiceChoice) voiceChoice.value = s.minaVoiceReplies === false ? 'no' : 'yes';
+      const minaVoiceName = document.getElementById('minaVoiceName'); if (minaVoiceName) minaVoiceName.value = s.minaVoiceName || '';
+      const minaVoicePitch = document.getElementById('minaVoicePitch'); if (minaVoicePitch) minaVoicePitch.value = String(Math.max(.75,Math.min(1.35,Number(s.minaVoicePitch)||1.12)));
+      const minaVoiceRate = document.getElementById('minaVoiceRate'); if (minaVoiceRate) minaVoiceRate.value = String(Math.max(.70,Math.min(1.30,Number(s.minaVoiceRate)||.94)));
+      const minaVoiceStyle = document.getElementById('minaVoicePreset'); if (minaVoiceStyle) minaVoiceStyle.value = s.minaVoiceStyle || 'warm';
+      if (typeof updateMinaVoiceLabels === 'function') updateMinaVoiceLabels();
       const themeChoice = document.getElementById('minaThemeChoice'); if (themeChoice) themeChoice.value = s.theme || 'light';
       const customColor = document.getElementById('settingCustomHex'); if (customColor) customColor.value = s.customHex || '#d77fa2';
       const minaWelcome = document.getElementById('minaWelcome'); if (minaWelcome) minaWelcome.textContent = (s.personalGreeting ? 'سلام '+s.personalGreeting+' جان! ' : 'سلام عزیزم! ' )+'من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.';
@@ -4296,7 +4328,33 @@
     function saveMinaPersonalization() {
       appData.settings.personalGreeting = (document.getElementById('minaPersonalGreeting')?.value || '').trim();
       appData.settings.minaVoiceReplies = document.getElementById('minaVoiceReplies')?.value !== 'no';
+      saveMinaVoiceSettings(false);
       saveData(); applySettingsUI(); showToast('سلیقه و تنظیمات مینا ذخیره شد 🌷');
+    }
+    function updateMinaVoiceLabels() {
+      const pitch=Number(document.getElementById('minaVoicePitch')?.value||1.12);
+      const rate=Number(document.getElementById('minaVoiceRate')?.value||.94);
+      const p=document.getElementById('minaVoicePitchValue'), r=document.getElementById('minaVoiceRateValue');
+      if(p)p.textContent=pitch.toFixed(2).replace('.', '٫');
+      if(r)r.textContent=rate.toFixed(2).replace('.', '٫')+'×';
+    }
+    function saveMinaVoiceSettings(showMessage=true) {
+      const s=appData.settings;
+      s.minaVoiceName=document.getElementById('minaVoiceName')?.value||'';
+      s.minaVoicePitch=Math.max(.75,Math.min(1.35,Number(document.getElementById('minaVoicePitch')?.value)||1.12));
+      s.minaVoiceRate=Math.max(.70,Math.min(1.30,Number(document.getElementById('minaVoiceRate')?.value)||.94));
+      s.minaVoiceStyle=document.getElementById('minaVoicePreset')?.value||'warm';
+      saveData();
+      if(showMessage)showToast('تنظیمات صدای مینا ذخیره شد 💗');
+    }
+    function applyMinaVoiceStyle(style) {
+      const presets={warm:[1.12,.94],soft:[1.20,.91],cheerful:[1.25,1.04],calm:[1.08,.84],story:[1.03,.90]};
+      if(presets[style]){
+        const p=document.getElementById('minaVoicePitch'),r=document.getElementById('minaVoiceRate');
+        if(p)p.value=presets[style][0];if(r)r.value=presets[style][1];
+      }
+      updateMinaVoiceLabels();saveMinaVoiceSettings(false);
+      showToast(style==='custom'?'حالت تنظیم دستی فعال شد.':'لحن صدای مینا تغییر کرد 🌷');
     }
     function setMinaTheme(theme) {
       appData.settings.theme = theme === 'dark' ? 'dark' : 'light';
@@ -4310,26 +4368,55 @@
     }
     function clearMinaChat(){const root=document.getElementById('minaChatMessages');if(root)root.innerHTML='';addMinaMessage('گفتگوی تازه‌ای شروع کنیم عزیزم؟ 💗','assistant');}
     function askMina(text){const input=document.getElementById('minaInput');if(input){input.value=text;sendMinaMessage();}}
+    window.receiveMinaVoices = function(voices) {
+      const select=document.getElementById('minaVoiceName'), status=document.getElementById('minaVoiceStatus');
+      if(!select)return;
+      const saved=appData.settings.minaVoiceName||select.value||'';
+      const list=Array.isArray(voices)?voices:[];
+      list.sort((a,b)=>(Number(!!b.femaleLikely)-Number(!!a.femaleLikely))||(Number(!!b.offline)-Number(!!a.offline))||String(a.name).localeCompare(String(b.name)));
+      select.innerHTML='<option value="">انتخاب خودکار صدای زنانه (در صورت وجود)</option>';
+      list.forEach(v=>{
+        const opt=document.createElement('option');opt.value=v.name;
+        opt.textContent=(v.label||v.name)+' — '+(v.offline?'آفلاین':'نیازمند اینترنت')+(v.femaleLikely?' · احتمالاً زنانه':'');
+        select.appendChild(opt);
+      });
+      select.value=list.some(v=>v.name===saved)?saved:'';
+      if(status)status.textContent=list.length
+        ? 'تعداد صداهای فارسی: '+list.length+' · آفلاین: '+list.filter(v=>v.offline).length+' · گزینه‌های احتمالا زنانه با اولویت نمایش داده شده‌اند.'
+        : 'هیچ صدای فارسی نصب‌شده‌ای از موتور گفتار گوشی پیدا نشد. از «دریافت / مدیریت صدای فارسی» برای بررسی موتور و بسته‌های زبان استفاده کن.';
+    };
+    function refreshMinaVoices() {
+      const status=document.getElementById('minaVoiceStatus');
+      if(status)status.textContent='در حال بررسی صداهای فارسی نصب‌شده…';
+      if(window.AndroidApp && typeof AndroidApp.refreshMinaVoices==='function'){
+        try{AndroidApp.refreshMinaVoices();return;}catch(e){}
+      }
+      if('speechSynthesis' in window){
+        const read=()=>window.receiveMinaVoices(window.speechSynthesis.getVoices().filter(v=>/^fa(-|_)/i.test(v.lang)).map(v=>({name:v.voiceURI,label:v.name,offline:!!v.localService,femaleLikely:/female|woman|girl|khadijah|sara|maryam|zahra|fatemeh|niloofar/i.test(v.name)})));
+        read();window.speechSynthesis.onvoiceschanged=read;
+      }else if(status)status.textContent='موتور گفتار در این دستگاه در دسترس نیست.';
+    }
     function minaSpeak(text){
       if(appData.settings.minaVoiceReplies===false)return;
-      // Native Android TTS is preferred so Mina never silently falls back to an English voice.
+      const s=appData.settings||{}, voiceName=s.minaVoiceName||'';
+      const pitch=Number(s.minaVoicePitch)||1.12, rate=Number(s.minaVoiceRate)||.94;
       if(window.AndroidApp && typeof AndroidApp.speakMinaPersian==='function'){
-        try{AndroidApp.speakMinaPersian(String(text||''));}catch(e){showToast('پخش صدای فارسی مینا در دسترس نیست.');}
+        try{AndroidApp.speakMinaPersian(String(text||''),voiceName,pitch,rate);}catch(e){showToast('پخش صدای فارسی مینا در دسترس نیست.');}
         return;
       }
       if(!('speechSynthesis' in window))return;
       try{
-        const voices=window.speechSynthesis.getVoices();
-        const fa=voices.find(v=>/^fa(-|_)/i.test(v.lang));
-        if(!fa){showToast('صدای فارسی روی این مرورگر نصب نیست؛ از نسخه اندروید و بسته صدای فارسی استفاده کن.');return;}
-        window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fa-IR';u.voice=fa;u.rate=.94;u.pitch=1.08;window.speechSynthesis.speak(u);
+        const voices=window.speechSynthesis.getVoices().filter(v=>/^fa(-|_)/i.test(v.lang));
+        const fa=voices.find(v=>v.voiceURI===voiceName)||voices.find(v=>/female|woman|girl|khadijah|sara|maryam|zahra|fatemeh|niloofar/i.test(v.name));
+        if(!fa){showToast('صدای فارسی زنانه در مرورگر پیدا نشد؛ صدای دیگری جایگزین نمی‌شود.');return;}
+        window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fa-IR';u.voice=fa;u.rate=rate;u.pitch=pitch;window.speechSynthesis.speak(u);
       }catch(e){}
     }
     function downloadMinaPersianVoice(){
       if(window.AndroidApp && typeof AndroidApp.installMinaPersianVoice==='function'){
-        try{AndroidApp.installMinaPersianVoice();}catch(e){showToast('باز کردن نصب‌کننده صدای فارسی ممکن نشد.');}
+        try{AndroidApp.installMinaPersianVoice();}catch(e){showToast('باز کردن تنظیمات موتور گفتار ممکن نشد.');}
       }else{
-        showToast('برای دریافت صدای فارسی مینا، نسخه اندروید را باز کن و همین گزینه را بزن. 💗');
+        showToast('مدیریت بسته‌های صدای فارسی در نسخه اندروید در دسترس است. 💗');
       }
     }
     function testMinaPersianVoice(){
@@ -4588,6 +4675,7 @@
 
     window.addEventListener('load', () => {
       setTimeout(() => document.getElementById('splashScreen').classList.add('hidden'), 850);
+      setTimeout(refreshMinaVoices, 900);
       setTimeout(checkNativeContentUpdate, 1200);
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') checkNativeContentUpdate();

@@ -70,6 +70,10 @@ public class MainActivity extends Activity {
     private SpeechRecognizer speechModelDownloadRecognizer;
     private TextToSpeech minaTextToSpeech;
     private boolean minaTtsReady = false;
+    private String pendingMinaSpeechText = "";
+    private String pendingMinaVoiceName = "";
+    private float pendingMinaPitch = 1.12f;
+    private float pendingMinaRate = 0.94f;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
@@ -167,58 +171,135 @@ public class MainActivity extends Activity {
             minaTextToSpeech = new TextToSpeech(this, status -> {
                 minaTtsReady = status == TextToSpeech.SUCCESS;
                 if (minaTtsReady) {
-                    try { minaTextToSpeech.setLanguage(Locale.forLanguageTag("fa-IR")); }
-                    catch (Exception ignored) { }
+                    try { minaTextToSpeech.setLanguage(Locale.forLanguageTag("fa-IR")); } catch (Exception ignored) { }
+                    notifyMinaVoices();
+                    if (pendingMinaSpeechText != null && !pendingMinaSpeechText.trim().isEmpty()) speakMinaNow();
+                } else {
+                    notifyVoiceMessage("موتور تبدیل متن به گفتار گوشی آماده نشد؛ از تنظیمات صدا یک موتور دیگر انتخاب کن.");
                 }
             });
-        } catch (Exception ignored) { minaTtsReady = false; }
+        } catch (Exception ignored) {
+            minaTtsReady = false;
+            notifyVoiceMessage("راه‌اندازی موتور صدای مینا انجام نشد.");
+        }
+    }
+
+    private boolean isPersianVoice(Voice voice) {
+        return voice != null && voice.getLocale() != null
+                && "fa".equalsIgnoreCase(voice.getLocale().getLanguage());
+    }
+
+    private boolean isLikelyFemaleVoiceName(String name) {
+        if (name == null) return false;
+        String n = name.toLowerCase(Locale.ROOT);
+        return n.contains("female") || n.contains("woman") || n.contains("girl")
+                || n.contains("khadijah") || n.contains("khadijeh") || n.contains("sara")
+                || n.contains("maryam") || n.contains("zahra") || n.contains("fatemeh")
+                || n.contains("niloofar") || n.contains("mina") || n.contains("banoo");
+    }
+
+    private void notifyMinaVoices() {
+        if (webView == null || !minaTtsReady || minaTextToSpeech == null) return;
+        JSONArray voices = new JSONArray();
+        try {
+            if (minaTextToSpeech.getVoices() != null) {
+                for (Voice voice : minaTextToSpeech.getVoices()) {
+                    if (!isPersianVoice(voice)) continue;
+                    JSONObject item = new JSONObject();
+                    String name = voice.getName();
+                    boolean offline = !voice.isNetworkConnectionRequired();
+                    try {
+                        java.util.Set<String> features = voice.getFeatures();
+                        if (features != null && features.contains("notInstalled")) offline = false;
+                    } catch (Exception ignored) { }
+                    item.put("name", name);
+                    item.put("label", name);
+                    item.put("locale", voice.getLocale().toLanguageTag());
+                    item.put("offline", offline);
+                    item.put("femaleLikely", isLikelyFemaleVoiceName(name));
+                    voices.put(item);
+                }
+            }
+        } catch (Exception ignored) { }
+        final String payload = voices.toString();
+        webView.post(() -> webView.evaluateJavascript(
+                "if(window.receiveMinaVoices)window.receiveMinaVoices(" + payload + ");", null));
+    }
+
+    private void refreshMinaVoices() {
+        runOnUiThread(() -> {
+            initializeMinaTextToSpeech();
+            if (minaTtsReady) notifyMinaVoices();
+            else notifyVoiceMessage("در حال آماده‌سازی فهرست صداهای فارسی…");
+        });
+    }
+
+    private void speakMinaPersian(String text, String voiceName, float pitch, float rate) {
+        if (text == null || text.trim().isEmpty()) return;
+        runOnUiThread(() -> {
+            pendingMinaSpeechText = text;
+            pendingMinaVoiceName = voiceName == null ? "" : voiceName;
+            pendingMinaPitch = Math.max(0.75f, Math.min(1.35f, pitch));
+            pendingMinaRate = Math.max(0.70f, Math.min(1.30f, rate));
+            initializeMinaTextToSpeech();
+            if (minaTtsReady) speakMinaNow();
+            else notifyVoiceMessage("دارم صدای مینا رو آماده می‌کنم… 💗");
+        });
+    }
+
+    private void speakMinaNow() {
+        if (!minaTtsReady || minaTextToSpeech == null || pendingMinaSpeechText == null
+                || pendingMinaSpeechText.trim().isEmpty()) return;
+        try {
+            int languageResult = minaTextToSpeech.setLanguage(Locale.forLanguageTag("fa-IR"));
+            if (languageResult == TextToSpeech.LANG_MISSING_DATA || languageResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                notifyVoiceMessage("موتور فعلی صدای فارسی ندارد. از بخش شخصی‌سازی یک صدای فارسی نصب کن.");
+                return;
+            }
+            Voice chosen = null;
+            if (minaTextToSpeech.getVoices() != null) {
+                for (Voice voice : minaTextToSpeech.getVoices()) {
+                    if (!isPersianVoice(voice)) continue;
+                    if (!pendingMinaVoiceName.isEmpty() && pendingMinaVoiceName.equals(voice.getName())) {
+                        chosen = voice;
+                        break;
+                    }
+                    if (pendingMinaVoiceName.isEmpty() && isLikelyFemaleVoiceName(voice.getName())
+                            && !voice.isNetworkConnectionRequired()) chosen = voice;
+                }
+            }
+            if (chosen == null) {
+                if (pendingMinaVoiceName.isEmpty()) {
+                    notifyVoiceMessage("برای اینکه صدای مینا ناخواسته مردانه نشه، اول یک صدای فارسی رو از فهرست انتخاب و با دکمه نمونه امتحان کن. 🌷");
+                } else {
+                    notifyVoiceMessage("صدای انتخاب‌شده دیگر در موتور گوشی موجود نیست؛ فهرست صداها رو تازه‌سازی کن.");
+                }
+                notifyMinaVoices();
+                return;
+            }
+            if (chosen.isNetworkConnectionRequired() && !hasValidatedInternetConnection()) {
+                notifyVoiceMessage("این صدای فارسی برای پخش به اینترنت نیاز داره؛ یک صدای آفلاین انتخاب کن. 🌸");
+                return;
+            }
+            minaTextToSpeech.setVoice(chosen);
+            minaTextToSpeech.setSpeechRate(pendingMinaRate);
+            minaTextToSpeech.setPitch(pendingMinaPitch);
+            String text = pendingMinaSpeechText;
+            pendingMinaSpeechText = "";
+            minaTextToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "mina-fa-" + System.currentTimeMillis());
+        } catch (Exception e) {
+            notifyVoiceMessage("پخش صدای فارسی مینا انجام نشد؛ موتور گفتار گوشی رو بررسی کن.");
+        }
     }
 
     private boolean hasPersianTtsVoice() {
         if (!minaTtsReady || minaTextToSpeech == null) return false;
         try {
             if (minaTextToSpeech.getVoices() != null) {
-                for (Voice voice : minaTextToSpeech.getVoices()) {
-                    Locale locale = voice.getLocale();
-                    if (locale != null && "fa".equalsIgnoreCase(locale.getLanguage())) return true;
-                }
+                for (Voice voice : minaTextToSpeech.getVoices()) if (isPersianVoice(voice)) return true;
             }
             return minaTextToSpeech.isLanguageAvailable(new Locale("fa", "IR")) >= TextToSpeech.LANG_AVAILABLE;
         } catch (Exception ignored) { return false; }
-    }
-
-    private void speakMinaPersian(String text) {
-        if (text == null || text.trim().isEmpty()) return;
-        runOnUiThread(() -> {
-            initializeMinaTextToSpeech();
-            if (!minaTtsReady) {
-                notifyVoiceMessage("صدای مینا هنوز آماده نشده؛ یک لحظه بعد دوباره امتحان کن یا بسته صدای فارسی رو نصب کن. 💗");
-                return;
-            }
-            try {
-                Locale persian = Locale.forLanguageTag("fa-IR");
-                if (minaTextToSpeech.getVoices() != null) {
-                    for (Voice voice : minaTextToSpeech.getVoices()) {
-                        Locale locale = voice.getLocale();
-                        if (locale != null && "fa".equalsIgnoreCase(locale.getLanguage())) {
-                            minaTextToSpeech.setVoice(voice);
-                            break;
-                        }
-                    }
-                }
-                int languageResult = minaTextToSpeech.setLanguage(persian);
-                if (languageResult == TextToSpeech.LANG_MISSING_DATA || languageResult == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    notifyVoiceMessage("هنوز صدای فارسی روی گوشی نصب نیست. از بخش شخصی‌سازی، بسته صدای فارسی رو دریافت کن. 🌸");
-                    installMinaPersianVoice();
-                    return;
-                }
-                minaTextToSpeech.setSpeechRate(0.94f);
-                minaTextToSpeech.setPitch(1.08f);
-                minaTextToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "mina-persian-" + System.currentTimeMillis());
-            } catch (Exception e) {
-                notifyVoiceMessage("پخش صدای فارسی مینا انجام نشد؛ نصب موتور گفتار فارسی رو بررسی کن.");
-            }
-        });
     }
 
     private void installMinaPersianVoice() {
@@ -688,8 +769,13 @@ public class MainActivity extends Activity {
     }
 
     private class AppBridge {
-        @JavascriptInterface public void speakMinaPersian(String text) {
-            if (text != null && text.length() <= 12000) MainActivity.this.speakMinaPersian(text);
+        @JavascriptInterface public void speakMinaPersian(String text, String voiceName, float pitch, float rate) {
+            if (text != null && text.length() <= 12000)
+                MainActivity.this.speakMinaPersian(text, voiceName, pitch, rate);
+        }
+
+        @JavascriptInterface public void refreshMinaVoices() {
+            MainActivity.this.refreshMinaVoices();
         }
 
         @JavascriptInterface public void installMinaPersianVoice() {
