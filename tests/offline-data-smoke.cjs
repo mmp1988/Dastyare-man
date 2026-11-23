@@ -73,7 +73,7 @@ const assert = require('assert');
         naturalTomorrow.time === '16:00' &&
         naturalTomorrow.service.includes('لیفت مژه') &&
         naturalTomorrow.clientNameMissing === true &&
-        /با موفقیت ثبت شد/.test(naturalTomorrowReply);
+        /نوبتت ثبت شد/.test(naturalTomorrowReply);
       appData.appointments = [];
       minaPendingBooking = null;
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
