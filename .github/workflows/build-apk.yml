@@ -2,192 +2,111 @@ name: Build and Release Signed APK
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
     paths:
+      - 'index.html'
+      - 'manifest.json'
+      - 'icon-192.png'
+      - 'icon-512.png'
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
       - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        id: java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          node-version: '20'
+          gradle-version: '8.9'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
 
-      - name: Install Android SDK packages
+      - name: Install Android platform and build tools
         run: |
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
-      - name: Verify Android SDK
+      - name: Prepare app assets and existing launcher icon
         run: |
-          set -e
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          test -n "$ANDROID_HOME"
-          test -x "$ANDROID_HOME/platform-tools/adb"
-          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
-          test -x "$ANDROID_HOME/build-tools/35.0.0/zipalign"
-          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          mkdir -p app/src/main/assets app/src/main/res/drawable
+          cp index.html app/src/main/assets/index.html
+          cp manifest.json app/src/main/assets/manifest.json
+          cp icon-192.png app/src/main/assets/icon-192.png
+          cp icon-512.png app/src/main/assets/icon-512.png
+          cp icon-512.png app/src/main/res/drawable/ic_launcher.png
 
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
-      - name: Initialize & Build Signed APK
+      - name: Configure persistent signing key
         env:
-          JAVA_HOME: ${{ steps.java.outputs.path }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "SIGNING_READY=false" >> "$GITHUB_ENV"
+            echo "::warning::Signing secrets are not configured. An unsigned test APK will be uploaded only."
+          else
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/dastyare-release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/dastyare-release.jks" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "SIGNING_READY=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build Android APK
         run: |
           set -e
-          KEYSTORE_PASSWORD="$(openssl rand -hex 24)"
-          export BUBBLEWRAP_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
-          export BUBBLEWRAP_KEY_PASSWORD="$KEYSTORE_PASSWORD"
-          export ANDROID_SDK_ROOT="$ANDROID_HOME"
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
-          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
-
-          # Bubblewrap expects the legacy tools/bin + tools/cli SDK layout.
-          mkdir -p "$ANDROID_HOME/tools"
-          ln -sfn "$ANDROID_HOME/cmdline-tools/latest/bin" "$ANDROID_HOME/tools/bin"
-          ln -sfn "$ANDROID_HOME/cmdline-tools/latest" "$ANDROID_HOME/tools/cli"
-          test -x "$ANDROID_HOME/tools/bin/sdkmanager"
-
-          mkdir -p "$HOME/.bubblewrap" android-build
-
-          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' \
-            "$JAVA_HOME" \
-            "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
-
-          cat "$HOME/.bubblewrap/config.json"
-
-          cd android-build
-
-          MANIFEST_URL="https://mmp1988.github.io/Dastyare-man/manifest.json"
-          echo "دریافت $MANIFEST_URL ..."
-          curl -fsSL "$MANIFEST_URL" -o web-manifest.json
-
-          node -e '
-            const fs = require("fs");
-            const webManifest = JSON.parse(fs.readFileSync("web-manifest.json", "utf8"));
-            const startUrl = new URL(webManifest.start_url || "/Dastyare-man/", "https://mmp1988.github.io/Dastyare-man/").pathname;
-            const iconRel = (webManifest.icons && webManifest.icons[0] && webManifest.icons[0].src) || "icon-512.png";
-            const iconUrl = new URL(iconRel, "https://mmp1988.github.io/Dastyare-man/").href;
-
-            const twaManifest = {
-              packageId: "app.github.mmp1988.dastyareman",
-              host: "mmp1988.github.io",
-              name: webManifest.name || "دستیار من",
-              launcherName: webManifest.short_name || "دستیار من",
-              display: webManifest.display || "standalone",
-              orientation: webManifest.orientation || "portrait",
-              themeColor: webManifest.theme_color || "#1a73e8",
-              themeColorDark: webManifest.theme_color || "#1a73e8",
-              navigationColor: webManifest.background_color || "#ffffff",
-              navigationColorDark: webManifest.background_color || "#121212",
-              navigationDividerColor: "#00000000",
-              navigationDividerColorDark: "#00000000",
-              backgroundColor: webManifest.background_color || "#ffffff",
-              enableNotifications: true,
-              startUrl: startUrl,
-              iconUrl: iconUrl,
-              maskableIconUrl: iconUrl,
-              splashScreenFadeOutDuration: 300,
-              signingKey: {
-                path: "./release.keystore",
-                alias: "dastyare"
-              },
-              appVersion: "1.0." + (process.env.GITHUB_RUN_NUMBER || "1"),
-              appVersionCode: Number(process.env.GITHUB_RUN_NUMBER || 1),
-              shortcuts: [],
-              generatorApp: "bubblewrap-cli",
-              webManifestUrl: "https://mmp1988.github.io/Dastyare-man/manifest.json",
-              fallbackType: "customtabs",
-              features: {},
-              alphaDependencies: {
-                enabled: false
-              },
-              enableSiteSettingsShortcut: true,
-              isChromeOSOnly: false,
-              isMetaQuest: false,
-              fullScopeUrl: "https://mmp1988.github.io/Dastyare-man/",
-              minSdkVersion: 21,
-              jdkPath: process.env.JAVA_HOME,
-              androidSdkPath: process.env.ANDROID_HOME
-            };
-
-            fs.writeFileSync("twa-manifest.json", JSON.stringify(twaManifest, null, 2));
-          '
-
-          keytool -genkeypair -v \
-            -keystore release.keystore \
-            -alias dastyare \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -keypass "$KEYSTORE_PASSWORD" \
-            -dname "CN=Mina-Msvm, OU=Dastyare-man, O=Dastyare-man, L=Tehran, S=Tehran, C=IR"
-
-          bubblewrap update --skipVersionUpgrade
-          bubblewrap build --skipPwaValidation
-
-          APK=$(find . -type f -name "app-release-signed.apk" | head -n 1)
-
-          if [ -z "$APK" ]; then
-            APK=$(find . -type f -name "*.apk" ! -name "aligned.apk" | head -n 1)
-          fi
-
-          if [ -z "$APK" ]; then
-            echo "خطا: فایل APK ساخته نشد"
-            find . -name "*.apk"
-            exit 1
-          fi
-
-          if [[ "$APK" == *"unsigned"* ]]; then
-            BUILD_TOOLS=$(ls -d "$ANDROID_HOME/build-tools"/* | sort -V | tail -n 1)
-            "$BUILD_TOOLS/zipalign" -p -f 4 "$APK" aligned.apk
-            "$BUILD_TOOLS/apksigner" sign \
-              --ks release.keystore \
-              --ks-key-pass "pass:$KEYSTORE_PASSWORD" \
-              --ks-pass "pass:$KEYSTORE_PASSWORD" \
-              --out ../Dastyare-man.apk \
-              aligned.apk
+          gradle --no-daemon clean assembleRelease --stacktrace
+          mkdir -p output
+          APK_SOURCE="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)"
+          test -n "$APK_SOURCE"
+          cp "$APK_SOURCE" output/Dastyare-man.apk
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$BUILD_TOOLS/zipalign" -c -v 4 output/Dastyare-man.apk
+          if [ "$SIGNING_READY" = "true" ]; then
+            "$BUILD_TOOLS/apksigner" verify --verbose --print-certs output/Dastyare-man.apk
           else
-            cp "$APK" ../Dastyare-man.apk
+            echo "Unsigned APK generated for validation only."
           fi
 
-          BUILD_TOOLS=$(ls -d "$ANDROID_HOME/build-tools"/* | sort -V | tail -n 1)
-          "$BUILD_TOOLS/zipalign" -c -v 4 ../Dastyare-man.apk
-          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs ../Dastyare-man.apk
-          ls -lh ../Dastyare-man.apk
+      - name: Upload test APK
+        if: env.SIGNING_READY != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dastyare-man-unsigned-validation
+          path: output/Dastyare-man.apk
+          retention-days: 3
 
-      - name: Publish Latest GitHub Release with Dastyare-man.apk
+      - name: Publish latest signed APK (stable URL)
+        if: env.SIGNING_READY == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Dastyare-man Latest APK"
-          body: "نسخه امضاشده و آماده نصب اپلیکیشن دستیار من (به‌روزرسانی خودکار)"
-          files: Dastyare-man.apk
+          name: Dastyare-man Latest APK
+          body: "نسخه مستقل اندروید دستیار من؛ آیکون اصلی سایت و داده‌های خصوصی هر گوشی."
+          files: output/Dastyare-man.apk
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
