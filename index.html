@@ -4587,12 +4587,11 @@
         let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
         // Parse Jalali dates (1405/09/03 or 3 آذر 1405), and Gregorian numeric dates.
-        const numericDate = t.match(/(?:در تاریخ|تاریخ)?\s*(\d{4})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{1,2})/) ||
-          t.match(/(?:در تاریخ|تاریخ)?\s*(\d{1,2})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{4})/);
+        const numericDate = t.match(/(?:در تاریخ|تاریخ)?\s*(?:(\d{4})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{1,2})|(\d{1,2})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{4}))/);
         if (numericDate) {
           let y, m, d;
-          if (numericDate[1].length === 4) { y=Number(numericDate[1]); m=Number(numericDate[2]); d=Number(numericDate[3]); }
-          else { d=Number(numericDate[1]); m=Number(numericDate[2]); y=Number(numericDate[3]); }
+          if (numericDate[1]) { y=Number(numericDate[1]); m=Number(numericDate[2]); d=Number(numericDate[3]); }
+          else { d=Number(numericDate[4]); m=Number(numericDate[5]); y=Number(numericDate[6]); }
           if (y >= 1300 && y <= 1600) {
             if (m<1 || m>12 || d<1 || d>jalaliMonthDays(y,m)) return 'تاریخی که گفتی معتبر نیست عزیزم؛ روز و ماه و سال رو دوباره بررسی کن 💗';
             dateKey = y + '-' + pad2(m) + '-' + pad2(d);
