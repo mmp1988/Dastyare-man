@@ -2158,9 +2158,8 @@
               }
             } else {
               appData.appointments = parsed.appointments;
-              if (localStorage.getItem('dastyare_man_appointments_v1') === null) {
-                localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments));
-              }
+              // Refresh the recovery copy from the authoritative record on every load.
+              localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments));
             }
           } catch (e) {}
           // One-time visual refresh: migrate the legacy dark/gold default to Mina's pastel identity.
