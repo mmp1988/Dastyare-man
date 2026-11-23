@@ -202,6 +202,66 @@
     .tab-section.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
+    /* Customer profile: clear, evenly spaced Jalali date picker */
+    #clientJalaliPicker { direction: rtl; width: 100%; box-sizing: border-box; }
+    #clientJalaliPicker .client-picker-weekdays,
+    #clientJalaliPicker .client-picker-days {
+      display: grid !important;
+      grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+      gap: 5px !important;
+      width: 100% !important;
+      direction: rtl;
+      align-items: stretch;
+    }
+    #clientJalaliPicker .client-picker-weekdays {
+      margin: 2px 0 7px;
+      text-align: center;
+      font-size: clamp(0.56rem, 2.6vw, 0.72rem);
+      line-height: 1.5;
+      font-weight: 800;
+    }
+    #clientJalaliPicker .client-picker-weekdays div {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+    }
+    #clientJalaliPicker .client-picker-days .day-cell {
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 0;
+      min-height: 42px;
+      height: 42px;
+      padding: 0;
+      margin: 0;
+      aspect-ratio: auto;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+      font-size: 0.9rem;
+      line-height: 1;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #clientJalaliPicker .client-picker-days .day-cell.empty {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #clientJalaliPicker .client-picker-days .day-num {
+      display: block;
+      font-size: 0.88rem;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+    @media (max-width: 380px) {
+      #clientJalaliPicker .client-picker-weekdays,
+      #clientJalaliPicker .client-picker-days { gap: 3px !important; }
+      #clientJalaliPicker .client-picker-weekdays { font-size: 0.53rem; }
+      #clientJalaliPicker .client-picker-days .day-cell { min-height: 37px; height: 37px; }
+    }
+
     /* Official Holidays */
     .day-cell.holiday-day .day-num { color: var(--danger); font-weight: 900; }
     .holiday-dot {
@@ -1202,8 +1262,8 @@
                 <strong id="clientJalaliPickerTitle"></strong>
                 <button type="button" class="btn-pill" onclick="changeClientJalaliPickerMonth(1)">ماه بعد</button>
               </div>
-              <div class="weekdays-row"><div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div></div>
-              <div id="clientJalaliPickerGrid" class="days-grid"></div>
+              <div class="weekdays-row client-picker-weekdays"><div>شنبه</div><div>یکشنبه</div><div>دوشنبه</div><div>سه‌شنبه</div><div>چهارشنبه</div><div>پنجشنبه</div><div>جمعه</div></div>
+              <div id="clientJalaliPickerGrid" class="days-grid client-picker-days"></div>
               <button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="selectClientJalaliToday()">امروز</button>
             </div>
           </div>
