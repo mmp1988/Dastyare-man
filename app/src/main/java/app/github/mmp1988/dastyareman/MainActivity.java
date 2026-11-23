@@ -363,22 +363,17 @@ public class MainActivity extends Activity {
     }
 
     private void startNativeSpeechOnUi(String targetInputId, String buttonId) {
-        if (android.os.Build.VERSION.SDK_INT < 31) {
-            notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("تشخیص گفتار آفلاین در نسخه اندروید این گوشی پشتیبانی نمی‌شود؛ لطفاً تایپ کنید.");
-            return;
-        }
-        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
-            notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("موتور گفتار آفلاین روی این گوشی موجود نیست؛ لطفاً متن را تایپ کنید.");
-            return;
-        }
+        boolean offlineAvailable = android.os.Build.VERSION.SDK_INT >= 31
+                && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
+        startSpeechRecognition(targetInputId, buttonId, offlineAvailable);
+    }
+
+    private void startSpeechRecognition(String targetInputId, String buttonId, boolean useOfflineEngine) {
         try {
-            if (nativeSpeechRecognizer != null) {
-                nativeSpeechRecognizer.destroy();
-                nativeSpeechRecognizer = null;
-            }
-            nativeSpeechRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+            releaseNativeSpeechRecognizer();
+            nativeSpeechRecognizer = useOfflineEngine
+                    ? SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+                    : SpeechRecognizer.createSpeechRecognizer(this);
             nativeSpeechRecognizer.setRecognitionListener(new RecognitionListener() {
                 @Override public void onReadyForSpeech(Bundle params) { }
                 @Override public void onBeginningOfSpeech() { }
@@ -386,13 +381,19 @@ public class MainActivity extends Activity {
                 @Override public void onBufferReceived(byte[] buffer) { }
                 @Override public void onEndOfSpeech() { }
                 @Override public void onError(int error) {
+                    releaseNativeSpeechRecognizer();
+                    // If the offline engine exists but has no Persian model, retry once
+                    // with Android's normal speech service (which may use the internet).
+                    if (useOfflineEngine) {
+                        startSpeechRecognition(targetInputId, buttonId, false);
+                        return;
+                    }
                     notifyVoiceButton(buttonId, false);
                     String message = (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
                             || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
-                            ? "بسته زبان فارسی آفلاین روی گوشی موجود نیست؛ لطفاً تایپ کنید."
-                            : "تشخیص گفتار آفلاین انجام نشد؛ لطفاً دوباره تلاش کنید یا تایپ کنید.";
+                            ? "زبان فارسی در سرویس گفتار گوشی در دسترس نیست؛ زبان فارسی را در تنظیمات سرویس گفتار فعال یا دانلود کنید."
+                            : "تشخیص گفتار انجام نشد؛ اتصال اینترنت و سرویس گفتار گوشی را بررسی کنید یا متن را تایپ کنید.";
                     notifyVoiceMessage(message);
-                    releaseNativeSpeechRecognizer();
                 }
                 @Override public void onResults(Bundle results) {
                     ArrayList<String> matches = results == null ? null
@@ -405,6 +406,8 @@ public class MainActivity extends Activity {
                     } else {
                         notifyVoiceMessage("صدایی تشخیص داده نشد؛ می‌توانید متن را تایپ کنید.");
                     }
+                    notifyVoiceButton(buttonId, false);
+                    releaseNativeSpeechRecognizer();
                 }
                 @Override public void onPartialResults(Bundle partialResults) { }
                 @Override public void onEvent(int eventType, Bundle params) { }
@@ -414,13 +417,17 @@ public class MainActivity extends Activity {
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR");
             intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, useOfflineEngine);
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
             nativeSpeechRecognizer.startListening(intent);
         } catch (Exception e) {
-            notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("تشخیص گفتار آفلاین در این گوشی فعال نشد؛ لطفاً تایپ کنید.");
             releaseNativeSpeechRecognizer();
+            if (useOfflineEngine) {
+                startSpeechRecognition(targetInputId, buttonId, false);
+            } else {
+                notifyVoiceButton(buttonId, false);
+                notifyVoiceMessage("سرویس گفتار گوشی فعال نشد؛ سرویس تشخیص گفتار را بررسی کنید یا متن را تایپ کنید.");
+            }
         }
     }
 
