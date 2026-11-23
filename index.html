@@ -4830,7 +4830,8 @@
         }
         const serviceHints = ['لیفت ابرو','لیفت مژه','کاشت مژه','کاشت ناخن','کوتاهی مو','رنگ مو'];
         const delService = serviceHints.find(x => normalized.includes(x));
-        const delName = nameFrom(/(?:برای|مشتری)\s+(.+?)(?=\s+(?:فردا|امروز|پس\s*فردا|ساعت|نوبت|وقت|رزرو|از\s*تقویم)|$)/);
+        let delName = nameFrom(/(?:برای|مشتری)\s+(.+?)(?=\s+(?:فردا|امروز|پس\s*فردا|ساعت|نوبت|وقت|رزرو|از\s*تقویم)|$)/);
+        if (delName && /^(?:امروز|فردا|پس\s*فردا|صبح|ظهر|عصر|شب)$/u.test(delName)) delName = null;
         let candidates = (appData.appointments || []).filter(a => a.status !== 'canceled');
         if (delDate) candidates = candidates.filter(a => a.dateKey === delDate);
         if (delTime) candidates = candidates.filter(a => a.time === delTime);
