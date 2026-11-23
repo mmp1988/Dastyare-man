@@ -76,15 +76,37 @@ const assert = require('assert');
         /نوبتت ثبت شد/.test(naturalTomorrowReply);
       appData.appointments = [];
       minaPendingBooking = null;
+      appData.appointments = [];
+      minaConversationBooking = null;
+      const spokenTimeReply = minaBuildReply('برای فردا پنج و نیم بعد از ظهر نوبت لیفت ابرو را ثبت کن');
+      const spokenTimeAppt = appData.appointments[0];
+      const spokenTimeOk = !!spokenTimeAppt && spokenTimeAppt.time === '17:30' &&
+        spokenTimeAppt.service.includes('لیفت ابرو') && minaIsAssistantAppointment(spokenTimeAppt);
+      appData.appointments = [];
+      minaConversationBooking = null;
+      const firstTurnReply = minaBuildReply('برای فردا نوبت لیفت ابرو ثبت کن');
+      const followupReply = minaBuildReply('برای ساعت پنج و نیم بعد از ظهر');
+      const followupAppt = appData.appointments[0];
+      const conversationalFollowupOk = /ساعت/.test(firstTurnReply) && !!followupAppt &&
+        followupAppt.time === '17:30' && followupAppt.service.includes('لیفت ابرو') &&
+        followupAppt.createdBy === 'mina';
+      selectedDateKey = followupAppt ? followupAppt.dateKey : getTodayKey();
+      renderDaySchedule();
+      const calendarSourceLabelOk = document.getElementById('dayAppointmentsBody').innerHTML.includes('ثبت با مینا');
+      appData.appointments = [];
+      minaConversationBooking = null;
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
-        /ساعت/.test(missingTimeReply);
-      return { noNameOk, namedOk, naturalTomorrowOk, naturalTomorrowReply, naturalTomorrowDateKey: naturalTomorrow?.dateKey, todayKey: getTodayKey(), naturalTomorrowClientNameMissing: naturalTomorrow?.clientNameMissing, naturalTomorrowService: naturalTomorrow?.service, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+        /ساعت/.test(missingTimeReply) && !!minaConversationBooking;
+      return { noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
     assert(minaBookingResult.naturalTomorrowOk, 'Mina must understand “انجام بده” and save tomorrow 4 PM lash-lift booking without a client name');
+    assert(minaBookingResult.spokenTimeOk, 'Mina must parse Persian spoken half-hour times and tag the appointment as assistant-created');
+    assert(minaBookingResult.conversationalFollowupOk, 'Mina must carry booking context into a time-only follow-up turn');
+    assert(minaBookingResult.calendarSourceLabelOk, 'Calendar day schedule must visibly label Mina-created appointments');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
 
     // Voice-to-Mina integration: verify the APK bridge handoff and the complete
