@@ -1092,7 +1092,7 @@
       <div id="clientProfileFullPhotoPanel" style="display:none;margin:8px 0 12px;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
         <div style="font-weight:800;font-size:.78rem;margin-bottom:7px;">نمای کامل عکس مشتری</div>
         <div style="overflow:auto;max-height:340px;text-align:center;"><img id="clientProfileFullPhoto" alt="عکس کامل مشتری" style="width:100%;height:auto;max-height:320px;object-fit:contain;transform:scale(1);transform-origin:center center;" /></div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.75rem;margin-top:8px;">بزرگ‌نمایی عکس <input id="clientProfilePhotoZoom" type="range" min="80" max="180" value="100" style="flex:1;" oninput="setClientProfilePhotoZoom(this.value)" /></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.75rem;margin-top:8px;">بزرگ‌نمایی عکس <input id="clientProfilePhotoZoom" type="range" min="80" max="180" value="100" style="flex:1;" oninput="setClientProfilePhotoZoom(this.value)" onchange="saveClientProfilePhotoZoom(this.value)" /></label>
       </div>
       <div class="form-group">
         <label>نکات مهم و یادداشت همیشگی مشتری (اختیاری)</label>
@@ -2684,7 +2684,10 @@
       const p=key?getClientProfile(key):null;
       const img=document.getElementById('clientProfileFullPhoto');
       img.style.transform='scale('+(zoom/100)+')';
-      if(p){p.photoZoom=zoom;saveData();}
+      if(p)p.photoZoom=zoom;
+    }
+    function saveClientProfilePhotoZoom(value) {
+      setClientProfilePhotoZoom(value); saveData();
     }
     function getClientWorkFieldDefinitions() {
       if(!appData.settings) appData.settings={};
@@ -2751,7 +2754,7 @@
       const priceValue = document.getElementById('clientWorkPrice').value.trim();
       const price = priceValue === '' ? null : Math.max(0, Number(priceValue) || 0);
       const customValues={};
-      document.querySelectorAll('[data-work-field]').forEach(el=>{if(el.value.trim())customValues[el.dataset.workField]=el.value.trim();});
+      document.querySelectorAll('[data-work-field]').forEach(el=>{if(el.value.trim()){const def=getClientWorkFieldDefinitions().find(f=>f.id===el.dataset.workField);customValues[el.dataset.workField]={label:def?.label||'جزئیات',value:el.value.trim()};}});
       if (!service && !notes && price === null && !date && !time && !Object.keys(customValues).length && !pendingClientWorkPhoto && !pendingClientBeforePhoto && !pendingClientAfterPhoto) {
         showToast('حداقل یک مورد مثل خدمت، توضیح، قیمت یا عکس اضافه کن.');
         return;
@@ -2814,7 +2817,7 @@
             </div>` : (item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''))}
           ${item.checklist && item.checklist.length ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;">☑ ${item.checklist.map(escapeClientText).join(' • ')}</div>` : ''}
           ${item.price != null && item.price !== '' ? `<div style="font-size:.78rem;color:var(--accent);margin-top:6px;">💰 مبلغ: ${formatMoney(item.price)} تومان</div>` : ''}
-          ${item.customValues ? Object.entries(item.customValues).filter(([k,v])=>v).map(([k,v])=>`<div style="font-size:.76rem;line-height:1.8;margin-top:4px;"><strong>${escapeClientText(workFieldLabels[k]||'جزئیات')}:</strong> ${escapeClientText(v)}</div>`).join('') : ''}
+          ${item.customValues ? Object.entries(item.customValues).filter(([k,v])=>v && (typeof v==='string'?v:v.value)).map(([k,v])=>`<div style="font-size:.76rem;line-height:1.8;margin-top:4px;"><strong>${escapeClientText((v&&v.label)||workFieldLabels[k]||'جزئیات')}:</strong> ${escapeClientText(typeof v==='string'?v:v.value)}</div>`).join('') : ''}
           ${item.createdAt ? `<small style="display:block;color:var(--text-secondary);margin-top:5px;">ثبت در برنامه: ${formatClientTimestamp(item.createdAt)}</small>` : ''}
           ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
           <button class="mini-btn wa" style="margin-top:8px;" onclick="shareClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">📤 ارسال این سابقه</button>
@@ -2857,7 +2860,7 @@
           if(checked('shareClientPrices') && item.price!=null && item.price!=='') lines.push('مبلغ: '+formatMoney(item.price)+' تومان');
           if(item.notes) lines.push('توضیحات: '+item.notes);
           if(item.checklist && item.checklist.length) lines.push('خدمات: '+item.checklist.join('، '));
-          if(checked('shareClientWorkCustom') && item.customValues) Object.entries(item.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))lines.push((field?.label||'جزئیات')+': '+value);});
+          if(checked('shareClientWorkCustom') && item.customValues) Object.entries(item.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))lines.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
         }
       } else if (checked('shareClientHistory')) {
         const done = appointments.filter(a=>a.status==='done').map(a=>({...a,source:'appointment'}));
@@ -2871,7 +2874,7 @@
             if(a.time) parts.push(a.time);
             if(checked('shareClientPrices') && a.price!=null && a.price!=='') parts.push('مبلغ: '+formatMoney(a.price)+' تومان');
             if(a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
-            if(checked('shareClientWorkCustom') && a.customValues) Object.entries(a.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))parts.push((field?.label||'جزئیات')+': '+value);});
+            if(checked('shareClientWorkCustom') && a.customValues) Object.entries(a.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))parts.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
             if(a.notes) parts.push(a.notes);
             lines.push(parts.join(' | '));
           });
@@ -2893,14 +2896,46 @@
       }
       await shareClientPayload(buildClientShareText(key),refs,'پرونده مشتری');
     }
+    async function createClientBeforeAfterImage(item) {
+      if(!item.beforePhotoRef||!item.afterPhotoRef||!window.document.createElement('canvas').toBlob)return null;
+      const load=async ref=>{
+        const blob=String(ref).startsWith('data:')?await (await fetch(ref)).blob():await getClientPhotoBlob(ref);
+        if(!blob)return null;
+        const url=URL.createObjectURL(blob);
+        try { const img=new Image(); img.src=url; await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;}); return img; }
+        finally { /* URL remains valid until the image is drawn below */ }
+      };
+      try {
+        const before=await load(item.beforePhotoRef),after=await load(item.afterPhotoRef);
+        if(!before||!after)return null;
+        const canvas=document.createElement('canvas');canvas.width=1600;canvas.height=900;
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,1600,900);
+        const draw=(img,x)=>{const maxW=800,maxH=900,scale=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);const w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,x+(maxW-w)/2,(maxH-h)/2,w,h);};
+        draw(before,0);draw(after,800);
+        ctx.fillStyle='#111111';ctx.fillRect(796,0,8,900);
+        ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(22,22,190,56);ctx.fillRect(1388,22,190,56);
+        ctx.fillStyle='#ffffff';ctx.font='bold 30px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('BEFORE / قبل',117,50);ctx.fillText('AFTER / بعد',1483,50);
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.94));
+        return blob?new File([blob],'before-after.jpg',{type:'image/jpeg'}):null;
+      } catch(e){return null;}
+    }
     async function shareClientHistoryItem(encodedKey, encodedId, source) {
       const key = decodeURIComponent(encodedKey), id = decodeURIComponent(encodedId), p = getClientProfile(key);
       const item = source === 'appointment'
         ? appData.appointments.find(a => a.id === id)
         : (p.records || []).find(a => a.id === id);
       if (!item) return;
-      const photos=document.getElementById('shareClientPhotos')?.checked===false?[]:[item.beforePhotoRef,item.afterPhotoRef,item.photoRef,item.photo,p.photoRef,p.photo].filter(Boolean);
-      await shareClientPayload(buildClientShareText(key,{...item,source}), photos, 'سابقه مشتری');
+      const photos=[];
+      if(document.getElementById('shareClientPhotos')?.checked!==false) {
+        if(item.beforePhotoRef&&item.afterPhotoRef) {
+          const composite=await createClientBeforeAfterImage(item);
+          if(composite)photos.push(composite);
+          else photos.push(item.beforePhotoRef,item.afterPhotoRef);
+        } else photos.push(item.beforePhotoRef,item.afterPhotoRef);
+        photos.push(item.photoRef,item.photo,p.photoRef,p.photo);
+      }
+      await shareClientPayload(buildClientShareText(key,{...item,source}), photos.filter(Boolean), 'سابقه مشتری');
     }
     async function shareClientPayload(text, photoData, title) {
       try {
@@ -2908,7 +2943,8 @@
         const files=[];
         for(let index=0;index<refs.length;index++){
           const ref=refs[index]; let blob=null;
-          if(ref && !String(ref).startsWith('data:')) blob=await getClientPhotoBlob(ref);
+          if(ref instanceof Blob) blob=ref;
+          else if(ref && !String(ref).startsWith('data:')) blob=await getClientPhotoBlob(ref);
           if(ref && !blob && String(ref).startsWith('data:')){
             const parts=ref.split(','),mime=(parts[0].match(/:(.*?);/)||[,'image/jpeg'])[1];
             const binary=atob(parts[1]),bytes=new Uint8Array(binary.length);
