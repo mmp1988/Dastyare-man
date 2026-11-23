@@ -2488,7 +2488,8 @@
       img.src = p.photo || '';
       img.style.display = p.photo ? 'block' : 'none';
       document.getElementById('clientProfilePhotoEmpty').style.display = p.photo ? 'none' : 'grid';
-      document.getElementById('clientWorkDate').value = new Date().toISOString().slice(0,10);
+      const iranNow = getIranNow();
+      document.getElementById('clientWorkDate').value = iranNow.getFullYear()+'-'+pad2(iranNow.getMonth()+1)+'-'+pad2(iranNow.getDate());
       document.getElementById('clientWorkTime').value = getIranNow().toTimeString().slice(0,5);
       document.getElementById('clientWorkService').value = '';
       document.getElementById('clientWorkNotes').value = '';
@@ -2499,6 +2500,7 @@
       document.getElementById('clientNextDate').value = future ? jalaliKeyToGregorianInput(future.dateKey) : '';
       document.getElementById('clientNextTime').value = future ? (future.time || '10:00') : '10:00';
       document.getElementById('clientNextService').value = future ? (future.service || '') : '';
+      document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت‌شده: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '') : 'هنوز نوبت بعدی ثبت نشده است.';
       renderClientHistory(key);
       document.getElementById('clientProfileModal').classList.add('open');
     }
@@ -2584,7 +2586,7 @@
         <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;">
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
             <strong style="font-size:.84rem;">${escapeClientText(item.service)}</strong>
-            <small style="color:var(--accent);white-space:nowrap;">${toPersianDigits(item.dateKey)} • ${toPersianDigits(item.time || '—')}</small>
+            <small style="color:var(--accent);white-space:nowrap;"> ${formatJalaliFull(item.dateKey)} • ${toPersianDigits(item.time || '—')}</small>
           </div>
           ${item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:190px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''}
           ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
