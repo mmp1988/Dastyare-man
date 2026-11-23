@@ -412,10 +412,17 @@ public class MainActivity extends Activity {
                         return;
                     }
                     notifyVoiceButton(buttonId, false);
-                    String message = (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
-                            || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
-                            ? "زبان فارسی در سرویس گفتار گوشی در دسترس نیست؛ زبان فارسی را در تنظیمات سرویس گفتار فعال یا دانلود کنید."
-                            : "تشخیص گفتار انجام نشد؛ اتصال اینترنت و سرویس گفتار گوشی را بررسی کنید یا متن را تایپ کنید.";
+                    String message;
+                    if (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+                            || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE) {
+                        message = hasValidatedInternetConnection()
+                                ? "سرویس گفتار فعلی گوشی از تشخیص فارسی پشتیبانی نکرد؛ اینترنت وصل است، اما باید سرویس گفتار فارسی‌پشتیبان (مانند Google Speech Services) فعال و به‌روز باشد."
+                                : "زبان فارسی برای تشخیص آفلاین در گوشی نصب نیست؛ برای استفاده آفلاین باید بسته فارسیِ سرویس گفتار را نصب کنید یا از تشخیص آنلاین استفاده کنید.";
+                    } else if (error == SpeechRecognizer.ERROR_NETWORK) {
+                        message = "ارتباط با سرویس تشخیص گفتار برقرار نشد؛ اینترنت یا دسترسی سرویس گفتار را بررسی کنید.";
+                    } else {
+                        message = "تشخیص گفتار انجام نشد؛ سرویس گفتار گوشی و اتصال اینترنت را بررسی کنید یا متن را تایپ کنید.";
+                    }
                     notifyVoiceMessage(message);
                 }
                 @Override public void onResults(Bundle results) {
@@ -533,11 +540,8 @@ public class MainActivity extends Activity {
                     notifyVoiceMessage("فیلد انتخاب‌شده معتبر نیست.");
                     return;
                 }
-                if (android.os.Build.VERSION.SDK_INT < 31) {
-                    notifyVoiceButton(buttonId, false);
-                    notifyVoiceMessage("تشخیص گفتار آفلاین در این نسخه اندروید پشتیبانی نمی‌شود؛ لطفاً تایپ کنید.");
-                    return;
-                }
+                // Online recognition works on older Android versions too.
+                // Offline availability is checked separately in startNativeSpeechOnUi().
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                     pendingNativeSpeechTarget = targetInputId;
                     pendingNativeSpeechButton = buttonId;
