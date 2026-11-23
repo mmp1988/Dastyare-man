@@ -1191,8 +1191,21 @@
         <div class="form-grid">
           <div class="form-group">
             <label>تاریخ شمسی نوبت</label>
-            <input type="text" id="clientNextDate" class="form-control" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۹/۰۲" dir="ltr" />
-            <small style="color:var(--text-secondary);">تاریخ را به شمسی وارد کن؛ نمونه: ۱۴۰۵/۰۹/۰۲</small>
+            <div style="display:flex;gap:7px;align-items:center;">
+              <input type="text" id="clientNextDate" class="form-control" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۹/۰۲" dir="ltr" style="flex:1;" />
+              <button type="button" class="btn-secondary" onclick="toggleClientJalaliPicker()" style="white-space:nowrap;">📅 تقویم شمسی</button>
+            </div>
+            <small style="color:var(--text-secondary);">تاریخ را انتخاب کن یا خودت به شمسی تایپ کن.</small>
+            <div id="clientJalaliPicker" class="card" style="display:none;margin-top:9px;padding:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
+                <button type="button" class="btn-pill" onclick="changeClientJalaliPickerMonth(-1)">ماه قبل</button>
+                <strong id="clientJalaliPickerTitle"></strong>
+                <button type="button" class="btn-pill" onclick="changeClientJalaliPickerMonth(1)">ماه بعد</button>
+              </div>
+              <div class="weekdays-row"><div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div></div>
+              <div id="clientJalaliPickerGrid" class="days-grid"></div>
+              <button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="selectClientJalaliToday()">امروز</button>
+            </div>
           </div>
           <div class="form-group">
             <label>ساعت نوبت</label>
@@ -2634,6 +2647,58 @@
       const g = jalaliToGregorian(p[0], p[1], p[2]);
       return g[0] + '-' + pad2(g[1]) + '-' + pad2(g[2]);
     }
+    let clientPickerYear = 0, clientPickerMonth = 0;
+    function toggleClientJalaliPicker() {
+      const panel = document.getElementById('clientJalaliPicker');
+      const opening = panel.style.display === 'none';
+      panel.style.display = opening ? 'block' : 'none';
+      if (opening) {
+        const typed = parseClientJalaliDate(document.getElementById('clientNextDate').value);
+        const base = typed || getTodayKey();
+        [clientPickerYear, clientPickerMonth] = base.split('-').map(Number);
+        renderClientJalaliPicker();
+      }
+    }
+    function changeClientJalaliPickerMonth(delta) {
+      clientPickerMonth += delta;
+      if (clientPickerMonth > 12) { clientPickerMonth = 1; clientPickerYear++; }
+      if (clientPickerMonth < 1) { clientPickerMonth = 12; clientPickerYear--; }
+      renderClientJalaliPicker();
+    }
+    function selectClientJalaliDate(dateKey) {
+      document.getElementById('clientNextDate').value = toPersianDigits(dateKey.replace(/-/g, '/'));
+      document.getElementById('clientJalaliPicker').style.display = 'none';
+    }
+    function selectClientJalaliToday() {
+      const today = getTodayKey();
+      const [y,m] = today.split('-').map(Number);
+      clientPickerYear = y; clientPickerMonth = m;
+      selectClientJalaliDate(today);
+    }
+    function renderClientJalaliPicker() {
+      const title = document.getElementById('clientJalaliPickerTitle');
+      const grid = document.getElementById('clientJalaliPickerGrid');
+      if (!title || !grid) return;
+      title.textContent = JALALI_MONTHS[clientPickerMonth - 1] + ' ' + toPersianDigits(clientPickerYear);
+      grid.innerHTML = '';
+      const [gy,gm,gd] = jalaliToGregorian(clientPickerYear,clientPickerMonth,1);
+      const offset = (new Date(gy,gm-1,gd).getDay()+1)%7;
+      for(let i=0;i<offset;i++){ const blank=document.createElement('div'); blank.className='day-cell empty'; grid.appendChild(blank); }
+      const today = getTodayKey();
+      const selected = parseClientJalaliDate(document.getElementById('clientNextDate').value);
+      for(let d=1;d<=jalaliMonthDays(clientPickerYear,clientPickerMonth);d++){
+        const key=clientPickerYear+'-'+pad2(clientPickerMonth)+'-'+pad2(d);
+        const cell=document.createElement('div');
+        cell.className='day-cell';
+        if((offset+d-1)%7===6) cell.classList.add('friday');
+        if(key===today) cell.classList.add('today');
+        if(key===selected) cell.classList.add('selected');
+        cell.innerHTML='<span class="day-num">'+toPersianDigits(d)+'</span>';
+        cell.onclick=()=>selectClientJalaliDate(key);
+        grid.appendChild(cell);
+      }
+    }
+
     function parseClientJalaliDate(value) {
       const normalized = String(value || '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
       const match = normalized.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
