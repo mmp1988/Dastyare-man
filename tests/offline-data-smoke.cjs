@@ -76,6 +76,47 @@ const assert = require('assert');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
 
+    // Voice-to-Mina integration: verify the APK bridge handoff and the complete
+    // transcript -> Mina command -> local appointment path in the browser harness.
+    const speechBridgeResult = await page.evaluate(async () => {
+      appData.appointments = [];
+      minaPendingBooking = null;
+      const input = document.getElementById('minaInput');
+      input.value = '';
+      let nativeCall = null;
+      window.AndroidApp = {
+        startOfflineSpeechRecognition: (targetInputId, buttonId) => {
+          nativeCall = { targetInputId, buttonId };
+        }
+      };
+      startVoiceInput('minaInput', 'minaVoiceBtn');
+      const buttonActive = document.getElementById('minaVoiceBtn').classList.contains('recording');
+      window.receiveNativeSpeechResult('minaInput', 'برای پس فردا ۲ بعد از ظهر نوبت کاشت مژه رو ثبت کن');
+      await new Promise(resolve => setTimeout(resolve, 350));
+      const appointment = appData.appointments[0];
+      const result = {
+        bridgeCalled: nativeCall?.targetInputId === 'minaInput' && nativeCall?.buttonId === 'minaVoiceBtn',
+        buttonActive,
+        bookingCreated: !!appointment && appointment.time === '14:00' &&
+          appointment.service.includes('کاشت مژه') && appointment.clientNameMissing === true,
+        inputCleared: input.value === ''
+      };
+      delete window.AndroidApp;
+      return result;
+    });
+    assert(speechBridgeResult.bridgeCalled && speechBridgeResult.buttonActive &&
+      speechBridgeResult.bookingCreated && speechBridgeResult.inputCleared,
+      'Native speech transcript did not flow into Mina and create the requested booking');
+
+    // Static native Android guardrails: validated internet selects Android's normal
+    // recognition service; Persian locale and microphone permission remain configured.
+    const nativeJava = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/MainActivity.java'), 'utf8');
+    assert(nativeJava.includes('NET_CAPABILITY_VALIDATED'), 'Android speech must check validated internet connectivity');
+    assert(nativeJava.includes('SpeechRecognizer.createSpeechRecognizer(this)'), 'Android online speech service is missing');
+    assert(nativeJava.includes('RecognizerIntent.EXTRA_LANGUAGE, "fa-IR"'), 'Android speech locale must remain Persian');
+    assert(nativeJava.includes('startSpeechRecognition(targetInputId, buttonId, !online)'), 'Android must choose online recognition when internet is validated');
+    assert(nativeJava.includes('Manifest.permission.RECORD_AUDIO'), 'Android microphone permission handling is missing');
+
     // CRUD: create, edit and delete an appointment through the app's own form handlers.
     const appointmentResult = await page.evaluate(() => {
       const set = (id, value) => { document.getElementById(id).value = value; };
