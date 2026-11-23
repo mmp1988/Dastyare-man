@@ -899,6 +899,44 @@
       .section-head { gap: 7px; }
       .btn-primary, .btn-secondary { max-width: 100%; }
     }
+    /* Mina pastel visual identity */
+    html[data-theme="light"] {
+      --bg-primary:#fff8fb; --bg-secondary:#fff0f5; --bg-card:rgba(255,255,255,.94);
+      --bg-card-solid:#fffafd; --bg-input:#fff3f7; --border-subtle:rgba(183,117,147,.14);
+      --text-primary:#493744; --text-secondary:#806b7b; --text-muted:#a28c9a;
+      --shadow-lg:0 12px 30px rgba(169,112,143,.10);
+    }
+    html[data-theme="light"] body { background:radial-gradient(ellipse at 8% 0%,#fce8f0 0,transparent 38%),radial-gradient(ellipse at 95% 22%,#f1eaff 0,transparent 34%),var(--bg-primary); }
+    html[data-theme="light"] .app-header, html[data-theme="light"] .bottom-nav { background:rgba(255,250,253,.88); }
+    .nav-inner { grid-template-columns:repeat(6,minmax(0,1fr)); }
+    .mina-hero { text-align:center; padding:22px 16px 18px; background:linear-gradient(145deg,#fff0f6,#f4edff 58%,#fff5eb); border:1px solid #f0d6e2; color:#63465a; overflow:hidden; }
+    .mina-orbit { width:92px;height:92px;margin:0 auto 9px;border-radius:50%;display:grid;place-items:center;position:relative;background:linear-gradient(145deg,#f7c9dc,#e5d8f8);box-shadow:0 10px 28px rgba(191,126,160,.22); }
+    .mina-avatar { width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#fff,#ffe7f0);border:2px solid rgba(255,255,255,.9);font-family:Georgia,serif;font-size:2rem;font-weight:700;color:#bd6f94;box-shadow:inset 0 0 0 1px #eec8d8; }
+    .mina-spark { position:absolute;color:#c17c9d;font-size:1.2rem; }.mina-spark.s1{top:0;right:4px}.mina-spark.s2{bottom:4px;left:0}.mina-spark.s3{top:28px;left:-8px}
+    .mina-brand {font-size:1.65rem;font-weight:900;color:#a9567b}.mina-brand span{font:italic 1rem Georgia,serif;color:#b58ca9;margin-right:5px}
+    .mina-tagline{font-size:.78rem;color:#96758a;margin-top:2px}.mina-welcome{margin:13px auto 0;max-width:420px;padding:10px 13px;border-radius:15px;background:rgba(255,255,255,.68);font-size:.82rem;line-height:1.9}
+    .mina-chat-card{padding:12px;background:rgba(255,255,255,.92)}
+    .mina-chat-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 10px;border-bottom:1px solid #f3e2ea}.mina-chat-head strong{display:block;color:#a9567b;font-size:.92rem}.mina-chat-head small{display:block;color:#987f90;font-size:.68rem;margin-top:3px}
+    .mina-messages{display:flex;flex-direction:column;gap:10px;min-height:180px;max-height:48vh;overflow:auto;padding:13px 2px}
+    .mina-message{display:flex;align-items:flex-end;gap:7px;max-width:94%}.mina-message.user{align-self:flex-start;flex-direction:row-reverse}.mina-message.assistant{align-self:flex-end}
+    .mina-message-avatar{width:27px;height:27px;flex:0 0 27px;border-radius:50%;display:grid;place-items:center;background:#f8dfeb;color:#a9567b;font:700 .85rem Georgia,serif}
+    .mina-bubble{padding:10px 12px;border-radius:16px 16px 5px 16px;background:#fff0f6;color:#60465a;font-size:.82rem;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}
+    .mina-message.user .mina-bubble{background:#f0eafd;color:#5c4d70;border-radius:16px 16px 16px 5px}
+    .mina-compose{border:1px solid #efd8e4;border-radius:17px;padding:8px;background:#fffafd}.mina-compose textarea{border:0!important;background:transparent!important;box-shadow:none!important;min-height:54px}
+    .mina-compose-actions{display:flex;justify-content:space-between;gap:8px;align-items:center}.mina-mic-btn{border:1px solid #e9cbd9;background:#fff0f6;color:#a9567b;border-radius:12px;padding:8px 13px;font-weight:800}
+    .mina-send-btn{padding:8px 16px}.mina-hint{font-size:.67rem;color:#987f90;line-height:1.7;margin:8px 3px 0}
+    .mina-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.mina-suggestions button{border:1px solid #efd8e4;border-radius:13px;background:#fff4f8;color:#80536b;padding:10px 7px;font-size:.75rem;font-weight:700}
+    .mina-personalize-card{border:1px solid #efd8e4;background:linear-gradient(150deg,#fffafd,#fff3f7)}
+    .mina-personal-note{padding:9px 11px;background:#f7edf5;border-radius:12px;color:#866d80;font-size:.72rem;line-height:1.8}
+    html[data-theme="dark"] .mina-hero{background:linear-gradient(145deg,#302432,#29243b 58%,#302820);color:#f7e9f0;border-color:#574254}
+    html[data-theme="dark"] .mina-chat-card{background:var(--bg-card)}
+    html[data-theme="dark"] .mina-bubble{background:#3a2938;color:#f8eaf1}
+    html[data-theme="dark"] .mina-message.user .mina-bubble{background:#302b43;color:#f0e9fa}
+    html[data-theme="dark"] .mina-compose{background:var(--bg-input);border-color:var(--border-color)}
+    html[data-theme="dark"] .mina-compose textarea{color:var(--text-primary)}
+    html[data-theme="dark"] .mina-suggestions button{background:var(--bg-input);color:var(--text-primary);border-color:var(--border-color)}
+    html[data-theme="dark"] .mina-personalize-card{background:var(--bg-card)}
+    @media(max-width:380px){.nav-item{font-size:.59rem}.nav-icon{font-size:1rem}.mina-suggestions{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -933,7 +971,7 @@
       <img src="./icon-512.png" alt="لوگوی دستیار من" id="splashLogoImg" />
     </div>
     <div class="splash-title" id="splashBrandTitle">دستیار من</div>
-    <div class="splash-sub">نوبت‌دهی، یادداشت و حسابداری حرفه‌ای</div>
+    <div class="splash-sub">همراه مهربون تو در دنیای زیبایی</div>
   </div>
 
   <div id="toast"></div>
@@ -945,7 +983,7 @@
         <img src="./icon-192.png" alt="لوگو" class="brand-avatar" id="headerLogoImg" />
         <div>
           <div class="brand-title" id="appBrandTitle">دستیار من</div>
-          <div class="brand-subtitle" id="appBrandSub">مدیریت هوشمند نوبت‌دهی و مالی</div>
+          <div class="brand-subtitle" id="appBrandSub">همراه تو در دنیای زیبایی</div>
         </div>
       </div>
       <div class="header-actions">
@@ -1224,6 +1262,39 @@
       </div>
     </section>
 
+    <!-- ==================== MINA PERSONAL ASSISTANT ==================== -->
+    <section id="tab-mina" class="tab-section">
+      <div class="mina-hero card">
+        <div class="mina-orbit"><div class="mina-avatar">M</div><span class="mina-spark s1">✦</span><span class="mina-spark s2">✧</span><span class="mina-spark s3">♡</span></div>
+        <div class="mina-brand">مینا <span>Mina</span></div>
+        <div class="mina-tagline">همراه مهربون و هوشمند تو 🌷</div>
+        <div class="mina-welcome" id="minaWelcome">سلام عزیزم! من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.</div>
+      </div>
+      <div class="mina-chat-card card">
+        <div class="mina-chat-head"><div><strong>گفت‌وگوی من و مینا</strong><small>با من حرف بزن؛ یادداشت کن، سؤال بپرس، برنامه‌ات رو ببین</small></div><button class="mini-btn" onclick="clearMinaChat()">پاک‌کردن گفتگو</button></div>
+        <div id="minaChatMessages" class="mina-messages" aria-live="polite">
+          <div class="mina-message assistant"><span class="mina-message-avatar">M</span><div class="mina-bubble">من اینجام عزیزم 💗 می‌تونی بگی «مینا امروز چیکار دارم؟» یا «مینا یادداشت کن که...»</div></div>
+        </div>
+        <div class="mina-compose">
+          <textarea id="minaInput" class="form-control" rows="2" placeholder="مثلاً: مینا امروز چیکارایی دارم؟ یا اینو یادداشت کن..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMinaMessage();}"></textarea>
+          <div class="mina-compose-actions">
+            <button type="button" class="mina-mic-btn" id="minaVoiceBtn" onclick="startVoiceInput('minaInput','minaVoiceBtn')" title="صحبت با مینا">🎙️ صحبت</button>
+            <button type="button" class="btn-primary mina-send-btn" onclick="sendMinaMessage()">ارسال <span>➤</span></button>
+          </div>
+        </div>
+        <div class="mina-hint">🎧 برای گفت‌وگوی صوتی، دکمه صحبت را بزن. مینا می‌تواند پاسخ‌ها را هم با صدای فارسی بخواند.</div>
+      </div>
+      <div class="card">
+        <div class="section-title">✨ سریع از مینا بپرس</div>
+        <div class="mina-suggestions">
+          <button onclick="askMina('مینا امروز چکارایی داریم؟')">📅 برنامه امروز من</button>
+          <button onclick="askMina('مینا این هفته چقدر درآمد داشتم؟')">💗 درآمد این هفته</button>
+          <button onclick="askMina('مینا مشتری‌های موعد ترمیم رو بگو')">🔔 موعد ترمیم‌ها</button>
+          <button onclick="askMina('مینا یادداشت‌های من رو یادآوری کن')">📝 یادداشت‌هام</button>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== TAB 5: FULL PERSONALIZATION, SHARE & SECURITY ==================== -->
     <section id="tab-settings" class="tab-section">
 
@@ -1288,6 +1359,27 @@
           </div>
         </div>
       </div>
+
+        <div class="card mina-personalize-card">
+          <div class="section-title" style="margin-bottom:10px;">🌷 شخصی‌سازی تجربه مینا</div>
+          <div class="form-group"><label>تم‌های پاستیلی</label>
+            <div class="theme-swatches">
+              <button class="swatch-btn" data-palette="blossom" onclick="setAccentPalette('blossom')"><span class="swatch-circle" style="background:#d77fa2"></span><span>شکوفه‌ای</span></button>
+              <button class="swatch-btn" data-palette="lavender" onclick="setAccentPalette('lavender')"><span class="swatch-circle" style="background:#a78bca"></span><span>یاسی</span></button>
+              <button class="swatch-btn" data-palette="peach" onclick="setAccentPalette('peach')"><span class="swatch-circle" style="background:#e7a17e"></span><span>هلویی</span></button>
+              <button class="swatch-btn" data-palette="mint" onclick="setAccentPalette('mint')"><span class="swatch-circle" style="background:#79b9a8"></span><span>نعنایی</span></button>
+              <button class="swatch-btn" data-palette="sky" onclick="setAccentPalette('sky')"><span class="swatch-circle" style="background:#82afd1"></span><span>آسمانی</span></button>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>نامی که مینا صدات کنه</label><input id="minaPersonalGreeting" class="form-control" placeholder="مثلاً عزیزم، سارا جان..." onchange="saveMinaPersonalization()" /></div>
+            <div class="form-group"><label>صدای پاسخ مینا</label><select id="minaVoiceReplies" class="form-control" onchange="saveMinaPersonalization()"><option value="yes">پاسخ صوتی روشن</option><option value="no">فقط پاسخ متنی</option></select></div>
+          </div>
+          <div class="form-group"><label>رنگ دلخواه خودت</label><input type="color" id="settingCustomHex" class="form-control" style="height:42px;padding:4px;" value="#d77fa2" onchange="setCustomHexColor(this.value)" /></div>
+          <div class="form-group"><label>اندازه نوشته‌ها</label><select id="settingFontScale" class="form-control" onchange="saveSettings()"><option value="15px">جمع‌وجور</option><option value="16px" selected>معمولی</option><option value="17.5px">درشت و خوانا</option><option value="19px">خیلی درشت</option></select></div>
+          <div class="form-group"><label>حالت نمایش</label><select id="minaThemeChoice" class="form-control" onchange="setMinaTheme(this.value)"><option value="light">روشن و پاستیلی</option><option value="dark">تاریک و ملایم</option></select></div>
+          <div class="mina-personal-note">تنظیمات ظاهری روی همین حساب و دستگاه ذخیره می‌شود و با بستن برنامه از بین نمی‌رود.</div>
+        </div>
 
       <!-- 2. Business & Financial Preferences -->
       <div class="card">
@@ -1405,6 +1497,10 @@
       <button class="nav-item" onclick="switchTab('clients', this)">
         <span class="nav-icon">👥</span>
         <span>مشتریان</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('mina', this)">
+        <span class="nav-icon">🌸</span>
+        <span>مینا</span>
       </button>
       <button class="nav-item" onclick="switchTab('settings', this)">
         <span class="nav-icon">🎨</span>
@@ -1963,6 +2059,11 @@
 
     // --- PALETTES ---
     const PALETTES = {
+      blossom:  { accent: '#d77fa2', light: '#f3b8ce', dark: '#b85f83', glow: 'rgba(215, 127, 162, 0.20)', border: 'rgba(215, 127, 162, 0.30)' },
+      lavender: { accent: '#a78bca', light: '#d7c4ef', dark: '#8064a7', glow: 'rgba(167, 139, 202, 0.20)', border: 'rgba(167, 139, 202, 0.30)' },
+      peach:    { accent: '#e7a17e', light: '#f7c7ad', dark: '#c77b59', glow: 'rgba(231, 161, 126, 0.20)', border: 'rgba(231, 161, 126, 0.30)' },
+      mint:     { accent: '#79b9a8', light: '#b8e0d5', dark: '#4f927f', glow: 'rgba(121, 185, 168, 0.20)', border: 'rgba(121, 185, 168, 0.30)' },
+      sky:      { accent: '#82afd1', light: '#c0def1', dark: '#5688ae', glow: 'rgba(130, 175, 209, 0.20)', border: 'rgba(130, 175, 209, 0.30)' },
       gold:     { accent: '#d4af37', light: '#f3d474', dark: '#a6821c', glow: 'rgba(212, 175, 55, 0.20)', border: 'rgba(212, 175, 55, 0.28)' },
       rosegold: { accent: '#e5989b', light: '#ffb4a2', dark: '#b5838d', glow: 'rgba(229, 152, 155, 0.20)', border: 'rgba(229, 152, 155, 0.30)' },
       emerald:  { accent: '#10b981', light: '#6ee7b7', dark: '#047857', glow: 'rgba(16, 185, 129, 0.20)', border: 'rgba(16, 185, 129, 0.30)' },
@@ -1991,9 +2092,11 @@
         monthlyGoal: 0,
         appPin: '',
         customApkUrl: '',
-        theme: 'dark',
-        palette: 'gold',
-        customHex: '#d4af37',
+        theme: 'light',
+        palette: 'blossom',
+        customHex: '#d77fa2',
+        minaVoiceReplies: true,
+        personalGreeting: '',
         fontScale: '16px',
         customLogo: ''
       }
@@ -3762,6 +3865,11 @@
       }
       document.getElementById('settingCustomApkUrl').value = s.customApkUrl || '';
       document.getElementById('settingFontScale').value = s.fontScale || '16px';
+      const greet = document.getElementById('minaPersonalGreeting'); if (greet) greet.value = s.personalGreeting || '';
+      const voiceChoice = document.getElementById('minaVoiceReplies'); if (voiceChoice) voiceChoice.value = s.minaVoiceReplies === false ? 'no' : 'yes';
+      const themeChoice = document.getElementById('minaThemeChoice'); if (themeChoice) themeChoice.value = s.theme || 'light';
+      const customColor = document.getElementById('settingCustomHex'); if (customColor) customColor.value = s.customHex || '#d77fa2';
+      const minaWelcome = document.getElementById('minaWelcome'); if (minaWelcome) minaWelcome.textContent = (s.personalGreeting ? 'سلام '+s.personalGreeting+' جان! ' : 'سلام عزیزم! ' )+'من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.';
 
       document.documentElement.style.setProperty('--font-scale', s.fontScale || '16px');
       document.documentElement.setAttribute('data-theme', s.theme || 'dark');
@@ -3798,6 +3906,9 @@
       appData.settings.appPin = document.getElementById('settingAppPin').value.replace(/[^0-9]/g, '').slice(0, 4);
       appData.settings.customApkUrl = document.getElementById('settingCustomApkUrl').value.trim();
       appData.settings.fontScale = document.getElementById('settingFontScale').value;
+      appData.settings.personalGreeting = (document.getElementById('minaPersonalGreeting')?.value || appData.settings.personalGreeting || '').trim();
+      appData.settings.minaVoiceReplies = document.getElementById('minaVoiceReplies') ? document.getElementById('minaVoiceReplies').value === 'yes' : appData.settings.minaVoiceReplies !== false;
+      appData.settings.theme = document.getElementById('minaThemeChoice')?.value || appData.settings.theme || 'light';
       saveData(); applySettingsUI();
       showToast('تنظیمات شخصی‌سازی ذخیره شد ✅');
     }
@@ -3924,6 +4035,7 @@
         const t = e.results[0][0].transcript;
         input.value = input.value ? (input.value + ' ' + t) : t;
         input.dispatchEvent(new Event('input', { bubbles: true }));
+        if (targetInputId === 'minaInput') setTimeout(sendMinaMessage, 250);
       };
       recognition.onerror = () => showToast('تشخیص گفتار انجام نشد؛ می‌توانید متن را تایپ کنید.');
       recognition.onend = () => setVoiceButtonState(btnId, false);
@@ -4115,6 +4227,7 @@
       if (tabName === 'finance') renderFinanceTab();
       if (tabName === 'clients') { renderClientsTab(); renderServicesTab(); }
       if (tabName === 'settings') { syncShareUrls(); }
+      if (tabName === 'mina') { const inp=document.getElementById('minaInput'); if(inp) setTimeout(()=>inp.focus(),120); }
     }
 
     // Keep browser/phone Back inside the single-page app: move through
@@ -4159,6 +4272,74 @@
       setTimeout(() => t.classList.remove('show'), 2800);
     }
 
+
+    // ==================== MINA PERSONAL ASSISTANT ====================
+    let minaRecognitionPending = false;
+    function saveMinaPersonalization() {
+      appData.settings.personalGreeting = (document.getElementById('minaPersonalGreeting')?.value || '').trim();
+      appData.settings.minaVoiceReplies = document.getElementById('minaVoiceReplies')?.value !== 'no';
+      saveData(); applySettingsUI(); showToast('سلیقه و تنظیمات مینا ذخیره شد 🌷');
+    }
+    function setMinaTheme(theme) {
+      appData.settings.theme = theme === 'dark' ? 'dark' : 'light';
+      saveData(); applySettingsUI();
+    }
+    function addMinaMessage(text, who) {
+      const root=document.getElementById('minaChatMessages'); if(!root)return;
+      const row=document.createElement('div'); row.className='mina-message '+(who==='user'?'user':'assistant');
+      if(who!=='user'){const avatar=document.createElement('span');avatar.className='mina-message-avatar';avatar.textContent='M';row.appendChild(avatar);}
+      const bubble=document.createElement('div');bubble.className='mina-bubble';bubble.textContent=text;row.appendChild(bubble);root.appendChild(row);root.scrollTop=root.scrollHeight;
+    }
+    function clearMinaChat(){const root=document.getElementById('minaChatMessages');if(root)root.innerHTML='';addMinaMessage('گفتگوی تازه‌ای شروع کنیم عزیزم؟ 💗','assistant');}
+    function askMina(text){const input=document.getElementById('minaInput');if(input){input.value=text;sendMinaMessage();}}
+    function minaSpeak(text){
+      if(appData.settings.minaVoiceReplies===false || !('speechSynthesis' in window))return;
+      try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fa-IR';u.rate=.96;u.pitch=1.04;
+        const voices=window.speechSynthesis.getVoices();const fa=voices.find(v=>/^fa(-|_)/i.test(v.lang));if(fa)u.voice=fa;window.speechSynthesis.speak(u);
+      }catch(e){}
+    }
+    function minaTodayAppointments(){
+      const key=getTodayKey();return (appData.appointments||[]).filter(a=>a.dateKey===key&&a.status!=='canceled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    }
+    function minaBuildReply(raw){
+      const q=(raw||'').trim();const t=q.replace(/[؟?!،,.]/g,' ').replace(/\s+/g,' ').toLowerCase();
+      const today=minaTodayAppointments();
+      if(/یادداشت کن|یادداشت کن که|این(?:و| را) یادداشت/.test(t)){
+        let body=q.replace(/مینا/g,'').replace(/لطفا|لطفاً/g,'').replace(/این(?:و| را)? یادداشت کن( که)?/g,'').replace(/یادداشت کن( که)?/g,'').trim();
+        if(!body) return 'حتماً عزیزم. بگو دقیقاً چی رو برات یادداشت کنم؟';
+        const note={id:'note_mina_'+Date.now(),title:body.length>42?body.slice(0,42)+'…':body,category:'شخصی و کاری',pinned:true,body,dateKey:getTodayKey()};
+        appData.notes.unshift(note);saveData();if(typeof renderNotebook==='function')renderNotebook();
+        return 'چشم عزیزم، یادداشتت رو ذخیره کردم 💗\n«'+body+'»';
+      }
+      if(/امروز|چکار|چه کار|برنامه/.test(t)&&/(امروز|چکار|چه کار|برنامه)/.test(t)){
+        if(!today.length)return 'عزیزم امروز هنوز نوبتی برات ثبت نشده. اگر کاری داری می‌تونیم به چک‌لیستت اضافه کنیم. 🌸';
+        return 'برنامه امروزت اینه عزیزم 🌷\n'+today.map((a,i)=>(i+1)+') '+(a.time||'بدون ساعت')+' — '+(a.clientName||'مشتری')+'، '+(a.service||'خدمت ثبت‌نشده')).join('\n')+'\n\nدر مجموع '+today.length+' نوبت داری.';
+      }
+      if(/این هفته/.test(t)&&/درآمد|فروش|پول|دریافتی/.test(t)){
+        const from=addDaysToJalaliKey(getTodayKey(),-6),to=getTodayKey();
+        const total=(appData.transactions||[]).filter(x=>x.type==='income'&&x.dateKey>=from&&x.dateKey<=to).reduce((n,x)=>n+(Number(x.amount)||0),0);
+        return 'از ابتدای هفت روز اخیر تا امروز، مجموع درآمدهای ثبت‌شده‌ات '+formatMoney(total)+' تومان بوده عزیزم. 💕';
+      }
+      if(/ترمیم|موعد|سررسید/.test(t)){
+        const due=(appData.appointments||[]).filter(a=>a.status!=='canceled'&&((a.followupDateKey&&a.followupDateKey<=getTodayKey())||(a.nextFollowupDateKey&&a.nextFollowupDateKey<=getTodayKey())||a.isFollowupDue===true));
+        return due.length?'این مشتری‌ها برای ترمیم سررسید شده‌اند:\n'+due.map(a=>'• '+(a.clientName||'مشتری')+' — '+(a.service||'خدمت')+'، '+(a.dateKey||'')).join('\n'):'فعلاً نوبت ترمیم سررسیدشده‌ای با تاریخ مشخص در اطلاعاتت پیدا نکردم. اگر تاریخ ترمیم را در پرونده مشتری ثبت کنی، می‌تونم پیگیری‌اش کنم.';
+      }
+      if(/آخرین بار|آخرین خدمت|چی کار کرده|چه خدمتی/.test(t)){
+        const found=(appData.appointments||[]).filter(a=>a.status==='done'&&t.includes(String(a.clientName||'').toLowerCase())).sort((a,b)=>(b.dateKey||'').localeCompare(a.dateKey||''))[0];
+        return found?'آخرین خدمت ثبت‌شده برای '+found.clientName+': '+(found.service||'خدمت نامشخص')+' در تاریخ '+formatJalaliFull(found.dateKey)+'.':'اسم مشتری رو کامل‌تر بگو یا مطمئن شو سابقه خدمتش در برنامه ثبت شده.';
+      }
+      if(/یادداشت/.test(t)&&/من|هام|هامو/.test(t)){
+        return appData.notes.length?'آخرین یادداشت‌هات:\n'+appData.notes.slice(0,5).map(n=>'• '+n.title+' — '+n.body).join('\n'):'هنوز یادداشتی ثبت نکردی. هر وقت خواستی بگو «مینا یادداشت کن که...»';
+      }
+      if(/مواد|انبار|رو به اتمام|تموم شده/.test(t))return 'عزیزم هنوز بخش موجودی مواد در نسخه فعلی فعال نیست؛ نمی‌خوام اطلاعات اشتباه بهت بدم. می‌تونیم این قابلیت رو در مرحله بعد اضافه کنیم. 🌷';
+      return 'قربونت، حرفت رو شنیدم 💗 فعلاً می‌تونم اطلاعات ثبت‌شده‌ات مثل نوبت‌های امروز، یادداشت‌ها و درآمدهای ثبت‌شده رو بررسی کنم و یادداشت جدید بسازم. برای پاسخ آزاد به هر موضوع و گفت‌وگوی واقعاً هوشمند، باید سرویس هوش مصنوعی امن به برنامه متصل بشه؛ بدون اون جواب ساختگی نمی‌دم.';
+    }
+    function sendMinaMessage(){
+      const input=document.getElementById('minaInput');if(!input)return;
+      const text=input.value.trim();if(!text)return;
+      addMinaMessage(text,'user');input.value='';
+      const reply=minaBuildReply(text);addMinaMessage(reply,'assistant');minaSpeak(reply);
+    }
 
     // --- INIT ---
 
