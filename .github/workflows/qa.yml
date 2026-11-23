@@ -1,0 +1,44 @@
+name: Offline and Data Safety QA
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'tests/**'
+      - '.github/workflows/qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check inline JavaScript syntax
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const vm = require('vm');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script[^>]*>([\\s\\S]*?)<\\/script>/gi)];
+          if (!scripts.length) throw new Error('No inline application script found');
+          scripts.forEach((match, index) => new vm.Script(match[1], { filename: 'index.html:inline-script-' + index }));
+          console.log('Inline JavaScript syntax: PASS');
+          NODE
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run browser QA
+        run: node tests/offline-data-smoke.cjs
