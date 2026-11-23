@@ -1121,7 +1121,7 @@
           </div>
           <div class="form-group full">
             <label>نوع خدمت / مدل انجام‌شده</label>
-            <input type="text" id="clientWorkService" class="form-control" placeholder="مثلاً والیوم، لیفت، ترمیم..." />
+            <input type="text" id="clientWorkService" class="form-control" placeholder="نام یا نوع کار انجام‌شده (اختیاری)" />
           </div>
           <div class="form-group full">
             <label>جزئیات اختصاصی خدمات خودت</label>
@@ -1205,7 +1205,9 @@
           <div id="shareClientWorkFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <label><input type="checkbox" id="shareClientHistory" checked /> سوابق خدمات</label>
           <label><input type="checkbox" id="shareClientPrices" checked /> قیمت‌ها</label>
-          <label><input type="checkbox" id="shareClientPhotos" checked /> عکس‌های انتخاب‌شده</label>
+          <label><input type="checkbox" id="shareClientPhotos" checked /> ارسال عکس‌ها</label>
+          <label><input type="checkbox" id="shareClientProfilePhoto" checked /> عکس پروفایل مشتری</label>
+          <label><input type="checkbox" id="shareClientWorkPhotos" checked /> عکس‌های قبل، بعد و کار
           <label><input type="checkbox" id="shareClientNext" /> نوبت بعدی</label>
         </div>
         <small style="display:block;color:var(--text-secondary);margin-top:7px;">فقط گزینه‌های فعال و اطلاعاتی که واقعاً ثبت کرده‌ای ارسال می‌شوند؛ موارد خالی حذف می‌شوند.</small>
@@ -2896,7 +2898,7 @@
           if(next) lines.push('نوبت بعدی: '+formatJalaliFull(next.dateKey)+(next.time?' ساعت '+next.time:'')+(next.service?' — '+next.service:''));
         }
       }
-      if(lines.length) lines.unshift('📁 پرونده مشتری'+(p.name?' — '+p.name:''));
+      if(lines.length) lines.unshift('📁 پرونده مشتری');
       return lines.join('\n');
     }
     async function shareClientRecord() {
@@ -2904,8 +2906,8 @@
       if(!key)return;
       const p=getClientProfile(key), refs=[];
       if(document.getElementById('shareClientPhotos')?.checked!==false) {
-        if(p.photoRef||p.photo) refs.push(p.photoRef||p.photo);
-        if(document.getElementById('shareClientHistory')?.checked!==false) {
+        if(document.getElementById('shareClientProfilePhoto')?.checked!==false && (p.photoRef||p.photo)) refs.push(p.photoRef||p.photo);
+        if(document.getElementById('shareClientHistory')?.checked!==false && document.getElementById('shareClientWorkPhotos')?.checked!==false) {
           for(const record of (p.records||[])) {
             if(record.beforePhotoRef&&record.afterPhotoRef) {
               const composite=await createClientBeforeAfterImage(record);
@@ -2958,13 +2960,14 @@
         : (p.records || []).find(a => a.id === id);
       if (!item) return;
       const photos=[];
-      if(document.getElementById('shareClientPhotos')?.checked!==false) {
+      if(document.getElementById('shareClientPhotos')?.checked!==false && document.getElementById('shareClientWorkPhotos')?.checked!==false) {
         if(item.beforePhotoRef&&item.afterPhotoRef) {
           const composite=await createClientBeforeAfterImage(item);
           if(composite)photos.push(composite);
           else photos.push(item.beforePhotoRef,item.afterPhotoRef);
         } else photos.push(item.beforePhotoRef,item.afterPhotoRef);
-        photos.push(item.photoRef,item.photo,p.photoRef,p.photo);
+        photos.push(item.photoRef,item.photo);
+        if(document.getElementById('shareClientProfilePhoto')?.checked!==false) photos.push(p.photoRef,p.photo);
       }
       const message=buildClientShareText(key,{...item,source}),attachments=photos.filter(Boolean);
       if(!message&&!attachments.length){showToast('هیچ موردی برای ارسال انتخاب نشده است.');return;}
