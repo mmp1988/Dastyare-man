@@ -62,15 +62,19 @@ jobs:
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           mkdir -p android-build && cd android-build
 
-          # ایجاد twa-manifest.json پایه و بروزرسانی از manifest آنلاین
-          bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json < /dev/null || true
+          MANIFEST_URL="https://mmp1988.github.io/Dastyare-man/manifest.json"
+          echo "بررسی دسترسی به $MANIFEST_URL ..."
+          curl -fsSL "$MANIFEST_URL" -o fetched-manifest.json
+
+          # پاسخ خودکار به سؤال‌های احتمالی Bubblewrap (شامل n برای استفاده از JDK 17 موجود)
+          printf "n\nn\nn\nn\nn\nn\nn\nn\nn\nn\n" | bubblewrap init --manifest="$MANIFEST_URL" || true
 
           if [ ! -f twa-manifest.json ]; then
-            echo "خطا: twa-manifest.json ساخته نشد. دسترسی به manifest.json را بررسی کنید."
+            echo "خطا: twa-manifest.json ساخته نشد. وضعیت manifest.json را بررسی کنید."
             exit 1
           fi
 
-          # تنظیم مستقیم مسیرهای JDK و Android SDK تا پرامپت نپرسد
+          # تنظیم مستقیم مسیرهای JDK و Android SDK تا سؤال نپرسد
           node -e '
             const fs = require("fs");
             const p = "twa-manifest.json";
