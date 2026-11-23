@@ -1232,7 +1232,20 @@
         <div class="form-grid">
           <div class="form-group">
             <label>تاریخ انجام کار</label>
-            <input type="date" id="clientWorkDate" class="form-control" />
+            <div style="display:flex;gap:7px;align-items:center;">
+              <input type="text" id="clientWorkDate" class="form-control" placeholder="انتخاب تاریخ از تقویم شمسی" dir="ltr" style="flex:1;cursor:pointer;" readonly onclick="toggleClientWorkJalaliPicker()" aria-label="انتخاب تاریخ شمسی انجام کار" />
+              <button type="button" class="btn-secondary" onclick="toggleClientWorkJalaliPicker()" style="white-space:nowrap;">📅 انتخاب تاریخ</button>
+            </div>
+            <div id="clientWorkJalaliPicker" class="card" style="display:none;margin-top:9px;padding:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
+                <button type="button" class="btn-pill" onclick="changeClientWorkJalaliPickerMonth(-1)">ماه قبل</button>
+                <strong id="clientWorkJalaliPickerTitle"></strong>
+                <button type="button" class="btn-pill" onclick="changeClientWorkJalaliPickerMonth(1)">ماه بعد</button>
+              </div>
+              <div class="weekdays-row client-picker-weekdays"><div>شنبه</div><div>یکشنبه</div><div>دوشنبه</div><div>سه‌شنبه</div><div>چهارشنبه</div><div>پنجشنبه</div><div>جمعه</div></div>
+              <div id="clientWorkJalaliPickerGrid" class="days-grid client-picker-days"></div>
+              <button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="selectClientWorkJalaliToday()">امروز</button>
+            </div>
           </div>
           <div class="form-group">
             <label>ساعت انجام کار</label>
@@ -2808,6 +2821,65 @@
       }
     }
 
+    let clientWorkPickerYear = 0, clientWorkPickerMonth = 0;
+    function toggleClientWorkJalaliPicker() {
+      const panel = document.getElementById('clientWorkJalaliPicker');
+      const opening = panel.style.display === 'none';
+      panel.style.display = opening ? 'block' : 'none';
+      if (opening) {
+        const selected = parseClientJalaliDate(document.getElementById('clientWorkDate').value);
+        const base = selected || getTodayKey();
+        [clientWorkPickerYear, clientWorkPickerMonth] = base.split('-').map(Number);
+        renderClientWorkJalaliPicker();
+      }
+    }
+    function changeClientWorkJalaliPickerMonth(delta) {
+      clientWorkPickerMonth += delta;
+      if (clientWorkPickerMonth > 12) { clientWorkPickerMonth = 1; clientWorkPickerYear++; }
+      if (clientWorkPickerMonth < 1) { clientWorkPickerMonth = 12; clientWorkPickerYear--; }
+      renderClientWorkJalaliPicker();
+    }
+    function selectClientWorkJalaliDate(dateKey) {
+      document.getElementById('clientWorkDate').value = toPersianDigits(dateKey.replace(/-/g, '/'));
+      document.getElementById('clientWorkJalaliPicker').style.display = 'none';
+    }
+    function selectClientWorkJalaliToday() {
+      const today = getTodayKey();
+      const [y,m] = today.split('-').map(Number);
+      clientWorkPickerYear = y; clientWorkPickerMonth = m;
+      selectClientWorkJalaliDate(today);
+    }
+    function renderClientWorkJalaliPicker() {
+      const title = document.getElementById('clientWorkJalaliPickerTitle');
+      const grid = document.getElementById('clientWorkJalaliPickerGrid');
+      if (!title || !grid) return;
+      title.textContent = JALALI_MONTHS[clientWorkPickerMonth - 1] + ' ' + toPersianDigits(clientWorkPickerYear);
+      grid.innerHTML = '';
+      const [gy,gm,gd] = jalaliToGregorian(clientWorkPickerYear,clientWorkPickerMonth,1);
+      const offset = (new Date(gy,gm-1,gd).getDay()+1)%7;
+      for(let i=0;i<offset;i++){ const blank=document.createElement('div'); blank.className='day-cell empty'; grid.appendChild(blank); }
+      const today = getTodayKey();
+      const selected = parseClientJalaliDate(document.getElementById('clientWorkDate').value);
+      for(let d=1;d<=jalaliMonthDays(clientWorkPickerYear,clientWorkPickerMonth);d++){
+        const key=clientWorkPickerYear+'-'+pad2(clientWorkPickerMonth)+'-'+pad2(d);
+        const cell=document.createElement('div');
+        cell.className='day-cell';
+        if((offset+d-1)%7===6) cell.classList.add('friday');
+        if(key===today) cell.classList.add('today');
+        if(key===selected) cell.classList.add('selected');
+        const holidayReason = getOfficialHolidayReason(key);
+        if(holidayReason) { cell.classList.add('holiday-day'); cell.title = holidayReason; }
+        const shortHoliday = (holidayReason && !holidayReason.startsWith('تعطیل رسمی هفتگی:'))
+          ? holidayReason.replace(/^تعطیل رسمی:\\s*/, '').split('(')[0].trim()
+          : '';
+        cell.innerHTML = (holidayReason ? '<span class="holiday-dot"></span>' : '') +
+          '<span class="day-num">'+toPersianDigits(d)+'</span>' +
+          (shortHoliday ? '<span class="holiday-sub">'+shortHoliday+'</span>' : '');
+        cell.onclick=()=>selectClientWorkJalaliDate(key);
+        grid.appendChild(cell);
+      }
+    }
+
     function parseClientJalaliDate(value) {
       const normalized = String(value || '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
       const match = normalized.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
@@ -3078,7 +3150,7 @@
       if (!key) return;
       const p = getClientProfile(key);
       const dateInput=document.getElementById('clientWorkDate').value;
-      const date = dateInput ? gregorianInputToJalali(dateInput) : '';
+      const date = dateInput ? (parseClientJalaliDate(dateInput) || '') : '';
       const time = document.getElementById('clientWorkTime').value;
       const service = document.getElementById('clientWorkService').value.trim();
       const notes = document.getElementById('clientWorkNotes').value.trim();
