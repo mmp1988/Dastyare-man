@@ -1,12 +1,13 @@
 {
   "name": "دستیار من",
   "short_name": "دستیار من",
-  "start_url": "./",
+  "description": "اپلیکیشن آفلاین تقویم شمسی، نوبت‌دهی دلخواه، یادداشت و حسابداری",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f6f4fb",
-  "theme_color": "#7c3aed",
+  "background_color": "#0b0d12",
+  "theme_color": "#d4af37",
   "lang": "fa",
   "dir": "rtl",
   "icons": [

@@ -1,733 +1,2420 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#7c3aed" />
-  <title>دستیار من | Mina-Msvm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d12" id="metaThemeColor" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="دستیار من" />
   <link rel="manifest" href="./manifest.json" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/png" href="./icon-192.png" />
+  <title>دستیار من | نسخه نهایی و حرفه‌ای</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f6f4fb;
-      --card: #ffffff;
-      --text: #18181b;
-      --muted: #64748b;
-      --primary: #7c3aed;
-      --primary-dark: #5b21b6;
-      --primary-soft: #f3e8ff;
-      --accent: #0ea5e9;
-      --success: #16a34a;
-      --border: #e5e7eb;
-      --radius: 16px;
-      --shadow: 0 6px 24px rgba(24, 24, 27, 0.06);
+      --bg-primary: #0b0d12;
+      --bg-secondary: #131722;
+      --bg-card: rgba(23, 28, 40, 0.92);
+      --bg-card-solid: #171c28;
+      --bg-input: #1d2332;
+      --border-color: rgba(212, 175, 55, 0.26);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #d4af37;
+      --accent-light: #f3d474;
+      --accent-dark: #a6821c;
+      --accent-glow: rgba(212, 175, 55, 0.18);
+      --accent-contrast: #0b0d12;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #38bdf8;
+      --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55);
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --font-scale: 16px;
     }
+
+    [data-theme="light"] {
+      --bg-primary: #faf7f2;
+      --bg-secondary: #f2ece1;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-solid: #ffffff;
+      --bg-input: #f6f1e9;
+      --border-subtle: rgba(15, 23, 42, 0.08);
+      --text-primary: #1e293b;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --shadow-lg: 0 14px 32px rgba(30, 41, 59, 0.10);
+    }
+
+    html { font-size: var(--font-scale); }
 
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
       -webkit-tap-highlight-color: transparent;
+      font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
     }
 
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, "Vazirmatn", "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding-bottom: 40px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding-top: var(--safe-top);
+      padding-bottom: calc(96px + var(--safe-bottom));
+      overflow-x: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
-    .container {
-      max-width: 780px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-
-    header {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: #fff;
-      border-radius: 20px;
-      padding: 18px 20px;
-      box-shadow: var(--shadow);
-      margin-bottom: 16px;
-    }
-
-    .header-top {
+    /* Splash Screen */
+    #splashScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(circle at top, #1d2230 0%, #090b10 100%);
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 1.35rem;
-      font-weight: 800;
-    }
-
-    header p {
-      margin: 4px 0 0;
-      font-size: 0.88rem;
-      opacity: 0.92;
-    }
-
-    .badge {
-      background: rgba(255, 255, 255, 0.18);
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 600;
-    }
-
-    .tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      background: var(--card);
-      padding: 6px;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-bottom: 16px;
-    }
-
-    .tab-btn {
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 0.9rem;
-      padding: 10px 8px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .tab-btn.active {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 16px;
-      box-shadow: var(--shadow);
-      margin-bottom: 14px;
-      border: 1px solid var(--border);
-    }
-
-    .card h2 {
-      margin: 0 0 12px;
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: var(--primary-dark);
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    @media (max-width: 600px) {
-      .grid-2 {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .field {
-      margin-bottom: 10px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-      color: var(--text);
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      font-family: inherit;
-      font-size: 0.92rem;
-      background: #fafafa;
-      color: var(--text);
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      background: #fff;
-    }
-
-    .btn {
-      border: none;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 0.88rem;
-      cursor: pointer;
-      display: inline-flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: 0.15s;
+      gap: 14px;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
     }
-
-    .btn-primary {
-      background: var(--primary);
-      color: #fff;
+    #splashScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .splash-logo-wrap {
+      width: 112px;
+      height: 112px;
+      border-radius: 28px;
+      padding: 4px;
+      background: linear-gradient(135deg, var(--accent-light), var(--accent-dark));
+      box-shadow: 0 0 42px var(--accent-glow);
+      animation: pulseLogo 1.8s infinite ease-in-out;
     }
-
-    .btn-primary:hover {
-      background: var(--primary-dark);
+    .splash-logo-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 24px; display: block; }
+    .splash-title {
+      font-family: 'Lalezar', 'Vazirmatn', sans-serif;
+      font-size: 2.1rem;
+      color: var(--accent);
     }
+    .splash-sub { color: #94a3b8; font-size: 0.86rem; }
+    @keyframes pulseLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
 
-    .btn-soft {
-      background: var(--primary-soft);
-      color: var(--primary-dark);
+    /* Header */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg-card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 14px;
     }
-
-    .btn-success {
-      background: var(--success);
-      color: #fff;
-    }
-
-    .btn-accent {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .btn-danger {
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-
-    .btn-sm {
-      padding: 7px 11px;
-      font-size: 0.8rem;
-      border-radius: 10px;
-    }
-
-    .item-card {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: #fcfbfe;
-    }
-
-    .item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .item-title {
-      font-weight: 800;
-      font-size: 0.98rem;
-    }
-
-    .item-meta {
-      font-size: 0.83rem;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .checkbox-row {
+    .header-top {
+      max-width: 760px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
-      padding: 8px 0;
-      font-size: 0.9rem;
-      font-weight: 600;
+    }
+    .brand-box { display: flex; align-items: center; gap: 10px; }
+    .brand-avatar {
+      width: 44px; height: 44px; border-radius: 14px;
+      border: 1.5px solid var(--accent); object-fit: cover;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+    .brand-title {
+      font-family: 'Lalezar', 'Vazirmatn', sans-serif;
+      font-size: 1.38rem; color: var(--accent); line-height: 1.1;
+    }
+    .brand-subtitle { font-size: 0.72rem; color: var(--text-secondary); }
+    .header-actions { display: flex; align-items: center; gap: 6px; }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 11px;
+      border: 1px solid var(--border-color); background: var(--bg-input);
+      color: var(--text-primary); display: inline-flex;
+      align-items: center; justify-content: center; cursor: pointer; font-size: 0.98rem;
+    }
+    .share-header-btn {
+      padding: 0 11px; width: auto; font-size: 0.75rem; font-weight: 700; color: var(--accent); gap: 5px;
     }
 
-    .checkbox-row input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--primary);
+    /* Live Iran Clock Bar */
+    .clock-bar {
+      max-width: 760px;
+      margin: 8px auto 0;
+      background: linear-gradient(135deg, var(--accent-glow), transparent);
+      border: 1px solid var(--border-color);
+      border-radius: 13px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.79rem;
+    }
+    .iran-time { font-weight: 800; color: var(--accent); font-size: 0.98rem; direction: ltr; }
+
+    /* Main Container */
+    .container { max-width: 760px; margin: 0 auto; padding: 13px 12px 26px; }
+    .tab-section { display: none; animation: fadeIn 0.25s ease; }
+    .tab-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards & Grids */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 15px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 13px;
+    }
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .section-title { font-size: 1.02rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 6px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 13px; }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md); padding: 10px 7px; text-align: center;
+    }
+    .stat-val { font-size: 0.98rem; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
+    .stat-lbl { font-size: 0.69rem; color: var(--text-secondary); }
+
+    /* Goal Progress Bar */
+    .goal-card {
+      background: linear-gradient(135deg, var(--accent-glow), var(--bg-card));
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 11px 13px;
+      margin-bottom: 13px;
+    }
+    .progress-track {
+      width: 100%; height: 9px; border-radius: 99px;
+      background: var(--bg-input); overflow: hidden; margin-top: 7px;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      transition: width 0.4s ease;
     }
 
-    .toast {
+    /* Calendar */
+    .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .cal-month-title { font-size: 1.08rem; font-weight: 800; }
+    .cal-nav { display: flex; gap: 5px; align-items: center; }
+    .btn-pill {
+      padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border-color);
+      background: var(--bg-input); color: var(--text-primary); font-size: 0.76rem; font-weight: 600; cursor: pointer;
+    }
+    .weekdays-row {
+      display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
+      font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .weekdays-row div:last-child { color: var(--danger); }
+    .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .day-cell {
+      aspect-ratio: 1 / 1.06; border-radius: 13px; background: var(--bg-input);
+      border: 1px solid var(--border-subtle); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; position: relative; cursor: pointer;
+    }
+    .day-cell.empty { background: transparent; border: none; cursor: default; }
+    .day-cell.today { border: 1.5px solid var(--accent); background: var(--accent-glow); }
+    .day-cell.selected {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: var(--accent-contrast); border-color: var(--accent-light);
+    }
+    .day-cell.selected .day-num, .day-cell.selected.friday .day-num { color: var(--accent-contrast); font-weight: 900; }
+    .day-cell.friday .day-num { color: var(--danger); }
+    .day-num { font-size: 0.92rem; font-weight: 700; }
+    .day-badge {
+      position: absolute; bottom: 3px; min-width: 16px; height: 14px; padding: 0 4px;
+      border-radius: 8px; background: var(--accent); color: var(--accent-contrast);
+      font-size: 0.62rem; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    }
+    .day-cell.selected .day-badge { background: var(--bg-primary); color: var(--accent-light); }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: var(--accent-contrast); border: none; border-radius: 13px;
+      padding: 10px 15px; font-size: 0.85rem; font-weight: 800; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 8px 20px var(--accent-glow);
+    }
+    .btn-secondary {
+      background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 9px 12px; font-size: 0.81rem; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; text-decoration: none;
+    }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border-subtle); background: var(--bg-secondary); }
+    table { width: 100%; border-collapse: collapse; min-width: 580px; font-size: 0.8rem; }
+    th {
+      background: var(--bg-input); color: var(--accent); font-weight: 700;
+      padding: 9px 8px; text-align: right; border-bottom: 1px solid var(--border-color); white-space: nowrap;
+    }
+    td { padding: 9px 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+
+    .status-pill { padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; display: inline-block; cursor: pointer; }
+    .status-pending { background: rgba(245, 158, 11, 0.16); color: var(--warning); }
+    .status-done { background: rgba(16, 185, 129, 0.16); color: var(--success); }
+    .status-canceled { background: rgba(239, 68, 68, 0.16); color: var(--danger); }
+
+    .action-row { display: flex; gap: 4px; flex-wrap: nowrap; }
+    .mini-btn {
+      padding: 5px 7px; border-radius: 8px; border: 1px solid var(--border-subtle);
+      background: var(--bg-input); color: var(--text-primary); font-size: 0.74rem;
+      cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .mini-btn.wa { color: #22c55e; border-color: rgba(34, 197, 94, 0.35); }
+    .mini-btn.sms { color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); }
+    .mini-btn.call { color: var(--accent); border-color: var(--border-color); }
+    .mini-btn.del { color: var(--danger); border-color: rgba(239, 68, 68, 0.35); }
+
+    /* Forms */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 9px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); }
+    .form-control {
+      width: 100%; padding: 9px 11px; border-radius: 12px;
+      border: 1px solid var(--border-subtle); background: var(--bg-input);
+      color: var(--text-primary); font-size: 0.85rem; outline: none;
+    }
+    .form-control:focus { border-color: var(--accent); }
+    textarea.form-control { min-height: 88px; resize: vertical; line-height: 1.6; }
+
+    .voice-wrap { display: flex; gap: 6px; align-items: center; }
+    .voice-btn {
+      flex-shrink: 0; padding: 9px 10px; border-radius: 12px; border: 1px solid var(--border-color);
+      background: var(--accent-glow); color: var(--accent); font-weight: 700; font-size: 0.76rem; cursor: pointer;
+    }
+    .voice-btn.recording { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+    /* Theme Swatches */
+    .theme-swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 4px; }
+    .swatch-btn {
+      border: 2px solid transparent; border-radius: 13px; padding: 8px 4px;
+      background: var(--bg-input); color: var(--text-primary); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700;
+    }
+    .swatch-btn.active { border-color: var(--accent); background: var(--accent-glow); }
+    .swatch-circle { width: 24px; height: 24px; border-radius: 50%; }
+
+    /* Notebook & To-Do */
+    .note-card {
+      background: var(--bg-input); border: 1px solid var(--border-subtle);
+      border-right: 4px solid var(--accent); border-radius: 15px; padding: 12px 13px;
+    }
+    .note-card.pinned { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-glow), var(--bg-input)); }
+    .note-cat-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.69rem;
+      font-weight: 700; background: var(--accent-glow); color: var(--accent); border: 1px solid var(--border-color);
+    }
+
+    .todo-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      background: var(--bg-input); padding: 9px 12px; border-radius: 12px; border: 1px solid var(--border-subtle);
+    }
+    .todo-item.done span { text-decoration: line-through; color: var(--text-muted); }
+
+    /* Finance */
+    .finance-hero { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 13px; }
+    .fin-kpi { background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: 15px; padding: 11px; }
+    .fin-kpi.highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-glow), var(--bg-input)); }
+    .fin-kpi-title { font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 3px; }
+    .fin-kpi-val { font-size: 1.04rem; font-weight: 900; }
+    .fin-kpi-sub { font-size: 0.69rem; color: var(--text-muted); margin-top: 2px; }
+
+    .split-preview-box {
+      background: var(--bg-secondary); border: 1px dashed var(--accent); border-radius: 14px;
+      padding: 10px 12px; margin-bottom: 11px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center;
+    }
+    .split-item-lbl { font-size: 0.69rem; color: var(--text-secondary); }
+    .split-item-val { font-size: 0.88rem; font-weight: 800; margin-top: 2px; }
+
+    .filter-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 11px; }
+    .filter-pill {
+      padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border-subtle);
+      background: var(--bg-input); color: var(--text-secondary); font-size: 0.74rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .filter-pill.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+
+    /* Floating Action Button */
+    .fab-btn {
       position: fixed;
-      bottom: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #18181b;
-      color: #fff;
-      padding: 10px 18px;
-      border-radius: 999px;
-      font-size: 0.86rem;
-      font-weight: 600;
-      z-index: 999;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s;
+      bottom: calc(74px + var(--safe-bottom));
+      left: 16px;
+      z-index: 45;
+      width: 50px; height: 50px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: var(--accent-contrast); border: none; font-size: 1.5rem; font-weight: 900;
+      box-shadow: 0 10px 25px var(--accent-glow); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
     }
-
-    .toast.show {
-      opacity: 1;
-    }
-
-    .hidden {
+    .fab-menu {
+      position: fixed;
+      bottom: calc(132px + var(--safe-bottom));
+      left: 16px;
+      z-index: 46;
       display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .fab-menu.open { display: flex; }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-color); padding: 6px 5px calc(6px + var(--safe-bottom));
+    }
+    .nav-inner { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+    .nav-item {
+      background: transparent; border: none; color: var(--text-secondary);
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 5px 2px; border-radius: 12px; font-size: 0.67rem; font-weight: 600; cursor: pointer;
+    }
+    .nav-item.active { color: var(--accent); background: var(--accent-glow); font-weight: 800; }
+    .nav-icon { font-size: 1.12rem; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, 0.74);
+      backdrop-filter: blur(6px); display: none; align-items: flex-end; justify-content: center; padding: 10px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+      background: var(--bg-card-solid); border: 1px solid var(--border-color);
+      border-radius: 24px; padding: 17px; box-shadow: var(--shadow-lg);
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 13px; padding-bottom: 9px; border-bottom: 1px solid var(--border-subtle);
+    }
+    .modal-title { font-size: 1rem; font-weight: 800; color: var(--accent); }
+
+    .share-link-card { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 14px; padding: 11px; margin-bottom: 10px; }
+    .url-display {
+      font-size: 0.76rem; color: var(--accent); direction: ltr; word-break: break-all;
+      background: var(--bg-secondary); padding: 7px 9px; border-radius: 10px; margin: 6px 0 8px; border: 1px solid var(--border-subtle);
     }
 
-    .empty {
-      text-align: center;
-      color: var(--muted);
-      padding: 18px 8px;
-      font-size: 0.9rem;
+    #toast {
+      position: fixed; top: 72px; left: 50%; transform: translateX(-50%) translateY(-20px);
+      background: var(--bg-card-solid); border: 1px solid var(--accent); color: var(--text-primary);
+      padding: 9px 16px; border-radius: 14px; font-size: 0.81rem; font-weight: 600;
+      z-index: 999; opacity: 0; pointer-events: none; transition: all 0.3s ease; box-shadow: var(--shadow-lg); text-align: center; max-width: 90%;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .service-chip {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px;
+      border-radius: 20px; background: var(--bg-input); border: 1px solid var(--border-color); font-size: 0.74rem; cursor: pointer; margin: 2px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="header-top">
-        <div>
-          <h1 id="salonTitleDisplay">دستیار من</h1>
-          <p id="salonSubDisplay">سالن آرایش و زیبایی اِلی (@lash_by_mina.m)</p>
-        </div>
-        <span class="badge">Mina-Msvm</span>
-      </div>
-    </header>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="appointments">نوبت‌ها</button>
-      <button class="tab-btn" data-tab="refill">لیست ترمیم</button>
-      <button class="tab-btn" data-tab="settings">تنظیمات پیام</button>
+  <!-- Splash Screen -->
+  <div id="splashScreen">
+    <div class="splash-logo-wrap">
+      <img src="./icon-512.png" alt="لوگوی دستیار من" id="splashLogoImg" />
     </div>
-
-    <section id="tab-appointments">
-      <div class="card">
-        <h2>ثبت نوبت یا تایم دلخواه جدید</h2>
-        <form id="appointmentForm">
-          <div class="grid-2">
-            <div class="field">
-              <label for="clientName">نام مشتری</label>
-              <input type="text" id="clientName" required />
-            </div>
-            <div class="field">
-              <label for="clientPhone">شماره موبایل</label>
-              <input type="tel" id="clientPhone" />
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="field">
-              <label for="serviceName">نوع خدمت / ترمیم</label>
-              <input type="text" id="serviceName" required />
-            </div>
-            <div class="field">
-              <label for="apptDateTime">تاریخ و ساعت</label>
-              <input type="datetime-local" id="apptDateTime" required />
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="field">
-              <label for="totalPrice">مبلغ کل (تومان)</label>
-              <input type="number" id="totalPrice" min="0" step="1000" />
-            </div>
-            <div class="field">
-              <label for="depositAmount">بیعانه پرداخت‌شده (تومان)</label>
-              <input type="number" id="depositAmount" min="0" step="1000" />
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="notes">توضیحات / تایم دلخواه یادآوری</label>
-            <input type="text" id="notes" />
-          </div>
-
-          <div class="actions">
-            <button type="submit" class="btn btn-primary">ثبت نوبت</button>
-            <button type="button" id="sendToRefillBtn" class="btn btn-soft">ارسال تایم دلخواه به لیست ترمیم</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="card">
-        <h2>نوبت‌های ثبت‌شده</h2>
-        <div id="appointmentsList"></div>
-      </div>
-    </section>
-
-    <section id="tab-refill" class="hidden">
-      <div class="card">
-        <h2>لیست ترمیم و یادآوری‌ها</h2>
-        <div id="refillList"></div>
-      </div>
-    </section>
-
-    <section id="tab-settings" class="hidden">
-      <div class="card">
-        <h2>تنظیمات متن پیام</h2>
-        <div class="field">
-          <label for="brandNameInput">نام مجموعه</label>
-          <input type="text" id="brandNameInput" value="سالن آرایش و زیبایی اِلی (@lash_by_mina.m)" />
-        </div>
-
-        <div class="checkbox-row">
-          <input type="checkbox" id="optShowPrice" checked />
-          <label for="optShowPrice" style="margin:0;">نمایش مبلغ کل خدمت در پیام مشتری</label>
-        </div>
-
-        <div class="checkbox-row">
-          <input type="checkbox" id="optShowDeposit" checked />
-          <label for="optShowDeposit" style="margin:0;">نمایش بیعانه پرداخت‌شده در پیام مشتری</label>
-        </div>
-
-        <div class="checkbox-row">
-          <input type="checkbox" id="optShowRemaining" checked />
-          <label for="optShowRemaining" style="margin:0;">نمایش مانده حساب در پیام مشتری</label>
-        </div>
-
-        <div class="field" style="margin-top:10px;">
-          <label for="customFooter">متن پایانی دلخواه پیام</label>
-          <textarea id="customFooter" rows="2"></textarea>
-        </div>
-
-        <div class="actions">
-          <button type="button" id="saveSettingsBtn" class="btn btn-primary">ذخیره تنظیمات</button>
-          <button type="button" id="enableNotifBtn" class="btn btn-soft">فعال‌سازی اعلان مرورگر</button>
-        </div>
-      </div>
-    </section>
+    <div class="splash-title" id="splashBrandTitle">دستیار من</div>
+    <div class="splash-sub">نوبت‌دهی، یادداشت و حسابداری حرفه‌ای</div>
   </div>
 
-  <div id="toast" class="toast"></div>
+  <div id="toast"></div>
 
-  <script>
-    const STORAGE_KEYS = {
-      APPOINTMENTS: "dastyare_appointments",
-      REFILLS: "dastyare_refills",
-      SETTINGS: "dastyare_settings"
-    };
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand-box">
+        <img src="./icon-192.png" alt="لوگو" class="brand-avatar" id="headerLogoImg" />
+        <div>
+          <div class="brand-title" id="appBrandTitle">دستیار من</div>
+          <div class="brand-subtitle" id="appBrandSub">مدیریت هوشمند نوبت‌دهی و مالی</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn share-header-btn" onclick="openShareModal()" title="ارسال اپلیکیشن و لینک APK">📤 ارسال اپ</button>
+        <button class="icon-btn" onclick="toggleTheme()" id="themeToggleBtn" title="تغییر تم شب و روز">☀️</button>
+      </div>
+    </div>
+    <div class="clock-bar">
+      <span id="todayJalaliText">در حال بارگذاری...</span>
+      <span class="iran-time" id="iranClock">--:--:--</span>
+    </div>
+  </header>
 
-    const defaultSettings = {
-      brandName: "سالن آرایش و زیبایی اِلی (@lash_by_mina.m)",
-      showPrice: true,
-      showDeposit: true,
-      showRemaining: true,
-      footer: ""
-    };
+  <!-- Main Content -->
+  <main class="container">
 
-    function showToast(msg) {
-      const el = document.getElementById("toast");
-      el.textContent = msg;
-      el.classList.add("show");
-      setTimeout(() => el.classList.remove("show"), 2600);
-    }
+    <!-- ==================== TAB 1: CALENDAR & APPOINTMENTS ==================== -->
+    <section id="tab-calendar" class="tab-section active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="statTodayCount">۰</div>
+          <div class="stat-lbl">نوبت‌های امروز</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statMonthCount">۰</div>
+          <div class="stat-lbl">نوبت‌های این ماه</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statNetProfitMonth" style="color:var(--success);">۰</div>
+          <div class="stat-lbl">سود خالص ماه (ت)</div>
+        </div>
+      </div>
 
-    function loadData(key, fallback) {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch {
-        return fallback;
-      }
-    }
+      <!-- Monthly Goal Progress -->
+      <div class="goal-card" id="monthlyGoalBox" style="display:none;">
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:700;">
+          <span>🎯 پیشرفت هدف سود ماهانه</span>
+          <span id="goalProgressText" style="color:var(--accent);">۰٪</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="goalProgressFill" style="width:0%;"></div>
+        </div>
+      </div>
 
-    function saveData(key, value) {
-      localStorage.setItem(key, JSON.stringify(value));
-    }
-
-    function formatMoney(num) {
-      const n = Number(num || 0);
-      return n.toLocaleString("fa-IR") + " تومان";
-    }
-
-    function formatDateFa(dtStr) {
-      if (!dtStr) return "";
-      const d = new Date(dtStr);
-      if (isNaN(d.getTime())) return dtStr;
-      return d.toLocaleString("fa-IR", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    }
-
-    function normalizePhoneForWa(phone) {
-      if (!phone) return "";
-      let cleaned = phone.replace(/\D/g, "");
-      if (cleaned.startsWith("00")) cleaned = cleaned.slice(2);
-      if (cleaned.startsWith("0")) cleaned = "98" + cleaned.slice(1);
-      return cleaned;
-    }
-
-    function buildClientMessage(item) {
-      const settings = loadData(STORAGE_KEYS.SETTINGS, defaultSettings);
-      const price = Number(item.totalPrice || 0);
-      const deposit = Number(item.depositAmount || 0);
-      const remaining = Math.max(0, price - deposit);
-
-      const lines = [
-        `سلام ${item.clientName || ""}`,
-        settings.brandName ? `${settings.brandName}` : "",
-        `خدمت: ${item.serviceName || ""}`,
-        `زمان: ${formatDateFa(item.dateTime)}`
-      ].filter(Boolean);
-
-      if (settings.showPrice && price > 0) {
-        lines.push(`مبلغ کل: ${formatMoney(price)}`);
-      }
-      if (settings.showDeposit && deposit > 0) {
-        lines.push(`بیعانه: ${formatMoney(deposit)}`);
-      }
-      if (settings.showRemaining && price > 0) {
-        lines.push(`مانده حساب: ${formatMoney(remaining)}`);
-      }
-      if (item.notes) {
-        lines.push(`یادداشت: ${item.notes}`);
-      }
-      if (settings.footer) {
-        lines.push("", settings.footer);
-      }
-
-      return lines.join("\n");
-    }
-
-    async function copyMessage(item) {
-      const text = buildClientMessage(item);
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast("کپی شد");
-      } catch {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        showToast("کپی شد");
-      }
-    }
-
-    function sendWhatsApp(item) {
-      const text = encodeURIComponent(buildClientMessage(item));
-      const waPhone = normalizePhoneForWa(item.phone);
-      const url = waPhone
-        ? `https://wa.me/${waPhone}?text=${text}`
-        : `https://wa.me/?text=${text}`;
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-
-    function sendSms(item) {
-      const text = encodeURIComponent(buildClientMessage(item));
-      const phone = (item.phone || "").trim();
-      window.location.href = `sms:${phone}?body=${text}`;
-    }
-
-    function getFormPayload() {
-      return {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        clientName: document.getElementById("clientName").value.trim(),
-        phone: document.getElementById("clientPhone").value.trim(),
-        serviceName: document.getElementById("serviceName").value.trim(),
-        dateTime: document.getElementById("apptDateTime").value,
-        totalPrice: Number(document.getElementById("totalPrice").value || 0),
-        depositAmount: Number(document.getElementById("depositAmount").value || 0),
-        notes: document.getElementById("notes").value.trim()
-      };
-    }
-
-    function renderAppointments() {
-      const listEl = document.getElementById("appointmentsList");
-      const items = loadData(STORAGE_KEYS.APPOINTMENTS, []);
-      if (!items.length) {
-        listEl.innerHTML = '<div class="empty">موردی ثبت نشده است.</div>';
-        return;
-      }
-
-      listEl.innerHTML = items.map(item => {
-        const remaining = Math.max(0, Number(item.totalPrice || 0) - Number(item.depositAmount || 0));
-        return `
-          <div class="item-card">
-            <div class="item-header">
-              <div class="item-title">${item.clientName} — ${item.serviceName}</div>
-              <span class="badge" style="background:var(--primary-soft);color:var(--primary-dark);">${formatDateFa(item.dateTime)}</span>
-            </div>
-            <div class="item-meta">
-              ${item.phone ? `${item.phone} | ` : ""}
-              مبلغ: ${formatMoney(item.totalPrice)} | بیعانه: ${formatMoney(item.depositAmount)} | مانده: ${formatMoney(remaining)}
-              ${item.notes ? `<br/>${item.notes}` : ""}
-            </div>
-            <div class="actions">
-              <button class="btn btn-soft btn-sm" onclick="moveToRefill('${item.id}')">ارسال به لیست ترمیم</button>
-              <button class="btn btn-success btn-sm" onclick="sendWhatsAppById('appointments', '${item.id}')">واتساپ</button>
-              <button class="btn btn-accent btn-sm" onclick="sendSmsById('appointments', '${item.id}')">پیامک</button>
-              <button class="btn btn-soft btn-sm" onclick="copyById('appointments', '${item.id}')">کپی</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteItem('appointments', '${item.id}')">حذف</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function renderRefills() {
-      const listEl = document.getElementById("refillList");
-      const items = loadData(STORAGE_KEYS.REFILLS, []);
-      if (!items.length) {
-        listEl.innerHTML = '<div class="empty">موردی در لیست ترمیم نیست.</div>';
-        return;
-      }
-
-      listEl.innerHTML = items.map(item => `
-        <div class="item-card">
-          <div class="item-header">
-            <div class="item-title">${item.clientName} — ${item.serviceName}</div>
-            <span class="badge" style="background:#fef3c7;color:#92400e;">${formatDateFa(item.dateTime)}</span>
-          </div>
-          <div class="item-meta">
-            ${item.phone ? `${item.phone} | ` : ""}
-            ${item.notes || ""}
-          </div>
-          <div class="actions">
-            <button class="btn btn-success btn-sm" onclick="sendWhatsAppById('refills', '${item.id}')">واتساپ</button>
-            <button class="btn btn-accent btn-sm" onclick="sendSmsById('refills', '${item.id}')">پیامک</button>
-            <button class="btn btn-soft btn-sm" onclick="copyById('refills', '${item.id}')">کپی</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteItem('refills', '${item.id}')">حذف</button>
+      <div class="card">
+        <div class="cal-header">
+          <div class="cal-month-title" id="calMonthYear">آبان ۱۴۰۵</div>
+          <div class="cal-nav">
+            <button class="btn-pill" onclick="changeMonth(-1)">ماه قبل</button>
+            <button class="btn-pill" onclick="goToday()">امروز</button>
+            <button class="btn-pill" onclick="changeMonth(1)">ماه بعد</button>
           </div>
         </div>
-      `).join("");
+        <div class="weekdays-row">
+          <div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div>
+        </div>
+        <div class="days-grid" id="calendarGrid"></div>
+      </div>
+
+      <!-- Custom Appointment Booking (نوبت‌دهی دلخواه) -->
+      <div class="card" id="customBookingCard">
+        <div class="section-head">
+          <div class="section-title">🗓️ نوبت‌دهی دلخواه و یادآوری زمانی</div>
+          <span style="font-size:0.73rem; color:var(--text-secondary);">ثبت تاریخ/ساعت یا تعداد روز دلخواه</span>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>نام مشتری *</label>
+            <input type="text" id="customBookName" class="form-control" placeholder="نام مشتری..." />
+          </div>
+          <div class="form-group">
+            <label>شماره موبایل (برای ارسال پیام‌رسان)</label>
+            <input type="tel" id="customBookPhone" class="form-control" placeholder="0912..." dir="ltr" />
+          </div>
+          <div class="form-group">
+            <label>چند روز بعد از روز انتخاب‌شده؟</label>
+            <input type="number" id="customBookDays" class="form-control" min="0" max="365" value="14" onchange="syncCustomDateFromDays()" />
+          </div>
+          <div class="form-group">
+            <label>ساعت دلخواه</label>
+            <input type="time" id="customBookTime" class="form-control" value="11:00" />
+          </div>
+          <div class="form-group full">
+            <label>نوع خدمت / توضیح نوبت دلخواه</label>
+            <input type="text" id="customBookService" class="form-control" placeholder="مثلاً ترمیم، مشاوره یا زمان دلخواه..." />
+          </div>
+          <div class="form-group">
+            <label>مبلغ (تومان)</label>
+            <input type="number" id="customBookPrice" class="form-control" placeholder="۰" />
+          </div>
+          <div class="form-group">
+            <label>هشدار</label>
+            <select id="customBookAlarm" class="form-control">
+              <option value="none">بدون هشدار</option>
+              <option value="0">سرِ ساعت</option>
+              <option value="15" selected>۱۵ دقیقه قبل</option>
+              <option value="60">۱ ساعت قبل</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-size:0.75rem; color:var(--accent); font-weight:700; margin-bottom:9px;" id="customTargetDatePreview">
+          تاریخ محاسبه‌شده نوبت دلخواه: —
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:7px;">
+          <button class="btn-primary" style="flex:1;" onclick="saveCustomAppointment(false)">✅ ثبت نوبت دلخواه</button>
+          <button class="btn-secondary" onclick="saveCustomAppointment(true)">📲 ثبت و ارسال در پیام‌رسان</button>
+          <button class="btn-secondary" onclick="resetCustomBookingForm()">🧹 خالی کردن فرم</button>
+        </div>
+      </div>
+
+      <!-- Selected Date Schedule -->
+      <div class="card">
+        <div class="section-head" style="padding-bottom:9px; border-bottom:1px solid var(--border-subtle);">
+          <div>
+            <div class="section-title" id="selectedDateLabel">برنامه روز انتخاب‌شده</div>
+            <div style="font-size:0.74rem; color:var(--text-secondary);" id="selectedDaySummary">جمع دریافتی: ۰ تومان</div>
+          </div>
+          <button class="btn-primary" onclick="openApptModal()">➕ ثبت نوبت</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ساعت</th>
+                <th>نام مشتری</th>
+                <th>نوع کار</th>
+                <th>مبلغ / مانده</th>
+                <th>هشدار</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+              </tr>
+            </thead>
+            <tbody id="dayAppointmentsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: NOTEBOOK & DAILY CHECKLIST ==================== -->
+    <section id="tab-notebook" class="tab-section">
+      <!-- Daily Quick To-Do Checklist -->
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">☑️ چک‌لیست کارهای روزانه</div>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+          <input type="text" id="newTodoInput" class="form-control" placeholder="کار جدید (مثلاً: خرید لوازم، تماس با مشتری)..." onkeydown="if(event.key==='Enter') addTodoItem()" />
+          <button class="btn-primary" onclick="addTodoItem()">➕</button>
+        </div>
+        <div id="todoListContainer" style="display:flex; flex-direction:column; gap:7px;"></div>
+      </div>
+
+      <!-- Full Notebook -->
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">📒 دفترچه یادداشت حرفه‌ای</div>
+          <button class="btn-primary" onclick="openNoteModal()">➕ یادداشت جدید</button>
+        </div>
+
+        <div class="form-group">
+          <input type="text" id="noteSearchInput" class="form-control" placeholder="🔎 جستجو در عنوان یا متن یادداشت‌ها..." oninput="renderNotebook()" />
+        </div>
+
+        <div class="filter-pills" id="noteCategoryFilters">
+          <button class="filter-pill active" onclick="setNoteFilter('all', this)">همه</button>
+          <button class="filter-pill" onclick="setNoteFilter('کاری و مشتریان', this)">کاری و مشتریان</button>
+          <button class="filter-pill" onclick="setNoteFilter('خرید و لوازم', this)">خرید و لوازم</button>
+          <button class="filter-pill" onclick="setNoteFilter('شخصی', this)">شخصی</button>
+          <button class="filter-pill" onclick="setNoteFilter('ایده و برنامه', this)">ایده و برنامه</button>
+        </div>
+
+        <div id="notesListContainer" style="display:flex; flex-direction:column; gap:9px;"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: FINANCE & PROFIT CALCULATOR ==================== -->
+    <section id="tab-finance" class="tab-section">
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">💰 حسابداری، درآمد و محاسبه سود</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-secondary" onclick="openFinanceModal('expense')">➖ هزینه</button>
+            <button class="btn-primary" onclick="openFinanceModal('income')">➕ درآمد</button>
+          </div>
+        </div>
+
+        <div class="filter-pills">
+          <button class="filter-pill active" onclick="setFinancePeriod('month', this)">این ماه شمسی</button>
+          <button class="filter-pill" onclick="setFinancePeriod('today', this)">امروز</button>
+          <button class="filter-pill" onclick="setFinancePeriod('all', this)">کل سوابق</button>
+        </div>
+
+        <div class="finance-hero">
+          <div class="fin-kpi">
+            <div class="fin-kpi-title">کل پول دریافتی (ناخالص)</div>
+            <div class="fin-kpi-val" style="color:var(--info);" id="finGrossIncome">۰ تومان</div>
+            <div class="fin-kpi-sub" id="finIncomeCount">۰ تراکنش</div>
+          </div>
+          <div class="fin-kpi">
+            <div class="fin-kpi-title">درصد پرداختی (سهم سالن/همکار)</div>
+            <div class="fin-kpi-val" style="color:var(--warning);" id="finTotalCommission">۰ تومان</div>
+            <div class="fin-kpi-sub">کسرشده از درآمدها</div>
+          </div>
+          <div class="fin-kpi">
+            <div class="fin-kpi-title">سایر هزینه‌ها</div>
+            <div class="fin-kpi-val" style="color:var(--danger);" id="finTotalExpenses">۰ تومان</div>
+            <div class="fin-kpi-sub" id="finExpenseCount">۰ مورد هزینه</div>
+          </div>
+          <div class="fin-kpi highlight">
+            <div class="fin-kpi-title">✨ سود خالص نهایی شما</div>
+            <div class="fin-kpi-val" style="color:var(--success);" id="finNetProfit">۰ تومان</div>
+            <div class="fin-kpi-sub" id="finProfitMargin">حاشیه سود: ۰٪</div>
+          </div>
+        </div>
+
+        <!-- Payment Method Breakdown -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:13px; text-align:center;">
+          <div style="background:var(--bg-input); padding:8px; border-radius:12px; font-size:0.73rem;">
+            <div style="color:var(--text-secondary);">💳 کارت‌به‌کارت</div>
+            <div style="font-weight:800; margin-top:2px;" id="payCardTotal">۰ ت</div>
+          </div>
+          <div style="background:var(--bg-input); padding:8px; border-radius:12px; font-size:0.73rem;">
+            <div style="color:var(--text-secondary);">🏧 کارت‌خوان</div>
+            <div style="font-weight:800; margin-top:2px;" id="payPosTotal">۰ ت</div>
+          </div>
+          <div style="background:var(--bg-input); padding:8px; border-radius:12px; font-size:0.73rem;">
+            <div style="color:var(--text-secondary);">💵 نقدی</div>
+            <div style="font-weight:800; margin-top:2px;" id="payCashTotal">۰ ت</div>
+          </div>
+        </div>
+
+        <!-- Quick Percentage Calculator -->
+        <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:16px; padding:11px; margin-bottom:13px;">
+          <div style="font-size:0.8rem; font-weight:800; color:var(--accent); margin-bottom:7px;">🧮 ماشین‌حساب فوری درصد و سهم</div>
+          <div class="form-grid" style="margin-bottom:7px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>مبلغ دریافتی (تومان)</label>
+              <input type="number" id="quickCalcAmount" class="form-control" placeholder="مثلاً: 1500000" oninput="runQuickCalc()" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>درصد کسری / سهم سالن (٪)</label>
+              <input type="number" id="quickCalcPercent" class="form-control" placeholder="مثلاً: 30" oninput="runQuickCalc()" />
+            </div>
+          </div>
+          <div class="split-preview-box" style="margin-bottom:0;">
+            <div>
+              <div class="split-item-lbl">درصد پرداختی</div>
+              <div class="split-item-val" style="color:var(--warning);" id="qcCommissionVal">۰ ت</div>
+            </div>
+            <div>
+              <div class="split-item-lbl">سهم خالص شما</div>
+              <div class="split-item-val" style="color:var(--success);" id="qcNetVal">۰ ت</div>
+            </div>
+            <div>
+              <div class="split-item-lbl">درصد سهم شما</div>
+              <div class="split-item-val" style="color:var(--accent);" id="qcMyPercentVal">۱۰۰٪</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ledger Header & Excel Export -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.83rem; font-weight:800;">📊 ریز تراکنش‌های مالی</span>
+          <button class="btn-secondary" style="padding:6px 10px; font-size:0.75rem;" onclick="exportFinanceCSV()">📥 خروجی اکسل (CSV)</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>تاریخ</th>
+                <th>شرح / روش پرداخت</th>
+                <th>مبلغ کل</th>
+                <th>درصد داده‌شده</th>
+                <th>سود خالص</th>
+                <th>حذف</th>
+              </tr>
+            </thead>
+            <tbody id="financeLedgerBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: CLIENTS & CUSTOM SERVICES ==================== -->
+    <section id="tab-clients" class="tab-section">
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">👥 پرونده مشتریان و سوابق</div>
+        </div>
+        <div class="form-group">
+          <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
+        </div>
+        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:9px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">✨ تعریف خدمات و تعرفه‌های شخصی</div>
+        </div>
+        <div class="form-grid" style="background:var(--bg-input); padding:11px; border-radius:14px; margin-bottom:12px;">
+          <div class="form-group full">
+            <label>عنوان خدمت</label>
+            <input type="text" id="newServiceName" class="form-control" placeholder="عنوان خدمت دلخواه..." />
+          </div>
+          <div class="form-group">
+            <label>قیمت پیش‌فرض (تومان)</label>
+            <input type="number" id="newServicePrice" class="form-control" placeholder="۰" />
+          </div>
+          <div class="form-group">
+            <label>درصد سالن/همکار (٪)</label>
+            <input type="number" id="newServiceComm" class="form-control" placeholder="۰" />
+          </div>
+          <div class="form-group full" style="margin-bottom:0;">
+            <button class="btn-primary" style="width:100%;" onclick="addCustomService()">➕ افزودن خدمت</button>
+          </div>
+        </div>
+        <div id="customServicesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: FULL PERSONALIZATION, SHARE & SECURITY ==================== -->
+    <section id="tab-settings" class="tab-section">
+
+      <!-- 1. Theme & Appearance Personalization -->
+      <div class="card" style="border:1.5px solid var(--accent);">
+        <div class="section-title" style="margin-bottom:10px;">🎨 شخصی‌سازی ظاهر، رنگ و فونت</div>
+
+        <div class="form-group">
+          <label>انتخاب پالت رنگی اختصاصی برنامه</label>
+          <div class="theme-swatches">
+            <button class="swatch-btn active" data-palette="gold" onclick="setAccentPalette('gold')">
+              <span class="swatch-circle" style="background:#d4af37;"></span>
+              <span>طلایی</span>
+            </button>
+            <button class="swatch-btn" data-palette="rosegold" onclick="setAccentPalette('rosegold')">
+              <span class="swatch-circle" style="background:#e5989b;"></span>
+              <span>رزگلد</span>
+            </button>
+            <button class="swatch-btn" data-palette="emerald" onclick="setAccentPalette('emerald')">
+              <span class="swatch-circle" style="background:#10b981;"></span>
+              <span>زمردی</span>
+            </button>
+            <button class="swatch-btn" data-palette="ocean" onclick="setAccentPalette('ocean')">
+              <span class="swatch-circle" style="background:#38bdf8;"></span>
+              <span>اقیانوسی</span>
+            </button>
+            <button class="swatch-btn" data-palette="royal" onclick="setAccentPalette('royal')">
+              <span class="swatch-circle" style="background:#a855f7;"></span>
+              <span>سلطنتی</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>انتخاب رنگ دلخواه سفارشی</label>
+            <input type="color" id="settingCustomHex" class="form-control" style="height:42px; padding:4px;" value="#d4af37" onchange="setCustomHexColor(this.value)" />
+          </div>
+          <div class="form-group">
+            <label>اندازه نوشته‌های برنامه</label>
+            <select id="settingFontScale" class="form-control" onchange="saveSettings()">
+              <option value="15px">کوچک و فشرده</option>
+              <option value="16px" selected>متوسط (استاندارد)</option>
+              <option value="17.5px">بزرگ و خوانا</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>نام نمایشی بالای برنامه (شخصی‌سازی برای هر کاربر)</label>
+          <input type="text" id="settingBrandName" class="form-control" placeholder="دستیار من" onchange="saveSettings()" />
+        </div>
+        <div class="form-group">
+          <label>زیرعنوان برنامه</label>
+          <input type="text" id="settingBrandSub" class="form-control" placeholder="مدیریت هوشمند نوبت‌دهی و مالی" onchange="saveSettings()" />
+        </div>
+        <div class="form-group">
+          <label>تغییر عکس پروفایل و لوگوی داخلی برنامه (آیکون صفحه گوشی ثابت می‌ماند)</label>
+          <div style="display:flex; gap:6px;">
+            <input type="file" accept="image/*" class="form-control" onchange="handleLogoUpload(event)" />
+            <button class="btn-secondary" onclick="resetInternalLogo()" title="بازگشت به لوگوی اصلی">پیش‌فرض</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Business & Financial Preferences -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:10px;">💼 تنظیمات کاری، مالی و پیامک</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>هدف سود خالص ماهانه (تومان)</label>
+            <input type="number" id="settingMonthlyGoal" class="form-control" placeholder="مثلاً: 50000000" onchange="saveSettings()" />
+          </div>
+          <div class="form-group">
+            <label>درصد پیش‌فرض سالن/همکار (٪)</label>
+            <input type="number" id="settingDefaultComm" class="form-control" placeholder="مثلاً: 0 یا 30" onchange="saveSettings()" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>متن قالب پیامک/واتساپ یادآوری (از {name}، {date}، {time}، {service} استفاده کنید)</label>
+          <textarea id="settingMsgTemplate" class="form-control" style="min-height:72px;" onchange="saveSettings()"></textarea>
+        </div>
+      </div>
+
+      <!-- 3. Backup, Clear User Entries & Offline Tools -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:10px;">💾 پشتیبان‌گیری، مدیریت داده‌ها و ابزارهای آفلاین</div>
+        <div style="font-size:0.76rem; color:var(--text-secondary); margin-bottom:10px; line-height:1.6;">
+          تمام اطلاعات شما به‌صورت کاملاً آفلاین در حافظه دستگاه ذخیره می‌شود و هیچ‌چیز به صورت خودکار پاک نمی‌شود؛ هر زمان بخواهید می‌توانید موارد ثبت‌شده را با اختیار خودتان حذف یا پاک کنید.
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+          <button class="btn-primary" style="grid-column:1 / -1;" onclick="checkForAppUpdate(true)">🔄 بررسی و نصب به‌روزرسانی خودکار</button>
+          <button class="btn-secondary" onclick="exportBackup()">💾 دانلود فایل پشتیبان</button>
+          <label class="btn-secondary" style="cursor:pointer;">
+            📂 بازیابی فایل پشتیبان
+            <input type="file" accept=".json" style="display:none;" onchange="importBackup(event)" />
+          </label>
+          <button class="btn-secondary" onclick="testAlarmSound()">🔔 تست زنگ هشدار</button>
+          <button class="btn-secondary" onclick="openShareModal()">📤 ارسال در پیام‌رسان</button>
+          <button class="btn-secondary" style="grid-column:1 / -1; color:var(--danger); border-color:rgba(239,68,68,0.4);" onclick="clearAllUserEntries()">🗑️ پاک کردن همه موارد نوشته‌شده و اضافه‌شده توسط من</button>
+        </div>
+      </div>
+
+      <!-- 4. Share App & APK Direct Download -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:8px;">📲 ارسال اپلیکیشن و لینک مستقیم APK</div>
+        <div class="share-link-card">
+          <div style="font-size:0.78rem; font-weight:800;">🌐 لینک نصب اپلیکیشن (اندروید و آیفون):</div>
+          <div class="url-display" id="appDirectUrlText">https://mmp1988.github.io/Dastyare-man/</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-primary" style="flex:1;" onclick="shareAppToFriends('web')">📤 ارسال برای دوستان</button>
+            <button class="btn-secondary" onclick="copyTextValue('appDirectUrlText', 'لینک کپی شد ✅')">کپی</button>
+          </div>
+        </div>
+        <div class="share-link-card" style="margin-bottom:0;">
+          <div style="font-size:0.78rem; font-weight:800;">📦 لینک مستقیم دانلود APK اندروید:</div>
+          <div class="url-display" id="apkDirectUrlText">https://github.com/mmp1988/Dastyare-man/releases/latest/download/Dastyare-man.apk</div>
+          <div class="form-group" style="margin-top:6px;">
+            <input type="url" id="settingCustomApkUrl" class="form-control" dir="ltr" placeholder="لینک سفارشی APK (اختیاری)..." onchange="saveSettings()" />
+          </div>
+          <div style="display:flex; gap:6px;">
+            <a class="btn-primary" style="flex:1; text-decoration:none;" id="directApkDownloadBtn" href="https://github.com/mmp1988/Dastyare-man/releases/latest/download/Dastyare-man.apk" target="_blank">⬇️ دانلود مستقیم APK</a>
+            <button class="btn-secondary" onclick="shareAppToFriends('apk')">ارسال لینک APK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Support -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:8px;">📩 ارتباط و پشتیبانی</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-input); padding:9px 12px; border-radius:12px; border:1px solid var(--border-color);">
+          <span style="font-weight:700; direction:ltr; color:var(--accent);">minamsvm@gmail.com</span>
+          <div style="display:flex; gap:6px;">
+            <button class="mini-btn" onclick="copyEmail()">کپی ایمیل</button>
+            <a class="mini-btn call" href="mailto:minamsvm@gmail.com?subject=پشتیبانی اپلیکیشن دستیار من">ایمیل</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Floating Quick Action Button -->
+  <div class="fab-menu" id="fabMenu">
+    <button class="btn-primary" onclick="toggleFabMenu(); openApptModal();">📅 ثبت نوبت سریع</button>
+    <button class="btn-primary" onclick="toggleFabMenu(); openFinanceModal('income');">💰 ثبت درآمد سریع</button>
+    <button class="btn-primary" onclick="toggleFabMenu(); openNoteModal();">📒 یادداشت سریع</button>
+  </div>
+  <button class="fab-btn" onclick="toggleFabMenu()" title="دسترسی سریع">+</button>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="nav-inner">
+      <button class="nav-item active" onclick="switchTab('calendar', this)">
+        <span class="nav-icon">📅</span>
+        <span>تقویم و نوبت</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('notebook', this)">
+        <span class="nav-icon">📒</span>
+        <span>یادداشت‌ها</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('finance', this)">
+        <span class="nav-icon">💰</span>
+        <span>درآمد و سود</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('clients', this)">
+        <span class="nav-icon">👥</span>
+        <span>مشتریان</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('settings', this)">
+        <span class="nav-icon">🎨</span>
+        <span>شخصی‌سازی</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== MODAL 1: APPOINTMENT ==================== -->
+  <div class="modal-backdrop" id="apptModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="apptModalTitle">ثبت نوبت جدید</div>
+        <button class="icon-btn" onclick="closeModal('apptModal')">✕</button>
+      </div>
+      <input type="hidden" id="editApptId" />
+
+      <div id="quickServiceChipsWrap" style="margin-bottom:9px; display:none;">
+        <div style="font-size:0.73rem; color:var(--text-secondary); margin-bottom:4px;">انتخاب سریع خدمت:</div>
+        <div id="quickServiceChips"></div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>نام و نام خانوادگی مشتری *</label>
+          <div class="voice-wrap">
+            <input type="text" id="apptClientName" class="form-control" placeholder="نام مشتری..." />
+            <button type="button" class="voice-btn" id="voiceNameBtn" onclick="startVoiceInput('apptClientName', 'voiceNameBtn')">🎤 گفتار</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>شماره موبایل مشتری</label>
+          <input type="tel" id="apptPhone" class="form-control" placeholder="0912..." dir="ltr" />
+        </div>
+        <div class="form-group">
+          <label>ساعت نوبت *</label>
+          <input type="time" id="apptTime" class="form-control" value="10:00" onchange="checkTimeConflict()" />
+        </div>
+        <div class="form-group full">
+          <label>نوع خدمت / کار</label>
+          <div class="voice-wrap">
+            <input type="text" id="apptService" class="form-control" placeholder="توضیحات کار..." />
+            <button type="button" class="voice-btn" id="voiceServiceBtn" onclick="startVoiceInput('apptService', 'voiceServiceBtn')">🎤 گفتار</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>مبلغ کل (تومان)</label>
+          <input type="number" id="apptPrice" class="form-control" placeholder="۰" />
+        </div>
+        <div class="form-group">
+          <label>مبلغ بیعانه دریافتی (تومان)</label>
+          <input type="number" id="apptDeposit" class="form-control" placeholder="۰" />
+        </div>
+        <div class="form-group">
+          <label>درصد سهم سالن/همکار (٪)</label>
+          <input type="number" id="apptCommPercent" class="form-control" placeholder="۰" />
+        </div>
+        <div class="form-group">
+          <label>روش پرداخت</label>
+          <select id="apptPayMethod" class="form-control">
+            <option value="کارت‌به‌کارت">💳 کارت‌به‌کارت</option>
+            <option value="کارت‌خوان">🏧 کارت‌خوان</option>
+            <option value="نقدی">💵 نقدی</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>زنگ هشدار یادآوری</label>
+          <select id="apptAlarm" class="form-control">
+            <option value="none">بدون زنگ هشدار</option>
+            <option value="0">سرِ ساعت نوبت</option>
+            <option value="5">۵ دقیقه قبل</option>
+            <option value="15" selected>۱۵ دقیقه قبل</option>
+            <option value="30">۳۰ دقیقه قبل</option>
+            <option value="60">۱ ساعت قبل</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>رزرو خودکار نوبت ترمیم بعدی</label>
+          <select id="apptNextFollowup" class="form-control">
+            <option value="0">بدون نوبت ترمیم</option>
+            <option value="14">۲ هفته بعد (۱۴ روز)</option>
+            <option value="21">۳ هفته بعد (۲۱ روز)</option>
+            <option value="28">۴ هفته بعد (۲۸ روز)</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>وضعیت نوبت</label>
+          <select id="apptStatus" class="form-control">
+            <option value="pending">در انتظار مراجعه</option>
+            <option value="done">انجام شد (ثبت خودکار در درآمد و سود)</option>
+            <option value="canceled">لغو شد</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="conflictWarningBox" style="display:none; background:rgba(239,68,68,0.14); border:1px solid var(--danger); color:var(--danger); padding:8px 12px; border-radius:11px; font-size:0.78rem; margin-bottom:10px;">
+        ⚠️ هشدار: در این ساعت نوبت دیگری ثبت شده است!
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button class="btn-primary" style="flex:1;" onclick="saveAppointment()">✅ ذخیره نوبت</button>
+        <button class="btn-secondary" onclick="closeModal('apptModal')">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: NOTEBOOK ==================== -->
+  <div class="modal-backdrop" id="noteModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="noteModalTitle">یادداشت جدید</div>
+        <button class="icon-btn" onclick="closeModal('noteModal')">✕</button>
+      </div>
+      <input type="hidden" id="editNoteId" />
+      <div class="form-group">
+        <label>عنوان یادداشت *</label>
+        <div class="voice-wrap">
+          <input type="text" id="noteTitleInput" class="form-control" placeholder="عنوان یادداشت..." />
+          <button type="button" class="voice-btn" id="voiceNoteTitleBtn" onclick="startVoiceInput('noteTitleInput', 'voiceNoteTitleBtn')">🎤 گفتار</button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>دسته‌بندی</label>
+          <select id="noteCatInput" class="form-control">
+            <option value="کاری و مشتریان">کاری و مشتریان</option>
+            <option value="خرید و لوازم">خرید و لوازم</option>
+            <option value="شخصی">شخصی</option>
+            <option value="ایده و برنامه">ایده و برنامه</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>سنجاق کردن</label>
+          <select id="notePinInput" class="form-control">
+            <option value="no">عادی</option>
+            <option value="yes">📌 پین شود (مهم)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>متن یادداشت *</label>
+        <textarea id="noteBodyInput" class="form-control" placeholder="متن یادداشت..."></textarea>
+        <button type="button" class="voice-btn" style="margin-top:6px; width:100%;" id="voiceNoteBodyBtn" onclick="startVoiceInput('noteBodyInput', 'voiceNoteBodyBtn')">🎤 تبدیل گفتار به متن یادداشت</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-primary" style="flex:1;" onclick="saveNote()">✅ ذخیره یادداشت</button>
+        <button class="btn-secondary" onclick="closeModal('noteModal')">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: FINANCE ==================== -->
+  <div class="modal-backdrop" id="financeModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="finModalTitle">ثبت تراکنش مالی</div>
+        <button class="icon-btn" onclick="closeModal('financeModal')">✕</button>
+      </div>
+      <input type="hidden" id="finTypeInput" value="income" />
+      <div class="form-group">
+        <label id="finTitleLabel">شرح درآمد / نام مشتری *</label>
+        <input type="text" id="finTitleInput" class="form-control" placeholder="شرح..." />
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label id="finAmountLabel">مبلغ کل (تومان) *</label>
+          <input type="number" id="finAmountInput" class="form-control" placeholder="۰" oninput="updateFinModalPreview()" />
+        </div>
+        <div class="form-group" id="finCommGroup">
+          <label>درصد سالن/همکار (٪)</label>
+          <input type="number" id="finCommInput" class="form-control" placeholder="مثلاً: 30" oninput="updateFinModalPreview()" />
+        </div>
+      </div>
+      <div class="split-preview-box" id="finModalPreviewBox">
+        <div>
+          <div class="split-item-lbl">کل پول دریافتی</div>
+          <div class="split-item-val" style="color:var(--info);" id="prevGross">۰ ت</div>
+        </div>
+        <div>
+          <div class="split-item-lbl">درصد پرداختی</div>
+          <div class="split-item-val" style="color:var(--warning);" id="prevComm">۰ ت</div>
+        </div>
+        <div>
+          <div class="split-item-lbl">سود خالص شما</div>
+          <div class="split-item-val" style="color:var(--success);" id="prevNet">۰ ت</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>روش پرداخت</label>
+          <select id="finPayMethodInput" class="form-control">
+            <option value="کارت‌به‌کارت">💳 کارت‌به‌کارت</option>
+            <option value="کارت‌خوان">🏧 کارت‌خوان</option>
+            <option value="نقدی">💵 نقدی</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>یادداشت (اختیاری)</label>
+          <input type="text" id="finNoteInput" class="form-control" placeholder="توضیحات..." />
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-primary" style="flex:1;" onclick="saveFinanceTx()">✅ ثبت در حسابداری</button>
+        <button class="btn-secondary" onclick="closeModal('financeModal')">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 4: SHARE APP & APK ==================== -->
+  <div class="modal-backdrop" id="shareModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">📤 ارسال اپلیکیشن و لینک مستقیم APK</div>
+        <button class="icon-btn" onclick="closeModal('shareModal')">✕</button>
+      </div>
+      <div class="share-link-card">
+        <div style="font-size:0.8rem; font-weight:800; color:var(--accent);">۱. لینک مستقیم نصب سریع (آیفون و اندروید)</div>
+        <div class="url-display" id="modalWebUrl">https://mmp1988.github.io/Dastyare-man/</div>
+        <div style="display:flex; gap:7px;">
+          <button class="btn-primary" style="flex:1;" onclick="shareAppToFriends('web')">📲 ارسال برای دوستان</button>
+          <button class="btn-secondary" onclick="copyTextValue('modalWebUrl', 'لینک اپلیکیشن کپی شد ✅')">کپی لینک</button>
+        </div>
+      </div>
+      <div class="share-link-card" style="margin-bottom:0;">
+        <div style="font-size:0.8rem; font-weight:800; color:var(--accent);">۲. لینک مستقیم دانلود فایل APK اندروید</div>
+        <div class="url-display" id="modalApkUrl">https://github.com/mmp1988/Dastyare-man/releases/latest/download/Dastyare-man.apk</div>
+        <div style="display:flex; gap:7px;">
+          <a class="btn-primary" style="flex:1; text-decoration:none;" id="modalApkDownloadLink" href="https://github.com/mmp1988/Dastyare-man/releases/latest/download/Dastyare-man.apk" target="_blank">⬇️ دانلود مستقیم APK</a>
+          <button class="btn-secondary" onclick="shareAppToFriends('apk')">ارسال لینک APK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alarm Ringing Modal -->
+  <div class="modal-backdrop" id="alarmRingingModal" style="z-index:200;">
+    <div class="modal-box" style="text-align:center; border:2px solid var(--accent);">
+      <div style="font-size:2.6rem; margin-bottom:8px;">⏰</div>
+      <div class="modal-title" style="font-size:1.15rem; margin-bottom:6px;">یادآور نوبت مشتری</div>
+      <div id="alarmRingingText" style="font-size:0.92rem; line-height:1.7; margin-bottom:15px;"></div>
+      <button class="btn-primary" style="width:100%;" onclick="stopAlarm()">باشه، متوجه شدم</button>
+    </div>
+  </div>
+
+  <script>
+    // --- JALALI CALENDAR ENGINE ---
+    function gregorianToJalali(gy, gm, gd) {
+      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+      let jy = (gy <= 1600) ? 0 : 979;
+      gy -= (gy <= 1600) ? 621 : 1600;
+      const gy2 = (gm > 2) ? (gy + 1) : gy;
+      let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) +
+                 Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+      jy += 33 * Math.floor(days / 12053);
+      days %= 12053;
+      jy += 4 * Math.floor(days / 1461);
+      days %= 1461;
+      jy += Math.floor((days - 1) / 365);
+      if (days > 365) days = (days - 1) % 365;
+      const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+      const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+      return [jy, jm, jd];
     }
 
-    function findItem(source, id) {
-      const key = source === "refills" ? STORAGE_KEYS.REFILLS : STORAGE_KEYS.APPOINTMENTS;
-      const list = loadData(key, []);
-      return list.find(x => x.id === id);
+    function jalaliToGregorian(jy, jm, jd) {
+      jy += 1595;
+      let days = -355668 + (365 * jy) + (Math.floor(jy / 33) * 8) + Math.floor(((jy % 33) + 3) / 4) +
+                 jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+      let gy = 400 * Math.floor(days / 146097);
+      days %= 146097;
+      if (days > 36524) {
+        gy += 100 * Math.floor(--days / 36524);
+        days %= 36524;
+        if (days >= 365) days++;
+      }
+      gy += 4 * Math.floor(days / 1461);
+      days %= 1461;
+      if (days > 365) {
+        gy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+      }
+      let gd = days + 1;
+      const sal_a = [0, 31, ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      let gm;
+      for (gm = 1; gm <= 12 && gd > sal_a[gm]; gm++) gd -= sal_a[gm];
+      return [gy, gm, gd];
     }
 
-    window.sendWhatsAppById = (source, id) => {
-      const item = findItem(source, id);
-      if (item) sendWhatsApp(item);
-    };
-
-    window.sendSmsById = (source, id) => {
-      const item = findItem(source, id);
-      if (item) sendSms(item);
-    };
-
-    window.copyById = (source, id) => {
-      const item = findItem(source, id);
-      if (item) copyMessage(item);
-    };
-
-    window.deleteItem = (source, id) => {
-      const key = source === "refills" ? STORAGE_KEYS.REFILLS : STORAGE_KEYS.APPOINTMENTS;
-      const next = loadData(key, []).filter(x => x.id !== id);
-      saveData(key, next);
-      renderAppointments();
-      renderRefills();
-      showToast("حذف شد");
-    };
-
-    window.moveToRefill = (id) => {
-      const appts = loadData(STORAGE_KEYS.APPOINTMENTS, []);
-      const target = appts.find(x => x.id === id);
-      if (!target) return;
-      const refills = loadData(STORAGE_KEYS.REFILLS, []);
-      refills.unshift(target);
-      saveData(STORAGE_KEYS.REFILLS, refills);
-      renderRefills();
-      showToast("به لیست ترمیم منتقل شد");
-    };
-
-    document.getElementById("appointmentForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const payload = getFormPayload();
-      if (!payload.clientName || !payload.serviceName || !payload.dateTime) return;
-      const appts = loadData(STORAGE_KEYS.APPOINTMENTS, []);
-      appts.unshift(payload);
-      saveData(STORAGE_KEYS.APPOINTMENTS, appts);
-      renderAppointments();
-      e.target.reset();
-      showToast("ثبت شد");
-    });
-
-    document.getElementById("sendToRefillBtn").addEventListener("click", () => {
-      const payload = getFormPayload();
-      if (!payload.clientName || !payload.serviceName) return;
-      const refills = loadData(STORAGE_KEYS.REFILLS, []);
-      refills.unshift(payload);
-      saveData(STORAGE_KEYS.REFILLS, refills);
-      renderRefills();
-      showToast("به لیست ترمیم ارسال شد");
-    });
-
-    function loadSettingsUI() {
-      const s = loadData(STORAGE_KEYS.SETTINGS, defaultSettings);
-      document.getElementById("brandNameInput").value = s.brandName ?? defaultSettings.brandName;
-      document.getElementById("optShowPrice").checked = Boolean(s.showPrice);
-      document.getElementById("optShowDeposit").checked = Boolean(s.showDeposit);
-      document.getElementById("optShowRemaining").checked = Boolean(s.showRemaining);
-      document.getElementById("customFooter").value = s.footer ?? "";
-      document.getElementById("salonTitleDisplay").textContent = "دستیار من";
-      document.getElementById("salonSubDisplay").textContent = s.brandName ?? defaultSettings.brandName;
+    function addDaysToJalaliKey(dateKey, deltaDays) {
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const [gy, gm, gd] = jalaliToGregorian(y, m, d);
+      const dt = new Date(gy, gm - 1, gd + deltaDays);
+      const j = gregorianToJalali(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
+      return `${j[0]}-${pad2(j[1])}-${pad2(j[2])}`;
     }
 
-    document.getElementById("saveSettingsBtn").addEventListener("click", () => {
-      const s = {
-        brandName: document.getElementById("brandNameInput").value.trim(),
-        showPrice: document.getElementById("optShowPrice").checked,
-        showDeposit: document.getElementById("optShowDeposit").checked,
-        showRemaining: document.getElementById("optShowRemaining").checked,
-        footer: document.getElementById("customFooter").value.trim()
+    function isJalaliLeap(jy) {
+      const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+      let jp = breaks[0], jump = 0;
+      for (let i = 1; i < breaks.length; i++) {
+        const jm = breaks[i];
+        jump = jm - jp;
+        if (jy < jm) break;
+        jp = jm;
+      }
+      let n = jy - jp;
+      if (jump - n < 6) n = n - jump + Math.floor((jump + 4) / 33) * 33;
+      let leap = (((n + 1) % 33) - 1) % 4;
+      if (leap === -1) leap = 4;
+      return leap === 0;
+    }
+
+    function jalaliMonthDays(jy, jm) {
+      if (jm <= 6) return 31;
+      if (jm <= 11) return 30;
+      return isJalaliLeap(jy) ? 30 : 29;
+    }
+
+    const JALALI_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    const WEEKDAY_NAMES = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
+
+    function toPersianDigits(str) { return String(str).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
+    function formatMoney(num) { return toPersianDigits(Math.round(Number(num) || 0).toLocaleString('en-US')); }
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function getIranNow() {
+      const now = new Date();
+      return new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3.5 * 3600000));
+    }
+    function getTodayKey() {
+      const now = getIranNow();
+      const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      return `${j[0]}-${pad2(j[1])}-${pad2(j[2])}`;
+    }
+
+    // --- PALETTES ---
+    const PALETTES = {
+      gold:     { accent: '#d4af37', light: '#f3d474', dark: '#a6821c', glow: 'rgba(212, 175, 55, 0.20)', border: 'rgba(212, 175, 55, 0.28)' },
+      rosegold: { accent: '#e5989b', light: '#ffb4a2', dark: '#b5838d', glow: 'rgba(229, 152, 155, 0.20)', border: 'rgba(229, 152, 155, 0.30)' },
+      emerald:  { accent: '#10b981', light: '#6ee7b7', dark: '#047857', glow: 'rgba(16, 185, 129, 0.20)', border: 'rgba(16, 185, 129, 0.30)' },
+      ocean:    { accent: '#38bdf8', light: '#7dd3fc', dark: '#0284c7', glow: 'rgba(56, 189, 248, 0.20)', border: 'rgba(56, 189, 248, 0.30)' },
+      royal:    { accent: '#a855f7', light: '#d8b4fe', dark: '#7e22ce', glow: 'rgba(168, 85, 247, 0.20)', border: 'rgba(168, 85, 247, 0.30)' }
+    };
+
+    // --- STORAGE & STATE ---
+    const STORAGE_KEY = 'dastyare_man_final_v7';
+    const DEFAULT_WEB_URL = 'https://mmp1988.github.io/Dastyare-man/';
+    const DEFAULT_APK_URL = 'https://github.com/mmp1988/Dastyare-man/releases/latest/download/Dastyare-man.apk';
+
+    let appData = {
+      appointments: [],
+      notes: [],
+      todos: [],
+      transactions: [],
+      services: [],
+      clientNotes: {},
+      settings: {
+        brandName: 'دستیار من',
+        brandSub: 'مدیریت هوشمند نوبت‌دهی و مالی',
+        msgTemplate: 'سلام {name} عزیز 🌸\nیادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).\nمنتظر دیدار شما هستیم ✨',
+        defaultComm: 0,
+        monthlyGoal: 0,
+        appPin: '',
+        customApkUrl: '',
+        theme: 'dark',
+        palette: 'gold',
+        customHex: '#d4af37',
+        fontScale: '16px',
+        customLogo: ''
+      }
+    };
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('dastyare_man_v5_data') || localStorage.getItem('dastyare_man_data_v3');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          appData = {
+            ...appData,
+            ...parsed,
+            notes: parsed.notes || [],
+            todos: parsed.todos || [],
+            transactions: parsed.transactions || [],
+            services: parsed.services || [],
+            settings: { ...appData.settings, ...(parsed.settings || {}) }
+          };
+        }
+      } catch (e) {}
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      updateDashboardStats();
+    }
+
+    // --- CALENDAR ---
+    const iranInit = getIranNow();
+    const todayJalali = gregorianToJalali(iranInit.getFullYear(), iranInit.getMonth() + 1, iranInit.getDate());
+    let viewYear = todayJalali[0];
+    let viewMonth = todayJalali[1];
+    let selectedDateKey = getTodayKey();
+
+    function formatJalaliFull(dateKey) {
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const [gy, gm, gd] = jalaliToGregorian(y, m, d);
+      const wd = WEEKDAY_NAMES[new Date(gy, gm - 1, gd).getDay()];
+      return `${wd} ${toPersianDigits(d)} ${JALALI_MONTHS[m - 1]} ${toPersianDigits(y)}`;
+    }
+
+    function renderCalendar() {
+      document.getElementById('calMonthYear').textContent = `${JALALI_MONTHS[viewMonth - 1]} ${toPersianDigits(viewYear)}`;
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const [gy, gm, gd] = jalaliToGregorian(viewYear, viewMonth, 1);
+      const startOffset = (new Date(gy, gm - 1, gd).getDay() + 1) % 7;
+      const totalDays = jalaliMonthDays(viewYear, viewMonth);
+
+      for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'day-cell empty';
+        grid.appendChild(empty);
+      }
+
+      const todayKey = getTodayKey();
+      for (let d = 1; d <= totalDays; d++) {
+        const dateKey = `${viewYear}-${pad2(viewMonth)}-${pad2(d)}`;
+        const cell = document.createElement('div');
+        const colIndex = (startOffset + d - 1) % 7;
+        cell.className = 'day-cell';
+        if (colIndex === 6) cell.classList.add('friday');
+        if (dateKey === todayKey) cell.classList.add('today');
+        if (dateKey === selectedDateKey) cell.classList.add('selected');
+
+        const dayAppts = appData.appointments.filter(a => a.dateKey === dateKey && a.status !== 'canceled');
+        cell.innerHTML = `
+          <span class="day-num">${toPersianDigits(d)}</span>
+          ${dayAppts.length > 0 ? `<span class="day-badge">${toPersianDigits(dayAppts.length)}</span>` : ''}
+        `;
+        cell.onclick = () => { selectedDateKey = dateKey; renderCalendar(); renderDaySchedule(); };
+        grid.appendChild(cell);
+      }
+    }
+
+    function changeMonth(delta) {
+      viewMonth += delta;
+      if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+      if (viewMonth < 1) { viewMonth = 12; viewYear--; }
+      renderCalendar();
+    syncCustomDateFromDays();
+      updateDashboardStats();
+    }
+
+    function goToday() {
+      const now = getIranNow();
+      const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      viewYear = j[0]; viewMonth = j[1]; selectedDateKey = getTodayKey();
+      renderCalendar(); renderDaySchedule(); updateDashboardStats();
+    }
+
+    // --- DAY SCHEDULE & RECEIPT CARD ---
+    function renderDaySchedule() {
+      document.getElementById('selectedDateLabel').textContent = `برنامه ${formatJalaliFull(selectedDateKey)}`;
+      const tbody = document.getElementById('dayAppointmentsBody');
+      const list = appData.appointments.filter(a => a.dateKey === selectedDateKey).sort((a, b) => a.time.localeCompare(b.time));
+
+      let totalIncome = 0, totalDeposit = 0;
+      list.forEach(a => {
+        if (a.status !== 'canceled') {
+          totalIncome += Number(a.price) || 0;
+          totalDeposit += Number(a.deposit) || 0;
+        }
+      });
+
+      document.getElementById('selectedDaySummary').textContent =
+        `جمع کل: ${formatMoney(totalIncome)} ت | بیعانه: ${formatMoney(totalDeposit)} ت | مانده: ${formatMoney(Math.max(0, totalIncome - totalDeposit))} ت`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-secondary);">نوبتی برای این تاریخ ثبت نشده است.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(appt => {
+        const statusMap = {
+          pending: ['در انتظار', 'status-pending'],
+          done: ['انجام شد', 'status-done'],
+          canceled: ['لغو شد', 'status-canceled']
+        };
+        const [stLabel, stClass] = statusMap[appt.status || 'pending'];
+        const alarmLabel = appt.alarm === 'none' ? 'خاموش' : (appt.alarm === '0' ? 'سرِ ساعت' : `${toPersianDigits(appt.alarm)} د قبل`);
+        const cleanPhone = (appt.phone || '').replace(/[^0-9]/g, '');
+        const waPhone = cleanPhone.startsWith('0') ? '98' + cleanPhone.slice(1) : cleanPhone;
+
+        const tpl = appData.settings.msgTemplate || 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
+        const formattedMsg = tpl
+          .replace(/\{name\}/g, appt.clientName)
+          .replace(/\{date\}/g, formatJalaliFull(appt.dateKey))
+          .replace(/\{time\}/g, toPersianDigits(appt.time))
+          .replace(/\{service\}/g, appt.service || 'خدمات');
+        const msgEncoded = encodeURIComponent(formattedMsg);
+
+        const rem = Math.max(0, (Number(appt.price) || 0) - (Number(appt.deposit) || 0));
+
+        return `
+          <tr>
+            <td style="font-weight:800; color:var(--accent); direction:ltr;">${toPersianDigits(appt.time)}</td>
+            <td style="font-weight:700;">
+              ${appt.clientName}
+              ${appt.phone ? `<div style="font-size:0.7rem; color:var(--text-secondary); direction:ltr;">${toPersianDigits(appt.phone)}</div>` : ''}
+            </td>
+            <td>${appt.service || '—'}</td>
+            <td>
+              <div>${formatMoney(appt.price)} ت</div>
+              ${Number(appt.deposit) > 0 ? `<div style="font-size:0.68rem; color:var(--success);">بیعانه: ${formatMoney(appt.deposit)} | مانده: ${formatMoney(rem)}</div>` : ''}
+            </td>
+            <td style="font-size:0.73rem;">🔔 ${alarmLabel}</td>
+            <td><span class="status-pill ${stClass}" onclick="cycleStatus('${appt.id}')">${stLabel}</span></td>
+            <td>
+              <div class="action-row">
+                <button class="mini-btn" onclick="downloadReceiptCard('${appt.id}')" title="دانلود کارت نوبت گرافیکی">🖼️</button>
+                ${cleanPhone ? `<a class="mini-btn call" href="tel:${cleanPhone}">📞</a>` : ''}
+                ${cleanPhone ? `<a class="mini-btn wa" href="https://wa.me/${waPhone}?text=${msgEncoded}" target="_blank">💬</a>` : ''}
+                ${cleanPhone ? `<a class="mini-btn sms" href="sms:${cleanPhone}?body=${msgEncoded}">✉️</a>` : ''}
+                <button class="mini-btn" onclick="openApptModal('${appt.id}')">✏️</button>
+                <button class="mini-btn del" onclick="deleteAppointment('${appt.id}')">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Graphical Appointment Receipt Generator (PNG)
+    function downloadReceiptCard(apptId) {
+      const appt = appData.appointments.find(a => a.id === apptId);
+      if (!appt) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 720; canvas.height = 460;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#0b0d12';
+      ctx.fillRect(0, 0, 720, 460);
+
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(20, 20, 680, 420);
+
+      ctx.fillStyle = '#d4af37';
+      ctx.font = 'bold 34px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(appData.settings.brandName || 'دستیار من', 360, 82);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '20px sans-serif';
+      ctx.fillText('کارت تایید رزرو نوبت', 360, 118);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText(`مشتری گرامی: ${appt.clientName}`, 360, 185);
+      ctx.fillText(`تاریخ: ${formatJalaliFull(appt.dateKey)}`, 360, 235);
+      ctx.fillText(`ساعت: ${toPersianDigits(appt.time)}`, 360, 285);
+      if (appt.service) ctx.fillText(`خدمت: ${appt.service}`, 360, 335);
+
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(`مبلغ کل: ${formatMoney(appt.price)} تومان | بیعانه: ${formatMoney(appt.deposit)} تومان`, 360, 395);
+
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nobat-${appt.clientName}.png`;
+      a.click();
+      showToast('کارت گرافیکی نوبت دانلود شد 🖼️');
+    }
+
+    function syncAppointmentToFinance(appt) {
+      appData.transactions = appData.transactions.filter(t => t.sourceApptId !== appt.id);
+      if (appt.status === 'done' && Number(appt.price) > 0) {
+        const gross = Number(appt.price) || 0;
+        const pct = Number(appt.commPercent) || 0;
+        const commAmt = Math.round((gross * pct) / 100);
+        appData.transactions.unshift({
+          id: 'tx_' + Date.now() + Math.random().toString(36).slice(2, 5),
+          type: 'income',
+          dateKey: appt.dateKey,
+          title: `${appt.clientName}${appt.service ? ` (${appt.service})` : ''}`,
+          amount: gross,
+          commPercent: pct,
+          commAmount: commAmt,
+          netAmount: gross - commAmt,
+          payMethod: appt.payMethod || 'کارت‌به‌کارت',
+          note: 'ثبت خودکار از نوبت انجام‌شده',
+          sourceApptId: appt.id
+        });
+      }
+    }
+
+    function cycleStatus(id) {
+      const item = appData.appointments.find(a => a.id === id);
+      if (!item) return;
+      const order = ['pending', 'done', 'canceled'];
+      item.status = order[(order.indexOf(item.status || 'pending') + 1) % order.length];
+      syncAppointmentToFinance(item);
+      saveData(); renderCalendar(); renderDaySchedule(); renderFinanceTab();
+      if (item.status === 'done' && Number(item.price) > 0) showToast('انجام شد و به حسابداری اضافه شد 💰');
+    }
+
+    function openApptModal(editId = null) {
+      document.getElementById('editApptId').value = editId || '';
+      document.getElementById('conflictWarningBox').style.display = 'none';
+      document.getElementById('apptNextFollowup').value = '0';
+
+      const chipsWrap = document.getElementById('quickServiceChipsWrap');
+      const chipsBox = document.getElementById('quickServiceChips');
+      if (appData.services.length > 0) {
+        chipsWrap.style.display = 'block';
+        chipsBox.innerHTML = appData.services.map(s => `<span class="service-chip" onclick="applyServiceChip('${s.id}')">${s.name}</span>`).join('');
+      } else {
+        chipsWrap.style.display = 'none';
+      }
+
+      if (editId) {
+        const appt = appData.appointments.find(a => a.id === editId);
+        if (!appt) return;
+        document.getElementById('apptModalTitle').textContent = 'ویرایش نوبت مشتری';
+        document.getElementById('apptClientName').value = appt.clientName || '';
+        document.getElementById('apptPhone').value = appt.phone || '';
+        document.getElementById('apptTime').value = appt.time || '10:00';
+        document.getElementById('apptService').value = appt.service || '';
+        document.getElementById('apptPrice').value = appt.price || '';
+        document.getElementById('apptDeposit').value = appt.deposit || '';
+        document.getElementById('apptCommPercent').value = appt.commPercent ?? appData.settings.defaultComm ?? 0;
+        document.getElementById('apptPayMethod').value = appt.payMethod || 'کارت‌به‌کارت';
+        document.getElementById('apptAlarm').value = appt.alarm || '15';
+        document.getElementById('apptStatus').value = appt.status || 'pending';
+      } else {
+        document.getElementById('apptModalTitle').textContent = `ثبت نوبت برای ${formatJalaliFull(selectedDateKey)}`;
+        document.getElementById('apptClientName').value = '';
+        document.getElementById('apptPhone').value = '';
+        document.getElementById('apptTime').value = '10:00';
+        document.getElementById('apptService').value = '';
+        document.getElementById('apptPrice').value = '';
+        document.getElementById('apptDeposit').value = '';
+        document.getElementById('apptCommPercent').value = appData.settings.defaultComm || 0;
+        document.getElementById('apptPayMethod').value = 'کارت‌به‌کارت';
+        document.getElementById('apptAlarm').value = '15';
+        document.getElementById('apptStatus').value = 'pending';
+      }
+      checkTimeConflict();
+      document.getElementById('apptModal').classList.add('open');
+    }
+
+    function applyServiceChip(serviceId) {
+      const s = appData.services.find(x => x.id === serviceId);
+      if (!s) return;
+      document.getElementById('apptService').value = s.name;
+      if (s.price) document.getElementById('apptPrice').value = s.price;
+      if (s.commPercent !== undefined) document.getElementById('apptCommPercent').value = s.commPercent;
+    }
+
+    function checkTimeConflict() {
+      const editId = document.getElementById('editApptId').value;
+      const t = document.getElementById('apptTime').value;
+      const hasConflict = appData.appointments.some(a => a.dateKey === selectedDateKey && a.id !== editId && a.status !== 'canceled' && a.time === t);
+      document.getElementById('conflictWarningBox').style.display = hasConflict ? 'block' : 'none';
+    }
+
+    function saveAppointment() {
+      const clientName = document.getElementById('apptClientName').value.trim();
+      const time = document.getElementById('apptTime').value;
+      if (!clientName) { showToast('نام مشتری را وارد کنید ⚠️'); return; }
+
+      const editId = document.getElementById('editApptId').value;
+      const payload = {
+        id: editId || ('appt_' + Date.now()),
+        dateKey: selectedDateKey,
+        time,
+        clientName,
+        phone: document.getElementById('apptPhone').value.trim(),
+        service: document.getElementById('apptService').value.trim(),
+        price: Number(document.getElementById('apptPrice').value) || 0,
+        deposit: Number(document.getElementById('apptDeposit').value) || 0,
+        commPercent: Number(document.getElementById('apptCommPercent').value) || 0,
+        payMethod: document.getElementById('apptPayMethod').value,
+        alarm: document.getElementById('apptAlarm').value,
+        status: document.getElementById('apptStatus').value,
+        notified: false
       };
-      saveData(STORAGE_KEYS.SETTINGS, s);
-      loadSettingsUI();
-      showToast("ذخیره شد");
-    });
 
-    document.getElementById("enableNotifBtn").addEventListener("click", async () => {
-      if (!("Notification" in window)) return;
-      const perm = await Notification.requestPermission();
-      showToast(perm === "granted" ? "اعلان فعال شد" : "فعال نشد");
-    });
+      if (editId) {
+        const idx = appData.appointments.findIndex(a => a.id === editId);
+        if (idx > -1) appData.appointments[idx] = payload;
+      } else {
+        appData.appointments.push(payload);
+      }
 
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        const target = btn.dataset.tab;
-        document.getElementById("tab-appointments").classList.toggle("hidden", target !== "appointments");
-        document.getElementById("tab-refill").classList.toggle("hidden", target !== "refill");
-        document.getElementById("tab-settings").classList.toggle("hidden", target !== "settings");
+      // Auto-schedule follow-up repair appointment if chosen
+      const followupDays = Number(document.getElementById('apptNextFollowup').value) || 0;
+      if (followupDays > 0) {
+        const nextDateKey = addDaysToJalaliKey(selectedDateKey, followupDays);
+        appData.appointments.push({
+          id: 'appt_fu_' + Date.now(),
+          dateKey: nextDateKey,
+          time,
+          clientName,
+          phone: payload.phone,
+          service: `ترمیم ${payload.service || 'نوبت قبلی'}`,
+          price: payload.price,
+          deposit: 0,
+          commPercent: payload.commPercent,
+          payMethod: payload.payMethod,
+          alarm: '60',
+          status: 'pending',
+          notified: false
+        });
+      }
+
+      syncAppointmentToFinance(payload);
+      saveData(); closeModal('apptModal'); renderCalendar(); renderDaySchedule(); renderFinanceTab();
+      showToast(followupDays > 0 ? 'نوبت و یادآور ترمیم بعدی ثبت شد ✨' : 'نوبت با موفقیت ذخیره شد ✨');
+    }
+
+    function deleteAppointment(id) {
+      if (!confirm('این نوبت حذف شود؟')) return;
+      appData.appointments = appData.appointments.filter(a => a.id !== id);
+      appData.transactions = appData.transactions.filter(t => t.sourceApptId !== id);
+      saveData(); renderCalendar(); renderDaySchedule(); renderFinanceTab();
+      showToast('نوبت حذف شد');
+    }
+
+    // ==================== TO-DO & NOTEBOOK ====================
+    function addTodoItem() {
+      const inp = document.getElementById('newTodoInput');
+      const text = inp.value.trim();
+      if (!text) return;
+      appData.todos.unshift({ id: 'td_' + Date.now(), text, done: false });
+      inp.value = '';
+      saveData(); renderTodos();
+    }
+    function toggleTodo(id) {
+      const t = appData.todos.find(x => x.id === id);
+      if (t) { t.done = !t.done; saveData(); renderTodos(); }
+    }
+    function deleteTodo(id) {
+      appData.todos = appData.todos.filter(x => x.id !== id);
+      saveData(); renderTodos();
+    }
+    function renderTodos() {
+      const c = document.getElementById('todoListContainer');
+      if (appData.todos.length === 0) {
+        c.innerHTML = `<div style="font-size:0.78rem; color:var(--text-secondary); text-align:center; padding:8px;">چک‌لیست خالی است.</div>`;
+        return;
+      }
+      c.innerHTML = appData.todos.map(t => `
+        <div class="todo-item ${t.done ? 'done' : ''}">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1; font-size:0.84rem;">
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')" />
+            <span>${t.text}</span>
+          </label>
+          <button class="mini-btn del" onclick="deleteTodo('${t.id}')">✕</button>
+        </div>
+      `).join('');
+    }
+
+    let activeNoteFilter = 'all';
+    function setNoteFilter(cat, btn) {
+      activeNoteFilter = cat;
+      document.querySelectorAll('#noteCategoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); renderNotebook();
+    }
+    function openNoteModal(editId = null) {
+      document.getElementById('editNoteId').value = editId || '';
+      if (editId) {
+        const n = appData.notes.find(x => x.id === editId);
+        if (!n) return;
+        document.getElementById('noteModalTitle').textContent = 'ویرایش یادداشت';
+        document.getElementById('noteTitleInput').value = n.title;
+        document.getElementById('noteCatInput').value = n.category;
+        document.getElementById('notePinInput').value = n.pinned ? 'yes' : 'no';
+        document.getElementById('noteBodyInput').value = n.body;
+      } else {
+        document.getElementById('noteModalTitle').textContent = 'یادداشت جدید';
+        document.getElementById('noteTitleInput').value = '';
+        document.getElementById('noteCatInput').value = 'کاری و مشتریان';
+        document.getElementById('notePinInput').value = 'no';
+        document.getElementById('noteBodyInput').value = '';
+      }
+      document.getElementById('noteModal').classList.add('open');
+    }
+    function saveNote() {
+      const title = document.getElementById('noteTitleInput').value.trim();
+      const body = document.getElementById('noteBodyInput').value.trim();
+      if (!title && !body) { showToast('متن یادداشت را بنویسید ⚠️'); return; }
+      const editId = document.getElementById('editNoteId').value;
+      const payload = {
+        id: editId || ('note_' + Date.now()),
+        title: title || 'یادداشت بدون عنوان',
+        category: document.getElementById('noteCatInput').value,
+        pinned: document.getElementById('notePinInput').value === 'yes',
+        body,
+        dateKey: getTodayKey()
+      };
+      if (editId) {
+        const idx = appData.notes.findIndex(n => n.id === editId);
+        if (idx > -1) appData.notes[idx] = payload;
+      } else {
+        appData.notes.unshift(payload);
+      }
+      saveData(); closeModal('noteModal'); renderNotebook(); showToast('یادداشت ذخیره شد 📒');
+    }
+    function togglePinNote(id) {
+      const n = appData.notes.find(x => x.id === id);
+      if (n) { n.pinned = !n.pinned; saveData(); renderNotebook(); }
+    }
+    function deleteNote(id) {
+      if (!confirm('حذف شود؟')) return;
+      appData.notes = appData.notes.filter(n => n.id !== id);
+      saveData(); renderNotebook();
+    }
+    function renderNotebook() {
+      const q = (document.getElementById('noteSearchInput').value || '').trim().toLowerCase();
+      const container = document.getElementById('notesListContainer');
+      let list = [...appData.notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+      if (activeNoteFilter !== 'all') list = list.filter(n => n.category === activeNoteFilter);
+      if (q) list = list.filter(n => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q));
+      if (list.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:22px; color:var(--text-secondary); font-size:0.82rem;">یادداشتی ثبت نشده است.</div>`;
+        return;
+      }
+      container.innerHTML = list.map(n => `
+        <div class="note-card ${n.pinned ? 'pinned' : ''}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:5px;">
+            <div>
+              <span class="note-cat-badge">${n.category}</span>
+              <span style="font-size:0.7rem; color:var(--text-muted); margin-right:5px;">${formatJalaliFull(n.dateKey)}</span>
+              <div style="font-weight:800; font-size:0.92rem; margin-top:3px;">${n.pinned ? '📌 ' : ''}${n.title}</div>
+            </div>
+            <div class="action-row">
+              <button class="mini-btn" onclick="togglePinNote('${n.id}')">📌</button>
+              <button class="mini-btn" onclick="openNoteModal('${n.id}')">✏️</button>
+              <button class="mini-btn del" onclick="deleteNote('${n.id}')">🗑️</button>
+            </div>
+          </div>
+          <div style="font-size:0.81rem; color:var(--text-secondary); white-space:pre-line; line-height:1.6;">${n.body}</div>
+        </div>
+      `).join('');
+    }
+
+    // ==================== FINANCE & EXCEL EXPORT ====================
+    let activeFinPeriod = 'month';
+    function setFinancePeriod(period, btn) {
+      activeFinPeriod = period;
+      document.querySelectorAll('#tab-finance .filter-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); renderFinanceTab();
+    }
+    function runQuickCalc() {
+      const amt = Number(document.getElementById('quickCalcAmount').value) || 0;
+      const pct = Math.min(100, Math.max(0, Number(document.getElementById('quickCalcPercent').value) || 0));
+      const comm = Math.round((amt * pct) / 100);
+      document.getElementById('qcCommissionVal').textContent = `${formatMoney(comm)} ت`;
+      document.getElementById('qcNetVal').textContent = `${formatMoney(amt - comm)} ت`;
+      document.getElementById('qcMyPercentVal').textContent = `${toPersianDigits(100 - pct)}٪`;
+    }
+    function openFinanceModal(type) {
+      document.getElementById('finTypeInput').value = type;
+      document.getElementById('finTitleInput').value = '';
+      document.getElementById('finAmountInput').value = '';
+      document.getElementById('finNoteInput').value = '';
+      if (type === 'income') {
+        document.getElementById('finModalTitle').textContent = '➕ ثبت درآمد و محاسبه درصد';
+        document.getElementById('finTitleLabel').textContent = 'شرح درآمد / نام مشتری *';
+        document.getElementById('finAmountLabel').textContent = 'مبلغ کل دریافتی (تومان) *';
+        document.getElementById('finCommGroup').style.display = 'flex';
+        document.getElementById('finModalPreviewBox').style.display = 'grid';
+        document.getElementById('finCommInput').value = appData.settings.defaultComm || 0;
+      } else {
+        document.getElementById('finModalTitle').textContent = '➖ ثبت هزینه';
+        document.getElementById('finTitleLabel').textContent = 'عنوان هزینه *';
+        document.getElementById('finAmountLabel').textContent = 'مبلغ هزینه (تومان) *';
+        document.getElementById('finCommGroup').style.display = 'none';
+        document.getElementById('finModalPreviewBox').style.display = 'none';
+      }
+      updateFinModalPreview();
+      document.getElementById('financeModal').classList.add('open');
+    }
+    function updateFinModalPreview() {
+      const gross = Number(document.getElementById('finAmountInput').value) || 0;
+      const pct = Math.min(100, Math.max(0, Number(document.getElementById('finCommInput').value) || 0));
+      const comm = Math.round((gross * pct) / 100);
+      document.getElementById('prevGross').textContent = `${formatMoney(gross)} ت`;
+      document.getElementById('prevComm').textContent = `${formatMoney(comm)} ت`;
+      document.getElementById('prevNet').textContent = `${formatMoney(gross - comm)} ت`;
+    }
+    function saveFinanceTx() {
+      const type = document.getElementById('finTypeInput').value;
+      const title = document.getElementById('finTitleInput').value.trim();
+      const amount = Number(document.getElementById('finAmountInput').value) || 0;
+      if (!title || amount <= 0) { showToast('عنوان و مبلغ معتبر وارد کنید ⚠️'); return; }
+      const pct = type === 'income' ? Math.min(100, Math.max(0, Number(document.getElementById('finCommInput').value) || 0)) : 0;
+      const commAmt = type === 'income' ? Math.round((amount * pct) / 100) : 0;
+      appData.transactions.unshift({
+        id: 'tx_' + Date.now(),
+        type,
+        dateKey: selectedDateKey || getTodayKey(),
+        title,
+        amount,
+        commPercent: pct,
+        commAmount: commAmt,
+        netAmount: type === 'income' ? (amount - commAmt) : -amount,
+        payMethod: document.getElementById('finPayMethodInput').value,
+        note: document.getElementById('finNoteInput').value.trim()
       });
-    });
+      saveData(); closeModal('financeModal'); renderFinanceTab();
+      showToast('در دفتر حسابداری ثبت شد 💰');
+    }
+    function deleteFinanceTx(id) {
+      if (!confirm('حذف شود؟')) return;
+      appData.transactions = appData.transactions.filter(t => t.id !== id);
+      saveData(); renderFinanceTab();
+    }
+    function getFilteredTransactions() {
+      const todayKey = getTodayKey();
+      const monthPrefix = `${viewYear}-${pad2(viewMonth)}-`;
+      if (activeFinPeriod === 'today') return appData.transactions.filter(t => t.dateKey === todayKey);
+      if (activeFinPeriod === 'month') return appData.transactions.filter(t => t.dateKey.startsWith(monthPrefix));
+      return appData.transactions;
+    }
+    function renderFinanceTab() {
+      const list = getFilteredTransactions();
+      let grossIncome = 0, totalComm = 0, totalExpenses = 0, incomeCount = 0, expenseCount = 0;
+      let payCard = 0, payPos = 0, payCash = 0;
 
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      list.forEach(t => {
+        if (t.type === 'income') {
+          grossIncome += Number(t.amount) || 0;
+          totalComm += Number(t.commAmount) || 0;
+          incomeCount++;
+          if (t.payMethod === 'کارت‌خوان') payPos += Number(t.amount) || 0;
+          else if (t.payMethod === 'نقدی') payCash += Number(t.amount) || 0;
+          else payCard += Number(t.amount) || 0;
+        } else {
+          totalExpenses += Number(t.amount) || 0;
+          expenseCount++;
+        }
+      });
+
+      const netProfit = grossIncome - totalComm - totalExpenses;
+      const margin = grossIncome > 0 ? Math.round((netProfit / grossIncome) * 100) : 0;
+
+      document.getElementById('finGrossIncome').textContent = `${formatMoney(grossIncome)} تومان`;
+      document.getElementById('finIncomeCount').textContent = `${toPersianDigits(incomeCount)} مورد دریافتی`;
+      document.getElementById('finTotalCommission').textContent = `${formatMoney(totalComm)} تومان`;
+      document.getElementById('finTotalExpenses').textContent = `${formatMoney(totalExpenses)} تومان`;
+      document.getElementById('finExpenseCount').textContent = `${toPersianDigits(expenseCount)} مورد هزینه`;
+      document.getElementById('finNetProfit').textContent = `${formatMoney(netProfit)} تومان`;
+      document.getElementById('finNetProfit').style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+      document.getElementById('finProfitMargin').textContent = `حاشیه سود: ${toPersianDigits(margin)}٪`;
+
+      document.getElementById('payCardTotal').textContent = `${formatMoney(payCard)} ت`;
+      document.getElementById('payPosTotal').textContent = `${formatMoney(payPos)} ت`;
+      document.getElementById('payCashTotal').textContent = `${formatMoney(payCash)} ت`;
+
+      const tbody = document.getElementById('financeLedgerBody');
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-secondary);">تراکنشی در این بازه ثبت نشده است.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(t => {
+        const isInc = t.type === 'income';
+        return `
+          <tr>
+            <td style="font-size:0.72rem; color:var(--text-secondary);">${formatJalaliFull(t.dateKey)}</td>
+            <td>
+              <div style="font-weight:700;">${isInc ? '🟢' : '🔴'} ${t.title}</div>
+              <div style="font-size:0.68rem; color:var(--text-muted);">${t.payMethod || ''} ${t.note ? `• ${t.note}` : ''}</div>
+            </td>
+            <td style="font-weight:700; color:${isInc ? 'var(--info)' : 'var(--danger)'};">${isInc ? '' : '-'}${formatMoney(t.amount)} ت</td>
+            <td style="color:var(--warning); font-size:0.74rem;">${isInc && t.commPercent > 0 ? `${toPersianDigits(t.commPercent)}٪ (${formatMoney(t.commAmount)})` : '—'}</td>
+            <td style="font-weight:800; color:${isInc ? 'var(--success)' : 'var(--danger)'};">${formatMoney(t.netAmount)} ت</td>
+            <td><button class="mini-btn del" onclick="deleteFinanceTx('${t.id}')">🗑️</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function exportFinanceCSV() {
+      const list = getFilteredTransactions();
+      if (list.length === 0) { showToast('تراکنشی برای خروجی وجود ندارد ⚠️'); return; }
+      let csv = '\uFEFFتاریخ,نوع,شرح,روش پرداخت,مبلغ کل,درصد سالن,مبلغ درصد,سود خالص\n';
+      list.forEach(t => {
+        csv += `"${t.dateKey}","${t.type === 'income' ? 'درآمد' : 'هزینه'}","${t.title}","${t.payMethod || ''}",${t.amount},${t.commPercent || 0},${t.commAmount || 0},${t.netAmount}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hesabdari-dastyare-man-${getTodayKey()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('فایل اکسل حسابداری دانلود شد 📥');
+    }
+
+    // ==================== CLIENTS & SERVICES ====================
+    function addCustomService() {
+      const name = document.getElementById('newServiceName').value.trim();
+      const price = Number(document.getElementById('newServicePrice').value) || 0;
+      const commPercent = Number(document.getElementById('newServiceComm').value) || 0;
+      if (!name) { showToast('عنوان خدمت را بنویسید ⚠️'); return; }
+      appData.services.push({ id: 'srv_' + Date.now(), name, price, commPercent });
+      document.getElementById('newServiceName').value = '';
+      document.getElementById('newServicePrice').value = '';
+      document.getElementById('newServiceComm').value = '';
+      saveData(); renderServicesTab(); showToast('خدمت جدید اضافه شد ✅');
+    }
+    function deleteCustomService(id) {
+      appData.services = appData.services.filter(s => s.id !== id);
+      saveData(); renderServicesTab();
+    }
+    function renderServicesTab() {
+      const c = document.getElementById('customServicesList');
+      if (appData.services.length === 0) {
+        c.innerHTML = `<div style="text-align:center; padding:14px; color:var(--text-secondary); font-size:0.8rem;">خدمتی ثبت نشده است.</div>`;
+        return;
+      }
+      c.innerHTML = appData.services.map(s => `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-input); padding:9px 12px; border-radius:13px; border:1px solid var(--border-subtle);">
+          <div>
+            <div style="font-weight:700; font-size:0.88rem;">${s.name}</div>
+            <div style="font-size:0.73rem; color:var(--accent);">${formatMoney(s.price)} ت • درصد سالن: ${toPersianDigits(s.commPercent || 0)}٪</div>
+          </div>
+          <button class="mini-btn del" onclick="deleteCustomService('${s.id}')">حذف</button>
+        </div>
+      `).join('');
+    }
+    function renderClientsTab() {
+      const q = (document.getElementById('globalSearchInput').value || '').trim().toLowerCase();
+      const c = document.getElementById('clientsListContainer');
+      const map = {};
+      appData.appointments.forEach(a => {
+        const key = (a.phone || a.clientName).trim();
+        if (!map[key]) map[key] = { key, name: a.clientName, phone: a.phone, visits: [] };
+        map[key].visits.push(a);
+      });
+      const clients = Object.values(map).filter(x => !q || x.name.toLowerCase().includes(q) || (x.phone && x.phone.includes(q)));
+      if (clients.length === 0) {
+        c.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.82rem;">مشتری‌ای یافت نشد.</div>`;
+        return;
+      }
+      c.innerHTML = clients.map(cl => {
+        const note = appData.clientNotes[cl.key] || '';
+        return `
+          <div style="background:var(--bg-input); border:1px solid var(--border-subtle); border-radius:14px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+              <strong style="font-size:0.9rem;">${cl.name}</strong>
+              <span style="font-size:0.72rem; color:var(--accent); font-weight:700;">${toPersianDigits(cl.visits.length)} مراجعه</span>
+            </div>
+            <input type="text" class="form-control" style="font-size:0.78rem; padding:7px 10px;"
+              value="${note.replace(/"/g, '&quot;')}" placeholder="یادداشت اختصاصی پرونده مشتری..."
+              onchange="appData.clientNotes['${cl.key.replace(/'/g, "\\'")}']=this.value; saveData(); showToast('ذخیره شد ✅');" />
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== THEME & PERSONALIZATION ====================
+    function applyPaletteVars(pal) {
+      document.documentElement.style.setProperty('--accent', pal.accent);
+      document.documentElement.style.setProperty('--accent-light', pal.light);
+      document.documentElement.style.setProperty('--accent-dark', pal.dark);
+      document.documentElement.style.setProperty('--accent-glow', pal.glow);
+      document.documentElement.style.setProperty('--border-color', pal.border);
+    }
+
+    function setAccentPalette(name) {
+      appData.settings.palette = name;
+      appData.settings.customHex = PALETTES[name].accent;
+      saveData(); applySettingsUI();
+      showToast('تم رنگی برنامه تغییر کرد 🎨');
+    }
+
+    function setCustomHexColor(hex) {
+      appData.settings.palette = 'custom';
+      appData.settings.customHex = hex;
+      saveData(); applySettingsUI();
+    }
+
+    function applySettingsUI() {
+      const s = appData.settings;
+      document.getElementById('appBrandTitle').textContent = s.brandName || 'دستیار من';
+      document.getElementById('splashBrandTitle').textContent = s.brandName || 'دستیار من';
+      document.getElementById('appBrandSub').textContent = s.brandSub || 'مدیریت هوشمند نوبت‌دهی و مالی';
+      document.getElementById('settingBrandName').value = s.brandName || '';
+      document.getElementById('settingBrandSub').value = s.brandSub || '';
+      document.getElementById('settingDefaultComm').value = s.defaultComm || 0;
+      document.getElementById('settingMonthlyGoal').value = s.monthlyGoal || '';
+      document.getElementById('settingMsgTemplate').value = s.msgTemplate || '';
+      document.getElementById('settingCustomApkUrl').value = s.customApkUrl || '';
+      document.getElementById('settingFontScale').value = s.fontScale || '16px';
+
+      document.documentElement.style.setProperty('--font-scale', s.fontScale || '16px');
+      document.documentElement.setAttribute('data-theme', s.theme || 'dark');
+      document.getElementById('themeToggleBtn').textContent = s.theme === 'light' ? '🌙' : '☀️';
+
+      if (s.palette === 'custom' && s.customHex) {
+        applyPaletteVars({
+          accent: s.customHex,
+          light: s.customHex,
+          dark: s.customHex,
+          glow: s.customHex + '33',
+          border: s.customHex + '4D'
+        });
+      } else {
+        applyPaletteVars(PALETTES[s.palette] || PALETTES.gold);
+      }
+
+      document.querySelectorAll('.swatch-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.palette === s.palette);
+      });
+
+      document.getElementById('headerLogoImg').src = s.customLogo || './icon-192.png';
+      document.getElementById('splashLogoImg').src = s.customLogo || './icon-512.png';
+      syncShareUrls();
+      updateDashboardStats();
+    }
+
+    function saveSettings() {
+      appData.settings.brandName = document.getElementById('settingBrandName').value.trim() || 'دستیار من';
+      appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'مدیریت هوشمند نوبت‌دهی و مالی';
+      appData.settings.defaultComm = Number(document.getElementById('settingDefaultComm').value) || 0;
+      appData.settings.monthlyGoal = Number(document.getElementById('settingMonthlyGoal').value) || 0;
+      appData.settings.msgTemplate = document.getElementById('settingMsgTemplate').value;
+      appData.settings.customApkUrl = document.getElementById('settingCustomApkUrl').value.trim();
+      appData.settings.fontScale = document.getElementById('settingFontScale').value;
+      saveData(); applySettingsUI();
+      showToast('تنظیمات شخصی‌سازی ذخیره شد ✅');
+    }
+
+    function toggleTheme() {
+      appData.settings.theme = appData.settings.theme === 'light' ? 'dark' : 'light';
+      saveData(); applySettingsUI();
+    }
+
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        appData.settings.customLogo = e.target.result;
+        saveData(); applySettingsUI();
+        showToast('عکس داخلی برنامه تغییر کرد ✨');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetInternalLogo() {
+      appData.settings.customLogo = '';
+      saveData(); applySettingsUI();
+      showToast('لوگوی پیش‌فرض بازیابی شد');
+    }
+
+    // ==================== SHARE & APK ====================
+    function getWebUrl() { return window.location.href.startsWith('http') ? window.location.href.split('#')[0] : DEFAULT_WEB_URL; }
+    function getApkUrl() { return (appData.settings.customApkUrl || '').trim() || DEFAULT_APK_URL; }
+    function syncShareUrls() {
+      const w = getWebUrl(), a = getApkUrl();
+      document.getElementById('appDirectUrlText').textContent = w;
+      document.getElementById('modalWebUrl').textContent = w;
+      document.getElementById('apkDirectUrlText').textContent = a;
+      document.getElementById('modalApkUrl').textContent = a;
+      document.getElementById('directApkDownloadBtn').href = a;
+      document.getElementById('modalApkDownloadLink').href = a;
+    }
+    function openShareModal() { syncShareUrls(); document.getElementById('shareModal').classList.add('open'); }
+    async function shareAppToFriends(mode) {
+      const url = mode === 'apk' ? getApkUrl() : getWebUrl();
+      const title = appData.settings.brandName || 'دستیار من';
+      const text = mode === 'apk'
+        ? `دانلود مستقیم فایل نصبی اندروید (APK) اپلیکیشن «${title}»:\n${url}`
+        : `نصب اپلیکیشن آفلاین «${title}» (تقویم شمسی، نوبت‌دهی، یادداشت و حسابداری):\n${url}`;
+      if (navigator.share) {
+        try { await navigator.share({ title, text, url }); return; } catch (e) {}
+      }
+      navigator.clipboard?.writeText(text);
+      showToast('متن و لینک ارسال کپی شد! برای دوستان بفرستید 📤');
+    }
+    function copyTextValue(elId, msg) { navigator.clipboard?.writeText(document.getElementById(elId).textContent.trim()); showToast(msg); }
+
+    // ==================== SPEECH TO TEXT ====================
+    function startVoiceInput(targetInputId, btnId) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) { showToast('مرورگر از گفتار به متن پشتیبانی نمی‌کند ⚠️'); return; }
+      const btn = document.getElementById(btnId);
+      const input = document.getElementById(targetInputId);
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'fa-IR';
+      btn.classList.add('recording');
+      btn.textContent = '🔴 در حال شنیدن...';
+      recognition.onresult = (e) => {
+        const t = e.results[0][0].transcript;
+        input.value = input.value ? (input.value + ' ' + t) : t;
+      };
+      recognition.onend = () => {
+        btn.classList.remove('recording');
+        btn.textContent = btnId === 'voiceNoteBodyBtn' ? '🎤 تبدیل گفتار به متن یادداشت' : '🎤 گفتار';
+      };
+      recognition.start();
+    }
+
+    // ==================== CLOCK, ALARMS & STATS ====================
+    let audioCtx = null, alarmInterval = null;
+    function playChime() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+          osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.16);
+          gain.gain.setValueAtTime(0.18, audioCtx.currentTime + i * 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.16 + 0.45);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + i * 0.16); osc.stop(audioCtx.currentTime + i * 0.16 + 0.5);
+        });
+      } catch (e) {}
+    }
+    function testAlarmSound() { playChime(); showToast('🔔 صدای زنگ هشدار پخش شد'); }
+    function stopAlarm() { clearInterval(alarmInterval); closeModal('alarmRingingModal'); }
+
+    function checkAlarms() {
+      const now = getIranNow(), todayKey = getTodayKey();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      appData.appointments.forEach(appt => {
+        if (appt.dateKey !== todayKey || appt.status === 'canceled' || appt.alarm === 'none' || appt.notified) return;
+        const [h, m] = (appt.time || '00:00').split(':').map(Number);
+        if (nowMin === (h * 60 + m) - Number(appt.alarm)) {
+          appt.notified = true; saveData();
+          document.getElementById('alarmRingingText').innerHTML = `نوبت <b>${appt.clientName}</b> ساعت <b>${toPersianDigits(appt.time)}</b>`;
+          document.getElementById('alarmRingingModal').classList.add('open');
+          playChime(); clearInterval(alarmInterval);
+          alarmInterval = setInterval(playChime, 3500);
+        }
       });
     }
 
-    loadSettingsUI();
-    renderAppointments();
-    renderRefills();
+    function updateClockAndDate() {
+      const now = getIranNow();
+      const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      document.getElementById('todayJalaliText').textContent = `امروز: ${WEEKDAY_NAMES[now.getDay()]} ${toPersianDigits(j[2])} ${JALALI_MONTHS[j[1] - 1]} ${toPersianDigits(j[0])}`;
+      document.getElementById('iranClock').textContent = `${toPersianDigits(pad2(now.getHours()))}:${toPersianDigits(pad2(now.getMinutes()))}:${toPersianDigits(pad2(now.getSeconds()))}`;
+    }
+
+    function updateDashboardStats() {
+      const todayKey = getTodayKey();
+      const monthPrefix = `${viewYear}-${pad2(viewMonth)}-`;
+      const todayCount = appData.appointments.filter(a => a.dateKey === todayKey && a.status !== 'canceled').length;
+      const monthCount = appData.appointments.filter(a => a.dateKey.startsWith(monthPrefix) && a.status !== 'canceled').length;
+      let monthNet = 0;
+      appData.transactions.filter(t => t.dateKey.startsWith(monthPrefix)).forEach(t => monthNet += Number(t.netAmount) || 0);
+
+      document.getElementById('statTodayCount').textContent = toPersianDigits(todayCount);
+      document.getElementById('statMonthCount').textContent = toPersianDigits(monthCount);
+      document.getElementById('statNetProfitMonth').textContent = formatMoney(monthNet);
+
+      const goal = Number(appData.settings.monthlyGoal) || 0;
+      const goalBox = document.getElementById('monthlyGoalBox');
+      if (goal > 0) {
+        goalBox.style.display = 'block';
+        const pct = Math.min(100, Math.max(0, Math.round((monthNet / goal) * 100)));
+        document.getElementById('goalProgressText').textContent = `${toPersianDigits(pct)}٪ (${formatMoney(monthNet)} از ${formatMoney(goal)} ت)`;
+        document.getElementById('goalProgressFill').style.width = `${pct}%`;
+      } else {
+        goalBox.style.display = 'none';
+      }
+    }
+
+    // ==================== BACKUP & NAVIGATION ====================
+    function exportBackup() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `dastyare-man-backup-${getTodayKey()}.json`; a.click();
+      URL.revokeObjectURL(url); showToast('فایل پشتیبان دانلود شد 💾');
+    }
+    function importBackup(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && Array.isArray(parsed.appointments)) {
+            appData = { ...appData, ...parsed };
+            saveData(); applySettingsUI(); renderCalendar(); renderDaySchedule(); renderNotebook(); renderTodos(); renderFinanceTab(); renderServicesTab();
+            showToast('اطلاعات بازیابی شد ✅');
+          }
+        } catch (err) { showToast('فایل پشتیبان معتبر نیست ⚠️'); }
+      };
+      reader.readAsText(file);
+    }
+    function copyEmail() { navigator.clipboard?.writeText('minamsvm@gmail.com'); showToast('ایمیل کپی شد 📋'); }
+    function toggleFabMenu() { document.getElementById('fabMenu').classList.toggle('open'); }
+    function switchTab(tabName, btnEl) {
+      document.getElementById('fabMenu').classList.remove('open');
+      document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      if (tabName === 'notebook') { renderTodos(); renderNotebook(); }
+      if (tabName === 'finance') renderFinanceTab();
+      if (tabName === 'clients') { renderClientsTab(); renderServicesTab(); }
+      if (tabName === 'settings') syncShareUrls();
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    function showToast(msg) {
+      const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+
+    // --- CUSTOM APPOINTMENT BOOKING & USER DATA CLEAR ---
+    function syncCustomDateFromDays() {
+      const days = Number(document.getElementById('customBookDays').value) || 0;
+      const targetKey = addDaysToJalaliKey(selectedDateKey, days);
+      document.getElementById('customTargetDatePreview').textContent =
+        `تاریخ نوبت دلخواه: ${formatJalaliFull(targetKey)}`;
+      return targetKey;
+    }
+
+    function resetCustomBookingForm() {
+      document.getElementById('customBookName').value = '';
+      document.getElementById('customBookPhone').value = '';
+      document.getElementById('customBookDays').value = '14';
+      document.getElementById('customBookTime').value = '11:00';
+      document.getElementById('customBookService').value = '';
+      document.getElementById('customBookPrice').value = '';
+      document.getElementById('customBookAlarm').value = '15';
+      syncCustomDateFromDays();
+    }
+
+    function saveCustomAppointment(sendMsgAfter) {
+      const clientName = document.getElementById('customBookName').value.trim();
+      if (!clientName) { showToast('نام مشتری را وارد کنید ⚠️'); return; }
+      const targetDateKey = syncCustomDateFromDays();
+      const time = document.getElementById('customBookTime').value || '11:00';
+      const phone = document.getElementById('customBookPhone').value.trim();
+      const service = document.getElementById('customBookService').value.trim() || 'نوبت دلخواه';
+      const price = Number(document.getElementById('customBookPrice').value) || 0;
+      const alarm = document.getElementById('customBookAlarm').value;
+
+      const newAppt = {
+        id: 'appt_c_' + Date.now(),
+        dateKey: targetDateKey,
+        time,
+        clientName,
+        phone,
+        service,
+        price,
+        deposit: 0,
+        commPercent: Number(appData.settings.defaultComm) || 0,
+        payMethod: 'کارت‌به‌کارت',
+        alarm,
+        status: 'pending',
+        notified: false
+      };
+
+      appData.appointments.push(newAppt);
+      selectedDateKey = targetDateKey;
+      const [ty, tm] = targetDateKey.split('-').map(Number);
+      viewYear = ty; viewMonth = tm;
+      saveData();
+      renderCalendar();
+    syncCustomDateFromDays();
+      renderDaySchedule();
+      resetCustomBookingForm();
+      showToast('نوبت دلخواه ثبت شد ✅');
+
+      if (sendMsgAfter) {
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        const waPhone = cleanPhone.startsWith('0') ? '98' + cleanPhone.slice(1) : cleanPhone;
+        const tpl = appData.settings.msgTemplate || 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
+        const txt = tpl
+          .replace(/\{name\}/g, clientName)
+          .replace(/\{date\}/g, formatJalaliFull(targetDateKey))
+          .replace(/\{time\}/g, toPersianDigits(time))
+          .replace(/\{service\}/g, service);
+        if (waPhone) {
+          window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(txt)}`, '_blank');
+        } else {
+          navigator.clipboard?.writeText(txt);
+          showToast('متن پیام برای ارسال کپی شد 📤');
+        }
+      }
+    }
+
+    function clearAllUserEntries() {
+      if (!confirm('همه نوبت‌ها، یادداشت‌ها، چک‌لیست و تراکنش‌هایی که ثبت کرده‌اید پاک شوند؟')) return;
+      appData.appointments = [];
+      appData.notes = [];
+      appData.todos = [];
+      appData.transactions = [];
+      appData.clientNotes = {};
+      saveData();
+      renderCalendar();
+    syncCustomDateFromDays();
+      renderDaySchedule();
+      renderTodos();
+      renderNotebook();
+      renderFinanceTab();
+      renderClientsTab();
+      showToast('همه موارد ثبت‌شده توسط شما پاک شد 🗑️');
+    }
+
+    // --- INIT ---
+    loadData();
+    applySettingsUI();
+    updateClockAndDate();
+    renderCalendar();
+    syncCustomDateFromDays();
+    renderDaySchedule();
+    renderTodos();
+    renderNotebook();
+    renderFinanceTab();
+    renderServicesTab();
+    updateDashboardStats();
+
+    setInterval(() => { updateClockAndDate(); checkAlarms(); }, 1000);
+
+    // --- AUTO-UPDATE ENGINE ---
+    let swRegistration = null;
+    async function checkForAppUpdate(manual = false) {
+      if (!('serviceWorker' in navigator)) return;
+      try {
+        const reg = swRegistration || await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          await reg.update();
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            showToast('نسخه جدید یافت شد! در حال به‌روزرسانی... 🔄');
+          } else if (manual) {
+            showToast('برنامه شما روی آخرین نسخه است ✅');
+          }
+        }
+      } catch (e) { if (manual) showToast('بررسی آپدیت نیازمند اینترنت است 🌐'); }
+    }
+
+    window.addEventListener('load', () => {
+      setTimeout(() => document.getElementById('splashScreen').classList.add('hidden'), 850);
+      if ('serviceWorker' in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return; refreshing = true;
+          showToast('نسخه جدید نصب شد ✨');
+          setTimeout(() => window.location.reload(), 600);
+        });
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          swRegistration = reg;
+          reg.update().catch(() => {});
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          reg.addEventListener('updatefound', () => {
+            const nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener('statechange', () => {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                nw.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          });
+        }).catch(() => {});
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') checkForAppUpdate(false);
+        });
+      }
+    });
   </script>
 </body>
 </html>
