@@ -2124,66 +2124,77 @@
     };
 
     function loadData() {
+      // Prefer the current browser record. If it is missing OR unreadable, recover
+      // the last complete Android-private snapshot before creating any defaults.
+      let parsed = null;
+      let raw = '';
       try {
-        let raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('dastyare_man_v5_data') || localStorage.getItem('dastyare_man_data_v3');
-        // Native Android keeps a private backup as a recovery copy if WebView storage is unavailable.
-        if (!raw && window.AndroidApp && typeof window.AndroidApp.getLatestBackup === 'function') {
-          try {
-            raw = window.AndroidApp.getLatestBackup() || '';
-            if (raw) { try { localStorage.setItem(STORAGE_KEY, raw); } catch (e) {} }
-          } catch (e) {}
-        }
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          appData = {
-            ...appData,
-            ...parsed,
-            notes: parsed.notes || [],
-            todos: parsed.todos || [],
-            transactions: parsed.transactions || [],
-            services: parsed.services || [],
-            clientNotes: parsed.clientNotes || {},
-            clientProfiles: parsed.clientProfiles || {},
-            settings: { ...appData.settings, ...(parsed.settings || {}) }
-          };
-          // The main record is authoritative when present. Use the dedicated appointment
-          // backup only to recover legacy records that genuinely lack an appointments array;
-          // never let an older backup overwrite newer bookings or resurrect deleted ones.
-          try {
-            if (!Array.isArray(parsed.appointments)) {
-              const appointmentBackup = localStorage.getItem('dastyare_man_appointments_v1');
-              if (appointmentBackup !== null) {
-                const recoveredAppointments = JSON.parse(appointmentBackup);
-                if (Array.isArray(recoveredAppointments)) appData.appointments = recoveredAppointments;
-              }
-            } else {
-              appData.appointments = parsed.appointments;
-              // Refresh the recovery copy from the authoritative record on every load.
-              localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments));
+        raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('dastyare_man_v5_data') || localStorage.getItem('dastyare_man_data_v3') || '';
+      } catch (e) {}
+      if (raw) {
+        try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        try {
+          if (window.AndroidApp && typeof window.AndroidApp.getLatestBackup === 'function') {
+            const nativeRaw = window.AndroidApp.getLatestBackup() || '';
+            const nativeParsed = nativeRaw ? JSON.parse(nativeRaw) : null;
+            if (nativeParsed && typeof nativeParsed === 'object' && !Array.isArray(nativeParsed)) {
+              parsed = nativeParsed;
+              try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch (e) {}
             }
-          } catch (e) {}
-          // One-time visual refresh: migrate the legacy dark/gold default to Mina's pastel identity.
-          if (!appData.settings.minaStyleMigrated) {
-            if (appData.settings.palette === 'gold' || !appData.settings.palette) {
-              appData.settings.palette = 'blossom';
-              appData.settings.customHex = '#d77fa2';
-            }
-            if (appData.settings.theme === 'dark' || !appData.settings.theme) appData.settings.theme = 'light';
-            appData.settings.brandSub = 'همراه تو در دنیای زیبایی';
-            appData.settings.minaStyleMigrated = true;
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
           }
-        } else {
-          // Recover appointments even if the main app-data record is unavailable.
+        } catch (e) {}
+      }
+
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        appData = {
+          ...appData,
+          ...parsed,
+          appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+          notes: Array.isArray(parsed.notes) ? parsed.notes : [],
+          todos: Array.isArray(parsed.todos) ? parsed.todos : [],
+          transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+          services: Array.isArray(parsed.services) ? parsed.services : [],
+          clientNotes: parsed.clientNotes && typeof parsed.clientNotes === 'object' ? parsed.clientNotes : {},
+          clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles === 'object' ? parsed.clientProfiles : {},
+          settings: { ...appData.settings, ...(parsed.settings || {}) }
+        };
+        // Recover legacy appointment-only backups only when the complete record
+        // genuinely has no appointments field; never replace a valid current list.
+        if (!Array.isArray(parsed.appointments)) {
           try {
             const appointmentBackup = localStorage.getItem('dastyare_man_appointments_v1');
             if (appointmentBackup !== null) {
-              const recoveredAppointments = JSON.parse(appointmentBackup);
-              if (Array.isArray(recoveredAppointments)) appData.appointments = recoveredAppointments;
+              const recovered = JSON.parse(appointmentBackup);
+              if (Array.isArray(recovered)) appData.appointments = recovered;
             }
           } catch (e) {}
+        } else {
+          try { localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments)); } catch (e) {}
         }
-      } catch (e) {}
+
+        // One-time visual refresh; it changes appearance settings only, not user records.
+        if (!appData.settings.minaStyleMigrated) {
+          if (appData.settings.palette === 'gold' || !appData.settings.palette) {
+            appData.settings.palette = 'blossom';
+            appData.settings.customHex = '#d77fa2';
+          }
+          if (appData.settings.theme === 'dark' || !appData.settings.theme) appData.settings.theme = 'light';
+          appData.settings.brandSub = 'همراه تو در دنیای زیبایی';
+          appData.settings.minaStyleMigrated = true;
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
+        }
+      } else {
+        // Last local fallback for older installs whose main record is absent/corrupt.
+        try {
+          const appointmentBackup = localStorage.getItem('dastyare_man_appointments_v1');
+          if (appointmentBackup !== null) {
+            const recovered = JSON.parse(appointmentBackup);
+            if (Array.isArray(recovered)) appData.appointments = recovered;
+          }
+        } catch (e) {}
+      }
     }
 
     function saveData() {
@@ -2736,6 +2747,7 @@
       if (t) { t.done = !t.done; saveData(); renderTodos(); }
     }
     function deleteTodo(id) {
+      if (!confirm('این مورد از چک‌لیست حذف شود؟')) return;
       appData.todos = appData.todos.filter(x => x.id !== id);
       saveData(); renderTodos();
     }
