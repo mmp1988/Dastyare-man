@@ -5,7 +5,8 @@ on:
     branches:
       - main
       - master
-  workflow_dispatch:
+    paths:
+      - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: write
@@ -32,11 +33,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Verify Android SDK
         run: |
@@ -54,10 +55,9 @@ jobs:
       - name: Initialize & Build Signed APK
         env:
           JAVA_HOME: ${{ steps.java.outputs.path }}
-          BUBBLEWRAP_KEYSTORE_PASSWORD: dastyare123
-          BUBBLEWRAP_KEY_PASSWORD: dastyare123
         run: |
           set -e
+          KEYSTORE_PASSWORD="$(openssl rand -hex 24)"
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           test -f "$ANDROID_HOME/platforms/android-35/android.jar"
@@ -105,8 +105,8 @@ jobs:
                 path: "./release.keystore",
                 alias: "dastyare"
               },
-              appVersionName: "1.0.0",
-              appVersionCode: 1,
+              appVersionName: "1.0." + (process.env.GITHUB_RUN_NUMBER || "1"),
+              appVersionCode: Number(process.env.GITHUB_RUN_NUMBER || 1),
               shortcuts: [],
               generatorApp: "bubblewrap-cli",
               webManifestUrl: "https://mmp1988.github.io/Dastyare-man/manifest.json",
@@ -133,11 +133,11 @@ jobs:
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass dastyare123 \
-            -keypass dastyare123 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
             -dname "CN=Mina-Msvm, OU=Dastyare-man, O=Dastyare-man, L=Tehran, S=Tehran, C=IR"
 
-          bubblewrap update --skipVersionUpgrade || bubblewrap update
+          bubblewrap update --skipVersionUpgrade
           bubblewrap build --skipPwaValidation
 
           APK=$(find . -type f -name "app-release-signed.apk" | head -n 1)
@@ -157,14 +157,17 @@ jobs:
             "$BUILD_TOOLS/zipalign" -p -f 4 "$APK" aligned.apk
             "$BUILD_TOOLS/apksigner" sign \
               --ks release.keystore \
-              --ks-key-pass pass:dastyare123 \
-              --ks-pass pass:dastyare123 \
+              --ks-key-pass "pass:$KEYSTORE_PASSWORD" \
+              --ks-pass "pass:$KEYSTORE_PASSWORD" \
               --out ../Dastyare-man.apk \
               aligned.apk
           else
             cp "$APK" ../Dastyare-man.apk
           fi
 
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME/build-tools"/* | sort -V | tail -n 1)
+          "$BUILD_TOOLS/zipalign" -c -v 4 ../Dastyare-man.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs ../Dastyare-man.apk
           ls -lh ../Dastyare-man.apk
 
       - name: Publish Latest GitHub Release with Dastyare-man.apk
