@@ -1124,6 +1124,7 @@
       <div class="form-group">
         <label>نکات مهم و یادداشت همیشگی مشتری</label>
         <textarea id="clientProfileNotes" class="form-control" rows="3" placeholder="مثلاً حساسیت، مدل مورد علاقه، رنگ، نکات مهم برای مراجعه بعدی..." onchange="saveClientProfileNotes()"></textarea>
+        <small id="clientProfileNotesTimestamp" style="display:block;color:var(--text-secondary);margin-top:5px;"></small>
       </div>
       <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">➕ ثبت کار انجام‌شده</div>
@@ -2498,6 +2499,7 @@
       document.getElementById('clientProfileName').textContent = p.name;
       document.getElementById('clientProfilePhone').textContent = p.phone || 'شماره تماس ثبت نشده';
       document.getElementById('clientProfileNotes').value = p.notes || appData.clientNotes[key] || '';
+      document.getElementById('clientProfileNotesTimestamp').textContent = p.notesUpdatedAt ? 'آخرین ثبت یا ویرایش: '+formatClientTimestamp(p.notesUpdatedAt) : 'یادداشت هنوز زمان ثبت ندارد.';
       const img = document.getElementById('clientProfilePhotoPreview');
       img.src = p.photo || '';
       img.style.display = p.photo ? 'block' : 'none';
@@ -2598,6 +2600,7 @@
       p.notes = document.getElementById('clientProfileNotes').value.trim();
       p.notesUpdatedAt = Date.now();
       appData.clientNotes[key] = p.notes;
+      document.getElementById('clientProfileNotesTimestamp').textContent = 'آخرین ثبت یا ویرایش: '+formatClientTimestamp(p.notesUpdatedAt);
       saveData();
       showToast('نکات پرونده ذخیره شد ✅');
     }
@@ -2679,7 +2682,11 @@
         const item = onlyItem.source === 'appointment'
           ? appointments.find(a => a.id === onlyItem.id)
           : (p.records || []).find(a => a.id === onlyItem.id);
-        if (item) lines.push('🧾 خدمت: '+(item.service || ''), '📅 تاریخ: '+formatJalaliFull(item.dateKey), '🕒 ساعت: '+(item.time || '—'), '📝 توضیحات: '+(item.notes || '—'));
+        if (item) {
+          lines.push('🧾 خدمت: '+(item.service || ''), '📅 تاریخ: '+formatJalaliFull(item.dateKey), '🕒 ساعت: '+(item.time || '—'), '📝 توضیحات: '+(item.notes || '—'));
+          if (item.checklist && item.checklist.length) lines.push('☑ چک‌لیست خدمات: '+item.checklist.join('، '));
+          if (item.createdAt) lines.push('⏱ زمان ثبت در برنامه: '+formatClientTimestamp(item.createdAt));
+        }
       } else {
         lines.push('🧾 سوابق انجام‌شده:');
         const doneAppts = appointments.filter(a => a.status === 'done').map(a => ({...a, source:'appointment'}));
@@ -2717,7 +2724,6 @@
         }
         if (photoBlob && navigator.share && navigator.canShare && window.File) {
           const mime = photoBlob.type || 'image/jpeg';
-          const mime = (parts[0].match(/:(.*?);/) || [,'image/jpeg'])[1];
           const file = new File([photoBlob], 'customer-photo.'+(mime.includes('png')?'png':(mime.includes('webp')?'webp':'jpg')), {type:mime});
           const payload = { title, text, files:[file] };
           if (navigator.canShare({files:[file]})) { await navigator.share(payload); return; }
