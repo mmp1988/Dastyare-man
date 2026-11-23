@@ -1200,7 +1200,7 @@
           <label><input type="checkbox" id="shareClientService" checked /> نوع خدمت</label>
           <label><input type="checkbox" id="shareClientDate" checked /> تاریخ مراجعه</label>
           <label><input type="checkbox" id="shareClientTime" checked /> ساعت مراجعه</label>
-          <label><input type="checkbox" id="shareClientWorkNotes" checked /> توضیحات کار
+          <label><input type="checkbox" id="shareClientWorkNotes" checked /> توضیحات کار</label>
           <div id="shareClientProfileFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <div id="shareClientWorkFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <label><input type="checkbox" id="shareClientHistory" checked /> سوابق خدمات</label>
@@ -2675,12 +2675,12 @@
       p.customFields.push({id:'field_'+Date.now(),label,value});
       document.getElementById('clientCustomFieldLabel').value='';
       document.getElementById('clientCustomFieldValue').value='';
-      saveData();renderClientCustomFields(key);showToast('اطلاعات دلخواه ذخیره شد ✅');
+      saveData();renderClientCustomFields(key);renderClientShareFieldOptions(key);showToast('اطلاعات دلخواه ذخیره شد ✅');
     }
     function removeClientCustomField(index) {
       const key=document.getElementById('clientRecordKey').value,p=getClientProfile(key);
       if(!Array.isArray(p.customFields))return;
-      p.customFields.splice(index,1);saveData();renderClientCustomFields(key);
+      p.customFields.splice(index,1);saveData();renderClientCustomFields(key);renderClientShareFieldOptions(key);
     }
     function setClientProfilePhotoZoom(value) {
       const zoom=Math.max(80,Math.min(180,Number(value)||100));
@@ -2732,8 +2732,9 @@
       const profileBox=document.getElementById('shareClientProfileFieldsList');
       const workBox=document.getElementById('shareClientWorkFieldsList');
       profileBox.innerHTML=(p.customFields||[]).filter(f=>f.label&&f.value).map((f,i)=>'<label style="font-size:.72rem;"><input type="checkbox" id="shareProfileField_'+i+'" checked /> '+escapeClientText(f.label)+'</label>').join('');
-      const defs=getClientWorkFieldDefinitions();
-      workBox.innerHTML=defs.map(f=>'<label style="font-size:.72rem;"><input type="checkbox" id="shareWorkField_'+f.id+'" checked /> '+escapeClientText(f.label)+'</label>').join('');
+      const fields=new Map(getClientWorkFieldDefinitions().map(f=>[f.id,f.label]));
+      (p.records||[]).forEach(record=>Object.entries(record.customValues||{}).forEach(([id,value])=>fields.set(id,(value&&value.label)||fields.get(id)||'جزئیات')));
+      workBox.innerHTML=Array.from(fields.entries()).map(([id,label])=>'<label style="font-size:.72rem;"><input type="checkbox" id="shareWorkField_'+id+'" checked /> '+escapeClientText(label)+'</label>').join('');
     }
     function saveClientProfileNotes() {
       const key = document.getElementById('clientRecordKey').value;
@@ -2910,9 +2911,12 @@
       const load=async ref=>{
         const blob=String(ref).startsWith('data:')?await (await fetch(ref)).blob():await getClientPhotoBlob(ref);
         if(!blob)return null;
+        if(window.createImageBitmap) return await createImageBitmap(blob);
         const url=URL.createObjectURL(blob);
-        try { const img=new Image(); img.src=url; await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;}); return img; }
-        finally { /* The object URL is revoked after drawing the loaded image. */ }
+        const img=new Image(); img.src=url;
+        await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;});
+        img._temporaryObjectUrl=url;
+        return img;
       };
       try {
         const before=await load(item.beforePhotoRef),after=await load(item.afterPhotoRef);
@@ -2921,8 +2925,10 @@
         const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,1600,900);
         const draw=(img,x)=>{const maxW=800,maxH=900,scale=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);const w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,x+(maxW-w)/2,(maxH-h)/2,w,h);};
         draw(before,0);draw(after,800);
-        if(before.src.startsWith('blob:'))URL.revokeObjectURL(before.src);
-        if(after.src.startsWith('blob:'))URL.revokeObjectURL(after.src);
+        if(before._temporaryObjectUrl)URL.revokeObjectURL(before._temporaryObjectUrl);
+        if(after._temporaryObjectUrl)URL.revokeObjectURL(after._temporaryObjectUrl);
+        if(typeof before.close==='function')before.close();
+        if(typeof after.close==='function')after.close();
         ctx.fillStyle='#111111';ctx.fillRect(796,0,8,900);
         ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(22,22,190,56);ctx.fillRect(1388,22,190,56);
         ctx.fillStyle='#ffffff';ctx.font='bold 30px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
