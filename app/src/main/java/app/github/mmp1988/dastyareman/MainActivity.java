@@ -3,16 +3,12 @@ package app.github.mmp1988.dastyareman;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
-import org.vosk.Model;
-import org.vosk.Recognizer;
-import org.vosk.android.SpeechService;
-import org.vosk.android.RecognitionListener;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import android.app.DownloadManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -59,12 +55,6 @@ public class MainActivity extends Activity {
     private String pendingNativeSpeechTarget;
     private String pendingNativeSpeechButton;
     private SpeechRecognizer nativeSpeechRecognizer;
-    private Model voskModel;
-    private Recognizer voskRecognizer;
-    private SpeechService voskSpeechService;
-    private String activeSpeechModelId;
-    private volatile boolean speechModelDownloadActive = false;
-    private final ExecutorService speechModelExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     @Override
@@ -73,14 +63,6 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(android.graphics.Color.rgb(11,13,18));
         getWindow().setNavigationBarColor(android.graphics.Color.rgb(11,13,18));
         ensureFoldersAndInitialContent();
-        // Remove the obsolete large Persian model from older app versions, if present.
-        speechModelExecutor.execute(() -> {
-            File root = speechModelsRoot();
-            deleteRecursively(new File(root, "fa-large"));
-            deleteRecursively(new File(root, "fa-large-extracting"));
-            File oldArchive = new File(root, "fa-large.zip.part");
-            if (oldArchive.exists()) oldArchive.delete();
-        });
         webView = new WebView(this);
         setContentView(webView);
 
@@ -299,287 +281,24 @@ public class MainActivity extends Activity {
                 "if(window.showToast)window.showToast(" + JSONObject.quote(message) + ");", null));
     }
 
-    private File speechModelsRoot() {
-        File root = new File(getFilesDir(), "speech-models");
-        if (!root.exists()) root.mkdirs();
-        return root;
-    }
-
-    private File speechModelDirectory(String modelId) {
-        if (!"small".equals(modelId)) return null;
-        return new File(speechModelsRoot(), "fa-small");
-    }
-
-    private boolean isSpeechModelInstalled(String modelId) {
-        File dir = speechModelDirectory(modelId);
-        return dir != null && new File(dir, ".complete").isFile()
-                && new File(dir, "am").isDirectory();
-    }
-
-    private void notifySpeechModelStatus(String modelId, String state, long downloaded, long total, String message) {
-        if (webView == null) return;
-        File dir = speechModelDirectory(modelId);
-        long size = dir == null ? 0L : directorySize(dir);
-        boolean installed = isSpeechModelInstalled(modelId);
-        try {
-            JSONObject payload = new JSONObject();
-            payload.put("modelId", modelId);
-            payload.put("state", state);
-            payload.put("downloaded", downloaded);
-            payload.put("total", total);
-            payload.put("percent", total > 0 ? Math.min(100, Math.round(downloaded * 100.0 / total)) : 0);
-            payload.put("installed", installed);
-            payload.put("size", size);
-            if (message != null) payload.put("message", message);
-            String json = payload.toString();
-            webView.post(() -> webView.evaluateJavascript(
-                    "if(window.onSpeechModelStatus)window.onSpeechModelStatus(" + json + ");", null));
-        } catch (Exception ignored) { }
-    }
-
-    private long directorySize(File file) {
-        if (file == null || !file.exists()) return 0L;
-        if (file.isFile()) return file.length();
-        long total = 0L;
-        File[] children = file.listFiles();
-        if (children != null) for (File child : children) total += directorySize(child);
-        return total;
-    }
-
-    private void sendSpeechModelStatus(String modelId) {
-        if (isSpeechModelInstalled(modelId)) notifySpeechModelStatus(modelId, "installed", 0L, 0L, null);
-        else notifySpeechModelStatus(modelId, "not_downloaded", 0L, 0L, null);
-    }
-
-    private void downloadSpeechModel(String modelId) {
-        if (!"small".equals(modelId)) return;
-        if (speechModelDownloadActive) {
-            notifyVoiceMessage("یک دانلود بسته گفتار در حال انجام است؛ لطفاً صبر کنید.");
-            return;
-        }
-        if (isSpeechModelInstalled(modelId)) {
-            sendSpeechModelStatus(modelId);
-            return;
-        }
-        speechModelDownloadActive = true;
-        speechModelExecutor.execute(() -> {
-            File root = speechModelsRoot();
-            File zip = new File(root, "fa-" + modelId + ".zip.part");
-            File stage = new File(root, "fa-" + modelId + "-extracting");
-            long total = 53L * 1024L * 1024L;
-            long downloaded = 0L;
-            HttpURLConnection connection = null;
-            try {
-                if (stage.exists()) deleteRecursively(stage);
-                if (zip.exists() && !zip.delete()) throw new Exception("Cannot clear old partial download");
-                String modelFile = "vosk-model-small-fa-0.42.zip";
-                URL url = new URL("https://alphacephei.com/vosk/models/" + modelFile);
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(20000);
-                connection.setReadTimeout(45000);
-                connection.setRequestProperty("User-Agent", "DastyareMan-Android");
-                connection.connect();
-                int response = connection.getResponseCode();
-                if (response != HttpURLConnection.HTTP_OK) throw new Exception("HTTP " + response);
-                long contentLength = connection.getContentLengthLong();
-                if (contentLength > 0) total = contentLength;
-                notifySpeechModelStatus(modelId, "downloading", 0L, total, null);
-                try (InputStream in = new BufferedInputStream(connection.getInputStream());
-                     FileOutputStream out = new FileOutputStream(zip)) {
-                    byte[] buffer = new byte[64 * 1024];
-                    int count;
-                    long lastNotify = 0L;
-                    while ((count = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, count);
-                        downloaded += count;
-                        if (downloaded - lastNotify >= 512L * 1024L) {
-                            notifySpeechModelStatus(modelId, "downloading", downloaded, total, null);
-                            lastNotify = downloaded;
-                        }
-                    }
-                    out.getFD().sync();
-                }
-                if (downloaded < 1024L * 1024L) throw new Exception("Downloaded archive is too small");
-                notifySpeechModelStatus(modelId, "extracting", downloaded, total, null);
-                if (!stage.mkdirs() && !stage.isDirectory()) throw new Exception("Cannot create extraction folder");
-                long extracted = 0L;
-                try (ZipInputStream zin = new ZipInputStream(new BufferedInputStream(new java.io.FileInputStream(zip)))) {
-                    ZipEntry entry;
-                    byte[] buffer = new byte[32 * 1024];
-                    while ((entry = zin.getNextEntry()) != null) {
-                        File outFile = new File(stage, entry.getName());
-                        String canonicalRoot = stage.getCanonicalPath() + File.separator;
-                        if (!outFile.getCanonicalPath().startsWith(canonicalRoot)) throw new Exception("Unsafe archive path");
-                        if (entry.isDirectory()) {
-                            outFile.mkdirs();
-                        } else {
-                            File parent = outFile.getParentFile();
-                            if (parent != null && !parent.exists() && !parent.mkdirs()) throw new Exception("Cannot create model folder");
-                            try (FileOutputStream out = new FileOutputStream(outFile)) {
-                                int n;
-                                while ((n = zin.read(buffer)) != -1) {
-                                    extracted += n;
-                                    long cap = 1024L * 1024L * 1024L;
-                                    if (extracted > cap) throw new Exception("Extracted model exceeds safety limit");
-                                    out.write(buffer, 0, n);
-                                }
-                            }
-                        }
-                        zin.closeEntry();
-                    }
-                }
-                File modelRoot = null;
-                File[] children = stage.listFiles();
-                if (children != null) {
-                    for (File child : children) {
-                        if (child.isDirectory() && new File(child, "am").isDirectory()) { modelRoot = child; break; }
-                    }
-                }
-                if (modelRoot == null) throw new Exception("Model archive layout is invalid");
-                File target = speechModelDirectory(modelId);
-                if (target.exists()) deleteRecursively(target);
-                if (!modelRoot.renameTo(target)) throw new Exception("Cannot finalize model installation");
-                File marker = new File(target, ".complete");
-                try (FileOutputStream out = new FileOutputStream(marker)) {
-                    out.write("vosk-fa-0.42".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    out.getFD().sync();
-                }
-                deleteRecursively(stage);
-                zip.delete();
-                notifySpeechModelStatus(modelId, "installed", downloaded, total, null);
-            } catch (Exception e) {
-                if (stage.exists()) deleteRecursively(stage);
-                if (zip.exists()) zip.delete();
-                notifySpeechModelStatus(modelId, "error", downloaded, total, e.getMessage());
-            } finally {
-                if (connection != null) connection.disconnect();
-                speechModelDownloadActive = false;
-            }
-        });
-    }
-
-    private void deleteSpeechModel(String modelId) {
-        if (!"small".equals(modelId)) return;
-        if (modelId.equals(activeSpeechModelId)) {
-            notifyVoiceMessage("ابتدا گفتار را متوقف کنید و سپس بسته را حذف کنید.");
-            return;
-        }
-        speechModelExecutor.execute(() -> {
-            File dir = speechModelDirectory(modelId);
-            boolean ok = dir == null || !dir.exists() || deleteRecursively(dir);
-            File zip = new File(speechModelsRoot(), "fa-" + modelId + ".zip.part");
-            if (zip.exists()) zip.delete();
-            notifySpeechModelStatus(modelId, ok ? "not_downloaded" : "error", 0L, 0L, null);
-        });
-    }
-
-    private boolean deleteRecursively(File file) {
-        if (file == null || !file.exists()) return true;
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children != null) for (File child : children) if (!deleteRecursively(child)) return false;
-        }
-        return file.delete();
-    }
-
-    private String extractVoskText(String json) {
-        try {
-            String value = new JSONObject(json).optString("text", "").trim();
-            return value;
-        } catch (Exception ignored) { return ""; }
-    }
-
-    private void releaseVoskSpeech() {
-        try { if (voskSpeechService != null) { voskSpeechService.stop(); voskSpeechService.shutdown(); } } catch (Exception ignored) { }
-        try { if (voskRecognizer != null) voskRecognizer.close(); } catch (Exception ignored) { }
-        try { if (voskModel != null) voskModel.close(); } catch (Exception ignored) { }
-        voskSpeechService = null;
-        voskRecognizer = null;
-        voskModel = null;
-        activeSpeechModelId = null;
-    }
-
-    private void startVoskSpeech(String modelId, String targetInputId, String buttonId) {
-        notifyVoiceMessage("موتور فارسی آفلاین در حال آماده‌سازی است…");
-        speechModelExecutor.execute(() -> {
-            try {
-                Model model = new Model(speechModelDirectory(modelId).getAbsolutePath());
-                Recognizer recognizer = new Recognizer(model, 16000.0f);
-                runOnUiThread(() -> {
-                    try {
-                        releaseVoskSpeech();
-                        voskModel = model;
-                        voskRecognizer = recognizer;
-                        voskSpeechService = new SpeechService(recognizer, 16000.0f);
-                        activeSpeechModelId = modelId;
-                        notifyVoiceButton(buttonId, true);
-                        boolean started = voskSpeechService.startListening(new RecognitionListener() {
-                            @Override public void onPartialResult(String hypothesis) { }
-                            @Override public void onResult(String hypothesis) {
-                                String text = extractVoskText(hypothesis);
-                                if (!text.isEmpty() && webView != null) webView.post(() -> webView.evaluateJavascript(
-                                        "if(window.receiveNativeSpeechResult)window.receiveNativeSpeechResult("
-                                                + JSONObject.quote(targetInputId) + "," + JSONObject.quote(text) + ");", null));
-                            }
-                            @Override public void onFinalResult(String hypothesis) {
-                                String text = extractVoskText(hypothesis);
-                                if (!text.isEmpty() && webView != null) webView.post(() -> webView.evaluateJavascript(
-                                        "if(window.receiveNativeSpeechResult)window.receiveNativeSpeechResult("
-                                                + JSONObject.quote(targetInputId) + "," + JSONObject.quote(text) + ");", null));
-                                finishVoskSpeech(buttonId, null);
-                            }
-                            @Override public void onError(Exception exception) {
-                                finishVoskSpeech(buttonId, "تشخیص گفتار انجام نشد؛ دوباره تلاش کنید یا تایپ کنید.");
-                            }
-                            @Override public void onTimeout() {
-                                try {
-                                    if (voskRecognizer != null) {
-                                        String finalText = extractVoskText(voskRecognizer.getFinalResult());
-                                        if (!finalText.isEmpty() && webView != null) webView.post(() -> webView.evaluateJavascript(
-                                                "if(window.receiveNativeSpeechResult)window.receiveNativeSpeechResult("
-                                                        + JSONObject.quote(targetInputId) + "," + JSONObject.quote(finalText) + ");", null));
-                                    }
-                                } catch (Exception ignored) { }
-                                finishVoskSpeech(buttonId, "زمان ضبط تمام شد.");
-                            }
-                        }, 20000);
-                        if (!started) finishVoskSpeech(buttonId, "میکروفون در حال استفاده است؛ کمی بعد دوباره تلاش کنید.");
-                    } catch (Exception e) {
-                        try { recognizer.close(); } catch (Exception ignored) { }
-                        try { model.close(); } catch (Exception ignored) { }
-                        notifyVoiceButton(buttonId, false);
-                        notifyVoiceMessage("راه‌اندازی موتور فارسی ممکن نشد؛ لطفاً تایپ کنید.");
-                    }
-                });
-            } catch (OutOfMemoryError memoryError) {
-                notifyVoiceButton(buttonId, false);
-                notifyVoiceMessage("این بسته برای حافظه آزاد گوشی سنگین است؛ بسته سبک را نصب کنید.");
-            } catch (Exception e) {
-                notifyVoiceButton(buttonId, false);
-                notifyVoiceMessage("باز کردن بسته گفتار ممکن نشد؛ بسته را دوباره دانلود کنید.");
-            }
-        });
-    }
-
-    private void finishVoskSpeech(String buttonId, String message) {
-        notifyVoiceButton(buttonId, false);
-        if (message != null) notifyVoiceMessage(message);
-        speechModelExecutor.execute(this::releaseVoskSpeech);
-    }
-
     private void startNativeSpeechOnUi(String targetInputId, String buttonId) {
-        // If the optional Persian Vosk model is installed, recognition is fully local.
-        if (isSpeechModelInstalled("small")) {
-            startVoskSpeech("small", targetInputId, buttonId);
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            notifyVoiceButton(buttonId, false);
+            notifyVoiceMessage("تشخیص گفتار آفلاین در نسخه اندروید این گوشی پشتیبانی نمی‌شود؛ لطفاً تایپ کنید.");
             return;
         }
-
-        // No local model: use the Android speech service online when available.
-        // This path does not download a model and may require an internet connection.
+        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            notifyVoiceButton(buttonId, false);
+            notifyVoiceMessage("موتور گفتار آفلاین روی این گوشی موجود نیست؛ لطفاً متن را تایپ کنید.");
+            return;
+        }
         try {
-            releaseNativeSpeechRecognizer();
-            nativeSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-            nativeSpeechRecognizer.setRecognitionListener(new android.speech.RecognitionListener() {
+            if (nativeSpeechRecognizer != null) {
+                nativeSpeechRecognizer.destroy();
+                nativeSpeechRecognizer = null;
+            }
+            nativeSpeechRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+            nativeSpeechRecognizer.setRecognitionListener(new RecognitionListener() {
                 @Override public void onReadyForSpeech(Bundle params) { }
                 @Override public void onBeginningOfSpeech() { }
                 @Override public void onRmsChanged(float rmsdB) { }
@@ -587,20 +306,24 @@ public class MainActivity extends Activity {
                 @Override public void onEndOfSpeech() { }
                 @Override public void onError(int error) {
                     notifyVoiceButton(buttonId, false);
-                    notifyVoiceMessage("گفتار آنلاین در دسترس نیست. برای استفاده بدون اینترنت بسته فارسی را از شخصی‌سازی دانلود کنید؛ یا تایپ کنید.");
+                    String message = (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+                            || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
+                            ? "بسته زبان فارسی آفلاین روی گوشی موجود نیست؛ لطفاً تایپ کنید."
+                            : "تشخیص گفتار آفلاین انجام نشد؛ لطفاً دوباره تلاش کنید یا تایپ کنید.";
+                    notifyVoiceMessage(message);
                     releaseNativeSpeechRecognizer();
                 }
                 @Override public void onResults(Bundle results) {
                     ArrayList<String> matches = results == null ? null
                             : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                    if (matches != null && !matches.isEmpty() && webView != null) {
+                    if (matches != null && !matches.isEmpty()) {
                         String transcript = matches.get(0);
-                        webView.post(() -> webView.evaluateJavascript(
+                        if (webView != null) webView.post(() -> webView.evaluateJavascript(
                                 "if(window.receiveNativeSpeechResult)window.receiveNativeSpeechResult("
                                         + JSONObject.quote(targetInputId) + "," + JSONObject.quote(transcript) + ");", null));
+                    } else {
+                        notifyVoiceMessage("صدایی تشخیص داده نشد؛ می‌توانید متن را تایپ کنید.");
                     }
-                    notifyVoiceButton(buttonId, false);
-                    releaseNativeSpeechRecognizer();
                 }
                 @Override public void onPartialResults(Bundle partialResults) { }
                 @Override public void onEvent(int eventType, Bundle params) { }
@@ -608,14 +331,14 @@ public class MainActivity extends Activity {
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR");
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR");
+            intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false);
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
             nativeSpeechRecognizer.startListening(intent);
         } catch (Exception e) {
             notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("تشخیص گفتار آنلاین شروع نشد. اتصال اینترنت را بررسی کنید یا متن را تایپ کنید.");
+            notifyVoiceMessage("تشخیص گفتار آفلاین در این گوشی فعال نشد؛ لطفاً تایپ کنید.");
             releaseNativeSpeechRecognizer();
         }
     }
@@ -628,24 +351,17 @@ public class MainActivity extends Activity {
     }
 
     private class AppBridge {
-        @JavascriptInterface public void getSpeechModelStatus() {
-            speechModelExecutor.execute(() -> {
-                sendSpeechModelStatus("small");
-            });
-        }
-        @JavascriptInterface public void downloadSpeechModel(String modelId) {
-            if ("small".equals(modelId)) MainActivity.this.downloadSpeechModel(modelId);
-        }
-        @JavascriptInterface public void deleteSpeechModel(String modelId) {
-            if ("small".equals(modelId)) MainActivity.this.deleteSpeechModel(modelId);
-        }
-
         @JavascriptInterface public void startOfflineSpeechRecognition(String targetInputId, String buttonId) {
             runOnUiThread(() -> {
                 if (!("apptClientName".equals(targetInputId) || "apptService".equals(targetInputId)
                         || "noteTitleInput".equals(targetInputId) || "noteBodyInput".equals(targetInputId))) {
                     notifyVoiceButton(buttonId, false);
                     notifyVoiceMessage("فیلد انتخاب‌شده معتبر نیست.");
+                    return;
+                }
+                if (android.os.Build.VERSION.SDK_INT < 31) {
+                    notifyVoiceButton(buttonId, false);
+                    notifyVoiceMessage("تشخیص گفتار آفلاین در این نسخه اندروید پشتیبانی نمی‌شود؛ لطفاً تایپ کنید.");
                     return;
                 }
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -778,8 +494,6 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         releaseNativeSpeechRecognizer();
-        releaseVoskSpeech();
-        speechModelExecutor.shutdownNow();
         if (webView != null) { webView.destroy(); webView = null; }
         io.shutdown();
         super.onDestroy();
