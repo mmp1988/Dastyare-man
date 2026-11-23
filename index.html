@@ -2641,7 +2641,7 @@
         time: appointment ? toPersianDigits(appointment.time || '') : '',
         service: appointment ? (appointment.service || 'خدمات') : 'خدمات'
       };
-      return tpl.replace(/\\{(name|date|time|service)\\}/g, (match, key) => values[key] || '');
+      return tpl.replace(/\{(name|date|time|service)\}/g, (match, key) => values[key] || '');
     }
 
     function sendClientReminder(channel) {
