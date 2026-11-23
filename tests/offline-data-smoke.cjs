@@ -132,10 +132,11 @@ const assert = require('assert');
     // Static native Android guardrails: validated internet selects Android's normal
     // recognition service; Persian locale and microphone permission remain configured.
     const nativeJava = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/MainActivity.java'), 'utf8');
-    assert(nativeJava.includes('NET_CAPABILITY_VALIDATED'), 'Android speech must check validated internet connectivity');
+    assert(nativeJava.includes('SpeechRecognizer.isRecognitionAvailable(this)'), 'Android must check for the default speech recognition service');
     assert(nativeJava.includes('SpeechRecognizer.createSpeechRecognizer(this)'), 'Android online speech service is missing');
     assert(nativeJava.includes('RecognizerIntent.EXTRA_LANGUAGE, "fa-IR"'), 'Android speech locale must remain Persian');
-    assert(nativeJava.includes('startSpeechRecognition(targetInputId, buttonId, !online)'), 'Android must choose online recognition when internet is validated');
+    assert(nativeJava.includes('RecognizerIntent.EXTRA_PARTIAL_RESULTS, true'), 'Android speech should enable partial results');
+    assert(nativeJava.includes('startSpeechRecognition(targetInputId, buttonId, false)'), 'Android must start the default recognizer without a strict network validation gate');
     assert(nativeJava.includes('Manifest.permission.RECORD_AUDIO'), 'Android microphone permission handling is missing');
 
     // CRUD: create, edit and delete an appointment through the app's own form handlers.
