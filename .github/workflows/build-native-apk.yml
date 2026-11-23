@@ -11,6 +11,7 @@ on:
       - 'app/**'
       - 'build.gradle'
       - 'settings.gradle'
+      - 'gradle.properties'
       - '.github/workflows/build-native-apk.yml'
   workflow_dispatch:
 
