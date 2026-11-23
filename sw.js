@@ -1,5 +1,5 @@
-const CACHE_NAME = 'dastyare-man-v4';
-const ASSETS = [
+const CACHE_NAME = 'dastyare-man-final-v7';
+const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
@@ -9,7 +9,7 @@ const ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
   );
   self.skipWaiting();
 });
@@ -18,21 +18,34 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        if (event.request.method === 'GET' && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+    fetch(event.request, { cache: 'no-store' })
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
         }
-        return response;
-      }).catch(() => caches.match('./index.html'));
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cached) => {
+          return cached || caches.match('./index.html');
+        });
+      })
   );
 });
