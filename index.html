@@ -4535,9 +4535,9 @@
         if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
         // Resolve named weekdays to their next occurrence (Iranian week starts on Saturday).
         const weekdayNames = [
-          { day: 0, re: /شنبه/ }, { day: 1, re: /یکشنبه/ }, { day: 2, re: /دوشنبه/ },
-          { day: 3, re: /سه.?شنبه/ }, { day: 4, re: /چهارشنبه/ }, { day: 5, re: /پنجشنبه/ },
-          { day: 6, re: /جمعه/ }
+          { day: 1, re: /یکشنبه/ }, { day: 2, re: /دوشنبه/ }, { day: 3, re: /سه.?شنبه/ },
+          { day: 4, re: /چهارشنبه/ }, { day: 5, re: /پنجشنبه/ }, { day: 6, re: /جمعه/ },
+          { day: 0, re: /شنبه/ }
         ];
         const requestedWeekday = weekdayNames.find(x => x.re.test(t));
         if (requestedWeekday) {
