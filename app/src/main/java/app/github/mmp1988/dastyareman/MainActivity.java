@@ -20,7 +20,6 @@ import android.webkit.WebViewClient;
 import android.webkit.GeolocationPermissions;
 import android.widget.Toast;
 
-import androidx.core.content.ContextCompat;
 import androidx.webkit.WebViewAssetLoader;
 
 import java.io.BufferedInputStream;
@@ -159,7 +158,7 @@ public class MainActivity extends Activity {
         java.util.ArrayList<String> needed = new java.util.ArrayList<>();
         for (String resource : resources) {
             if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource) &&
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
+                    checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
                 needed.add(Manifest.permission.RECORD_AUDIO);
             if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource) &&
                     ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
