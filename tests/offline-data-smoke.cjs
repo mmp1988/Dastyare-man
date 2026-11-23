@@ -142,6 +142,7 @@ const assert = require('assert');
       'Native speech transcript did not flow into Mina and create the requested booking');
 
     const minaActionsResult = await page.evaluate(() => {
+      minaConversationBooking = null;
       const dateKey = getTodayKey();
       appData.appointments = [
         { id:'mina-cancel-qa', dateKey, time:'09:00', clientName:'سارا', service:'کلاسیک', status:'pending' },
