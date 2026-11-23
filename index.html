@@ -1778,14 +1778,6 @@
           <button class="btn-secondary" onclick="shareAppToFriends('apk')">ارسال لینک APK</button>
         </div>
       </div>
-      <div class="share-link-card" style="margin-bottom:0; margin-top:10px;">
-        <div style="font-size:0.8rem; font-weight:800; color:var(--accent); margin-bottom:6px;">۳. دانلود مستقیم فایل‌های کد اپ</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="btn-primary" style="flex:1;" onclick="downloadIndexHtmlDirect()">⬇️ دانلود index.html</button>
-          <button class="btn-secondary" onclick="downloadManifestDirect()">manifest.json</button>
-          <button class="btn-secondary" onclick="downloadServiceWorkerDirect()">sw.js</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -2805,7 +2797,22 @@
         if (!map[key]) map[key] = { key, name: p.name || key, phone: p.phone || '', visits: [] };
         else { map[key].name = p.name || map[key].name; map[key].phone = p.phone || map[key].phone; }
       });
-      const clients = Object.values(map).filter(x => !q || (x.name || '').toLowerCase().includes(q) || (x.phone && x.phone.includes(q)));
+      const serviceQuery = (document.getElementById('advancedClientService')?.value || '').trim().toLowerCase();
+      const segment = document.getElementById('advancedClientSegment')?.value || 'all';
+      const clients = Object.values(map).filter(x => {
+        const p = (appData.clientProfiles || {})[x.key] || {};
+        const records = Array.isArray(p.records) ? p.records : [];
+        const completed = x.visits.filter(v => v.status === 'done').length + records.length;
+        const allServices = x.visits.map(v => v.service || '').concat(records.map(v => v.service || '')).join(' ').toLowerCase();
+        const hasPhotos = records.some(v => v.photoRef || v.photo || v.beforePhotoRef || v.afterPhotoRef);
+        const dates = x.visits.map(v => v.dateKey || '').concat(records.map(v => v.dateKey || '')).filter(Boolean).sort();
+        const lastDate = dates[dates.length - 1] || '';
+        const inactive = !lastDate || (Date.now() - (() => { const a=lastDate.split('-').map(Number); const g=jalaliToGregorian(a[0],a[1],a[2]); return new Date(g[0],g[1]-1,g[2]).getTime(); })()) > 90*86400000;
+        const textMatch = !q || (x.name || '').toLowerCase().includes(q) || (x.phone && x.phone.includes(q)) || allServices.includes(q);
+        const serviceMatch = !serviceQuery || allServices.includes(serviceQuery);
+        const segmentMatch = segment === 'all' || (segment === 'loyal' && completed >= 5) || (segment === 'new' && completed <= 1) || (segment === 'inactive' && inactive) || (segment === 'photos' && hasPhotos);
+        return textMatch && serviceMatch && segmentMatch;
+      });
       if (clients.length === 0) {
         c.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.82rem;">هنوز مشتری‌ای ثبت نشده؛ از دکمه «افزودن مشتری» یک پرونده بساز.</div>`;
         return;
@@ -3152,6 +3159,7 @@
       document.getElementById('clientNextService').value = future ? (future.service || '') : '';
       document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت‌شده: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '') : 'هنوز نوبت بعدی ثبت نشده است.';
       renderClientHistory(key);
+      renderClientLoyaltyAndGallery(key);
       renderClientCustomFields(key);
       renderClientWorkFields(key);
       renderClientShareFieldOptions(key);
@@ -3829,10 +3837,13 @@
       appData.appointments.forEach(appt => {
         if (appt.dateKey !== todayKey || appt.status === 'canceled' || appt.alarm === 'none' || appt.notified) return;
         const [h, m] = (appt.time || '00:00').split(':').map(Number);
-        if (nowMin === (h * 60 + m) - Number(appt.alarm)) {
+        const reminderAt=(h*60+m)-Math.max(0,Number(appt.alarm)||0);
+        if (nowMin >= reminderAt && nowMin <= reminderAt+2) {
           appt.notified = true; saveData();
-          document.getElementById('alarmRingingText').innerHTML = `نوبت <b>${appt.clientName}</b> ساعت <b>${toPersianDigits(appt.time)}</b>`;
+          const message=`یادآوری نوبت ${appt.clientName}، ساعت ${appt.time||''}`;
+          document.getElementById('alarmRingingText').textContent=message;
           document.getElementById('alarmRingingModal').classList.add('open');
+          try { if ('Notification' in window && Notification.permission==='granted') new Notification('دستیار من',{body:message,tag:'appt-'+appt.id}); } catch(e) {}
           playChime(); clearInterval(alarmInterval);
           alarmInterval = setInterval(playChime, 3500);
         }
@@ -3868,29 +3879,63 @@
       } else {
         goalBox.style.display = 'none';
       }
+      if (typeof renderSmartDashboard === 'function') renderSmartDashboard();
     }
 
-    // ==================== BACKUP & NAVIGATION ====================
-    function exportBackup() {
-      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+    // ==================== BACKUP & NAVIGATION ==================
+    function downloadBackupPayload(payload, suffix='') {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `dastyare-man-backup-${getTodayKey()}.json`; a.click();
-      URL.revokeObjectURL(url); showToast('فایل پشتیبان دانلود شد 💾');
+      a.href = url; a.download = `dastyare-man-backup-${getTodayKey()}${suffix}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+    function exportBackup() {
+      const payload = { ...appData, backupMeta: { app:'Dastyare-man', schema:2, createdAt:new Date().toISOString(), jalaliDate:getTodayKey() } };
+      const json = JSON.stringify(payload);
+      const filename = `dastyare-man-backup-${getTodayKey()}.json`;
+      try {
+        if (window.AndroidApp && typeof window.AndroidApp.exportBackup === 'function' && json.length < 19000000) {
+          window.AndroidApp.exportBackup(json, filename);
+          showToast('ساخت فایل پشتیبان آغاز شد 💾');
+          return;
+        }
+      } catch (e) {}
+      downloadBackupPayload(payload);
+      showToast('فایل پشتیبان دانلود شد 💾');
+    }
+    function validateBackupData(parsed) {
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+      const arrays = ['appointments','notes','todos','transactions','services'];
+      if (!arrays.some(k => Array.isArray(parsed[k]))) return false;
+      return arrays.every(k => parsed[k] === undefined || Array.isArray(parsed[k])) &&
+        (parsed.clientProfiles === undefined || (parsed.clientProfiles && typeof parsed.clientProfiles === 'object' && !Array.isArray(parsed.clientProfiles))) &&
+        (parsed.settings === undefined || (parsed.settings && typeof parsed.settings === 'object' && !Array.isArray(parsed.settings)));
     }
     function importBackup(event) {
-      const file = event.target.files[0]; if (!file) return;
+      const file = event.target.files && event.target.files[0]; if (!file) return;
+      if (file.size > 100*1024*1024) { showToast('حجم فایل پشتیبان بیش از حد مجاز است.'); event.target.value=''; return; }
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const parsed = JSON.parse(e.target.result);
-          if (parsed && Array.isArray(parsed.appointments)) {
-            appData = { ...appData, ...parsed };
-            saveData(); applySettingsUI(); renderCalendar(); renderDaySchedule(); renderNotebook(); renderTodos(); renderFinanceTab(); renderServicesTab();
-            showToast('اطلاعات بازیابی شد ✅');
-          }
-        } catch (err) { showToast('فایل پشتیبان معتبر نیست ⚠️'); }
+          if (!validateBackupData(parsed)) { showToast('ساختار فایل پشتیبان معتبر نیست؛ اطلاعات فعلی تغییر نکرد.'); return; }
+          if (!confirm('قبل از بازیابی، یک نسخه پشتیبان از اطلاعات فعلی ساخته می‌شود. سپس اطلاعات فایل انتخابی جایگزین می‌شود. ادامه می‌دهی؟')) return;
+          downloadBackupPayload({ ...appData, backupMeta:{ app:'Dastyare-man', schema:2, createdAt:new Date().toISOString(), reason:'pre-restore-safety-copy' } }, '-before-restore');
+          const defaults = { appointments:[], notes:[], todos:[], transactions:[], services:[], clientNotes:{}, clientProfiles:{}, settings:{} };
+          appData = { ...defaults, ...appData, ...parsed,
+            appointments: parsed.appointments || appData.appointments || [],
+            notes: parsed.notes || [], todos: parsed.todos || [], transactions: parsed.transactions || [],
+            services: parsed.services || [], clientNotes: { ...(appData.clientNotes||{}), ...(parsed.clientNotes||{}) },
+            clientProfiles: { ...(appData.clientProfiles||{}), ...(parsed.clientProfiles||{}) },
+            settings: { ...(appData.settings||{}), ...(parsed.settings||{}) } };
+          saveData(); applySettingsUI(); renderCalendar(); renderDaySchedule(); renderNotebook(); renderTodos(); renderFinanceTab(); renderServicesTab(); renderClientsTab(); updateDashboardStats();
+          showToast('بازیابی انجام شد؛ نسخه قبلی هم به‌عنوان پشتیبان ذخیره شد ✅');
+        } catch (err) { showToast('فایل پشتیبان خوانده نشد؛ اطلاعات فعلی دست‌نخورده ماند.'); }
+        finally { event.target.value=''; }
       };
+      reader.onerror = () => showToast('خواندن فایل پشتیبان ناموفق بود.');
       reader.readAsText(file);
     }
     function copyEmail() { navigator.clipboard?.writeText('minamsvm@gmail.com'); showToast('ایمیل کپی شد 📋'); }
@@ -4023,7 +4068,121 @@ self.addEventListener('fetch', (e) => { if (e.request.method !== 'GET') return; 
     }
 
     // --- INIT ---
+
+    // ===== SMART DASHBOARD / LOYALTY / GALLERY / ADVANCED SEARCH =====
+    function installEnhancementUI() {
+      const calendar = document.getElementById('tab-calendar');
+      if (calendar && !document.getElementById('smartDashboard')) {
+        const stats = calendar.querySelector('.stats-grid');
+        if (stats) stats.insertAdjacentHTML('afterend', \`
+          <section class="card" id="smartDashboard" style="border:1px solid var(--accent);">
+            <div class="section-head">
+              <div><div class="section-title">✨ داشبورد هوشمند امروز</div><small id="smartDashDate" style="color:var(--text-secondary);"></small></div>
+              <button class="btn-secondary" onclick="enableAppointmentNotifications()">🔔 فعال‌سازی اعلان</button>
+            </div>
+            <div class="stats-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+              <div class="stat-card"><div class="stat-val" id="smartTodayPending">۰</div><div class="stat-lbl">نوبت در انتظار</div></div>
+              <div class="stat-card"><div class="stat-val" id="smartTodayDone">۰</div><div class="stat-lbl">خدمات انجام‌شده</div></div>
+              <div class="stat-card"><div class="stat-val" id="smartTodayIncome">۰</div><div class="stat-lbl">دریافتی امروز (تومان)</div></div>
+              <div class="stat-card"><div class="stat-val" id="smartUpcoming">۰</div><div class="stat-lbl">نوبت‌های ۷ روز آینده</div></div>
+            </div>
+            <div style="font-size:.8rem;font-weight:800;margin:8px 0;color:var(--accent);">⏰ نزدیک‌ترین نوبت‌ها و یادآورها</div>
+            <div id="smartUpcomingList" style="display:flex;flex-direction:column;gap:7px;"></div>
+            <small style="display:block;margin-top:9px;color:var(--text-secondary);line-height:1.7;">اعلان داخل برنامه و اعلان مرورگر هنگام فعال بودن برنامه بررسی می‌شود. برای اعلان در حالت بسته بودن برنامه، پشتیبانی بومی اندروید لازم است.</small>
+          </section>\`);
+      }
+      const search = document.getElementById('globalSearchInput');
+      if (search && !document.getElementById('advancedClientFilters')) {
+        search.insertAdjacentHTML('afterend', \`
+          <div id="advancedClientFilters" class="card" style="padding:10px;margin-top:8px;box-shadow:none;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--accent);margin-bottom:7px;">🔎 فیلترهای پیشرفته مشتریان</div>
+            <div class="form-grid">
+              <div class="form-group" style="margin:0;"><label>جستجو بر اساس نوع خدمت</label><input id="advancedClientService" class="form-control" placeholder="مثلاً والیوم، لیفت..." oninput="renderClientsTab()" /></div>
+              <div class="form-group" style="margin:0;"><label>گروه مشتری</label><select id="advancedClientSegment" class="form-control" onchange="renderClientsTab()"><option value="all">همه مشتریان</option><option value="loyal">مشتریان وفادار (۵ مراجعه به بالا)</option><option value="new">مشتریان جدید (حداکثر یک مراجعه)</option><option value="inactive">بدون مراجعه بیش از ۹۰ روز</option><option value="photos">دارای گالری عکس</option></select></div>
+            </div>
+            <button class="btn-secondary" style="margin-top:8px;" onclick="document.getElementById('globalSearchInput').value='';document.getElementById('advancedClientService').value='';document.getElementById('advancedClientSegment').value='all';renderClientsTab();">پاک‌کردن فیلترها</button>
+          </div>\`);
+      }
+      const history = document.getElementById('clientHistoryList');
+      if (history && !document.getElementById('clientLoyaltyCard')) {
+        history.insertAdjacentHTML('afterend', \`
+          <div class="card" id="clientLoyaltyCard" style="margin-top:12px;box-shadow:none;">
+            <div class="section-title">💎 باشگاه مشتریان</div>
+            <div id="clientLoyaltyContent" style="margin-top:8px;"></div>
+          </div>
+          <div class="card" id="clientGalleryCard" style="margin-top:10px;box-shadow:none;">
+            <div class="section-title">🖼️ گالری حرفه‌ای قبل و بعد</div>
+            <div id="clientGalleryContent" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:9px;"></div>
+          </div>\`);
+      }
+    }
+    function renderSmartDashboard() {
+      const root=document.getElementById('smartDashboard'); if(!root) return;
+      const today=getTodayKey(), now=getIranNow(), nowMin=now.getHours()*60+now.getMinutes();
+      const todays=appData.appointments.filter(a=>a.dateKey===today && a.status!=='canceled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+      const pending=todays.filter(a=>a.status!=='done').length, done=todays.filter(a=>a.status==='done').length;
+      const income=appData.transactions.filter(t=>t.dateKey===today && t.type==='income').reduce((n,t)=>n+(Number(t.amount)||0),0);
+      const limit=addDaysToJalaliKey(today,7);
+      const upcoming=appData.appointments.filter(a=>a.status!=='canceled' && a.dateKey>=today && a.dateKey<=limit).sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
+      document.getElementById('smartDashDate').textContent=formatJalaliFull(today);
+      document.getElementById('smartTodayPending').textContent=toPersianDigits(pending);
+      document.getElementById('smartTodayDone').textContent=toPersianDigits(done);
+      document.getElementById('smartTodayIncome').textContent=formatMoney(income);
+      document.getElementById('smartUpcoming').textContent=toPersianDigits(upcoming.length);
+      const list=document.getElementById('smartUpcomingList');
+      if(!upcoming.length){list.innerHTML='<div style="font-size:.78rem;color:var(--text-secondary);padding:8px;">در هفت روز آینده نوبتی ثبت نشده است.</div>';return;}
+      list.innerHTML=upcoming.slice(0,5).map(a=>{
+        const todayAppointment=a.dateKey===today;
+        const mins=(a.time||'00:00').split(':').map(Number);
+        const isDue=todayAppointment && mins[0]*60+mins[1]>=nowMin && mins[0]*60+mins[1]-nowMin<=Number(a.alarm||0);
+        return \`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:11px;background:var(--bg-input);">
+          <div style="min-width:0;"><strong style="font-size:.8rem;">\${escapeClientText(a.clientName||'مشتری')}</strong><small style="display:block;color:var(--text-secondary);">\${todayAppointment?'امروز':formatJalaliFull(a.dateKey)} • \${toPersianDigits(a.time||'')} • \${escapeClientText(a.service||'خدمت')}</small></div>
+          <button class="mini-btn" onclick="selectedDateKey='\${a.dateKey}';viewYear=Number(a.dateKey.slice(0,4));viewMonth=Number(a.dateKey.slice(5,7));renderCalendar();renderDaySchedule();openApptModal('\${a.id}');">مشاهده</button>
+        </div>\`;
+      }).join('');
+    }
+    async function enableAppointmentNotifications() {
+      if(!('Notification' in window)){showToast('اعلان مرورگر در این محیط پشتیبانی نمی‌شود.');return;}
+      try { const result=await Notification.requestPermission(); showToast(result==='granted'?'اعلان یادآوری فعال شد ✅':'اجازه اعلان داده نشد.'); }
+      catch(e){showToast('فعال‌سازی اعلان در این دستگاه ممکن نیست.');}
+    }
+    function getClientLoyaltyStats(key) {
+      const p=getClientProfile(key);
+      const appts=appData.appointments.filter(a=>clientKeyFromFields(a.phone,a.clientName)===key && a.status==='done');
+      const records=(p.records||[]);
+      const visits=appts.length+records.length;
+      const spend=appts.reduce((n,a)=>n+(Number(a.price)||0),0)+records.reduce((n,a)=>n+(Number(a.price)||0),0);
+      const tier=visits>=10?'طلایی':visits>=5?'نقره‌ای':visits>=2?'برنزی':'عضو تازه';
+      return {visits,spend,tier,remaining:visits>=5?5-(visits%5)||5:5-visits};
+    }
+    function renderClientLoyaltyAndGallery(key) {
+      const p=getClientProfile(key), stats=getClientLoyaltyStats(key);
+      const loyalty=document.getElementById('clientLoyaltyContent');
+      if(loyalty) loyalty.innerHTML=\`
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;text-align:center;">
+          <div class="stat-card"><div class="stat-val">\${toPersianDigits(stats.visits)}</div><div class="stat-lbl">مراجعه انجام‌شده</div></div>
+          <div class="stat-card"><div class="stat-val">\${stats.tier}</div><div class="stat-lbl">سطح عضویت</div></div>
+          <div class="stat-card"><div class="stat-val">\${formatMoney(stats.spend)}</div><div class="stat-lbl">مجموع خرید (تومان)</div></div>
+        </div>
+        <div style="font-size:.77rem;color:var(--text-secondary);margin-top:9px;">🎁 \${stats.visits>=5?'برای هر ۵ مراجعه انجام‌شده، یک پاداش قابل تعریف در سالن در نظر بگیر.': 'تا رسیدن به اولین پاداش، '+toPersianDigits(stats.remaining)+' مراجعه باقی مانده است.'}</div>\`;
+      const gallery=document.getElementById('clientGalleryContent'); if(!gallery)return;
+      const items=(p.records||[]).filter(r=>r.beforePhotoRef||r.afterPhotoRef||r.photoRef||r.photo);
+      if(!items.length){gallery.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--text-secondary);font-size:.78rem;padding:12px;">هنوز عکسی در گالری این مشتری ثبت نشده است.</div>';return;}
+      gallery.innerHTML=items.map((r,i)=>\`
+        <div style="background:var(--bg-input);border-radius:11px;padding:7px;min-width:0;">
+          <div style="font-size:.73rem;font-weight:800;margin-bottom:5px;">\${escapeClientText(r.service||'جلسه خدمات')}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            \${r.beforePhotoRef?'<img data-gallery-ref="'+escapeClientText(r.beforePhotoRef)+'" alt="قبل" style="width:100%;height:105px;object-fit:cover;border-radius:7px;" />':'<div style="height:105px;display:grid;place-items:center;background:var(--bg-secondary);border-radius:7px;font-size:.65rem;">بدون عکس قبل</div>'}
+            \${r.afterPhotoRef?'<img data-gallery-ref="'+escapeClientText(r.afterPhotoRef)+'" alt="بعد" style="width:100%;height:105px;object-fit:cover;border-radius:7px;" />':(r.photoRef?'<img data-gallery-ref="'+escapeClientText(r.photoRef)+'" alt="عکس" style="width:100%;height:105px;object-fit:cover;border-radius:7px;" />':'<div style="height:105px;display:grid;place-items:center;background:var(--bg-secondary);border-radius:7px;font-size:.65rem;">بدون عکس بعد</div>')}
+          </div>
+          <small style="display:block;color:var(--text-secondary);margin-top:5px;">\${r.dateKey?formatJalaliFull(r.dateKey):''}</small>
+        </div>\`).join('');
+      gallery.querySelectorAll('img[data-gallery-ref]').forEach(async img=>{try{const url=await getClientPhotoUrl(img.dataset.galleryRef);if(url)img.src=url;}catch(e){}});
+    }
+    // Refresh the smart panel whenever existing data is saved or the customer record is opened.
+
     loadData();
+    installEnhancementUI();
     checkPinLockOnStartup();
     applySettingsUI();
     updateClockAndDate();
