@@ -562,6 +562,34 @@
       background: var(--bg-card-solid); border: 1px solid var(--border-color);
       border-radius: 24px; padding: 17px; box-shadow: var(--shadow-lg);
     }
+    /* Appointment form: keep the last controls and action buttons above Android's system navigation area. */
+    #apptModal.modal-backdrop {
+      align-items: flex-end;
+      padding: 8px 10px calc(12px + var(--safe-bottom));
+      overscroll-behavior: contain;
+    }
+    #apptModal .modal-box {
+      max-height: calc(100vh - 20px - var(--safe-top) - var(--safe-bottom));
+      max-height: calc(100dvh - 20px - var(--safe-top) - var(--safe-bottom));
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(17px + var(--safe-bottom));
+      scroll-padding-bottom: calc(24px + var(--safe-bottom));
+    }
+    #apptModal .modal-box > div:last-child {
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+      padding: 10px 0 calc(8px + var(--safe-bottom));
+      margin-bottom: calc(-8px - var(--safe-bottom));
+      background: var(--bg-card-solid);
+    }
+    #apptModal .modal-box button {
+      min-height: 42px;
+      touch-action: manipulation;
+    }
     .modal-head {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 13px; padding-bottom: 9px; border-bottom: 1px solid var(--border-subtle);
@@ -3305,7 +3333,7 @@
           cell.title = holidayReason;
         }
         const shortHoliday = (holidayReason && !holidayReason.startsWith('تعطیل رسمی هفتگی:'))
-          ? holidayReason.replace(/^تعطیل رسمی:\\s*/, '').split('(')[0].trim()
+          ? holidayReason.replace(/^تعطیل رسمی:\s*/, '').split('(')[0].trim()
           : '';
         cell.innerHTML =
           (holidayReason ? '<span class="holiday-dot"></span>' : '') +
@@ -3394,7 +3422,7 @@
         const holidayReason = getOfficialHolidayReason(key);
         if(holidayReason) { cell.classList.add('holiday-day'); cell.title = holidayReason; }
         const shortHoliday = (holidayReason && !holidayReason.startsWith('تعطیل رسمی هفتگی:'))
-          ? holidayReason.replace(/^تعطیل رسمی:\\s*/, '').split('(')[0].trim()
+          ? holidayReason.replace(/^تعطیل رسمی:\s*/, '').split('(')[0].trim()
           : '';
         cell.innerHTML = (holidayReason ? '<span class="holiday-dot"></span>' : '') +
           '<span class="day-num">'+toPersianDigits(d)+'</span>' +
@@ -4538,7 +4566,7 @@
         return 'انجام شد! به فهرست کارهات اضافه‌اش کردم تا یادت نره 🎀\n«' + task + '»';
       }
 
-      if ((/(?:نوبت|رزرو|وقت)/.test(t) || (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(t) && /(?:برای|خدمت)/.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\\s*بده|انجامش\\s*بده|بده)/.test(t) &&
+      if ((/(?:نوبت|رزرو|وقت)/.test(t) || (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(t) && /(?:برای|خدمت)/.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده)/.test(t) &&
           (/(?:امروز|فردا|پس\s*فردا|تاریخ)/.test(t) || /\d{1,2}(?::\d{1,2})?/.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/.test(t))) {
         const clock = t.match(/ساعت\s*(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
           t.match(/(?:^|\s)(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)(?:\s|$)/);
@@ -4729,20 +4757,20 @@
       const hasClock = /(?:ساعت\s*)?\d{1,2}(?::\d{1,2})?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized);
       const isBookingIntent = (/(?:نوبت|رزرو|وقت)/.test(normalized) ||
         (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) && /(?:برای|خدمت)/.test(normalized))) &&
-        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\\s*بده|انجامش\\s*بده|بده)/.test(normalized);
+        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
       const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized);
       const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized) &&
         /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
       // Multi-turn booking: preserve details when the user supplies date/time separately.
       if (minaConversationBooking && hasDateOnly && !hasClock &&
-          /(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
+          /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
         const continuation = minaConversationBooking.original + ' ' + expandedRaw;
         minaConversationBooking = null;
         return minaBuildReplyCore(continuation);
       }
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
-        const timeMatch = normalized.match(/(?:ساعت\\s*)?(\\d{1,2}(?::\\d{1,2})?)\\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
+        const timeMatch = normalized.match(/(?:ساعت\s*)?(\d{1,2}(?::\d{1,2})?)\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
         if (timeMatch) {
           const continuation = minaConversationBooking.original + ' ساعت ' + timeMatch[1] + ' ' + timeMatch[2];
           minaConversationBooking = null;
@@ -4751,7 +4779,7 @@
       }
       if (isBookingIntent && hasClock && !hasDateAndService &&
           /(?:کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین)/.test(normalized) &&
-          !/(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
+          !/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
         minaConversationBooking = { original: expandedRaw };
         return 'حتماً عزیزم 💗 فقط تاریخ نوبت رو هم بگو؛ مثلاً «فردا» یا «پنجشنبه».';
       }
@@ -4819,7 +4847,8 @@
       if (asksPermanentDelete && /(?:نوبت|وقت|رزرو|تقویم)/.test(normalized)) {
         const delDate = /پس\s*فردا/.test(normalized) ? addDaysToJalaliKey(todayKey, 2)
           : /فردا/.test(normalized) ? addDaysToJalaliKey(todayKey, 1) : /امروز/.test(normalized) ? todayKey : null;
-        const delClockMatch = normalized.match(/(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|ظهر|بعدازظهر|عصر|شب)?/);
+        const timeText = normalized.replace(/(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/g, ' ');
+        const delClockMatch = timeText.match(/(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
         let delTime = null;
         if (delClockMatch && /(?:ساعت|صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized)) {
           let h = Number(delClockMatch[1]), m = Number(delClockMatch[2] || 0);
