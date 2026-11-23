@@ -41,6 +41,11 @@ jobs:
         with:
           packages: platform-tools
 
+      - name: Install Android platform and build tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
       - name: Prepare offline app content
         run: |
           mkdir -p app/src/main/assets app/src/main/res/drawable
