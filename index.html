@@ -4578,11 +4578,37 @@
         if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
         if (/صبح/.test(period) && hour === 12) hour = 0;
         if (hour > 23 || minute > 59) return 'ساعت رو درست متوجه نشدم گلم؛ یک بار دیگه می‌گی؟ 💗';
-        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(t)) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
+        const jalaliMonthNames = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+        const monthAliases = { 'فروردین':1,'اردیبهشت':2,'خرداد':3,'تیر':4,'مرداد':5,'شهریور':6,'مهر':7,'آبان':8,'اذر':9,'آذر':9,'دی':10,'بهمن':11,'اسفند':12 };
+        const hasExplicitDate = /\d{1,4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,4}/.test(t) ||
+          jalaliMonthNames.some(m => t.includes(m)) ||
+          /(?:ژانویه|فوریه|مارس|آوریل|مه|می|ژوئن|جولای|اوت|آگوست|سپتامبر|اکتبر|نوامبر|دسامبر)/.test(t);
+        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(t) && !hasExplicitDate) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
         let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
-        const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-        if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
+        // Parse Jalali dates (1405/09/03 or 3 آذر 1405), and Gregorian numeric dates.
+        const numericDate = t.match(/(?:در تاریخ|تاریخ)?\s*(\d{4})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{1,2})/) ||
+          t.match(/(?:در تاریخ|تاریخ)?\s*(\d{1,2})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{4})/);
+        if (numericDate) {
+          let y, m, d;
+          if (numericDate[1].length === 4) { y=Number(numericDate[1]); m=Number(numericDate[2]); d=Number(numericDate[3]); }
+          else { d=Number(numericDate[1]); m=Number(numericDate[2]); y=Number(numericDate[3]); }
+          if (y >= 1300 && y <= 1600) {
+            if (m<1 || m>12 || d<1 || d>jalaliMonthDays(y,m)) return 'تاریخی که گفتی معتبر نیست عزیزم؛ روز و ماه و سال رو دوباره بررسی کن 💗';
+            dateKey = y + '-' + pad2(m) + '-' + pad2(d);
+          } else if (y >= 1900 && y <= 2200) {
+            const dt = new Date(y,m-1,d);
+            if (dt.getFullYear()!==y || dt.getMonth()!==m-1 || dt.getDate()!==d) return 'تاریخی که گفتی معتبر نیست عزیزم؛ روز و ماه و سال رو دوباره بررسی کن 💗';
+            const j = gregorianToJalali(y,m,d); dateKey = j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
+          } else return 'سال رو متوجه نشدم عزیزم؛ سال شمسی یا میلادی رو کامل بگو 💗';
+        } else {
+          const monthMatch = t.match(/(\d{1,2})\s+(فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|اذر|آذر|دی|بهمن|اسفند)(?:\s+(\d{4}))?/);
+          if (monthMatch) {
+            const d=Number(monthMatch[1]), m=monthAliases[monthMatch[2]], y=Number(monthMatch[3] || todayKey.split('-')[0]);
+            if (d<1 || d>jalaliMonthDays(y,m)) return 'این روز در ماهی که گفتی وجود نداره عزیزم؛ تاریخ رو بررسی کن 💗';
+            dateKey = y + '-' + pad2(m) + '-' + pad2(d);
+          }
+        }
         // Resolve named weekdays to their next occurrence (Iranian week starts on Saturday).
         const weekdayNames = [
           { day: 1, re: /یکشنبه/ }, { day: 2, re: /دوشنبه/ }, { day: 3, re: /سه.?شنبه/ },
