@@ -1290,10 +1290,10 @@
           <div class="form-group full">
             <label>تاریخ شمسی نوبت</label>
             <div style="display:flex;gap:7px;align-items:center;">
-              <input type="text" id="clientNextDate" class="form-control" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۹/۰۲" dir="ltr" style="flex:1;" />
-              <button type="button" class="btn-secondary" onclick="toggleClientJalaliPicker()" style="white-space:nowrap;">📅 تقویم شمسی</button>
+              <input type="text" id="clientNextDate" class="form-control" placeholder="انتخاب تاریخ از تقویم" dir="ltr" style="flex:1;cursor:pointer;" readonly onclick="toggleClientJalaliPicker()" aria-label="انتخاب تاریخ شمسی از تقویم" />
+              <button type="button" class="btn-secondary" onclick="toggleClientJalaliPicker()" style="white-space:nowrap;">📅 انتخاب تاریخ</button>
             </div>
-            <small style="color:var(--text-secondary);">تاریخ را انتخاب کن یا خودت به شمسی تایپ کن.</small>
+            <small style="color:var(--text-secondary);">برای ثبت نوبت، روز موردنظر را از تقویم شمسی انتخاب کن.</small>
             <div id="clientJalaliPicker" class="card" style="display:none;margin-top:9px;padding:10px;">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
                 <button type="button" class="btn-pill" onclick="changeClientJalaliPickerMonth(-1)">ماه قبل</button>
