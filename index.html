@@ -1405,7 +1405,7 @@
               <button type="button" class="btn-secondary" onclick="downloadMinaPersianVoice()">⬇️ دریافت / مدیریت صدای فارسی</button>
               <button type="button" class="btn-primary" onclick="testMinaPersianVoice()">🔊 شنیدن نمونه صدا</button>
             </div>
-            <div class="mina-personal-note" style="margin-top:10px;">توجه: زیر و بمی و سرعت، لحن را تنظیم می‌کنند و جنس واقعی صدا را عوض نمی‌کنند. برای صدای واقعاً زنانه باید موتور، صدای زنانهٔ فارسی داشته باشد؛ مینا صدای انگلیسی یا زبان دیگری را جای فارسی پخش نمی‌کند.</div>
+            <div class="mina-personal-note" style="margin-top:10px;">مینا فقط صدای فارسی‌ای را که نام/مشخصاتش نشانهٔ زنانه داشته باشد در فهرست می‌آورد و هیچ صدای مردانه یا نامشخصی را جایگزین نمی‌کند. جنس صدا به موتور گفتار نصب‌شده روی گوشی بستگی دارد؛ برای صدای مطمئن‌تر، نمونه را قبل از انتخاب گوش کن.</div>
           </div>
           <div class="mina-personal-note">تنظیمات صدا و شخصی‌سازی روی همین دستگاه ذخیره می‌شوند و با بستن برنامه از بین نمی‌روند.</div>
         </div>
@@ -1482,6 +1482,7 @@
             <a class="btn-primary" style="flex:1; text-decoration:none;" id="directApkDownloadBtn" href="https://github.com/mmp1988/Dastyare-man/releases/latest/download/Dastyare-man.apk" target="_blank">⬇️ دانلود مستقیم APK</a>
             <button class="btn-secondary" onclick="shareAppToFriends('apk')">ارسال لینک APK</button>
           </div>
+          <div class="mina-personal-note" style="margin-top:9px;">برای نصب مجدد، همین فایل APK را دوباره دریافت و نصب کن. اگر برنامه را حذف می‌کنی و می‌خواهی اطلاعاتت باقی بماند، قبل از حذف از بخش پشتیبان‌گیری خروجی بگیر؛ حذف برنامه اطلاعات محلی همان گوشی را پاک می‌کند.</div>
         </div>
       </div>
 
@@ -4372,12 +4373,13 @@
       const select=document.getElementById('minaVoiceName'), status=document.getElementById('minaVoiceStatus');
       if(!select)return;
       const saved=appData.settings.minaVoiceName||select.value||'';
-      const list=Array.isArray(voices)?voices:[];
-      list.sort((a,b)=>(Number(!!b.femaleLikely)-Number(!!a.femaleLikely))||(Number(!!b.offline)-Number(!!a.offline))||String(a.name).localeCompare(String(b.name)));
-      select.innerHTML='<option value="">انتخاب خودکار صدای زنانه (در صورت وجود)</option>';
+      // مینا فقط صدای فارسیِ دارای نشانهٔ زنانه را نمایش می‌دهد؛ صدای نامشخص/مردانه حذف می‌شود.
+      const list=(Array.isArray(voices)?voices:[]).filter(v=>v && v.femaleLikely===true && v.name);
+      list.sort((a,b)=>(Number(!!b.offline)-Number(!!a.offline))||String(a.name).localeCompare(String(b.name)));
+      select.innerHTML='<option value="">انتخاب خودکار صدای زنانهٔ فارسی</option>';
       list.forEach(v=>{
         const opt=document.createElement('option');opt.value=v.name;
-        opt.textContent=(v.label||v.name)+' — '+(v.offline?'آفلاین':'نیازمند اینترنت')+(v.femaleLikely?' · احتمالاً زنانه':'');
+        opt.textContent=(v.label||v.name)+' — '+(v.offline?'آفلاین':'نیازمند اینترنت')+' · زنانه';
         select.appendChild(opt);
       });
       select.value=list.some(v=>v.name===saved)?saved:'';
@@ -4392,7 +4394,7 @@
         try{AndroidApp.refreshMinaVoices();return;}catch(e){}
       }
       if('speechSynthesis' in window){
-        const read=()=>window.receiveMinaVoices(window.speechSynthesis.getVoices().filter(v=>/^fa(-|_)/i.test(v.lang)).map(v=>({name:v.voiceURI,label:v.name,offline:!!v.localService,femaleLikely:/female|woman|girl|khadijah|sara|maryam|zahra|fatemeh|niloofar/i.test(v.name)})));
+        const read=()=>window.receiveMinaVoices(window.speechSynthesis.getVoices().filter(v=>/^fa(-|_)/i.test(v.lang)).map(v=>({name:v.voiceURI,label:v.name,offline:!!v.localService,femaleLikely:/female|woman|girl|khadijah|khadijeh|sara|maryam|zahra|fatemeh|niloofar|mina|banoo/i.test(v.name)})));
         read();window.speechSynthesis.onvoiceschanged=read;
       }else if(status)status.textContent='موتور گفتار در این دستگاه در دسترس نیست.';
     }
@@ -4406,9 +4408,9 @@
       }
       if(!('speechSynthesis' in window))return;
       try{
-        const voices=window.speechSynthesis.getVoices().filter(v=>/^fa(-|_)/i.test(v.lang));
-        const fa=voices.find(v=>v.voiceURI===voiceName)||voices.find(v=>/female|woman|girl|khadijah|sara|maryam|zahra|fatemeh|niloofar/i.test(v.name));
-        if(!fa){showToast('صدای فارسی زنانه در مرورگر پیدا نشد؛ صدای دیگری جایگزین نمی‌شود.');return;}
+        const voices=window.speechSynthesis.getVoices().filter(v=>/^fa(-|_)/i.test(v.lang) && /female|woman|girl|khadijah|khadijeh|sara|maryam|zahra|fatemeh|niloofar|mina|banoo/i.test(v.name));
+        const fa=voices.find(v=>v.voiceURI===voiceName)||voices.find(v=>/female|woman|girl|khadijah|khadijeh|sara|maryam|zahra|fatemeh|niloofar|mina|banoo/i.test(v.name));
+        if(!fa){showToast('صدای فارسی زنانه در این دستگاه پیدا نشد؛ مینا هیچ صدای مردانه یا نامشخصی را جایگزین نمی‌کند.');return;}
         window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fa-IR';u.voice=fa;u.rate=rate;u.pitch=pitch;window.speechSynthesis.speak(u);
       }catch(e){}
     }
