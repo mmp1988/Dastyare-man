@@ -204,7 +204,7 @@ public class MainActivity extends Activity {
         try {
             if (minaTextToSpeech.getVoices() != null) {
                 for (Voice voice : minaTextToSpeech.getVoices()) {
-                    if (!isPersianVoice(voice)) continue;
+                    if (!isPersianVoice(voice) || !isLikelyFemaleVoiceName(voice.getName())) continue;
                     JSONObject item = new JSONObject();
                     String name = voice.getName();
                     boolean offline = !voice.isNetworkConnectionRequired();
@@ -260,17 +260,18 @@ public class MainActivity extends Activity {
             if (minaTextToSpeech.getVoices() != null) {
                 for (Voice voice : minaTextToSpeech.getVoices()) {
                     if (!isPersianVoice(voice)) continue;
+                    // هرگز صدای انتخاب‌شدهٔ مردانه/نامشخص را پخش نکن.
+                    if (!isLikelyFemaleVoiceName(voice.getName())) continue;
                     if (!pendingMinaVoiceName.isEmpty() && pendingMinaVoiceName.equals(voice.getName())) {
                         chosen = voice;
                         break;
                     }
-                    if (pendingMinaVoiceName.isEmpty() && isLikelyFemaleVoiceName(voice.getName())
-                            && !voice.isNetworkConnectionRequired()) chosen = voice;
+                    if (pendingMinaVoiceName.isEmpty() && !voice.isNetworkConnectionRequired()) chosen = voice;
                 }
             }
             if (chosen == null) {
                 if (pendingMinaVoiceName.isEmpty()) {
-                    notifyVoiceMessage("برای اینکه صدای مینا ناخواسته مردانه نشه، اول یک صدای فارسی رو از فهرست انتخاب و با دکمه نمونه امتحان کن. 🌷");
+                    notifyVoiceMessage("صدای زنانهٔ فارسیِ قابل‌استفاده پیدا نشد؛ مینا هیچ صدای مردانه یا نامشخصی را پخش نمی‌کند. از تنظیمات گوشی یک صدای زنانهٔ فارسی نصب کن و دوباره بررسی صداها را بزن. 🌷");
                 } else {
                     notifyVoiceMessage("صدای انتخاب‌شده دیگر در موتور گوشی موجود نیست؛ فهرست صداها رو تازه‌سازی کن.");
                 }
