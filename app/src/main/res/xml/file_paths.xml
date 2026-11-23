@@ -3,4 +3,7 @@
     <external-files-path
         name="customer_camera_photos"
         path="Pictures/customer-captures/" />
+    <cache-path
+        name="shared_customer_files"
+        path="shared/" />
 </paths>
