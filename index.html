@@ -2545,13 +2545,12 @@
       setClientProfilePhotoZoom(p.photoZoom||100);
       if (p.photoRef) getClientPhotoUrl(p.photoRef).then(url => { if(url && document.getElementById('clientRecordKey').value===key) { img.src=url; img.style.display='block'; document.getElementById('clientProfileFullPhoto').src=url; document.getElementById('clientProfileFullPhotoPanel').style.display='block'; } }).catch(()=>{});
       const iranNow = getIranNow();
-      document.getElementById('clientWorkDate').value = iranNow.getFullYear()+'-'+pad2(iranNow.getMonth()+1)+'-'+pad2(iranNow.getDate());
-      document.getElementById('clientWorkTime').value = getIranNow().toTimeString().slice(0,5);
+      document.getElementById('clientWorkDate').value = '';
+      document.getElementById('clientWorkTime').value = '';
       document.getElementById('clientWorkService').value = '';
       document.getElementById('clientWorkPrice').value = '';
       document.getElementById('clientWorkNotes').value = '';
-      document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]').forEach(el => el.checked=false);
-      document.getElementById('clientCustomChecklist').value = '';
+      document.querySelectorAll('[data-work-field]').forEach(el=>el.value='');
       document.getElementById('clientWorkPhotoInput').value = '';
       document.getElementById('clientWorkPhotoStatus').textContent = 'عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.';
       document.getElementById('clientBeforePhotoInput').value = '';
@@ -2676,6 +2675,48 @@
       if(!Array.isArray(p.customFields))return;
       p.customFields.splice(index,1);saveData();renderClientCustomFields(key);
     }
+    function setClientProfilePhotoZoom(value) {
+      const zoom=Math.max(80,Math.min(180,Number(value)||100));
+      const key=document.getElementById('clientRecordKey').value;
+      const p=key?getClientProfile(key):null;
+      const img=document.getElementById('clientProfileFullPhoto');
+      img.style.transform='scale('+(zoom/100)+')';
+      if(p){p.photoZoom=zoom;saveData();}
+    }
+    function getClientWorkFieldDefinitions() {
+      if(!appData.settings) appData.settings={};
+      if(!Array.isArray(appData.settings.customerWorkFields)) appData.settings.customerWorkFields=[];
+      return appData.settings.customerWorkFields;
+    }
+    function renderClientWorkFields(key) {
+      const defs=getClientWorkFieldDefinitions();
+      const values=document.getElementById('clientWorkFieldValues');
+      const list=document.getElementById('clientWorkFieldDefinitions');
+      values.innerHTML=defs.length?defs.map(f=>{
+        const type=['text','number','date','time','textarea'].includes(f.type)?f.type:'text';
+        const control=type==='textarea'
+          ? '<textarea class="form-control" rows="2" data-work-field="'+f.id+'" placeholder="'+escapeClientText(f.label)+'"></textarea>'
+          : '<input class="form-control" type="'+type+'" data-work-field="'+f.id+'" placeholder="'+escapeClientText(f.label)+'" />';
+        return '<div class="form-group full"><label>'+escapeClientText(f.label)+'</label>'+control+'</div>';
+      }).join(''):'<small style="grid-column:1/-1;color:var(--text-secondary);">هنوز فیلدی نساختی. از بخش ساخت فیلد، موارد مخصوص شغل خودت را اضافه کن.</small>';
+      list.innerHTML=defs.length?defs.map((f,i)=>'<div style="display:flex;align-items:center;gap:8px;background:var(--bg-input);padding:7px 9px;border-radius:9px;"><span style="flex:1;font-size:.76rem;">'+escapeClientText(f.label)+'</span><button type="button" class="mini-btn del" onclick="removeClientWorkField('+i+')">حذف فیلد</button></div>').join(''):'<small style="color:var(--text-secondary);">فیلد اختصاصی تعریف نشده است.</small>';
+    }
+    function addClientWorkField() {
+      const label=document.getElementById('newWorkFieldLabel').value.trim();
+      const type=document.getElementById('newWorkFieldType').value;
+      if(!label){showToast('نام فیلد را وارد کن.');return;}
+      const defs=getClientWorkFieldDefinitions();
+      if(defs.some(f=>f.label.toLowerCase()===label.toLowerCase())){showToast('این فیلد قبلاً ساخته شده است.');return;}
+      defs.push({id:'workfield_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),label,type:['text','number','date','time','textarea'].includes(type)?type:'text'});
+      document.getElementById('newWorkFieldLabel').value='';
+      saveData();renderClientWorkFields(document.getElementById('clientRecordKey').value);
+      showToast('فیلد به فرم شخصی تو اضافه شد ✅');
+    }
+    function removeClientWorkField(index) {
+      const defs=getClientWorkFieldDefinitions();
+      if(index<0||index>=defs.length)return;
+      defs.splice(index,1);saveData();renderClientWorkFields(document.getElementById('clientRecordKey').value);
+    }
     function saveClientProfileNotes() {
       const key = document.getElementById('clientRecordKey').value;
       if (!key) return;
@@ -2691,20 +2732,20 @@
       const key = document.getElementById('clientRecordKey').value;
       if (!key) return;
       const p = getClientProfile(key);
-      const date = gregorianInputToJalali(document.getElementById('clientWorkDate').value);
-      const time = document.getElementById('clientWorkTime').value || '00:00';
+      const dateInput=document.getElementById('clientWorkDate').value;
+      const date = dateInput ? gregorianInputToJalali(dateInput) : '';
+      const time = document.getElementById('clientWorkTime').value;
       const service = document.getElementById('clientWorkService').value.trim();
       const notes = document.getElementById('clientWorkNotes').value.trim();
       const priceValue = document.getElementById('clientWorkPrice').value.trim();
       const price = priceValue === '' ? null : Math.max(0, Number(priceValue) || 0);
-      const checklist = Array.from(document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]:checked')).map(el=>el.value);
-      const customChecklist = document.getElementById('clientCustomChecklist').value.trim();
-      if (customChecklist) checklist.push(customChecklist);
-      if (!service && !notes && price === null && !checklist.length && !pendingClientWorkPhoto && !pendingClientBeforePhoto && !pendingClientAfterPhoto) {
+      const customValues={};
+      document.querySelectorAll('[data-work-field]').forEach(el=>{if(el.value.trim())customValues[el.dataset.workField]=el.value.trim();});
+      if (!service && !notes && price === null && !date && !time && !Object.keys(customValues).length && !pendingClientWorkPhoto && !pendingClientBeforePhoto && !pendingClientAfterPhoto) {
         showToast('حداقل یک مورد مثل خدمت، توضیح، قیمت یا عکس اضافه کن.');
         return;
       }
-      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service:service || 'سابقه خدمت', notes, price, checklist, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
+      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, price, customValues, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
       pendingClientWorkPhoto = '';
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
@@ -2712,8 +2753,7 @@
       document.getElementById('clientWorkService').value = '';
       document.getElementById('clientWorkPrice').value = '';
       document.getElementById('clientWorkNotes').value = '';
-      document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]').forEach(el => el.checked=false);
-      document.getElementById('clientCustomChecklist').value = '';
+      document.querySelectorAll('[data-work-field]').forEach(el=>el.value='');
       document.getElementById('clientWorkPhotoInput').value = '';
       document.getElementById('clientBeforePhotoInput').value = '';
       document.getElementById('clientAfterPhotoInput').value = '';
@@ -2732,6 +2772,7 @@
     }
     function renderClientHistory(key) {
       const p = getClientProfile(key);
+      const workFieldLabels=Object.fromEntries(getClientWorkFieldDefinitions().map(f=>[f.id,f.label]));
       const appts = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key && a.status === 'done')
         .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:'ثبت‌شده از نوبت‌های برنامه', photo:'', source:'appointment' }));
       const records = (p.records || []).map(r => ({...r, source:'record'}));
@@ -2745,7 +2786,7 @@
         <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;">
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
             <strong style="font-size:.84rem;">${escapeClientText(item.service)}</strong>
-            <small style="color:var(--accent);white-space:nowrap;"> ${formatJalaliFull(item.dateKey)} • ${toPersianDigits(item.time || '—')}</small>
+            <small style="color:var(--accent);white-space:nowrap;">${item.dateKey?formatJalaliFull(item.dateKey):''}${item.dateKey&&item.time?' • ':''}${item.time?toPersianDigits(item.time):''}</small>
           </div>
           ${item.beforePhotoRef || item.afterPhotoRef ? `
             <div style="margin-top:10px;padding:9px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
@@ -2766,6 +2807,7 @@
             </div>` : (item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:190px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''))}
           ${item.checklist && item.checklist.length ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;">☑ ${item.checklist.map(escapeClientText).join(' • ')}</div>` : ''}
           ${item.price != null && item.price !== '' ? `<div style="font-size:.78rem;color:var(--accent);margin-top:6px;">💰 مبلغ: ${formatMoney(item.price)} تومان</div>` : ''}
+          ${item.customValues ? Object.entries(item.customValues).filter(([k,v])=>v).map(([k,v])=>`<div style="font-size:.76rem;line-height:1.8;margin-top:4px;"><strong>${escapeClientText(workFieldLabels[k]||'جزئیات')}:</strong> ${escapeClientText(v)}</div>`).join('') : ''}
           ${item.createdAt ? `<small style="display:block;color:var(--text-secondary);margin-top:5px;">ثبت در برنامه: ${formatClientTimestamp(item.createdAt)}</small>` : ''}
           ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
           <button class="mini-btn wa" style="margin-top:8px;" onclick="shareClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">📤 ارسال این سابقه</button>
