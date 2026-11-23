@@ -4729,10 +4729,11 @@
       const isBookingIntent = (/(?:نوبت|رزرو|وقت)/.test(normalized) ||
         (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) && /(?:برای|خدمت)/.test(normalized))) &&
         /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\\s*بده|انجامش\\s*بده|بده)/.test(normalized);
+      const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized);
       const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized) &&
         /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
       // Multi-turn booking: preserve details when the user supplies date/time separately.
-      if (minaConversationBooking && hasDateAndService && !hasClock &&
+      if (minaConversationBooking && hasDateOnly && !hasClock &&
           /(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
         const continuation = minaConversationBooking.original + ' ' + expandedRaw;
         minaConversationBooking = null;
