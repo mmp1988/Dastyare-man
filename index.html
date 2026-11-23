@@ -1375,8 +1375,6 @@
             <div class="form-group"><label>نامی که مینا صدات کنه</label><input id="minaPersonalGreeting" class="form-control" placeholder="مثلاً عزیزم، سارا جان..." onchange="saveMinaPersonalization()" /></div>
             <div class="form-group"><label>صدای پاسخ مینا</label><select id="minaVoiceReplies" class="form-control" onchange="saveMinaPersonalization()"><option value="yes">پاسخ صوتی روشن</option><option value="no">فقط پاسخ متنی</option></select></div>
           </div>
-          <div class="form-group"><label>رنگ دلخواه خودت</label><input type="color" id="settingCustomHex" class="form-control" style="height:42px;padding:4px;" value="#d77fa2" onchange="setCustomHexColor(this.value)" /></div>
-          <div class="form-group"><label>اندازه نوشته‌ها</label><select id="settingFontScale" class="form-control" onchange="saveSettings()"><option value="15px">جمع‌وجور</option><option value="16px" selected>معمولی</option><option value="17.5px">درشت و خوانا</option><option value="19px">خیلی درشت</option></select></div>
           <div class="form-group"><label>حالت نمایش</label><select id="minaThemeChoice" class="form-control" onchange="setMinaTheme(this.value)"><option value="light">روشن و پاستیلی</option><option value="dark">تاریک و ملایم</option></select></div>
           <div class="mina-personal-note">تنظیمات ظاهری روی همین حساب و دستگاه ذخیره می‌شود و با بستن برنامه از بین نمی‌رود.</div>
         </div>
@@ -2086,7 +2084,7 @@
       clientProfiles: {},
       settings: {
         brandName: 'دستیار من',
-        brandSub: 'مدیریت هوشمند نوبت‌دهی و مالی',
+        brandSub: 'همراه تو در دنیای زیبایی',
         msgTemplate: 'سلام {name} عزیز 🌸\nیادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).\nمنتظر دیدار شما هستیم ✨',
         defaultComm: 0,
         monthlyGoal: 0,
@@ -2125,6 +2123,17 @@
             clientProfiles: parsed.clientProfiles || {},
             settings: { ...appData.settings, ...(parsed.settings || {}) }
           };
+          // One-time visual refresh: migrate the legacy dark/gold default to Mina's pastel identity.
+          if (!appData.settings.minaStyleMigrated) {
+            if (appData.settings.palette === 'gold' || !appData.settings.palette) {
+              appData.settings.palette = 'blossom';
+              appData.settings.customHex = '#d77fa2';
+            }
+            if (appData.settings.theme === 'dark' || !appData.settings.theme) appData.settings.theme = 'light';
+            appData.settings.brandSub = 'همراه تو در دنیای زیبایی';
+            appData.settings.minaStyleMigrated = true;
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch (e) {}
+          }
         }
       } catch (e) {}
     }
@@ -3850,7 +3859,7 @@
       const s = appData.settings;
       document.getElementById('appBrandTitle').textContent = s.brandName || 'دستیار من';
       document.getElementById('splashBrandTitle').textContent = s.brandName || 'دستیار من';
-      document.getElementById('appBrandSub').textContent = s.brandSub || 'مدیریت هوشمند نوبت‌دهی و مالی';
+      document.getElementById('appBrandSub').textContent = s.brandSub || 'همراه تو در دنیای زیبایی';
       document.getElementById('settingBrandName').value = s.brandName || '';
       document.getElementById('settingBrandSub').value = s.brandSub || '';
       document.getElementById('settingDefaultComm').value = s.defaultComm || 0;
@@ -3899,7 +3908,7 @@
 
     function saveSettings() {
       appData.settings.brandName = document.getElementById('settingBrandName').value.trim() || 'دستیار من';
-      appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'مدیریت هوشمند نوبت‌دهی و مالی';
+      appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'همراه تو در دنیای زیبایی';
       appData.settings.defaultComm = Number(document.getElementById('settingDefaultComm').value) || 0;
       appData.settings.monthlyGoal = Number(document.getElementById('settingMonthlyGoal').value) || 0;
       appData.settings.msgTemplate = document.getElementById('settingMsgTemplate').value;
