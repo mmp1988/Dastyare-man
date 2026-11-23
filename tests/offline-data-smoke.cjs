@@ -273,7 +273,10 @@ const assert = require('assert');
         'duplicate appointment prevention',
         'client create/edit/delete',
         'backup export and restore round-trip including customer photos',
-        'malformed backup validation'
+        'malformed backup validation',
+        'Android Persian online speech configuration and native bridge handoff into Mina',
+        'Mina booking from speech transcript',
+        'Mina cancel/complete/reschedule/weekly schedule commands'
       ],
       offline,
       appointmentResult,
