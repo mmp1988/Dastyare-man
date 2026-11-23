@@ -1,12 +1,12 @@
 {
-  "name": "دستیار من - مدیریت هوشمند نوبت‌دهی، یادداشت و مالی",
+  "name": "دستیار من",
   "short_name": "دستیار من",
-  "description": "اپلیکیشن آفلاین تقویم شمسی، نوبت‌دهی، دفترچه یادداشت و حسابداری حرفه‌ای",
-  "start_url": "./index.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b0d12",
-  "theme_color": "#d4af37",
+  "background_color": "#f6f4fb",
+  "theme_color": "#7c3aed",
   "lang": "fa",
   "dir": "rtl",
   "icons": [
