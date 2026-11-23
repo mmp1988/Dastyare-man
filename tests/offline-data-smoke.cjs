@@ -66,14 +66,25 @@ const assert = require('assert');
       const namedOk = !!named && named.clientName === 'مینا' &&
         named.time === '14:00' && named.service.includes('کاشت مژه') && !minaPendingBooking;
       appData.appointments = [];
+      const naturalTomorrowReply = minaBuildReply('برای فردا ساعت ۴ بعد از ظهر نوبت لیفت مژه انجام بده');
+      const naturalTomorrow = appData.appointments[0];
+      const naturalTomorrowOk = !!naturalTomorrow &&
+        naturalTomorrow.dateKey === addDaysToJalaliKey(getTodayKey(), 1) &&
+        naturalTomorrow.time === '16:00' &&
+        naturalTomorrow.service.includes('لیفت مژه') &&
+        naturalTomorrow.clientNameMissing === true &&
+        /با موفقیت ثبت شد/.test(naturalTomorrowReply);
+      appData.appointments = [];
+      minaPendingBooking = null;
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply);
-      return { noNameOk, namedOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { noNameOk, namedOk, naturalTomorrowOk, naturalTomorrowReply, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
+    assert(minaBookingResult.naturalTomorrowOk, 'Mina must understand “انجام بده” and save tomorrow 4 PM lash-lift booking without a client name');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
 
     // Voice-to-Mina integration: verify the APK bridge handoff and the complete
