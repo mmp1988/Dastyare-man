@@ -23,6 +23,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.util.Base64;
 
 import androidx.webkit.WebViewAssetLoader;
 import androidx.core.content.FileProvider;
@@ -39,6 +40,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.ArrayList;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -435,6 +437,52 @@ public class MainActivity extends Activity {
                     startActivity(chooser);
                 } catch (Exception e) {
                     Toast.makeText(MainActivity.this, "اشتراک‌گذاری در این دستگاه در دسترس نیست", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @JavascriptInterface public void shareFiles(String title, String text, String filesJson) {
+            if (filesJson == null || filesJson.length() > 70_000_000) {
+                Toast.makeText(MainActivity.this, "حجم فایل‌های ارسالی بیش از حد مجاز است", Toast.LENGTH_LONG).show();
+                return;
+            }
+            runOnUiThread(() -> {
+                try {
+                    JSONArray items = new JSONArray(filesJson);
+                    if (items.length() == 0 || items.length() > 12) throw new Exception("Invalid file list");
+                    File shareDir = new File(getCacheDir(), "shared");
+                    if (!shareDir.exists() && !shareDir.mkdirs()) throw new Exception("Cannot create share directory");
+                    ArrayList<Uri> uris = new ArrayList<>();
+                    long totalBytes = 0L;
+                    for (int i = 0; i < items.length(); i++) {
+                        JSONObject item = items.getJSONObject(i);
+                        String name = item.optString("name", "customer-photo-" + (i + 1) + ".jpg").replaceAll("[^A-Za-z0-9._-]", "_");
+                        String mime = item.optString("type", "image/jpeg");
+                        String encoded = item.optString("data", "");
+                        if (encoded.isEmpty()) continue;
+                        byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
+                        totalBytes += bytes.length;
+                        if (totalBytes > 50L * 1024L * 1024L) throw new Exception("Share files too large");
+                        File output = new File(shareDir, System.currentTimeMillis() + "_" + name);
+                        try (FileOutputStream stream = new FileOutputStream(output)) {
+                            stream.write(bytes);
+                        }
+                        Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", output);
+                        uris.add(uri);
+                    }
+                    if (uris.isEmpty()) throw new Exception("No valid files");
+                    Intent send = new Intent(Intent.ACTION_SEND_MULTIPLE);
+                    send.setType("image/*");
+                    send.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+                    send.putExtra(Intent.EXTRA_SUBJECT, title == null ? "پرونده مشتری" : title);
+                    if (text != null && !text.trim().isEmpty()) send.putExtra(Intent.EXTRA_TEXT, text);
+                    ClipData clip = ClipData.newUri(getContentResolver(), "Customer photos", uris.get(0));
+                    for (int i = 1; i < uris.size(); i++) clip.addItem(new ClipData.Item(uris.get(i)));
+                    send.setClipData(clip);
+                    send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(send, "ارسال پرونده و عکس‌ها"));
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "ارسال عکس‌ها انجام نشد؛ دوباره تلاش کن", Toast.LENGTH_LONG).show();
                 }
             });
         }
