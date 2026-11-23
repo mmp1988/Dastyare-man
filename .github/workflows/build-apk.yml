@@ -58,6 +58,8 @@ jobs:
         run: |
           set -e
           KEYSTORE_PASSWORD="$(openssl rand -hex 24)"
+          export BUBBLEWRAP_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
+          export BUBBLEWRAP_KEY_PASSWORD="$KEYSTORE_PASSWORD"
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           test -f "$ANDROID_HOME/platforms/android-35/android.jar"
