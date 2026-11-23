@@ -112,6 +112,11 @@ const assert = require('assert');
       createClientProfile();
       const oldKey = '09129998877';
       const exists = !!appData.clientProfiles[oldKey];
+      document.getElementById('newClientName').value = 'نام تکراری';
+      document.getElementById('newClientPhone').value = '09129998877';
+      createClientProfile();
+      const duplicateBlocked = Object.keys(appData.clientProfiles).filter(k => k === oldKey).length === 1 &&
+        appData.clientProfiles[oldKey]?.name === 'مشتری پرونده تست';
       document.getElementById('editClientOriginalKey').value = oldKey;
       document.getElementById('editClientName').value = 'مشتری پرونده ویرایش';
       document.getElementById('editClientPhone').value = '09129998878';
@@ -120,9 +125,9 @@ const assert = require('assert');
       const edited = !!appData.clientProfiles[newKey] && appData.clientProfiles[newKey].name === 'مشتری پرونده ویرایش';
       window.confirm = () => true;
       await deleteClient(newKey);
-      return { exists, edited, deleted:!appData.clientProfiles[newKey] };
+      return { exists, duplicateBlocked, edited, deleted:!appData.clientProfiles[newKey] };
     });
-    assert(clientResult.exists && clientResult.edited && clientResult.deleted, 'Client create/edit/delete failed');
+    assert(clientResult.exists && clientResult.duplicateBlocked && clientResult.edited && clientResult.deleted, 'Client create/edit/delete or duplicate prevention failed');
 
     // Backup round trip: export a valid JSON backup, clear the data, then restore it.
     await page.evaluate(() => {
