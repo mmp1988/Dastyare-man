@@ -719,19 +719,79 @@
       right: auto !important;
       bottom: auto !important;
       transform: translate(-50%, -50%) !important;
-      width: min(440px, calc(100vw - 28px)) !important;
-      max-width: calc(100vw - 28px) !important;
-      max-height: min(82dvh, 720px) !important;
+      width: min(440px, calc(100vw - 24px)) !important;
+      max-width: calc(100vw - 24px) !important;
+      height: auto !important;
+      max-height: min( min(82dvh, 720px), calc(100vh - 24px) ) !important;
+      overflow-x: hidden !important;
       overflow-y: auto !important;
       overscroll-behavior: contain;
-      z-index: 1200 !important;
+      -webkit-overflow-scrolling: touch;
+      z-index: 1201 !important;
       margin: 0 !important;
-      padding: 14px !important;
+      padding: 12px !important;
       border: 1px solid var(--accent);
-      border-radius: 22px;
+      border-radius: 20px;
       box-shadow: 0 22px 70px rgba(0,0,0,.58);
       background: var(--bg-card-solid);
       direction: rtl;
+      box-sizing: border-box !important;
+    }
+    .work-picker-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      background: rgba(0,0,0,.62);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .work-picker-header {
+      display: grid;
+      grid-template-columns: auto minmax(0,1fr) auto auto;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      position: sticky;
+      top: -12px;
+      z-index: 2;
+      padding: 4px 0 8px;
+      background: var(--bg-card-solid);
+    }
+    .work-picker-header strong {
+      min-width: 0;
+      text-align: center;
+      font-size: clamp(.78rem, 3.2vw, .98rem);
+      white-space: nowrap;
+    }
+    .work-picker-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(239,68,68,.45);
+      background: rgba(239,68,68,.12);
+      color: var(--danger);
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #clientWorkJalaliPicker .client-picker-weekdays,
+    #clientWorkJalaliPicker .client-picker-days {
+      width: 100% !important;
+      grid-template-columns: repeat(7,minmax(0,1fr)) !important;
+      min-width: 0 !important;
+    }
+    #clientWorkJalaliPicker .day-cell { min-width: 0 !important; }
+    @media (max-width: 380px) {
+      #clientWorkJalaliPicker.client-jalali-picker {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        padding: 9px !important;
+      }
+      .work-picker-header { grid-template-columns: auto minmax(0,1fr) auto auto; gap: 4px; }
+      .work-picker-header .btn-pill { padding: 6px 7px; font-size: .68rem; }
+      .work-picker-close { width: 30px; height: 30px; }
     }
     #clientWorkJalaliPicker .client-picker-days .day-cell {
       min-height: 48px;
@@ -826,6 +886,19 @@
       .client-jalali-picker .client-picker-days .day-cell { min-height: 42px; }
     }
 
+
+    /* Responsive safety rails shared by the website and Android WebView. */
+    .container, .card, .form-grid, .form-group, .form-control,
+    .client-date-group, .client-time-group, .table-wrap { min-width: 0; max-width: 100%; }
+    .form-grid > *, .stats-grid > *, .section-head > * { min-width: 0; }
+    img, video, canvas, iframe { max-width: 100%; }
+    input, select, textarea, button { max-width: 100%; }
+    @media (max-width: 420px) {
+      .container { padding-left: 8px; padding-right: 8px; }
+      .card { padding-left: 10px; padding-right: 10px; }
+      .section-head { gap: 7px; }
+      .btn-primary, .btn-secondary { max-width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -1419,10 +1492,11 @@
               <button type="button" class="btn-secondary" onclick="toggleClientWorkJalaliPicker()" style="white-space:nowrap;">📅 انتخاب تاریخ</button>
             </div>
             <div id="clientWorkJalaliPicker" class="card client-jalali-picker" style="display:none;margin-top:9px;padding:10px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
+              <div class="work-picker-header">
                 <button type="button" class="btn-pill" onclick="changeClientWorkJalaliPickerMonth(-1)">ماه قبل</button>
                 <strong id="clientWorkJalaliPickerTitle"></strong>
                 <button type="button" class="btn-pill" onclick="changeClientWorkJalaliPickerMonth(1)">ماه بعد</button>
+                <button type="button" class="work-picker-close" aria-label="بستن تقویم" title="بستن" onclick="closeClientWorkJalaliPicker()">✕</button>
               </div>
               <div class="weekdays-row client-picker-weekdays"><div>شنبه</div><div>یکشنبه</div><div>دوشنبه</div><div>سه‌شنبه</div><div>چهارشنبه</div><div>پنجشنبه</div><div>جمعه</div></div>
               <div id="clientWorkJalaliPickerGrid" class="days-grid client-picker-days"></div>
@@ -3011,17 +3085,46 @@
     }
 
     let clientWorkPickerYear = 0, clientWorkPickerMonth = 0;
+    let clientWorkPickerPlaceholder = null;
+    let clientWorkPickerBackdrop = null;
+    function closeClientWorkJalaliPicker() {
+      const panel = document.getElementById('clientWorkJalaliPicker');
+      if (!panel) return;
+      panel.style.display = 'none';
+      if (clientWorkPickerBackdrop) {
+        clientWorkPickerBackdrop.remove();
+        clientWorkPickerBackdrop = null;
+      }
+      if (clientWorkPickerPlaceholder && clientWorkPickerPlaceholder.parentNode) {
+        clientWorkPickerPlaceholder.parentNode.replaceChild(panel, clientWorkPickerPlaceholder);
+      }
+      clientWorkPickerPlaceholder = null;
+    }
     function toggleClientWorkJalaliPicker() {
       const panel = document.getElementById('clientWorkJalaliPicker');
+      if (!panel) return;
       const opening = panel.style.display === 'none';
-      panel.style.display = opening ? 'block' : 'none';
-      if (opening) {
-        const selected = parseClientJalaliDate(document.getElementById('clientWorkDate').value);
-        const base = selected || getTodayKey();
-        [clientWorkPickerYear, clientWorkPickerMonth] = base.split('-').map(Number);
-        renderClientWorkJalaliPicker();
+      if (!opening) { closeClientWorkJalaliPicker(); return; }
+      // Move the floating calendar to body so modal/scroll containers cannot clip it.
+      if (panel.parentNode && panel.parentNode !== document.body) {
+        clientWorkPickerPlaceholder = document.createComment('client-work-date-picker');
+        panel.parentNode.insertBefore(clientWorkPickerPlaceholder, panel);
+        document.body.appendChild(panel);
       }
+      clientWorkPickerBackdrop = document.createElement('div');
+      clientWorkPickerBackdrop.className = 'work-picker-backdrop';
+      clientWorkPickerBackdrop.setAttribute('aria-hidden', 'true');
+      clientWorkPickerBackdrop.addEventListener('click', closeClientWorkJalaliPicker);
+      document.body.appendChild(clientWorkPickerBackdrop);
+      panel.style.display = 'block';
+      const selected = parseClientJalaliDate(document.getElementById('clientWorkDate').value);
+      const base = selected || getTodayKey();
+      [clientWorkPickerYear, clientWorkPickerMonth] = base.split('-').map(Number);
+      renderClientWorkJalaliPicker();
     }
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && clientWorkPickerBackdrop) closeClientWorkJalaliPicker();
+    });
     function changeClientWorkJalaliPickerMonth(delta) {
       clientWorkPickerMonth += delta;
       if (clientWorkPickerMonth > 12) { clientWorkPickerMonth = 1; clientWorkPickerYear++; }
@@ -3030,7 +3133,7 @@
     }
     function selectClientWorkJalaliDate(dateKey) {
       document.getElementById('clientWorkDate').value = toPersianDigits(dateKey.replace(/-/g, '/'));
-      document.getElementById('clientWorkJalaliPicker').style.display = 'none';
+      closeClientWorkJalaliPicker();
     }
     function selectClientWorkJalaliToday() {
       const today = getTodayKey();
