@@ -3883,14 +3883,15 @@
     };
 
     function startVoiceInput(targetInputId, btnId) {
-      // Native APK: use Android's on-device recognizer only. Never silently send audio online.
+      // Native APK: Android selects online recognition when validated internet exists,
+      // and uses its on-device engine only when offline. No Persian offline-pack warning online.
       if (window.AndroidApp && typeof AndroidApp.startOfflineSpeechRecognition === 'function') {
         setVoiceButtonState(btnId, true);
         try {
           AndroidApp.startOfflineSpeechRecognition(targetInputId, btnId);
         } catch (e) {
           setVoiceButtonState(btnId, false);
-          showToast('تشخیص گفتار آفلاین در این گوشی در دسترس نیست؛ لطفاً تایپ کنید.');
+          showToast('سرویس گفتار گوشی شروع نشد؛ مجوز میکروفون و سرویس تشخیص گفتار را بررسی کنید.');
         }
         return;
       }
