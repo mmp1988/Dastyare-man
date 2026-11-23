@@ -4490,7 +4490,8 @@
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
         const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
         if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
-        const servicePattern = /(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;\n        const serviceMatch = t.match(/(?:برای|واسه|نوبت|خدمت)\s*(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)(?=\s|$)/) || t.match(servicePattern);
+        const servicePattern = /(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
+        const serviceMatch = t.match(/(?:برای|واسه|نوبت|خدمت)\s*(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)(?=\s|$)/) || t.match(servicePattern);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
         if (knownService) service = knownService.name;
