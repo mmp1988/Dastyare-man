@@ -432,7 +432,8 @@
     .status-done { background: rgba(16, 185, 129, 0.16); color: var(--success); }
     .status-canceled { background: rgba(239, 68, 68, 0.16); color: var(--danger); }
 
-    .action-row { display: flex; gap: 4px; flex-wrap: nowrap; }
+    .action-row { display: flex; gap: 4px; flex-wrap: wrap; align-items:center; min-width:72px; }
+    .action-row .mini-btn.del { min-height:34px; white-space:nowrap; }
     .mini-btn {
       padding: 5px 7px; border-radius: 8px; border: 1px solid var(--border-subtle);
       background: var(--bg-input); color: var(--text-primary); font-size: 0.74rem;
@@ -2453,7 +2454,7 @@
                 ${cleanPhone ? `<a class="mini-btn wa" href="https://wa.me/${waPhone}?text=${msgEncoded}" target="_blank">💬</a>` : ''}
                 ${cleanPhone ? `<a class="mini-btn sms" href="sms:${cleanPhone}?body=${msgEncoded}">✉️</a>` : ''}
                 <button class="mini-btn" onclick="openApptModal('${appt.id}')">✏️</button>
-                <button class="mini-btn del" onclick="deleteAppointment('${appt.id}')">🗑️</button>
+                <button class="mini-btn del" style="min-width:58px;gap:4px;font-weight:800;padding:7px 9px;" onclick="deleteAppointment('${appt.id}')" title="حذف دائمی نوبت">🗑️ حذف</button>
               </div>
             </td>
           </tr>
@@ -4811,6 +4812,41 @@
         const conflict=all.some(a=>a.id!==appt.id&&a.dateKey===appt.dateKey&&a.time===newTime);
         appt.time=newTime; refreshAfterMinaChange();
         return 'انجام شد عزیزم 🌸 ساعت نوبت '+(appt.clientName||'مشتری')+' به '+newTime+' تغییر کرد.'+(conflict?'\n⚠️ در ساعت جدید نوبت دیگری هم ثبت شده؛ تقویم رو بررسی کن.':'');
+      }
+
+      // Permanent appointment deletion by date, time, service and/or customer.
+      const asksPermanentDelete = /(?:حذف|پاک\s*کن|بردار|از\s*تقویم\s*حذف)/.test(normalized);
+      if (asksPermanentDelete && /(?:نوبت|وقت|رزرو|تقویم)/.test(normalized)) {
+        const delDate = /پس\s*فردا/.test(normalized) ? addDaysToJalaliKey(todayKey, 2)
+          : /فردا/.test(normalized) ? addDaysToJalaliKey(todayKey, 1) : /امروز/.test(normalized) ? todayKey : null;
+        const delClockMatch = normalized.match(/(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|ظهر|بعدازظهر|عصر|شب)?/);
+        let delTime = null;
+        if (delClockMatch && /(?:ساعت|صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized)) {
+          let h = Number(delClockMatch[1]), m = Number(delClockMatch[2] || 0);
+          const period = delClockMatch[3] || '';
+          if (/بعدازظهر|عصر|شب/.test(period) && h < 12) h += 12;
+          if (/صبح/.test(period) && h === 12) h = 0;
+          if (h <= 23 && m <= 59) delTime = pad2(h) + ':' + pad2(m);
+        }
+        const serviceHints = ['لیفت ابرو','لیفت مژه','کاشت مژه','کاشت ناخن','کوتاهی مو','رنگ مو'];
+        const delService = serviceHints.find(x => normalized.includes(x));
+        const delName = nameFrom(/(?:برای|مشتری)\s+(.+?)(?=\s+(?:فردا|امروز|پس\s*فردا|ساعت|نوبت|وقت|رزرو|از\s*تقویم)|$)/);
+        let candidates = (appData.appointments || []).filter(a => a.status !== 'canceled');
+        if (delDate) candidates = candidates.filter(a => a.dateKey === delDate);
+        if (delTime) candidates = candidates.filter(a => a.time === delTime);
+        if (delService) candidates = candidates.filter(a => String(a.service || '').includes(delService));
+        if (delName) candidates = candidates.filter(a => String(a.clientName || '').toLowerCase().includes(delName.toLowerCase()));
+        if (!delDate && !delTime && !delService && !delName)
+          return 'برای اینکه اشتباهی نوبتی حذف نشه، تاریخ یا ساعت یا نوع خدمت رو هم بگو عزیزم 🌷';
+        if (candidates.length === 0) return 'نوبتی با این مشخصات در تقویم پیدا نکردم؛ چیزی حذف نشد 💗';
+        if (candidates.length > 1) return 'چند نوبت با این مشخصات پیدا کردم؛ لطفاً نام مشتری یا ساعت دقیق‌تر رو بگو تا فقط همون نوبت حذف بشه 🌷';
+        const target = candidates[0];
+        appData.appointments = (appData.appointments || []).filter(a => a.id !== target.id);
+        appData.transactions = (appData.transactions || []).filter(t => t.sourceApptId !== target.id);
+        refreshAfterMinaChange();
+        return 'نوبت از تقویم حذف شد عزیزم 🌸\n📅 ' + formatJalaliFull(target.dateKey) +
+          '\n⏰ ' + target.time + '\n💅 ' + (target.service || 'خدمت') +
+          '\n👩🏻 ' + (target.clientName || 'بدون نام') + '\nاین نوبت دیگر در تقویم نمایش داده نمی‌شود. 💗';
       }
 
       const cancelName=nameFrom(/(?:لغو|کنسل)\s+(?:نوبت\s+)?(.+)/);
