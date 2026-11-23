@@ -709,6 +709,43 @@
       direction: ltr;
       text-align: center;
     }
+
+    /* Work-date picker: open as a centered, full calendar dialog,
+       independent from the time input and the narrow form grid. */
+    #clientWorkJalaliPicker.client-jalali-picker {
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      right: auto !important;
+      bottom: auto !important;
+      transform: translate(-50%, -50%) !important;
+      width: min(440px, calc(100vw - 28px)) !important;
+      max-width: calc(100vw - 28px) !important;
+      max-height: min(82dvh, 720px) !important;
+      overflow-y: auto !important;
+      overscroll-behavior: contain;
+      z-index: 1200 !important;
+      margin: 0 !important;
+      padding: 14px !important;
+      border: 1px solid var(--accent);
+      border-radius: 22px;
+      box-shadow: 0 22px 70px rgba(0,0,0,.58);
+      background: var(--bg-card-solid);
+      direction: rtl;
+    }
+    #clientWorkJalaliPicker .client-picker-days .day-cell {
+      min-height: 48px;
+      aspect-ratio: 1 / 1;
+      touch-action: manipulation;
+    }
+    @media (max-width: 380px) {
+      #clientWorkJalaliPicker.client-jalali-picker {
+        width: calc(100vw - 20px) !important;
+        max-width: calc(100vw - 20px) !important;
+        padding: 10px !important;
+      }
+    }
+
     .client-jalali-picker {
       position: relative;
       z-index: 5;
