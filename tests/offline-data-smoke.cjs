@@ -130,9 +130,18 @@ const assert = require('assert');
     assert(clientResult.exists && clientResult.duplicateBlocked && clientResult.edited && clientResult.deleted, 'Client create/edit/delete or duplicate prevention failed');
 
     // Backup round trip: export a valid JSON backup, clear the data, then restore it.
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       appData.appointments = [{ id:'qa-backup-appt', dateKey:getTodayKey(), time:'15:00', clientName:'مشتری پشتیبان', phone:'09127776655', service:'تست بازیابی', price:123, status:'pending' }];
       appData.notes = [{ id:'qa-backup-note', title:'یادداشت بازیابی', body:'داده آزمایشی' }];
+      appData.clientProfiles = { 'qa-photo-client': { name:'مشتری عکس‌دار', phone:'09120001122', photoRef:'qa-photo-ref', records:[] } };
+      const bytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j2ioAAAAASUVORK5CYII='), ch => ch.charCodeAt(0));
+      const db = await openClientPhotoDB();
+      await new Promise((resolve,reject) => {
+        const tx = db.transaction('photos','readwrite');
+        tx.objectStore('photos').put(new Blob([bytes],{type:'image/png'}),'qa-photo-ref');
+        tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+      });
+      db.close();
       saveData();
     });
     const downloadPromise = page.waitForEvent('download');
@@ -143,13 +152,23 @@ const assert = require('assert');
     const exported = JSON.parse(fs.readFileSync(downloadPath, 'utf8'));
     assert(exported.appointments.some(a => a.id === 'qa-backup-appt'), 'Export omitted appointment data');
     assert(exported.notes.some(n => n.id === 'qa-backup-note'), 'Export omitted notes');
+    assert(exported._photoArchive?.some(photo => photo.id === 'qa-photo-ref' && photo.data.startsWith('data:image/png')), 'Export omitted customer photo archive');
 
-    await page.evaluate(() => { appData.appointments=[]; appData.notes=[]; saveData(); });
+    await page.evaluate(async () => {
+      appData.appointments=[]; appData.notes=[]; appData.clientProfiles={}; saveData();
+      const db=await openClientPhotoDB();
+      await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete('qa-photo-ref');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
+      db.close();
+    });
     const backupInput = page.locator('input[type="file"][accept=".json"]');
     await backupInput.setInputFiles({ name:'qa-restore.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify(exported)) });
     await page.waitForFunction(() => appData.appointments.some(a => a.id === 'qa-backup-appt') && appData.notes.some(n => n.id === 'qa-backup-note'), null, { timeout: 15000 });
-    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('dastyare_man_final_v7') || '{}').appointments?.some(a => a.id === 'qa-backup-appt'));
-    assert(restored, 'Restored data was not persisted to local storage');
+    const restored = await page.evaluate(async () => {
+      const stored = JSON.parse(localStorage.getItem('dastyare_man_final_v7') || '{}');
+      const photo = await getClientPhotoBlob('qa-photo-ref');
+      return { appointment:stored.appointments?.some(a => a.id === 'qa-backup-appt'), photo:!!photo && photo.type==='image/png' && photo.size>0, profile:stored.clientProfiles?.['qa-photo-client']?.photoRef==='qa-photo-ref' };
+    });
+    assert(restored.appointment && restored.photo && restored.profile, 'Restored appointment, client photo, or photo reference was not persisted');
 
     // A malformed backup must be rejected without replacing the valid restored state.
     const malformed = { appointments:'not-an-array' };
@@ -164,7 +183,7 @@ const assert = require('assert');
         'appointment create/edit/delete',
         'duplicate appointment prevention',
         'client create/edit/delete',
-        'backup export and restore round-trip',
+        'backup export and restore round-trip including customer photos',
         'malformed backup validation'
       ],
       offline,
