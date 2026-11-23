@@ -1092,6 +1092,16 @@
         <div style="flex:1;min-width:0;">
           <div id="clientProfileName" style="font-weight:900;font-size:1.02rem;"></div>
           <div id="clientProfilePhone" style="color:var(--text-secondary);font-size:0.78rem;margin-top:4px;"></div>
+          <div style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
+            <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">📨 ارسال یادآوری به مشتری</div>
+            <div id="clientReminderAppointmentInfo" style="font-size:.72rem;color:var(--text-secondary);margin-bottom:7px;">متن پیام را بررسی و در صورت نیاز ویرایش کن.</div>
+            <textarea id="clientReminderPreview" class="form-control" rows="4" placeholder="متن پیام برای مشتری..." style="min-height:100px;"></textarea>
+            <div style="display:flex;gap:7px;margin-top:8px;">
+              <button type="button" class="btn-primary" style="flex:1;" onclick="sendClientReminder('whatsapp')">💬 واتساپ</button>
+              <button type="button" class="btn-secondary" style="flex:1;" onclick="sendClientReminder('sms')">✉️ پیامک</button>
+            </div>
+            <small style="display:block;color:var(--text-muted);font-size:.68rem;margin-top:7px;">پیام در برنامه انتخابی باز می‌شود؛ ارسال نهایی را خودت تأیید می‌کنی.</small>
+          </div>
           <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">
             <label class="btn-secondary" for="clientProfileCameraInput" style="cursor:pointer;">📷 عکس با دوربین</label>
             <label class="btn-secondary" for="clientProfilePhotoInput" style="cursor:pointer;">🖼️ انتخاب از گالری</label>
@@ -2623,6 +2633,40 @@
       const g = jalaliToGregorian(p[0], p[1], p[2]);
       return g[0] + '-' + pad2(g[1]) + '-' + pad2(g[2]);
     }
+    function buildClientReminderMessage(client, appointment) {
+      const tpl = appData.settings.msgTemplate || 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
+      const values = {
+        name: client.name || 'مشتری',
+        date: appointment ? formatJalaliFull(appointment.dateKey) : '',
+        time: appointment ? toPersianDigits(appointment.time || '') : '',
+        service: appointment ? (appointment.service || 'خدمات') : 'خدمات'
+      };
+      return tpl.replace(/\\{(name|date|time|service)\\}/g, (match, key) => values[key] || '');
+    }
+
+    function sendClientReminder(channel) {
+      const key = document.getElementById('clientRecordKey').value;
+      const profile = getClientProfile(key);
+      const phone = String(profile.phone || '').replace(/[^0-9]/g, '');
+      const message = document.getElementById('clientReminderPreview').value.trim();
+      if (!phone) { showToast('برای این مشتری شماره تماس ثبت نشده است.'); return; }
+      if (!message) { showToast('متن پیام خالی است.'); return; }
+      let url = '';
+      if (channel === 'whatsapp') {
+        const waPhone = phone.startsWith('0') ? '98' + phone.slice(1) : phone;
+        url = 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(message);
+      } else {
+        url = 'sms:' + phone + '?body=' + encodeURIComponent(message);
+      }
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
     function openClientRecord(key) {
       const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
       const last = appointments[appointments.length - 1] || {};
@@ -2661,6 +2705,10 @@
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
       const future = appointments.filter(a => a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b) => (a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
+      document.getElementById('clientReminderPreview').value = buildClientReminderMessage(p, future || null);
+      document.getElementById('clientReminderAppointmentInfo').textContent = future
+        ? 'پیش‌نویس بر اساس نوبت بعدی: ' + formatJalaliFull(future.dateKey) + ' ساعت ' + toPersianDigits(future.time || '') + (future.service ? ' — ' + future.service : '')
+        : 'نوبت آینده‌ای ثبت نشده؛ متن پیام را می‌توانی دستی تنظیم کنی.';
       document.getElementById('clientNextDate').value = future ? jalaliKeyToGregorianInput(future.dateKey) : '';
       document.getElementById('clientNextTime').value = future ? (future.time || '10:00') : '10:00';
       document.getElementById('clientNextService').value = future ? (future.service || '') : '';
