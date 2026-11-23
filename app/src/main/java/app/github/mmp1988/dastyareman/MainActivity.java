@@ -378,17 +378,24 @@ public class MainActivity extends Activity {
     }
 
     private void startNativeSpeechOnUi(String targetInputId, String buttonId) {
-        // Prefer Android's regular speech service whenever internet is available.
-        // Use the on-device engine only when the device has no validated internet.
-        boolean online = hasValidatedInternetConnection();
-        boolean offlineAvailable = !online && android.os.Build.VERSION.SDK_INT >= 31
-                && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
-        if (!online && !offlineAvailable) {
-            notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("اینترنت وصل نیست و موتور گفتار آفلاین هم روی گوشی موجود نیست؛ برای تبدیل گفتار فارسی به متن، اینترنت را وصل کنید.");
+        // Do not gate speech on ConnectivityManager's validated-network flag.
+        // Android's regular recognition service can use online speech and decides
+        // itself whether a network is available. This also works on devices whose
+        // Wi-Fi/mobile network is connected but not yet marked VALIDATED.
+        if (SpeechRecognizer.isRecognitionAvailable(this)) {
+            startSpeechRecognition(targetInputId, buttonId, false);
             return;
         }
-        startSpeechRecognition(targetInputId, buttonId, !online);
+
+        // Fall back to the on-device recognizer only when the default service is absent.
+        if (android.os.Build.VERSION.SDK_INT >= 31
+                && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            startSpeechRecognition(targetInputId, buttonId, true);
+            return;
+        }
+
+        notifyVoiceButton(buttonId, false);
+        notifyVoiceMessage("سرویس تشخیص گفتار روی گوشی فعال نیست. لطفاً برنامه Google Speech Services یا سرویس گفتار سامسونگ را نصب یا به‌روزرسانی و فعال کن.");
     }
 
     private void startSpeechRecognition(String targetInputId, String buttonId, boolean useOfflineEngine) {
@@ -447,7 +454,7 @@ public class MainActivity extends Activity {
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR");
             intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, useOfflineEngine);
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, useOfflineEngine);\n            intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);\n            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
             nativeSpeechRecognizer.startListening(intent);
         } catch (Exception e) {
