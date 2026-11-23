@@ -4477,91 +4477,64 @@
         return 'انجام شد! به فهرست کارهات اضافه‌اش کردم تا یادت نره 🎀\n«' + task + '»';
       }
 
-      if (/(?:نوبت|رزرو|وقت)/.test(t) && /(?:برای|واسه)/.test(t)) {
-        const clock = t.match(/ساعت\s*(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|صبح)?/) ||
-          t.match(/(?:^|\s)(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|صبح)(?:\s|$)/);
-        if (!clock) return 'زمان نوبت رو متوجه نشدم؛ مثلاً بگو «فردا ساعت ۴ بعدازظهر» 💗';
+      if (/(?:نوبت|رزرو|وقت)/.test(t) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه)/.test(t) &&
+          (/(?:امروز|فردا|پس\\s*فردا|تاریخ)/.test(t) || /\\d{1,2}(?::\\d{1,2})?/.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\\s*از\\s*ظهر|عصر|شب)/.test(t))) {
+        const clock = t.match(/ساعت\\s*(\\d{1,2})(?::(\\d{1,2}))?\\s*(بعد\\s*از\\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
+          t.match(/(?:^|\\s)(\\d{1,2})(?::(\\d{1,2}))?\\s*(بعد\\s*از\\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)(?:\\s|$)/);
+        if (!clock) return 'حتماً عزیزم 💗 فقط ساعت نوبت رو هم بگو؛ مثلاً «۲ ظهر» یا «۴ عصر».';
         let hour = Number(clock[1]), minute = Number(clock[2] || 0);
-        const period = clock[3] || (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(t) ? 'بعدازظهر' : /صبح/.test(t) ? 'صبح' : '');
-        if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
+        const period = clock[3] || (/(?:بعد\\s*از\\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(t) ? 'بعدازظهر' : /صبح/.test(t) ? 'صبح' : '');
+        if (/(?:بعد\\s*از\\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
         if (/صبح/.test(period) && hour === 12) hour = 0;
-        if (hour > 23 || minute > 59) return 'ساعت رو یک بار دیگه برام می‌گی؟ 💗';
-        let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
+        if (hour > 23 || minute > 59) return 'ساعت رو درست متوجه نشدم گلم؛ یک بار دیگه می‌گی؟ 💗';
+        if (!/(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ)/.test(t)) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
+        let dateKey = /پس\\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
-        const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+        const explicit = t.match(/(?:در تاریخ|تاریخ)\\s*(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);
         if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
-        const servicePattern = /(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
-        const serviceMatch = t.match(/(?:برای|واسه|نوبت|خدمت)\s*(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)(?=\s|$)/) || t.match(servicePattern);
+        const servicePattern = /(کاشت\\s*مژه|کاشت\\s*ابرو|لیفت\\s*مژه|لیفت\\s*ابرو|اکستنشن(?:\\s*مژه)?|کلاسیک|والیوم|مگا\\s*والیوم|ترمیم)/;
+        const serviceMatch = t.match(/(?:برای|واسه|نوبت|خدمت)\\s*(کاشت\\s*مژه|کاشت\\s*ابرو|لیفت\\s*مژه|لیفت\\s*ابرو|اکستنشن(?:\\s*مژه)?|کلاسیک|والیوم|مگا\\s*والیوم|ترمیم)(?=\\s|$)/) || t.match(servicePattern);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
         if (knownService) service = knownService.name;
-        const nameMatch = t.match(/(?:برای|واسه)\s+(.+?)(?=\s+(?:ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت)|$)/);
+        if (!service) return 'نوع خدمت رو متوجه نشدم عزیزم؛ کاشت مژه، لیفت یا چه خدمتیه؟ 💗';
+        const nameMatch = t.match(/(?:برای|واسه)\\s+(.+?)(?=\\s+(?:ساعت|\\d{1,2}(?::\\d{1,2})?|امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\\s*از\\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت)|$)/);
         let clientName = nameMatch ? nameMatch[1].trim() : '';
-        if (/^(?:امروز|فردا|پس|پس\s*فردا|لیفت|لیفت مژه|لیفت ابرو|کاشت مژه|کاشت ابرو|اکستنشن|مژه|نوبت|رزرو|وقت)$/u.test(clientName) || /(?:پس\s*فردا|فردا|امروز|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|نوبت|رزرو)/u.test(clientName)) clientName = '';
+        if (/^(?:امروز|فردا|پس|پس\\s*فردا|لیفت|لیفت مژه|لیفت ابرو|کاشت مژه|کاشت ابرو|اکستنشن|مژه|نوبت|رزرو|وقت)$/u.test(clientName) ||
+            /(?:پس\\s*فردا|فردا|امروز|بعد\\s*از\\s*ظهر|بعدازظهر|صبح|عصر|ظهر|شب|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
-        const phoneMatch = q.match(/09\d{9}/);
-        const priceMatch = t.match(/(?:با هزینه|هزینه|مبلغ|قیمت)\s*(\d{3,})/);
-        minaPendingBooking = {
-          clientName,
-          dateKey,
-          time: pad2(hour) + ':' + pad2(minute),
-          service,
-          phone: phoneMatch ? phoneMatch[0] : '',
-          price: priceMatch ? Number(priceMatch[1]) : 0
-        };
-        if (!clientName) {
-          const p = minaPendingBooking;
-          const duplicate = (appData.appointments || []).some(a =>
-            a.dateKey === p.dateKey && a.time === p.time &&
-            (a.clientNameMissing === true || !String(a.clientName || '').trim() || a.clientName === '—' || a.clientName === 'نام درج نشده' || a.clientName === '⚠️ نام درج نشده (قابل تکمیل)') &&
-            String(a.service || '') === String(p.service || 'خدمت ثبت‌نشده') && a.status !== 'canceled');
-          minaPendingBooking = null;
-          if (duplicate) return 'برای همین خدمت، تاریخ و ساعت از قبل یک نوبت بدون نام ثبت شده؛ دوباره تکرارش نکردم عزیزم 💗';
-          const conflict = (appData.appointments || []).some(a =>
-            a.dateKey === p.dateKey && a.time === p.time && a.status !== 'canceled');
-          const appointment = {
-            id: 'appt_mina_' + Date.now(),
-            dateKey: p.dateKey,
-            time: p.time,
-            clientName: '⚠️ نام درج نشده (قابل تکمیل)',
-            clientNameMissing: true,
-            phone: p.phone || '',
-            service: p.service || 'خدمت ثبت‌نشده',
-            price: Number(p.price) || 0,
-            deposit: 0,
-            commPercent: Number(appData.settings.defaultComm) || 0,
-            payMethod: 'کارت‌به‌کارت',
-            alarm: '15',
-            status: 'pending',
-            notified: false
-          };
-          appData.appointments.push(appointment);
-          saveData();
-          if (typeof renderCalendar === 'function') renderCalendar();
-          if (typeof renderDaySchedule === 'function') renderDaySchedule();
-          if (typeof renderFinanceTab === 'function') renderFinanceTab();
-          return 'انجام شد عزیزم 🌸 نوبت ثبت شد؛ چون اسم مشتری رو نگفتی، نام رو با علامت «—» خالی گذاشتم.\n📅 تاریخ: ' +
-            formatJalaliFull(p.dateKey) + '\n⏰ ساعت: ' + p.time +
-            '\n💅 خدمت: ' + appointment.service +
-            (appointment.price ? '\n💰 مبلغ: ' + formatMoney(appointment.price) + ' تومان' : '') +
-            (conflict ? '\n⚠️ این ساعت نوبت دیگری هم داری؛ تقویم رو بررسی کن.' : '') +
-            '\nاطلاعات روی همین گوشی ذخیره شد و آفلاین هم در دسترسه 💗';
-        }
+        const phoneMatch = q.match(/09\\d{9}/);
+        const priceMatch = t.match(/(?:با هزینه|هزینه|مبلغ|قیمت)\\s*(\\d{3,})/);
+        const time = pad2(hour) + ':' + pad2(minute);
         const duplicate = (appData.appointments || []).some(a =>
-          a.dateKey === dateKey && a.time === minaPendingBooking.time &&
-          a.clientName === clientName && a.status !== 'canceled');
-        if (duplicate) {
-          minaPendingBooking = null;
-          return 'این نوبت با همین مشخصات از قبل توی تقویمت هست عزیزم؛ دوباره ثبتش نمی‌کنم 💗';
-        }
-        return 'قبل از ثبت، با هم چکش کنیم؟ 🌸\n👩🏻 مشتری: ' + clientName +
-          '\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\n⏰ ساعت: ' + minaPendingBooking.time +
-          '\n💅 نوع خدمت: ' + (service || 'هنوز مشخص نشده') +
-          (minaPendingBooking.price ? '\n💰 مبلغ: ' + formatMoney(minaPendingBooking.price) + ' تومان' : '') +
-          (minaPendingBooking.phone ? '\n📱 تماس: ' + minaPendingBooking.phone : '') +
-          '\n\nاگر درسته «تأیید» و اگر نه «لغو» رو بفرست 💗';
+          a.dateKey === dateKey && a.time === time && a.status !== 'canceled' &&
+          (clientName ? String(a.clientName || '').trim() === clientName :
+            (a.clientNameMissing === true || !String(a.clientName || '').trim() || a.clientName === '—' ||
+             a.clientName === 'نام درج نشده' || a.clientName === '⚠️ نام درج نشده (قابل تکمیل)')) &&
+          String(a.service || '') === service);
+        if (duplicate) return 'این نوبت با همین مشخصات از قبل ثبت شده عزیزم؛ تکراری ثبتش نکردم 💗';
+        const conflict = (appData.appointments || []).some(a => a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
+        const appointment = {
+          id: 'appt_mina_' + Date.now(), dateKey, time,
+          clientName: clientName || '⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing: !clientName,
+          phone: phoneMatch ? phoneMatch[0] : '', service,
+          price: priceMatch ? Number(priceMatch[1]) : 0, deposit: 0,
+          commPercent: Number(appData.settings.defaultComm) || 0, payMethod: 'کارت‌به‌کارت',
+          alarm: '15', status: 'pending', notified: false
+        };
+        appData.appointments.push(appointment);
+        minaPendingBooking = null;
+        saveData();
+        if (typeof renderCalendar === 'function') renderCalendar();
+        if (typeof renderDaySchedule === 'function') renderDaySchedule();
+        if (typeof renderFinanceTab === 'function') renderFinanceTab();
+        return 'انجام شد عزیزم 🌸 نوبتت ثبت شد!' +
+          (clientName ? '\\n👩🏻 مشتری: ' + clientName : '\\n👩🏻 مشتری: بدون نام؛ هر وقت خواستی تکمیلش کن') +
+          '\\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\\n⏰ ساعت: ' + time +
+          '\\n💅 خدمت: ' + service + (appointment.price ? '\\n💰 مبلغ: ' + formatMoney(appointment.price) + ' تومان' : '') +
+          (conflict ? '\\n⚠️ این ساعت نوبت دیگری هم داری؛ تقویم رو بررسی کن.' : '') +
+          '\\nهمه‌چیز ذخیره شد و آفلاین هم در دسترسته 💗';
       }
-
       if (/فردا/.test(t) && /(نوبت|برنامه|مشتری|چکار|چه کار)/.test(t)) {
         const key = addDaysToJalaliKey(todayKey, 1);
         const list = (appData.appointments || []).filter(a => a.dateKey === key && a.status !== 'canceled')
