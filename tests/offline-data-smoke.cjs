@@ -90,6 +90,12 @@ const assert = require('assert');
         exactUserCommandAppt.time === '17:30' && exactUserCommandAppt.service.includes('لیفت ابرو') &&
         minaIsAssistantAppointment(exactUserCommandAppt) && /نوبتت ثبت شد/.test(exactUserCommandReply);
       appData.appointments = [];
+      const broadBeautyReply = minaBuildReply('برای فردا ۲ بعد از ظهر برای مینا برای کوتاهی مو نوبت بده');
+      const broadBeautyAppt = appData.appointments[0];
+      const broadBeautyServiceOk = !!broadBeautyAppt && broadBeautyAppt.clientName === 'مینا' &&
+        broadBeautyAppt.time === '14:00' && broadBeautyAppt.service.includes('کوتاهی مو') &&
+        minaIsAssistantAppointment(broadBeautyAppt) && /نوبتت ثبت شد/.test(broadBeautyReply);
+      appData.appointments = [];
       minaConversationBooking = null;
       const firstTurnReply = minaBuildReply('برای فردا نوبت لیفت ابرو ثبت کن');
       const followupReply = minaBuildReply('برای ساعت پنج و نیم بعد از ظهر');
@@ -105,7 +111,7 @@ const assert = require('assert');
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply) && !!minaConversationBooking;
-      return { noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
@@ -113,9 +119,22 @@ const assert = require('assert');
     assert(minaBookingResult.naturalTomorrowOk, 'Mina must understand “انجام بده” and save tomorrow 4 PM lash-lift booking without a client name');
     assert(minaBookingResult.spokenTimeOk, 'Mina must parse Persian spoken half-hour times and tag the appointment as assistant-created');
     assert(minaBookingResult.exactUserCommandOk, 'Mina must parse the exact natural-language command with 5:30 PM and client name after the date');
+    assert(minaBookingResult.broadBeautyServiceOk, 'Mina must book general beauty salon services such as haircut and extract the client name');
     assert(minaBookingResult.conversationalFollowupOk, 'Mina must carry booking context into a time-only follow-up turn');
     assert(minaBookingResult.calendarSourceLabelOk, 'Calendar day schedule must visibly label Mina-created appointments');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
+
+    // Simulate app exit: pagehide flushes in-memory data and reopening restores it.
+    await page.evaluate(() => {
+      appData.appointments = [{ id:'qa-exit-persist', dateKey:getTodayKey(), time:'16:30',
+        clientName:'ماندگاری بعد خروج', service:'کوتاهی مو', status:'pending' }];
+      window.dispatchEvent(new Event('pagehide'));
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!document.querySelector('#calendarGrid'));
+    const exitPersistence = await page.evaluate(() => appData.appointments.some(a =>
+      a.id === 'qa-exit-persist' && a.clientName === 'ماندگاری بعد خروج'));
+    assert(exitPersistence, 'Appointments must survive app exit/pagehide and reopening');
 
     // Voice-to-Mina integration: verify the APK bridge handoff and the complete
     // transcript -> Mina command -> local appointment path in the browser harness.
