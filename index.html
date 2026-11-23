@@ -4327,14 +4327,14 @@
       const greeting = appData.settings.personalGreeting || 'عزیزم';
 
       if (minaPendingBooking && !minaPendingBooking.clientName && !/^(?:نه|لغو|بیخیال|بی خیال|منصرف شدم)$/.test(t)) {
-        const suppliedName = q.replace(/^(?:اسم مشتری|نام مشتری|برای)\\s*/i, '').replace(/\\s*(?:ثبت کن|نوبت ثبت کن)$/i, '').trim();
+        const suppliedName = q.replace(/^(?:اسم مشتری|نام مشتری|برای)\s*/i, '').replace(/\s*(?:ثبت کن|نوبت ثبت کن)$/i, '').trim();
         if (suppliedName && suppliedName.length <= 60 && !/(?:فردا|امروز|پس فردا|ساعت|بعد از ظهر|عصر|صبح|لیفت|مژه|نوبت|رزرو)/.test(suppliedName)) {
           minaPendingBooking.clientName = suppliedName;
-          return 'عالیه عزیزم 🌸 مشخصات نوبت رو چک کنیم؟\\n👩🏻 مشتری: ' + suppliedName +
-            '\\n📅 تاریخ: ' + formatJalaliFull(minaPendingBooking.dateKey) +
-            '\\n⏰ ساعت: ' + minaPendingBooking.time +
-            '\\n💅 نوع خدمت: ' + (minaPendingBooking.service || 'خدمت ثبت‌نشده') +
-            '\\n\\nاگر درسته «تأیید» رو بفرست تا ذخیره‌اش کنم 💗';
+          return 'عالیه عزیزم 🌸 مشخصات نوبت رو چک کنیم؟\n👩🏻 مشتری: ' + suppliedName +
+            '\n📅 تاریخ: ' + formatJalaliFull(minaPendingBooking.dateKey) +
+            '\n⏰ ساعت: ' + minaPendingBooking.time +
+            '\n💅 نوع خدمت: ' + (minaPendingBooking.service || 'خدمت ثبت‌نشده') +
+            '\n\nاگر درسته «تأیید» رو بفرست تا ذخیره‌اش کنم 💗';
         }
       }
       if (/^(?:بله|آره|اره|تایید|تأیید|تایید کن|ثبت کن|درسته|اوکی|باشه)$/.test(t) && minaPendingBooking) {
@@ -4408,28 +4408,28 @@
       }
 
       if (/(?:نوبت|رزرو|وقت)/.test(t) && /(?:برای|واسه)/.test(t)) {
-        const clock = t.match(/ساعت\\s*(\\d{1,2})(?::(\\d{1,2}))?/) ||
-          t.match(/(?:^|\\s)(\\d{1,2})(?::(\\d{1,2}))?\\s*(بعد\\s*از\\s*ظهر|بعدازظهر|عصر|صبح)(?:\\s|$)/);
+        const clock = t.match(/ساعت\s*(\d{1,2})(?::(\d{1,2}))?/) ||
+          t.match(/(?:^|\s)(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|صبح)(?:\s|$)/);
         if (!clock) return 'زمان نوبت رو متوجه نشدم؛ مثلاً بگو «فردا ساعت ۴ بعدازظهر» 💗';
         let hour = Number(clock[1]), minute = Number(clock[2] || 0);
         const period = clock[3] || '';
-        if (/(?:بعد\\s*از\\s*ظهر|بعدازظهر|عصر)/.test(period) && hour < 12) hour += 12;
+        if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر)/.test(period) && hour < 12) hour += 12;
         if (/صبح/.test(period) && hour === 12) hour = 0;
         if (hour > 23 || minute > 59) return 'ساعت رو یک بار دیگه برام می‌گی؟ 💗';
-        let dateKey = /پس\\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
+        let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
-        const explicit = t.match(/(?:در تاریخ|تاریخ)\\s*(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);
+        const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
         if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
-        const serviceMatch = t.match(/(?:برای|واسه)\\s*(لیفت\\s*مژه|لیفت\\s*ابرو|اکستنشن(?:\\s*مژه)?|کلاسیک|والیوم|مگا\\s*والیوم|ترمیم)(?=\\s|$)/);
+        const serviceMatch = t.match(/(?:برای|واسه)\s*(لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)(?=\s|$)/);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
         if (knownService) service = knownService.name;
-        const nameMatch = t.match(/(?:برای|واسه)\\s+(.+?)(?=\\s+(?:ساعت|\\d{1,2}(?::\\d{1,2})?|امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\\s*از\\s*ظهر|بعدازظهر|عصر|صبح)|$)/);
+        const nameMatch = t.match(/(?:برای|واسه)\s+(.+?)(?=\s+(?:ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|صبح)|$)/);
         let clientName = nameMatch ? nameMatch[1].trim() : '';
         if (/^(?:امروز|فردا|پس فردا|لیفت|لیفت مژه|لیفت ابرو|اکستنشن|مژه)$/.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
-        const phoneMatch = q.match(/09\\d{9}/);
-        const priceMatch = t.match(/(?:با هزینه|هزینه|مبلغ|قیمت)\\s*(\\d{3,})/);
+        const phoneMatch = q.match(/09\d{9}/);
+        const priceMatch = t.match(/(?:با هزینه|هزینه|مبلغ|قیمت)\s*(\d{3,})/);
         minaPendingBooking = {
           clientName,
           dateKey,
@@ -4448,12 +4448,12 @@
           minaPendingBooking = null;
           return 'این نوبت با همین مشخصات از قبل توی تقویمت هست عزیزم؛ دوباره ثبتش نمی‌کنم 💗';
         }
-        return 'قبل از ثبت، با هم چکش کنیم؟ 🌸\\n👩🏻 مشتری: ' + clientName +
-          '\\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\\n⏰ ساعت: ' + minaPendingBooking.time +
-          '\\n💅 نوع خدمت: ' + (service || 'هنوز مشخص نشده') +
-          (minaPendingBooking.price ? '\\n💰 مبلغ: ' + formatMoney(minaPendingBooking.price) + ' تومان' : '') +
-          (minaPendingBooking.phone ? '\\n📱 تماس: ' + minaPendingBooking.phone : '') +
-          '\\n\\nاگر درسته «تأیید» و اگر نه «لغو» رو بفرست 💗';
+        return 'قبل از ثبت، با هم چکش کنیم؟ 🌸\n👩🏻 مشتری: ' + clientName +
+          '\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\n⏰ ساعت: ' + minaPendingBooking.time +
+          '\n💅 نوع خدمت: ' + (service || 'هنوز مشخص نشده') +
+          (minaPendingBooking.price ? '\n💰 مبلغ: ' + formatMoney(minaPendingBooking.price) + ' تومان' : '') +
+          (minaPendingBooking.phone ? '\n📱 تماس: ' + minaPendingBooking.phone : '') +
+          '\n\nاگر درسته «تأیید» و اگر نه «لغو» رو بفرست 💗';
       }
 
       if (/فردا/.test(t) && /(نوبت|برنامه|مشتری|چکار|چه کار)/.test(t)) {
