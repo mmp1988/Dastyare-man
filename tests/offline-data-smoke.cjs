@@ -108,6 +108,27 @@ const assert = require('assert');
       speechBridgeResult.bookingCreated && speechBridgeResult.inputCleared,
       'Native speech transcript did not flow into Mina and create the requested booking');
 
+    const minaActionsResult = await page.evaluate(() => {
+      const dateKey = getTodayKey();
+      appData.appointments = [
+        { id:'mina-cancel-qa', dateKey, time:'09:00', clientName:'سارا', service:'کلاسیک', status:'pending' },
+        { id:'mina-done-qa', dateKey, time:'10:00', clientName:'مریم', service:'لیفت مژه', status:'pending' },
+        { id:'mina-move-qa', dateKey, time:'11:00', clientName:'علی', service:'والیوم', status:'pending' }
+      ];
+      const cancelReply = minaBuildReply('لغو نوبت سارا');
+      const cancelOk = appData.appointments.find(a => a.id === 'mina-cancel-qa')?.status === 'canceled';
+      const doneReply = minaBuildReply('انجام شد مریم');
+      const doneOk = appData.appointments.find(a => a.id === 'mina-done-qa')?.status === 'done';
+      const moveReply = minaBuildReply('نوبت علی رو به ساعت ۵ عصر منتقل کن');
+      const moveOk = appData.appointments.find(a => a.id === 'mina-move-qa')?.time === '17:00';
+      const weekReply = minaBuildReply('برنامه هفت روز آینده');
+      const weekOk = weekReply.includes('برنامه هفت روز آینده') && weekReply.includes('علی');
+      return { cancelOk, doneOk, moveOk, weekOk, cancelReply, doneReply, moveReply, weekReply };
+    });
+    assert(minaActionsResult.cancelOk && minaActionsResult.doneOk &&
+      minaActionsResult.moveOk && minaActionsResult.weekOk,
+      'Mina cancel/complete/reschedule/weekly schedule command failed');
+
     // Static native Android guardrails: validated internet selects Android's normal
     // recognition service; Persian locale and microphone permission remain configured.
     const nativeJava = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/MainActivity.java'), 'utf8');
