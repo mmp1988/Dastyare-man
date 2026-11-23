@@ -159,6 +159,7 @@ const assert = require('assert');
       const weekOk = weekReply.includes('برنامه هفت روز آینده') && weekReply.includes('علی');
       return { cancelOk, doneOk, moveOk, weekOk, cancelReply, doneReply, moveReply, weekReply };
     });
+    console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
     assert(minaActionsResult.cancelOk && minaActionsResult.doneOk &&
       minaActionsResult.moveOk && minaActionsResult.weekOk,
       'Mina cancel/complete/reschedule/weekly schedule command failed');
