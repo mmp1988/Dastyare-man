@@ -1089,6 +1089,11 @@
           <input id="clientProfilePhotoInput" type="file" accept="image/*" style="display:none;" onchange="handleClientPhoto(event,'profile')" />
         </div>
       </div>
+      <div id="clientProfileFullPhotoPanel" style="display:none;margin:8px 0 12px;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
+        <div style="font-weight:800;font-size:.78rem;margin-bottom:7px;">نمای کامل عکس مشتری</div>
+        <div style="overflow:auto;max-height:340px;text-align:center;"><img id="clientProfileFullPhoto" alt="عکس کامل مشتری" style="width:100%;height:auto;max-height:320px;object-fit:contain;transform:scale(1);transform-origin:center center;" /></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.75rem;margin-top:8px;">بزرگ‌نمایی عکس <input id="clientProfilePhotoZoom" type="range" min="80" max="180" value="100" style="flex:1;" oninput="setClientProfilePhotoZoom(this.value)" /></label>
+      </div>
       <div class="form-group">
         <label>نکات مهم و یادداشت همیشگی مشتری (اختیاری)</label>
         <textarea id="clientProfileNotes" class="form-control" rows="3" placeholder="مثلاً حساسیت، مدل مورد علاقه، رنگ، نکات مهم برای مراجعه بعدی..." onchange="saveClientProfileNotes()"></textarea>
@@ -1119,18 +1124,18 @@
             <input type="text" id="clientWorkService" class="form-control" placeholder="مثلاً والیوم، لیفت، ترمیم..." />
           </div>
           <div class="form-group full">
-            <label>چک‌لیست خدمات این جلسه</label>
-            <div id="clientServiceChecklist" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--bg-secondary);padding:10px;border-radius:12px;">
-              <label><input type="checkbox" value="پاک‌سازی و آماده‌سازی" /> پاک‌سازی و آماده‌سازی</label>
-              <label><input type="checkbox" value="اکستنشن کلاسیک" /> اکستنشن کلاسیک</label>
-              <label><input type="checkbox" value="والیوم" /> والیوم</label>
-              <label><input type="checkbox" value="مگاوالیوم" /> مگاوالیوم</label>
-              <label><input type="checkbox" value="ترمیم" /> ترمیم</label>
-              <label><input type="checkbox" value="لیفت مژه" /> لیفت مژه</label>
-              <label><input type="checkbox" value="لیفت ابرو" /> لیفت ابرو</label>
-              <label><input type="checkbox" value="برداشت / ریموو" /> برداشت / ریموو</label>
+            <label>جزئیات اختصاصی خدمات خودت</label>
+            <div style="font-size:.74rem;color:var(--text-secondary);margin-bottom:8px;">هر فیلدی برای شغلت لازم داری بساز؛ مثل نوع مژه، سایز، فر، ضخامت، برند مواد، پایه رنگ یا شماره رنگ. این فیلدها پیش‌فرض نیستند و فقط خودت تعریف می‌کنی.</div>
+            <div id="clientWorkFieldValues" class="form-grid"></div>
+            <div style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:12px;padding:9px;margin-top:9px;">
+              <div style="font-weight:800;font-size:.78rem;margin-bottom:7px;">⚙️ ساخت فیلدهای دلخواه برای همه پرونده‌ها</div>
+              <div class="form-grid">
+                <div class="form-group"><label>نام فیلد</label><input id="newWorkFieldLabel" class="form-control" placeholder="مثلاً شماره رنگ" /></div>
+                <div class="form-group"><label>نوع ورودی</label><select id="newWorkFieldType" class="form-control"><option value="text">متن کوتاه</option><option value="number">عدد</option><option value="textarea">توضیحات</option><option value="date">تاریخ</option><option value="time">ساعت</option></select></div>
+                <div class="form-group full"><button type="button" class="btn-secondary" style="width:100%;" onclick="addClientWorkField()">➕ افزودن فیلد به فرم من</button></div>
+              </div>
+              <div id="clientWorkFieldDefinitions" style="display:flex;flex-direction:column;gap:6px;"></div>
             </div>
-            <input type="text" id="clientCustomChecklist" class="form-control" style="margin-top:8px;" placeholder="خدمت دیگر (اختیاری)" />
           </div>
           <div class="form-group">
             <label>مبلغ دریافت‌شده (تومان) — اختیاری</label>
@@ -1141,12 +1146,12 @@
             <textarea id="clientWorkNotes" class="form-control" rows="2" placeholder="چه کاری انجام شد؟ چه موادی یا مدلی استفاده شد؟"></textarea>
           </div>
           <div class="form-group full">
-            <label>📸 عکس قبل از انجام خدمت</label>
+            <label>📸 عکس قبل از انجام خدمت (اختیاری)</label>
             <input type="file" id="clientBeforePhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'before')" />
             <small id="clientBeforePhotoStatus" style="color:var(--text-secondary);">با دوربین پشت، قبل از شروع کار عکس بگیر.</small>
           </div>
           <div class="form-group full">
-            <label>✨ عکس بعد از انجام خدمت</label>
+            <label>✨ عکس بعد از انجام خدمت (اختیاری)</label>
             <input type="file" id="clientAfterPhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'after')" />
             <small id="clientAfterPhotoStatus" style="color:var(--text-secondary);">بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.</small>
           </div>
@@ -1190,7 +1195,8 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.78rem;">
           <label><input type="checkbox" id="shareClientIdentity" checked /> نام و شماره تماس</label>
           <label><input type="checkbox" id="shareClientNotes" checked /> یادداشت‌ها</label>
-          <label><input type="checkbox" id="shareClientCustom" checked /> اطلاعات دلخواه</label>
+          <label><input type="checkbox" id="shareClientCustom" checked /> اطلاعات دلخواه مشتری</label>
+          <label><input type="checkbox" id="shareClientWorkCustom" checked /> جزئیات اختصاصی خدمات</label>
           <label><input type="checkbox" id="shareClientHistory" checked /> سوابق خدمات</label>
           <label><input type="checkbox" id="shareClientPrices" checked /> قیمت‌ها</label>
           <label><input type="checkbox" id="shareClientPhotos" checked /> عکس‌های انتخاب‌شده</label>
@@ -2532,7 +2538,12 @@
       img.src = p.photo || '';
       img.style.display = p.photo ? 'block' : 'none';
       document.getElementById('clientProfilePhotoEmpty').style.display = (p.photo || p.photoRef) ? 'none' : 'grid';
-      if (p.photoRef) getClientPhotoUrl(p.photoRef).then(url => { if(url && document.getElementById('clientRecordKey').value===key) { img.src=url; img.style.display='block'; } }).catch(()=>{});
+      const fullPanel=document.getElementById('clientProfileFullPhotoPanel'),fullImg=document.getElementById('clientProfileFullPhoto');
+      fullPanel.style.display=(p.photo||p.photoRef)?'block':'none';
+      fullImg.src=p.photo||'';
+      document.getElementById('clientProfilePhotoZoom').value=p.photoZoom||100;
+      setClientProfilePhotoZoom(p.photoZoom||100);
+      if (p.photoRef) getClientPhotoUrl(p.photoRef).then(url => { if(url && document.getElementById('clientRecordKey').value===key) { img.src=url; img.style.display='block'; document.getElementById('clientProfileFullPhoto').src=url; document.getElementById('clientProfileFullPhotoPanel').style.display='block'; } }).catch(()=>{});
       const iranNow = getIranNow();
       document.getElementById('clientWorkDate').value = iranNow.getFullYear()+'-'+pad2(iranNow.getMonth()+1)+'-'+pad2(iranNow.getDate());
       document.getElementById('clientWorkTime').value = getIranNow().toTimeString().slice(0,5);
@@ -2557,6 +2568,7 @@
       document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت‌شده: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '') : 'هنوز نوبت بعدی ثبت نشده است.';
       renderClientHistory(key);
       renderClientCustomFields(key);
+      renderClientWorkFields(key);
       document.getElementById('clientProfileModal').classList.add('open');
     }
     // Keep original photo bytes in IndexedDB: no resizing, recompression or quality loss.
@@ -2614,10 +2626,12 @@
           const key = document.getElementById('clientRecordKey').value;
           const p = getClientProfile(key);
           if (p.photoRef) { try { const db=await openClientPhotoDB(); const tx=db.transaction('photos','readwrite'); tx.objectStore('photos').delete(p.photoRef); db.close(); } catch(e){} }
-          p.photoRef = photoRef; p.photo = ''; p.photoUpdatedAt = Date.now();
+          p.photoRef = photoRef; p.photo = ''; p.photoZoom=p.photoZoom||100; p.photoUpdatedAt = Date.now();
           saveData();
           const preview = document.getElementById('clientProfilePhotoPreview');
           preview.src = URL.createObjectURL(file); preview.style.display = 'block';
+          document.getElementById('clientProfileFullPhoto').src=preview.src;
+          document.getElementById('clientProfileFullPhotoPanel').style.display='block';
           document.getElementById('clientProfilePhotoEmpty').style.display = 'none';
           showToast('عکس اصلی با کیفیت دوربین ذخیره شد 📷');
         } else if (target === 'before') {
