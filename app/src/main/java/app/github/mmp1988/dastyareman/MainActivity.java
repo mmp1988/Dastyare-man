@@ -454,7 +454,9 @@ public class MainActivity extends Activity {
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR");
             intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, useOfflineEngine);\n            intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);\n            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, useOfflineEngine);
+            intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
             nativeSpeechRecognizer.startListening(intent);
         } catch (Exception e) {
