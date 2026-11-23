@@ -2173,6 +2173,23 @@
       updateDashboardStats();
     }
 
+    // Flush the latest local data whenever the app is backgrounded or closed.
+    // Native Android also writes a private backup from Activity.onPause().
+    function persistAppDataOnExit() {
+      try { saveData(); } catch (e) {
+        try {
+          if (window.AndroidApp && typeof window.AndroidApp.backupData === 'function') {
+            window.AndroidApp.backupData(JSON.stringify(appData));
+          }
+        } catch (ignored) {}
+      }
+    }
+    window.addEventListener('pagehide', persistAppDataOnExit);
+    window.addEventListener('beforeunload', persistAppDataOnExit);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persistAppDataOnExit();
+    });
+
     // --- PIN LOCK ---
     let enteredPin = '';
     function checkPinLockOnStartup() {
@@ -4495,14 +4512,19 @@
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
         const explicit = t.match(/(?:در تاریخ|تاریخ)\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
         if (explicit) dateKey = explicit[1] + '-' + pad2(Number(explicit[2])) + '-' + pad2(Number(explicit[3]));
-        const servicePattern = /(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
-        const serviceMatch = t.match(/(?:برای|واسه|نوبت|خدمت)\s*(کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)(?=\s|$)/) || t.match(servicePattern);
+        const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*پوست|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
+        const serviceMatch = t.match(servicePattern);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
         if (knownService) service = knownService.name;
         if (!service) return 'نوع خدمت رو متوجه نشدم عزیزم؛ کاشت مژه، لیفت یا چه خدمتیه؟ 💗';
-        const nameMatches = Array.from(t.matchAll(/(?:برای|واسه)\s+(.+?)(?=\s+(?:ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت|لیفت|کاشت|اکستنشن|کلاسیک|والیوم|ترمیم)|$)/g));
-        let clientName = nameMatches.length ? nameMatches[nameMatches.length - 1][1].trim() : '';
+        const nameMatches = Array.from(t.matchAll(/(?:برای|واسه)\s+(.+?)(?=\s+(?:برای|ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت)|$)/g));
+        const clientCandidates = nameMatches.map(m => m[1].trim()).filter(name =>
+          name && !/^(?:امروز|فردا|پس|پس\s*فردا|صبح|ظهر|بعدازظهر|عصر|شب|نوبت|رزرو|وقت)$/u.test(name) &&
+          (!service || name.toLowerCase() !== service.toLowerCase()) &&
+          !servicePattern.test(name)
+        );
+        let clientName = clientCandidates.length ? clientCandidates[clientCandidates.length - 1] : '';
         if (/^(?:امروز|فردا|پس|پس\s*فردا|لیفت|لیفت مژه|لیفت ابرو|کاشت مژه|کاشت ابرو|اکستنشن|مژه|نوبت|رزرو|وقت)$/u.test(clientName) ||
             /(?:پس\s*فردا|فردا|امروز|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|ظهر|شب|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
