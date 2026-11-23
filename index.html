@@ -3112,7 +3112,7 @@
     }
     function clientKeyFromFields(phone, name) {
       const cleanName = String(name || '').trim();
-      const usableName = /^(?:—|نام درج نشده)$/u.test(cleanName) ? '' : cleanName;
+      const usableName = /^(?:—|نام درج نشده|⚠️ نام درج نشده \(قابل تکمیل\))$/u.test(cleanName) ? '' : cleanName;
       return (String(phone || '').trim() || usableName).replace(/\s+/g, ' ');
     }
     function getClientProfile(key) {
@@ -4452,7 +4452,7 @@
           const p = minaPendingBooking;
           const duplicate = (appData.appointments || []).some(a =>
             a.dateKey === p.dateKey && a.time === p.time &&
-            (a.clientNameMissing === true || !String(a.clientName || '').trim() || a.clientName === '—' || a.clientName === 'نام درج نشده') &&
+            (a.clientNameMissing === true || !String(a.clientName || '').trim() || a.clientName === '—' || a.clientName === 'نام درج نشده' || a.clientName === '⚠️ نام درج نشده (قابل تکمیل)') &&
             String(a.service || '') === String(p.service || 'خدمت ثبت‌نشده') && a.status !== 'canceled');
           minaPendingBooking = null;
           if (duplicate) return 'برای همین خدمت، تاریخ و ساعت از قبل یک نوبت بدون نام ثبت شده؛ دوباره تکرارش نکردم عزیزم 💗';
@@ -4462,7 +4462,7 @@
             id: 'appt_mina_' + Date.now(),
             dateKey: p.dateKey,
             time: p.time,
-            clientName: 'نام درج نشده',
+            clientName: '⚠️ نام درج نشده (قابل تکمیل)',
             clientNameMissing: true,
             phone: p.phone || '',
             service: p.service || 'خدمت ثبت‌نشده',
