@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     private static final int REQUEST_MEDIA_PERMISSION = 701;
     private static final int REQUEST_GEO_PERMISSION = 702;
     private static final int REQUEST_FILE = 703;
+    private static final int REQUEST_EXPORT_BACKUP = 704;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private static final String UPDATE_URL = "https://raw.githubusercontent.com/mmp1988/Dastyare-man/main/index.html";
 
@@ -47,6 +48,7 @@ public class MainActivity extends Activity {
     private GeolocationPermissions.Callback pendingGeoCallback;
     private String pendingGeoOrigin;
     private ValueCallback<Uri[]> fileChooserCallback;
+    private String pendingExportJson;
     private String[] pendingAndroidPermissions;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
@@ -208,6 +210,18 @@ public class MainActivity extends Activity {
         if (requestCode == REQUEST_FILE && fileChooserCallback != null) {
             Uri[] result = resultCode == RESULT_OK && data != null && data.getData() != null ? new Uri[]{data.getData()} : null;
             fileChooserCallback.onReceiveValue(result); fileChooserCallback = null;
+        } else if (requestCode == REQUEST_EXPORT_BACKUP) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null && pendingExportJson != null) {
+                try (java.io.OutputStream out = getContentResolver().openOutputStream(data.getData())) {
+                    if (out != null) {
+                        out.write(pendingExportJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        Toast.makeText(this, "فایل پشتیبان در محل انتخاب‌شده ذخیره شد", Toast.LENGTH_LONG).show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(this, "ذخیره فایل پشتیبان ناموفق بود", Toast.LENGTH_LONG).show();
+                }
+            }
+            pendingExportJson = null;
         }
     }
 
@@ -243,6 +257,17 @@ public class MainActivity extends Activity {
     private class AppBridge {
         @JavascriptInterface public void saveBackup(String json, String filename) {
             saveBackupInternal(json, filename);
+        }
+        @JavascriptInterface public void exportBackup(String json, String filename) {
+            if (json == null || json.length() > 20_000_000) return;
+            runOnUiThread(() -> {
+                pendingExportJson = json;
+                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("application/json");
+                intent.putExtra(Intent.EXTRA_TITLE, filename == null ? "dastyare-man-backup.json" : filename);
+                startActivityForResult(intent, REQUEST_EXPORT_BACKUP);
+            });
         }
         @JavascriptInterface public void backupData(String json) {
             saveBackupInternal(json, null);
