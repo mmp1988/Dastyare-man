@@ -2470,7 +2470,7 @@
       c.innerHTML = clients.map(cl => {
         const p = (appData.clientProfiles || {})[cl.key] || {};
         const count = cl.visits.length + (p.records || []).length;
-        const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<div style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</div>`;
+        const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : p.photoRef ? `<img data-client-photo-ref="${escapeClientText(p.photoRef)}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<div style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</div>`;
         return `
           <button type="button" onclick="openClientRecord(decodeURIComponent('${encodeURIComponent(cl.key)}'))" style="width:100%;text-align:right;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:14px;padding:10px 12px;color:var(--text-primary);display:flex;align-items:center;gap:10px;cursor:pointer;">
             ${photo}
@@ -2483,6 +2483,9 @@
           </button>
         `;
       }).join('');
+      c.querySelectorAll('img[data-client-photo-ref]').forEach(async img => {
+        try { const url=await getClientPhotoUrl(img.dataset.clientPhotoRef); if(url) img.src=url; } catch(e) {}
+      });
     }
 
 
@@ -2858,7 +2861,11 @@
           const payload={title,text,files};
           if(navigator.canShare({files})){await navigator.share(payload);return;}
         }
-        if (navigator.share) { await navigator.share({title,text}); return; }
+        if (navigator.share) {
+          await navigator.share({title,text});
+          if (refs.length) showToast('متن ارسال شد؛ این دستگاه امکان پیوست عکس را پشتیبانی نکرد.');
+          return;
+        }
         const url = 'https://wa.me/?text='+encodeURIComponent(text);
         window.open(url,'_blank');
         showToast((Array.isArray(photoData)?photoData.length:photoData?1:0) ? 'متن آماده شد؛ این مرورگر امکان پیوست عکس را نداد.' : 'متن پرونده برای ارسال آماده شد.');
