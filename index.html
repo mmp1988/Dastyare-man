@@ -2399,7 +2399,11 @@
     }
 
     // ==================== SHARE & APK ====================
-    function getWebUrl() { return window.location.href.startsWith('http') ? window.location.href.split('#')[0] : DEFAULT_WEB_URL; }
+    function getWebUrl() {
+      const current = window.location.href;
+      if (window.location.hostname === 'appassets.androidplatform.net') return DEFAULT_WEB_URL;
+      return current.startsWith('http') ? current.split('#')[0] : DEFAULT_WEB_URL;
+    }
     function getApkUrl() { return (appData.settings.customApkUrl || '').trim() || DEFAULT_APK_URL; }
     function syncShareUrls() {
       const w = getWebUrl(), a = getApkUrl();
@@ -2417,11 +2421,21 @@
       const text = mode === 'apk'
         ? `دانلود مستقیم فایل نصبی اندروید (APK) اپلیکیشن «${title}»:\n${url}`
         : `نصب اپلیکیشن آفلاین «${title}» (تقویم شمسی، نوبت‌دهی، یادداشت و حسابداری):\n${url}`;
-      if (navigator.share) {
-        try { await navigator.share({ title, text, url }); return; } catch (e) {}
+      // Native Android APK: open the system share sheet (WhatsApp, Telegram, SMS, etc.)
+      if (window.AndroidApp && typeof window.AndroidApp.shareText === 'function') {
+        try { window.AndroidApp.shareText(title, text); return; } catch (e) {}
       }
-      navigator.clipboard?.writeText(text);
-      showToast('متن و لینک ارسال کپی شد! برای دوستان بفرستید 📤');
+      // Browser / iPhone PWA: use the operating system share sheet.
+      if (navigator.share) {
+        try { await navigator.share({ title, text, url }); return; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('اشتراک‌گذاری در دسترس نیست؛ لینک کپی شد 📋');
+      } catch (e) {
+        showToast('امکان اشتراک‌گذاری یا کپی لینک وجود ندارد ⚠️');
+      }
     }
     function copyTextValue(elId, msg) { navigator.clipboard?.writeText(document.getElementById(elId).textContent.trim()); showToast(msg); }
 
