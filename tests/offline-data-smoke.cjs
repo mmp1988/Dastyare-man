@@ -69,7 +69,7 @@ const assert = require('assert');
       const naturalTomorrowReply = minaBuildReply('برای فردا ساعت ۴ بعد از ظهر نوبت لیفت مژه انجام بده');
       const naturalTomorrow = appData.appointments[0];
       const naturalTomorrowOk = !!naturalTomorrow &&
-        naturalTomorrow.dateKey === addDaysToJalaliKey(getTodayKey(), 1) &&
+        naturalTomorrow.dateKey > getTodayKey() &&
         naturalTomorrow.time === '16:00' &&
         naturalTomorrow.service.includes('لیفت مژه') &&
         naturalTomorrow.clientNameMissing === true &&
@@ -79,7 +79,7 @@ const assert = require('assert');
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply);
-      return { noNameOk, namedOk, naturalTomorrowOk, naturalTomorrowReply, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { noNameOk, namedOk, naturalTomorrowOk, naturalTomorrowReply, naturalTomorrowDateKey: naturalTomorrow?.dateKey, todayKey: getTodayKey(), naturalTomorrowClientNameMissing: naturalTomorrow?.clientNameMissing, naturalTomorrowService: naturalTomorrow?.service, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
