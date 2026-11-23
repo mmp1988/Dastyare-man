@@ -2604,6 +2604,18 @@
       if (!clientName) { showToast('نام مشتری را وارد کنید ⚠️'); return; }
 
       const editId = document.getElementById('editApptId').value;
+      const phoneKey = value => String(value || '').replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/\\D/g, '');
+      const normalizedName = value => String(value || '').trim().replace(/\\s+/g, ' ').toLocaleLowerCase('fa');
+      const identity = phoneKey(document.getElementById('apptPhone').value) || normalizedName(clientName);
+      const duplicate = appData.appointments.some(a => {
+        if (a.id === editId || a.status === 'canceled' || a.dateKey !== selectedDateKey || a.time !== time) return false;
+        const otherIdentity = phoneKey(a.phone) || normalizedName(a.clientName);
+        return identity && otherIdentity === identity;
+      });
+      if (duplicate) {
+        showToast('این مشتری در همین تاریخ و ساعت نوبت دارد؛ برای جلوگیری از ثبت تکراری، ذخیره انجام نشد. اگر قصد اصلاح داری همان نوبت را ویرایش کن. ⚠️');
+        return;
+      }
       const payload = {
         id: editId || ('appt_' + Date.now()),
         dateKey: selectedDateKey,
