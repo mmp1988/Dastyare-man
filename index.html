@@ -2871,7 +2871,7 @@
           if(checked('shareClientTime') && item.time) lines.push('ساعت: '+item.time);
           if(checked('shareClientPrices') && item.price!=null && item.price!=='') lines.push('مبلغ: '+formatMoney(item.price)+' تومان');
           if(checked('shareClientWorkNotes') && item.notes) lines.push('توضیحات: '+item.notes);
-          if(item.checklist && item.checklist.length) lines.push('خدمات: '+item.checklist.join('، '));
+          if(checked('shareClientWorkCustom') && item.checklist && item.checklist.length) lines.push('خدمات: '+item.checklist.join('، '));
           if(checked('shareClientWorkCustom') && item.customValues) Object.entries(item.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))lines.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
         }
       } else if (checked('shareClientHistory')) {
@@ -2886,7 +2886,7 @@
             if(checked('shareClientDate') && a.dateKey) parts.push(formatJalaliFull(a.dateKey));
             if(checked('shareClientTime') && a.time) parts.push(a.time);
             if(checked('shareClientPrices') && a.price!=null && a.price!=='') parts.push('مبلغ: '+formatMoney(a.price)+' تومان');
-            if(a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
+            if(checked('shareClientWorkCustom') && a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
             if(checked('shareClientWorkCustom') && a.customValues) Object.entries(a.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))parts.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
             if(checked('shareClientWorkNotes') && a.notes) parts.push(a.notes);
             if(parts.length) historyLines.push(parts.join(' | '));
