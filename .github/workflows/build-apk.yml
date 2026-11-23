@@ -41,13 +41,21 @@ jobs:
       - name: Build & Sign APK
         run: |
           export ANDROID_HOME=$HOME/android-sdk
+          export ANDROID_SDK_ROOT=$HOME/android-sdk
           export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
           mkdir -p android-build && cd android-build
-          printf "y\n" | bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json || true
           keytool -genkeypair -v -keystore release.keystore -alias dastyare -keyalg RSA -keysize 2048 -validity 10000 -storepass dastyare123 -keypass dastyare123 -dname "CN=Mina-Msvm, OU=Dastyare-man, O=Dastyare-man, L=Tehran, S=Tehran, C=IR"
-          bubblewrap build --skipPwaValidation
+          yes "n" | bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json --jdkPath="$JAVA_HOME" --androidSdkPath="$ANDROID_HOME" || true
+          if [ ! -f twa-manifest.json ]; then
+            yes "n" | bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json || true
+          fi
+          yes | bubblewrap build --skipPwaValidation || bubblewrap build
           BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
           APK_FILE=$(find . -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "APK file not found!"
+            exit 1
+          fi
           $BUILD_TOOLS/zipalign -p -f 4 "$APK_FILE" ../aligned.apk
           $BUILD_TOOLS/apksigner sign --ks release.keystore --ks-key-pass pass:dastyare123 --ks-pass pass:dastyare123 --out ../Dastyare-man.apk ../aligned.apk
 
