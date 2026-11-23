@@ -71,6 +71,7 @@ const assert = require('assert');
         /ساعت/.test(missingTimeReply);
       return { noNameOk, namedOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
+    console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
