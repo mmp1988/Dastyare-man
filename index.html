@@ -1102,6 +1102,90 @@
     </div>
   </nav>
 
+
+  <!-- ==================== CLIENT PROFILE & SERVICE HISTORY ==================== -->
+  <div class="modal-backdrop" id="clientProfileModal">
+    <div class="modal-box" style="max-height:92vh;">
+      <div class="modal-head">
+        <div class="modal-title">📁 پرونده تصویری مشتری</div>
+        <button class="icon-btn" onclick="closeModal('clientProfileModal')">✕</button>
+      </div>
+      <input type="hidden" id="clientRecordKey" />
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <img id="clientProfilePhotoPreview" alt="عکس مشتری" style="width:82px;height:82px;object-fit:cover;border-radius:16px;border:1px solid var(--border-color);display:none;" />
+        <div id="clientProfilePhotoEmpty" style="width:82px;height:82px;border-radius:16px;background:var(--bg-secondary);display:grid;place-items:center;font-size:2rem;">👤</div>
+        <div style="flex:1;min-width:0;">
+          <div id="clientProfileName" style="font-weight:900;font-size:1.02rem;"></div>
+          <div id="clientProfilePhone" style="color:var(--text-secondary);font-size:0.78rem;margin-top:4px;"></div>
+          <label class="btn-secondary" for="clientProfilePhotoInput" style="margin-top:8px;cursor:pointer;">📷 ثبت / تغییر عکس مشتری</label>
+          <input id="clientProfilePhotoInput" type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleClientPhoto(event,'profile')" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>نکات مهم و یادداشت همیشگی مشتری</label>
+        <textarea id="clientProfileNotes" class="form-control" rows="3" placeholder="مثلاً حساسیت، مدل مورد علاقه، رنگ، نکات مهم برای مراجعه بعدی..." onchange="saveClientProfileNotes()"></textarea>
+      </div>
+      <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
+        <div class="section-title" style="margin-bottom:9px;">➕ ثبت کار انجام‌شده</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>تاریخ انجام کار</label>
+            <input type="date" id="clientWorkDate" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>ساعت انجام کار</label>
+            <input type="time" id="clientWorkTime" class="form-control" />
+          </div>
+          <div class="form-group full">
+            <label>نوع خدمت / مدل انجام‌شده</label>
+            <input type="text" id="clientWorkService" class="form-control" placeholder="مثلاً والیوم، لیفت، ترمیم..." />
+          </div>
+          <div class="form-group full">
+            <label>توضیحات و نکات این جلسه</label>
+            <textarea id="clientWorkNotes" class="form-control" rows="2" placeholder="چه کاری انجام شد؟ چه موادی یا مدلی استفاده شد؟"></textarea>
+          </div>
+          <div class="form-group full">
+            <label>عکس این جلسه (اختیاری)</label>
+            <input type="file" id="clientWorkPhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'work')" />
+            <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس با حجم کم روی گوشی ذخیره می‌شود.</small>
+          </div>
+          <div class="form-group full">
+            <button class="btn-primary" style="width:100%;" onclick="saveClientWorkRecord()">💾 ذخیره سابقه این جلسه</button>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
+        <div class="section-title" style="margin-bottom:9px;">📅 نوبت بعدی مشتری</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>تاریخ نوبت</label>
+            <input type="date" id="clientNextDate" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>ساعت نوبت</label>
+            <input type="time" id="clientNextTime" class="form-control" value="10:00" />
+          </div>
+          <div class="form-group full">
+            <label>خدمت نوبت بعدی</label>
+            <input type="text" id="clientNextService" class="form-control" placeholder="مثلاً ترمیم..." />
+          </div>
+          <div class="form-group full">
+            <button class="btn-secondary" style="width:100%;" onclick="saveClientNextAppointment()">🗓️ ثبت نوبت بعدی در تقویم</button>
+          </div>
+        </div>
+        <div id="clientNextAppointmentInfo" style="font-size:0.8rem;color:var(--accent);line-height:1.8;"></div>
+      </div>
+      <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
+        <div class="section-title" style="margin-bottom:9px;">🧾 سوابق کارهای انجام‌شده</div>
+        <div id="clientHistoryList" style="display:flex;flex-direction:column;gap:9px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn-primary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال مشخصات و سوابق</button>
+        <button class="btn-secondary" onclick="closeModal('clientProfileModal')">بستن</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== MODAL 1: APPOINTMENT ==================== -->
   <div class="modal-backdrop" id="apptModal">
     <div class="modal-box">
@@ -1466,6 +1550,7 @@
       transactions: [],
       services: [],
       clientNotes: {},
+      clientProfiles: {},
       settings: {
         brandName: 'دستیار من',
         brandSub: 'مدیریت هوشمند نوبت‌دهی و مالی',
@@ -1501,6 +1586,8 @@
             todos: parsed.todos || [],
             transactions: parsed.transactions || [],
             services: parsed.services || [],
+            clientNotes: parsed.clientNotes || {},
+            clientProfiles: parsed.clientProfiles || {},
             settings: { ...appData.settings, ...(parsed.settings || {}) }
           };
         }
@@ -2328,29 +2415,257 @@
       const c = document.getElementById('clientsListContainer');
       const map = {};
       appData.appointments.forEach(a => {
-        const key = (a.phone || a.clientName).trim();
-        if (!map[key]) map[key] = { key, name: a.clientName, phone: a.phone, visits: [] };
+        const key = (a.phone || a.clientName || '').trim();
+        if (!key) return;
+        if (!map[key]) map[key] = { key, name: a.clientName || key, phone: a.phone || '', visits: [] };
         map[key].visits.push(a);
       });
-      const clients = Object.values(map).filter(x => !q || x.name.toLowerCase().includes(q) || (x.phone && x.phone.includes(q)));
+      Object.keys(appData.clientProfiles || {}).forEach(key => {
+        const p = appData.clientProfiles[key] || {};
+        if (!map[key]) map[key] = { key, name: p.name || key, phone: p.phone || '', visits: [] };
+      });
+      const clients = Object.values(map).filter(x => !q || (x.name || '').toLowerCase().includes(q) || (x.phone && x.phone.includes(q)));
       if (clients.length === 0) {
-        c.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.82rem;">مشتری‌ای یافت نشد.</div>`;
+        c.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.82rem;">مشتری‌ای یافت نشد. برای ساخت پرونده، ابتدا یک نوبت برای مشتری ثبت کن.</div>`;
         return;
       }
       c.innerHTML = clients.map(cl => {
-        const note = appData.clientNotes[cl.key] || '';
+        const p = (appData.clientProfiles || {})[cl.key] || {};
+        const count = cl.visits.length + (p.records || []).length;
+        const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<div style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</div>`;
         return `
-          <div style="background:var(--bg-input); border:1px solid var(--border-subtle); border-radius:14px; padding:10px 12px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-              <strong style="font-size:0.9rem;">${cl.name}</strong>
-              <span style="font-size:0.72rem; color:var(--accent); font-weight:700;">${toPersianDigits(cl.visits.length)} مراجعه</span>
-            </div>
-            <input type="text" class="form-control" style="font-size:0.78rem; padding:7px 10px;"
-              value="${note.replace(/"/g, '&quot;')}" placeholder="یادداشت اختصاصی پرونده مشتری..."
-              onchange="appData.clientNotes['${cl.key.replace(/'/g, "\\'")}']=this.value; saveData(); showToast('ذخیره شد ✅');" />
-          </div>
+          <button type="button" onclick="openClientRecord(decodeURIComponent('${encodeURIComponent(cl.key)}'))" style="width:100%;text-align:right;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:14px;padding:10px 12px;color:var(--text-primary);display:flex;align-items:center;gap:10px;cursor:pointer;">
+            ${photo}
+            <span style="flex:1;min-width:0;">
+              <strong style="display:block;font-size:0.9rem;">${escapeClientText(cl.name)}</strong>
+              <small style="display:block;color:var(--text-secondary);margin-top:3px;">${escapeClientText(cl.phone || 'بدون شماره تماس')}</small>
+              <small style="display:block;color:var(--accent);margin-top:3px;">${toPersianDigits(count)} سابقه • برای مشاهده پرونده بزن</small>
+            </span>
+            <span style="font-size:1.1rem;color:var(--accent);">‹</span>
+          </button>
         `;
       }).join('');
+    }
+
+
+    // ==================== CLIENT PHOTO FILES & HISTORY ====================
+    let pendingClientWorkPhoto = '';
+    function escapeClientText(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+    function clientKeyFromFields(phone, name) {
+      return (String(phone || '').trim() || String(name || '').trim()).replace(/\s+/g, ' ');
+    }
+    function getClientProfile(key) {
+      if (!appData.clientProfiles) appData.clientProfiles = {};
+      if (!appData.clientProfiles[key]) appData.clientProfiles[key] = { name: '', phone: '', photo: '', notes: '', records: [] };
+      const p = appData.clientProfiles[key];
+      if (!Array.isArray(p.records)) p.records = [];
+      return p;
+    }
+    function gregorianInputToJalali(value) {
+      if (!value) return getTodayKey();
+      const parts = value.split('-').map(Number);
+      const j = gregorianToJalali(parts[0], parts[1], parts[2]);
+      return j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
+    }
+    function jalaliKeyToGregorianInput(key) {
+      const p = key.split('-').map(Number);
+      const g = jalaliToGregorian(p[0], p[1], p[2]);
+      return g[0] + '-' + pad2(g[1]) + '-' + pad2(g[2]);
+    }
+    function openClientRecord(key) {
+      const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
+      const last = appointments[appointments.length - 1] || {};
+      const p = getClientProfile(key);
+      p.name = p.name || last.clientName || key;
+      p.phone = p.phone || last.phone || '';
+      document.getElementById('clientRecordKey').value = key;
+      document.getElementById('clientProfileName').textContent = p.name;
+      document.getElementById('clientProfilePhone').textContent = p.phone || 'شماره تماس ثبت نشده';
+      document.getElementById('clientProfileNotes').value = p.notes || appData.clientNotes[key] || '';
+      const img = document.getElementById('clientProfilePhotoPreview');
+      img.src = p.photo || '';
+      img.style.display = p.photo ? 'block' : 'none';
+      document.getElementById('clientProfilePhotoEmpty').style.display = p.photo ? 'none' : 'grid';
+      document.getElementById('clientWorkDate').value = new Date().toISOString().slice(0,10);
+      document.getElementById('clientWorkTime').value = getIranNow().toTimeString().slice(0,5);
+      document.getElementById('clientWorkService').value = '';
+      document.getElementById('clientWorkNotes').value = '';
+      document.getElementById('clientWorkPhotoInput').value = '';
+      document.getElementById('clientWorkPhotoStatus').textContent = 'عکس با حجم کم روی گوشی ذخیره می‌شود.';
+      pendingClientWorkPhoto = '';
+      const future = appointments.filter(a => a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b) => (a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
+      document.getElementById('clientNextDate').value = future ? jalaliKeyToGregorianInput(future.dateKey) : '';
+      document.getElementById('clientNextTime').value = future ? (future.time || '10:00') : '10:00';
+      document.getElementById('clientNextService').value = future ? (future.service || '') : '';
+      renderClientHistory(key);
+      document.getElementById('clientProfileModal').classList.add('open');
+    }
+    function handleClientPhoto(event, target) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { showToast('لطفاً یک فایل عکس انتخاب کن.'); event.target.value=''; return; }
+      if (file.size > 15 * 1024 * 1024) { showToast('حجم عکس اصلی خیلی زیاد است؛ عکس کوچک‌تری انتخاب کن.'); event.target.value=''; return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 520, scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          let data = canvas.toDataURL('image/webp', 0.62);
+          if (!data.startsWith('data:image/webp')) data = canvas.toDataURL('image/jpeg', 0.62);
+          if (data.length > 180000) data = canvas.toDataURL('image/jpeg', 0.48);
+          if (target === 'profile') {
+            const key = document.getElementById('clientRecordKey').value;
+            const p = getClientProfile(key); p.photo = data;
+            saveData();
+            const preview = document.getElementById('clientProfilePhotoPreview');
+            preview.src = data; preview.style.display = 'block';
+            document.getElementById('clientProfilePhotoEmpty').style.display = 'none';
+            showToast('عکس مشتری ذخیره شد 📷');
+          } else {
+            pendingClientWorkPhoto = data;
+            document.getElementById('clientWorkPhotoStatus').textContent = 'عکس این جلسه آماده ذخیره است.';
+            showToast('عکس جلسه آماده شد 📷');
+          }
+        };
+        img.onerror = () => showToast('خواندن عکس ممکن نشد؛ عکس دیگری انتخاب کن.');
+        img.src = reader.result;
+      };
+      reader.onerror = () => showToast('خواندن فایل عکس ممکن نشد.');
+      reader.readAsDataURL(file);
+    }
+    function saveClientProfileNotes() {
+      const key = document.getElementById('clientRecordKey').value;
+      if (!key) return;
+      const p = getClientProfile(key);
+      p.notes = document.getElementById('clientProfileNotes').value.trim();
+      appData.clientNotes[key] = p.notes;
+      saveData();
+      showToast('نکات پرونده ذخیره شد ✅');
+    }
+    function saveClientWorkRecord() {
+      const key = document.getElementById('clientRecordKey').value;
+      if (!key) return;
+      const p = getClientProfile(key);
+      const date = gregorianInputToJalali(document.getElementById('clientWorkDate').value);
+      const time = document.getElementById('clientWorkTime').value || '00:00';
+      const service = document.getElementById('clientWorkService').value.trim();
+      const notes = document.getElementById('clientWorkNotes').value.trim();
+      if (!service) { showToast('نوع خدمت را وارد کن.'); return; }
+      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, photo:pendingClientWorkPhoto, createdAt:Date.now() });
+      pendingClientWorkPhoto = '';
+      saveData();
+      document.getElementById('clientWorkService').value = '';
+      document.getElementById('clientWorkNotes').value = '';
+      document.getElementById('clientWorkPhotoInput').value = '';
+      document.getElementById('clientWorkPhotoStatus').textContent = 'عکس با حجم کم روی گوشی ذخیره می‌شود.';
+      renderClientHistory(key);
+      renderClientsTab();
+      showToast('سابقه کار در پرونده مشتری ثبت شد ✅');
+    }
+    function renderClientHistory(key) {
+      const p = getClientProfile(key);
+      const appts = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key && a.status === 'done')
+        .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:'ثبت‌شده از نوبت‌های برنامه', photo:'', source:'appointment' }));
+      const records = (p.records || []).map(r => ({...r, source:'record'}));
+      const items = appts.concat(records).sort((a,b) => (b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
+      const box = document.getElementById('clientHistoryList');
+      if (!items.length) {
+        box.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-secondary);font-size:.8rem;">هنوز سابقه کار انجام‌شده‌ای ثبت نشده است. بعد از هر جلسه، جزئیات و عکس را اینجا ذخیره کن.</div>';
+        return;
+      }
+      box.innerHTML = items.map(item => `
+        <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+            <strong style="font-size:.84rem;">${escapeClientText(item.service)}</strong>
+            <small style="color:var(--accent);white-space:nowrap;">${toPersianDigits(item.dateKey)} • ${toPersianDigits(item.time || '—')}</small>
+          </div>
+          ${item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:190px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''}
+          ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
+          <button class="mini-btn wa" style="margin-top:8px;" onclick="shareClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">📤 ارسال این سابقه</button>
+        </div>
+      `).join('');
+    }
+    function saveClientNextAppointment() {
+      const key = document.getElementById('clientRecordKey').value;
+      if (!key) return;
+      const p = getClientProfile(key);
+      const dateValue = document.getElementById('clientNextDate').value;
+      const time = document.getElementById('clientNextTime').value || '10:00';
+      const service = document.getElementById('clientNextService').value.trim() || 'مراجعه بعدی';
+      if (!dateValue) { showToast('تاریخ نوبت بعدی را انتخاب کن.'); return; }
+      const dateKey = gregorianInputToJalali(dateValue);
+      const existing = appData.appointments.find(a => clientKeyFromFields(a.phone,a.clientName) === key && a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
+      if (existing) { showToast('برای این مشتری در همین تاریخ و ساعت نوبت ثبت شده است.'); return; }
+      appData.appointments.push({ id:'appt_'+Date.now(), dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''), service, price:0, deposit:0, commPercent:appData.settings.defaultComm || 0, payMethod:'کارت‌به‌کارت', alarm:'15', status:'pending', notified:false });
+      saveData(); renderCalendar(); renderDaySchedule(); renderClientsTab();
+      renderClientHistory(key);
+      const future = appData.appointments.filter(a => clientKeyFromFields(a.phone,a.clientName) === key && a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
+      document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت شد: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time)+' — '+future.service : 'نوبتی ثبت نشده است.';
+      showToast('نوبت بعدی در تقویم ثبت شد 📅');
+    }
+    function buildClientShareText(key, onlyItem) {
+      const p = getClientProfile(key);
+      const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone,a.clientName) === key);
+      const next = appointments.filter(a => a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
+      const lines = ['📁 پرونده مشتری: '+(p.name || key), '📞 تماس: '+(p.phone || 'ثبت نشده')];
+      if (p.notes) lines.push('⭐ نکات مهم: '+p.notes);
+      if (onlyItem) {
+        const item = onlyItem.source === 'appointment'
+          ? appointments.find(a => a.id === onlyItem.id)
+          : (p.records || []).find(a => a.id === onlyItem.id);
+        if (item) lines.push('🧾 خدمت: '+(item.service || ''), '📅 تاریخ: '+formatJalaliFull(item.dateKey), '🕒 ساعت: '+(item.time || '—'), '📝 توضیحات: '+(item.notes || '—'));
+      } else {
+        lines.push('🧾 سوابق انجام‌شده:');
+        const doneAppts = appointments.filter(a => a.status === 'done').map(a => ({...a, source:'appointment'}));
+        const records = (p.records || []).map(a => ({...a, source:'record'}));
+        doneAppts.concat(records).sort((a,b)=>(b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||''))).forEach((a,i) => {
+          lines.push((i+1)+') '+(a.service || 'خدمت')+' | '+formatJalaliFull(a.dateKey)+' | '+(a.time || '—')+(a.notes ? ' | '+a.notes : ''));
+        });
+        lines.push(next ? '📅 نوبت بعدی: '+formatJalaliFull(next.dateKey)+' ساعت '+next.time+' — '+next.service : '📅 نوبت بعدی: هنوز ثبت نشده');
+      }
+      return lines.join('\n');
+    }
+    async function shareClientHistoryItem(encodedKey, encodedId, source) {
+      const key = decodeURIComponent(encodedKey), id = decodeURIComponent(encodedId), p = getClientProfile(key);
+      const item = source === 'appointment'
+        ? appData.appointments.find(a => a.id === id)
+        : (p.records || []).find(a => a.id === id);
+      if (!item) return;
+      await shareClientPayload(buildClientShareText(key,{...item,source}), item.photo || p.photo, 'سابقه مشتری');
+    }
+    async function shareClientRecord() {
+      const key = document.getElementById('clientRecordKey').value;
+      if (!key) return;
+      const p = getClientProfile(key);
+      await shareClientPayload(buildClientShareText(key), p.photo, 'پرونده مشتری');
+    }
+    async function shareClientPayload(text, photoData, title) {
+      try {
+        if (photoData && navigator.share && navigator.canShare && window.File) {
+          const parts = photoData.split(',');
+          const mime = (parts[0].match(/:(.*?);/) || [,'image/jpeg'])[1];
+          const binary = atob(parts[1]);
+          const bytes = new Uint8Array(binary.length);
+          for (let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+          const file = new File([bytes], 'customer-photo.'+(mime.includes('webp')?'webp':'jpg'), {type:mime});
+          const payload = { title, text, files:[file] };
+          if (navigator.canShare({files:[file]})) { await navigator.share(payload); return; }
+        }
+        if (navigator.share) { await navigator.share({title,text}); return; }
+        const url = 'https://wa.me/?text='+encodeURIComponent(text);
+        window.open(url,'_blank');
+        showToast(photoData ? 'متن ارسال شد؛ برای فرستادن عکس، عکس را از پرونده مشتری ذخیره و پیوست کن.' : 'متن پرونده برای ارسال آماده شد.');
+      } catch(e) {
+        if (e && e.name === 'AbortError') return;
+        showToast('ارسال انجام نشد؛ دوباره تلاش کن یا متن را از پرونده کپی کن.');
+      }
     }
 
     // ==================== THEME & PERSONALIZATION ====================
