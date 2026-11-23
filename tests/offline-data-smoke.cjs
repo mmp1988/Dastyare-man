@@ -136,6 +136,47 @@ const assert = require('assert');
       a.id === 'qa-exit-persist' && a.clientName === 'ماندگاری بعد خروج'));
     assert(exitPersistence, 'Appointments must survive app exit/pagehide and reopening');
 
+    // Corrupt browser storage must recover the complete Android-private snapshot,
+    // not silently start with blank data or overwrite the only good copy.
+    const nativeBackupRecovery = await page.evaluate(() => {
+      const snapshot = {
+        appointments: [{ id:'qa-native-recovery', dateKey:getTodayKey(), time:'13:00', clientName:'بازیابی اندروید', service:'کوتاهی مو', status:'pending' }],
+        notes: [{ id:'qa-native-note', title:'یادداشت پشتیبان', body:'نباید پاک شود' }],
+        todos: [{ id:'qa-native-todo', text:'کار پشتیبان', done:false }],
+        transactions: [], services: [], clientNotes: {}, clientProfiles: {}, settings: {}
+      };
+      localStorage.setItem(STORAGE_KEY, '{invalid-json');
+      window.AndroidApp = { getLatestBackup: () => JSON.stringify(snapshot) };
+      appData.appointments = [];
+      appData.notes = [];
+      appData.todos = [];
+      loadData();
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const result = {
+        appointment: appData.appointments.some(a => a.id === 'qa-native-recovery'),
+        note: appData.notes.some(n => n.id === 'qa-native-note'),
+        todo: appData.todos.some(t => t.id === 'qa-native-todo'),
+        browserRepaired: stored.appointments?.some(a => a.id === 'qa-native-recovery')
+      };
+      delete window.AndroidApp;
+      return result;
+    });
+    assert(nativeBackupRecovery.appointment && nativeBackupRecovery.note &&
+      nativeBackupRecovery.todo && nativeBackupRecovery.browserRepaired,
+      'Corrupt browser storage must recover all user data from Android private backup');
+
+    // Destructive checklist actions require an explicit confirmation.
+    const todoDeleteGuard = await page.evaluate(() => {
+      appData.todos = [{ id:'qa-delete-guard', text:'نباید خودکار حذف شود', done:false }];
+      const originalConfirm = window.confirm;
+      window.confirm = () => false;
+      deleteTodo('qa-delete-guard');
+      const keptAfterCancel = appData.todos.some(t => t.id === 'qa-delete-guard');
+      window.confirm = originalConfirm;
+      return keptAfterCancel;
+    });
+    assert(todoDeleteGuard, 'Checklist data must remain when the user cancels deletion');
+
     // Voice-to-Mina integration: verify the APK bridge handoff and the complete
     // transcript -> Mina command -> local appointment path in the browser harness.
     const speechBridgeResult = await page.evaluate(async () => {
