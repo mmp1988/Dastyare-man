@@ -4568,11 +4568,25 @@
 
       if ((/(?:نوبت|رزرو|وقت)/.test(t) || (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(t) && /(?:برای|خدمت)/.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده)/.test(t) &&
           (/(?:امروز|فردا|پس\s*فردا|تاریخ)/.test(t) || /\d{1,2}(?::\d{1,2})?/.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/.test(t))) {
-        // Accept exact digital times in Persian/Arabic/Latin digits, with optional "دقیقه" and day period.
-        const clock = t.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})\s*(?:دقیقه\s*)?(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
+        // Understand digital clocks and natural relative expressions such as "a quarter to 3".
+        let clock = t.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})\s*(?:دقیقه\s*)?(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
           t.match(/ساعت\s*(\d{1,2})(?:\s*و\s*(\d{1,2})\s*دقیقه)?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
           t.match(/(?:^|\s)(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)(?:\s|$)/);
-        if (!clock) return 'حتماً عزیزم 💗 فقط ساعت نوبت رو هم بگو؛ مثلاً «۲ ظهر» یا «۴ عصر».';
+        let relativeTime = false;
+        const wordNumbers = { 'یک':1,'یه':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'شیش':6,'هفت':7,'هشت':8,'نه':9,'ده':10,'یازده':11,'دوازده':12 };
+        const relative = t.match(/(?:(یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه|\d{1,2}\s*ربع)\s*(به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)(?:\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح))?)/);
+        if (relative) {
+          const amountText = relative[1].replace(/\s/g,'');
+          const amount = /ربع/.test(amountText) ? (amountText.includes('نیم') ? 7 : 15) :
+            (amountText.includes('نیم') ? 30 : Number(amountText.match(/\d+/)?.[0] || 0));
+          const targetHour = Number(relative[3]) || wordNumbers[relative[3]];
+          const isAfter = /بعد\s*از|گذشته\s*از/.test(relative[2]);
+          let total = targetHour * 60 + (isAfter ? amount : -amount);
+          total = ((total % 1440) + 1440) % 1440;
+          clock = [relative[0], String(Math.floor(total / 60)), String(total % 60), relative[4] || ''];
+          relativeTime = true;
+        }
+        if (!clock) return 'حتماً عزیزم 💗 ساعت رو به هر شکلی که راحتی بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر».';
         let hour = Number(clock[1]), minute = Number(clock[2] || 0);
         const period = clock[3] || (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(t) ? 'بعدازظهر' : /صبح/.test(t) ? 'صبح' : '');
         if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
