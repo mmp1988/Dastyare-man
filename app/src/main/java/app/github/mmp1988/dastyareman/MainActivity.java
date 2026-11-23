@@ -225,6 +225,22 @@ public class MainActivity extends Activity {
     }
 
     private class AppBridge {
+        @JavascriptInterface public void shareText(String title, String text) {
+            if (text == null || text.trim().isEmpty()) return;
+            runOnUiThread(() -> {
+                try {
+                    Intent sendIntent = new Intent(Intent.ACTION_SEND);
+                    sendIntent.setType("text/plain");
+                    sendIntent.putExtra(Intent.EXTRA_SUBJECT, title == null ? "دستیار من" : title);
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, text);
+                    Intent chooser = Intent.createChooser(sendIntent, "ارسال با...");
+                    startActivity(chooser);
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "اشتراک‌گذاری در این دستگاه در دسترس نیست", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
         @JavascriptInterface public void saveBackup(String json, String filename) {
             saveBackupInternal(json, filename);
         }
