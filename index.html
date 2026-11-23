@@ -2038,9 +2038,10 @@
     function formatMoney(num) { return toPersianDigits(Math.round(Number(num) || 0).toLocaleString('en-US')); }
     function pad2(n) { return String(n).padStart(2, '0'); }
 
+    // Use the device's actual local clock and timezone so "today", "tomorrow",
+    // morning/afternoon and appointment times match the user's phone.
     function getIranNow() {
-      const now = new Date();
-      return new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3.5 * 3600000));
+      return new Date();
     }
     function getTodayKey() {
       const now = getIranNow();
@@ -4325,6 +4326,13 @@
       const todayKey = getTodayKey();
       const today = minaTodayAppointments();
       const greeting = appData.settings.personalGreeting || 'عزیزم';
+
+      if (/(?:الان|همین الان).*(?:ساعت|صبح|ظهر|عصر|شب)|(?:ساعت چنده|الان چه ساعتی|الان صبحه|الان ظهره|الان شبه)/.test(t)) {
+        const now = getIranNow();
+        const h = now.getHours(), m = now.getMinutes();
+        const period = h >= 5 && h < 11 ? 'صبح' : h >= 11 && h < 15 ? 'ظهر' : h >= 15 && h < 19 ? 'بعدازظهر' : h >= 19 && h < 22 ? 'شب' : 'نیمه‌شب';
+        return 'الان ساعت ' + toPersianDigits(pad2(h) + ':' + pad2(m)) + ' ـه؛ یعنی ' + period + ' عزیزم 🌸';
+      }
 
       if (minaPendingBooking && !minaPendingBooking.clientName && !/^(?:نه|لغو|بیخیال|بی خیال|منصرف شدم)$/.test(t)) {
         const suppliedName = q.replace(/^(?:اسم مشتری|نام مشتری|برای)\s*/i, '').replace(/\s*(?:ثبت کن|نوبت ثبت کن)$/i, '').trim();
