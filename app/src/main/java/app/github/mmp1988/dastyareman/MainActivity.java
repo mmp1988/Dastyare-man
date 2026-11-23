@@ -298,8 +298,8 @@ public class MainActivity extends Activity {
     }
 
     private File speechModelDirectory(String modelId) {
-        if (!"small".equals(modelId) && !"large".equals(modelId)) return null;
-        return new File(speechModelsRoot(), "fa-" + modelId);
+        if (!"small".equals(modelId)) return null;
+        return new File(speechModelsRoot(), "fa-small");
     }
 
     private boolean isSpeechModelInstalled(String modelId) {
@@ -344,7 +344,7 @@ public class MainActivity extends Activity {
     }
 
     private void downloadSpeechModel(String modelId) {
-        if (!"small".equals(modelId) && !"large".equals(modelId)) return;
+        if (!"small".equals(modelId)) return;
         if (speechModelDownloadActive) {
             notifyVoiceMessage("یک دانلود بسته گفتار در حال انجام است؛ لطفاً صبر کنید.");
             return;
@@ -358,13 +358,13 @@ public class MainActivity extends Activity {
             File root = speechModelsRoot();
             File zip = new File(root, "fa-" + modelId + ".zip.part");
             File stage = new File(root, "fa-" + modelId + "-extracting");
-            long total = "small".equals(modelId) ? 53L * 1024L * 1024L : 1600L * 1024L * 1024L;
+            long total = 53L * 1024L * 1024L;
             long downloaded = 0L;
             HttpURLConnection connection = null;
             try {
                 if (stage.exists()) deleteRecursively(stage);
                 if (zip.exists() && !zip.delete()) throw new Exception("Cannot clear old partial download");
-                String modelFile = "small".equals(modelId) ? "vosk-model-small-fa-0.42.zip" : "vosk-model-fa-0.42.zip";
+                String modelFile = "vosk-model-small-fa-0.42.zip";
                 URL url = new URL("https://alphacephei.com/vosk/models/" + modelFile);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setConnectTimeout(20000);
@@ -411,7 +411,7 @@ public class MainActivity extends Activity {
                                 int n;
                                 while ((n = zin.read(buffer)) != -1) {
                                     extracted += n;
-                                    long cap = "small".equals(modelId) ? 1024L*1024L*1024L : 6L*1024L*1024L*1024L;
+                                    long cap = 1024L * 1024L * 1024L;
                                     if (extracted > cap) throw new Exception("Extracted model exceeds safety limit");
                                     out.write(buffer, 0, n);
                                 }
@@ -451,7 +451,7 @@ public class MainActivity extends Activity {
     }
 
     private void deleteSpeechModel(String modelId) {
-        if (!"small".equals(modelId) && !"large".equals(modelId)) return;
+        if (!"small".equals(modelId)) return;
         if (modelId.equals(activeSpeechModelId)) {
             notifyVoiceMessage("ابتدا گفتار را متوقف کنید و سپس بسته را حذف کنید.");
             return;
@@ -560,28 +560,17 @@ public class MainActivity extends Activity {
     }
 
     private void startNativeSpeechOnUi(String targetInputId, String buttonId) {
-        String modelId = isSpeechModelInstalled("small") ? "small"
-                : (isSpeechModelInstalled("large") ? "large" : null);
-        if (modelId != null) {
-            startVoskSpeech(modelId, targetInputId, buttonId);
+        // If the optional Persian Vosk model is installed, recognition is fully local.
+        if (isSpeechModelInstalled("small")) {
+            startVoskSpeech("small", targetInputId, buttonId);
             return;
         }
-        if (android.os.Build.VERSION.SDK_INT < 31) {
-            notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("برای گفتار فارسی آفلاین، بسته را از تنظیمات و بخش شخصی‌سازی دانلود کنید؛ یا تایپ کنید.");
-            return;
-        }
-        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
-            notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("بسته گفتار فارسی نصب نیست؛ از تنظیمات آن را دانلود کنید یا تایپ کنید.");
-            return;
-        }
+
+        // No local model: use the Android speech service online when available.
+        // This path does not download a model and may require an internet connection.
         try {
-            if (nativeSpeechRecognizer != null) {
-                nativeSpeechRecognizer.destroy();
-                nativeSpeechRecognizer = null;
-            }
-            nativeSpeechRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+            releaseNativeSpeechRecognizer();
+            nativeSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
             nativeSpeechRecognizer.setRecognitionListener(new android.speech.RecognitionListener() {
                 @Override public void onReadyForSpeech(Bundle params) { }
                 @Override public void onBeginningOfSpeech() { }
@@ -590,7 +579,7 @@ public class MainActivity extends Activity {
                 @Override public void onEndOfSpeech() { }
                 @Override public void onError(int error) {
                     notifyVoiceButton(buttonId, false);
-                    notifyVoiceMessage("بسته زبان فارسی آفلاین گوشی موجود نیست؛ بسته فارسی را از تنظیمات دانلود کنید یا تایپ کنید.");
+                    notifyVoiceMessage("گفتار آنلاین در دسترس نیست. برای استفاده بدون اینترنت بسته فارسی را از شخصی‌سازی دانلود کنید؛ یا تایپ کنید.");
                     releaseNativeSpeechRecognizer();
                 }
                 @Override public void onResults(Bundle results) {
@@ -612,12 +601,13 @@ public class MainActivity extends Activity {
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR");
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR");
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false);
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
             nativeSpeechRecognizer.startListening(intent);
         } catch (Exception e) {
             notifyVoiceButton(buttonId, false);
-            notifyVoiceMessage("تشخیص گفتار در این گوشی فعال نشد؛ لطفاً تایپ کنید.");
+            notifyVoiceMessage("تشخیص گفتار آنلاین شروع نشد. اتصال اینترنت را بررسی کنید یا متن را تایپ کنید.");
             releaseNativeSpeechRecognizer();
         }
     }
@@ -633,14 +623,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void getSpeechModelStatus() {
             speechModelExecutor.execute(() -> {
                 sendSpeechModelStatus("small");
-                sendSpeechModelStatus("large");
             });
         }
         @JavascriptInterface public void downloadSpeechModel(String modelId) {
-            if ("small".equals(modelId) || "large".equals(modelId)) MainActivity.this.downloadSpeechModel(modelId);
+            if ("small".equals(modelId)) MainActivity.this.downloadSpeechModel(modelId);
         }
         @JavascriptInterface public void deleteSpeechModel(String modelId) {
-            if ("small".equals(modelId) || "large".equals(modelId)) MainActivity.this.deleteSpeechModel(modelId);
+            if ("small".equals(modelId)) MainActivity.this.deleteSpeechModel(modelId);
         }
 
         @JavascriptInterface public void startOfflineSpeechRecognition(String targetInputId, String buttonId) {
@@ -649,11 +638,6 @@ public class MainActivity extends Activity {
                         || "noteTitleInput".equals(targetInputId) || "noteBodyInput".equals(targetInputId))) {
                     notifyVoiceButton(buttonId, false);
                     notifyVoiceMessage("فیلد انتخاب‌شده معتبر نیست.");
-                    return;
-                }
-                if (android.os.Build.VERSION.SDK_INT < 31) {
-                    notifyVoiceButton(buttonId, false);
-                    notifyVoiceMessage("تشخیص گفتار آفلاین در این نسخه اندروید پشتیبانی نمی‌شود؛ لطفاً تایپ کنید.");
                     return;
                 }
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
