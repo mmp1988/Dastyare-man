@@ -13,11 +13,13 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
+        id: java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -28,36 +30,48 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Android Command Line Tools & Bubblewrap
-        run: |
-          npm install -g @bubblewrap/cli
-          export ANDROID_HOME=$HOME/android-sdk
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
-          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build & Sign APK
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Initialize & Build Signed APK
+        env:
+          JAVA_HOME: ${{ steps.java.outputs.path }}
         run: |
-          export ANDROID_HOME=$HOME/android-sdk
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+          set -e
           mkdir -p android-build && cd android-build
-          keytool -genkeypair -v -keystore release.keystore -alias dastyare -keyalg RSA -keysize 2048 -validity 10000 -storepass dastyare123 -keypass dastyare123 -dname "CN=Mina-Msvm, OU=Dastyare-man, O=Dastyare-man, L=Tehran, S=Tehran, C=IR"
-          yes "n" | bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json --jdkPath="$JAVA_HOME" --androidSdkPath="$ANDROID_HOME" || true
+
+          # پاسخ خودکار به سؤال‌های احتمالی Bubblewrap (شامل مسیر JDK و SDK)
+          yes "" | bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json || true
+
           if [ ! -f twa-manifest.json ]; then
-            yes "n" | bubblewrap init --manifest=https://mmp1988.github.io/Dastyare-man/manifest.json || true
-          fi
-          yes | bubblewrap build --skipPwaValidation || bubblewrap build
-          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
-          APK_FILE=$(find . -name "*.apk" | head -n 1)
-          if [ -z "$APK_FILE" ]; then
-            echo "APK file not found!"
+            echo "خطا: فایل twa-manifest.json ساخته نشد. وضعیت manifest.json را بررسی کنید."
             exit 1
           fi
-          $BUILD_TOOLS/zipalign -p -f 4 "$APK_FILE" ../aligned.apk
-          $BUILD_TOOLS/apksigner sign --ks release.keystore --ks-key-pass pass:dastyare123 --ks-pass pass:dastyare123 --out ../Dastyare-man.apk ../aligned.apk
+
+          # تنظیم مستقیم مسیر JDK 17 و Android SDK تا سؤال نپرسد
+          node -e '
+            const fs = require("fs");
+            const p = "twa-manifest.json";
+            const data = JSON.parse(fs.readFileSync(p, "utf8"));
+            data.jdkPath = process.env.JAVA_HOME;
+            data.androidSdkPath = process.env.ANDROID_HOME;
+            fs.writeFileSync(p, JSON.stringify(data, null, 2));
+          '
+
+          bubblewrap update --skipPwaValidation
+          bubblewrap build --skipPwaValidation
+
+          # ساخت Keystore و امضای نهایی APK
+          keytool -genkeypair -v -keystore release.keystore -alias dastyare -keyalg RSA -keysize 2048 -validity 10000 -storepass dastyare123 -keypass dastyare123 -dname "CN=Mina-Msvm, OU=Dastyare-man, O=Dastyare-man, L=Tehran, S=Tehran, C=IR"
+
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME/build-tools"/* | sort -V | tail -n 1)
+          APK_UNSIGNED=$(find . -name "app-release-unsigned.apk" -o -name "*.apk" | head -n 1)
+
+          "$BUILD_TOOLS/zipalign" -p -f 4 "$APK_UNSIGNED" aligned.apk
+          "$BUILD_TOOLS/apksigner" sign --ks release.keystore --ks-key-pass pass:dastyare123 --ks-pass pass:dastyare123 --out ../Dastyare-man.apk aligned.apk
 
       - name: Publish Latest GitHub Release with Dastyare-man.apk
         uses: softprops/action-gh-release@v2
