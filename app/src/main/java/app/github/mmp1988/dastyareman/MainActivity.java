@@ -164,7 +164,13 @@ public class MainActivity extends Activity {
                     ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
                 needed.add(Manifest.permission.CAMERA);
         }
-        if (needed.isEmpty()) { request.grant(resources); return; }
+        java.util.ArrayList<String> allowed = new java.util.ArrayList<>();
+        for (String resource : resources) {
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource) ||
+                    PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) allowed.add(resource);
+        }
+        if (allowed.isEmpty() || allowed.size() != resources.length) { request.deny(); return; }
+        if (needed.isEmpty()) { request.grant(allowed.toArray(new String[0])); return; }
         pendingWebPermission = request;
         pendingAndroidPermissions = needed.toArray(new String[0]);
         requestPermissions(pendingAndroidPermissions, REQUEST_MEDIA_PERMISSION);
@@ -224,8 +230,14 @@ public class MainActivity extends Activity {
         try (FileOutputStream out = new FileOutputStream(temp)) {
             out.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8)); out.getFD().sync();
         }
-        if (target.exists() && !target.delete()) throw new Exception("Cannot replace backup");
-        if (!temp.renameTo(target)) throw new Exception("Cannot finalize backup");
+        File old = new File(target.getParentFile(), target.getName() + ".old");
+        if (old.exists()) old.delete();
+        if (target.exists() && !target.renameTo(old)) throw new Exception("Cannot stage previous backup");
+        if (!temp.renameTo(target)) {
+            if (old.exists()) old.renameTo(target);
+            throw new Exception("Cannot finalize backup");
+        }
+        if (old.exists()) old.delete();
     }
 
     private class AppBridge {
@@ -234,6 +246,14 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void backupData(String json) {
             saveBackupInternal(json, null);
+        }
+        @JavascriptInterface public String getLatestBackup() {
+            try {
+                File backup = new File(new File(getFilesDir(), "backups"), "latest-backup.json");
+                if (!backup.exists()) return "";
+                byte[] data = java.nio.file.Files.readAllBytes(backup.toPath());
+                return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+            } catch (Exception e) { return ""; }
         }
         @JavascriptInterface public void updateApp() {
             io.execute(() -> {
