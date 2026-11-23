@@ -7,6 +7,8 @@ import android.content.ClipData;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -66,6 +68,8 @@ public class MainActivity extends Activity {
     private String pendingNativeSpeechButton;
     private SpeechRecognizer nativeSpeechRecognizer;
     private SpeechRecognizer speechModelDownloadRecognizer;
+    private TextToSpeech minaTextToSpeech;
+    private boolean minaTtsReady = false;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
@@ -155,6 +159,82 @@ public class MainActivity extends Activity {
 
         webView.loadUrl(APP_ORIGIN + "/content/index.html");
         registerNetworkMonitoring();
+    }
+
+    private void initializeMinaTextToSpeech() {
+        if (minaTextToSpeech != null) return;
+        try {
+            minaTextToSpeech = new TextToSpeech(this, status -> {
+                minaTtsReady = status == TextToSpeech.SUCCESS;
+                if (minaTtsReady) {
+                    try { minaTextToSpeech.setLanguage(Locale.forLanguageTag("fa-IR")); }
+                    catch (Exception ignored) { }
+                }
+            });
+        } catch (Exception ignored) { minaTtsReady = false; }
+    }
+
+    private boolean hasPersianTtsVoice() {
+        if (!minaTtsReady || minaTextToSpeech == null) return false;
+        try {
+            if (minaTextToSpeech.getVoices() != null) {
+                for (Voice voice : minaTextToSpeech.getVoices()) {
+                    Locale locale = voice.getLocale();
+                    if (locale != null && "fa".equalsIgnoreCase(locale.getLanguage())) return true;
+                }
+            }
+            return minaTextToSpeech.isLanguageAvailable(new Locale("fa", "IR")) >= TextToSpeech.LANG_AVAILABLE;
+        } catch (Exception ignored) { return false; }
+    }
+
+    private void speakMinaPersian(String text) {
+        if (text == null || text.trim().isEmpty()) return;
+        runOnUiThread(() -> {
+            initializeMinaTextToSpeech();
+            if (!minaTtsReady) {
+                notifyVoiceMessage("صدای مینا هنوز آماده نشده؛ یک لحظه بعد دوباره امتحان کن یا بسته صدای فارسی رو نصب کن. 💗");
+                return;
+            }
+            try {
+                Locale persian = Locale.forLanguageTag("fa-IR");
+                if (minaTextToSpeech.getVoices() != null) {
+                    for (Voice voice : minaTextToSpeech.getVoices()) {
+                        Locale locale = voice.getLocale();
+                        if (locale != null && "fa".equalsIgnoreCase(locale.getLanguage())) {
+                            minaTextToSpeech.setVoice(voice);
+                            break;
+                        }
+                    }
+                }
+                int languageResult = minaTextToSpeech.setLanguage(persian);
+                if (languageResult == TextToSpeech.LANG_MISSING_DATA || languageResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    notifyVoiceMessage("هنوز صدای فارسی روی گوشی نصب نیست. از بخش شخصی‌سازی، بسته صدای فارسی رو دریافت کن. 🌸");
+                    installMinaPersianVoice();
+                    return;
+                }
+                minaTextToSpeech.setSpeechRate(0.94f);
+                minaTextToSpeech.setPitch(1.08f);
+                minaTextToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "mina-persian-" + System.currentTimeMillis());
+            } catch (Exception e) {
+                notifyVoiceMessage("پخش صدای فارسی مینا انجام نشد؛ نصب موتور گفتار فارسی رو بررسی کن.");
+            }
+        });
+    }
+
+    private void installMinaPersianVoice() {
+        runOnUiThread(() -> {
+            try {
+                Intent install = new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                if (install.resolveActivity(getPackageManager()) != null) startActivity(install);
+                else {
+                    Intent settings = new Intent("com.android.settings.TTS_SETTINGS");
+                    if (settings.resolveActivity(getPackageManager()) != null) startActivity(settings);
+                    else notifyVoiceMessage("در این گوشی نصب‌کننده صدای گفتار پیدا نشد؛ از تنظیمات گوشی وارد تبدیل متن به گفتار شو.");
+                }
+            } catch (Exception e) {
+                notifyVoiceMessage("برای دریافت صدای فارسی، تنظیمات تبدیل متن به گفتار گوشی رو باز کن.");
+            }
+        });
     }
 
     private void registerNetworkMonitoring() {
@@ -608,6 +688,14 @@ public class MainActivity extends Activity {
     }
 
     private class AppBridge {
+        @JavascriptInterface public void speakMinaPersian(String text) {
+            if (text != null && text.length() <= 12000) MainActivity.this.speakMinaPersian(text);
+        }
+
+        @JavascriptInterface public void installMinaPersianVoice() {
+            MainActivity.this.installMinaPersianVoice();
+        }
+
         @JavascriptInterface public void downloadPersianOfflineSpeechModel() {
             runOnUiThread(() -> requestPersianOfflineSpeechModel());
         }
@@ -789,6 +877,7 @@ public class MainActivity extends Activity {
             try { connectivityManager.unregisterNetworkCallback(networkCallback); } catch (Exception ignored) { }
         }
         releaseNativeSpeechRecognizer();
+        if (minaTextToSpeech != null) { try { minaTextToSpeech.stop(); minaTextToSpeech.shutdown(); } catch (Exception ignored) { } minaTextToSpeech = null; }
         if (webView != null) { webView.destroy(); webView = null; }
         io.shutdown();
         super.onDestroy();
