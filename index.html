@@ -4865,7 +4865,13 @@
         if (delDate) candidates = candidates.filter(a => a.dateKey === delDate);
         if (delTime) candidates = candidates.filter(a => a.time === delTime);
         if (delService) candidates = candidates.filter(a => String(a.service || '').includes(delService));
-        if (delName) candidates = candidates.filter(a => String(a.clientName || '').toLowerCase().includes(delName.toLowerCase()));
+        if (delName) candidates = candidates.filter(a => {
+          const storedName = String(a.clientName || '').trim();
+          const nameMatches = storedName.toLowerCase().includes(delName.toLowerCase());
+          const nameWasNotSaved = a.clientNameMissing === true || !storedName ||
+            /^(?:—|نام درج نشده|⚠️ نام درج نشده)/u.test(storedName);
+          return nameMatches || nameWasNotSaved;
+        });
         if (!delDate && !delTime && !delService && !delName)
           return 'برای اینکه اشتباهی نوبتی حذف نشه، تاریخ یا ساعت یا نوع خدمت رو هم بگو عزیزم 🌷';
         if (candidates.length === 0) return 'نوبتی با این مشخصات در تقویم پیدا نکردم؛ چیزی حذف نشد 💗';
