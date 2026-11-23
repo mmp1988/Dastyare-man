@@ -17,7 +17,6 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.GeolocationPermissions;
 import android.widget.Toast;
 
 import androidx.webkit.WebViewAssetLoader;
@@ -37,7 +36,6 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final int REQUEST_MEDIA_PERMISSION = 701;
-    private static final int REQUEST_GEO_PERMISSION = 702;
     private static final int REQUEST_FILE = 703;
     private static final int REQUEST_EXPORT_BACKUP = 704;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
@@ -45,8 +43,6 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
-    private GeolocationPermissions.Callback pendingGeoCallback;
-    private String pendingGeoOrigin;
     private ValueCallback<Uri[]> fileChooserCallback;
     private String pendingExportJson;
     private String[] pendingAndroidPermissions;
@@ -74,7 +70,7 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setGeolocationEnabled(true);
+        settings.setGeolocationEnabled(false);
         settings.setDefaultTextEncodingName("UTF-8");
         webView.addJavascriptInterface(new AppBridge(), "AndroidApp");
 
@@ -96,9 +92,6 @@ public class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onPermissionRequest(PermissionRequest request) {
                 runOnUiThread(() -> handleWebPermission(request));
-            }
-            @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                runOnUiThread(() -> handleGeoPermission(origin, callback));
             }
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
@@ -157,51 +150,28 @@ public class MainActivity extends Activity {
 
     private void handleWebPermission(PermissionRequest request) {
         String[] resources = request.getResources();
-        java.util.ArrayList<String> needed = new java.util.ArrayList<>();
+        boolean audioRequested = false;
         for (String resource : resources) {
-            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource) &&
-                    checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
-                needed.add(Manifest.permission.RECORD_AUDIO);
-            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource) &&
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
-                needed.add(Manifest.permission.CAMERA);
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) audioRequested = true;
+            else { request.deny(); return; }
         }
-        java.util.ArrayList<String> allowed = new java.util.ArrayList<>();
-        for (String resource : resources) {
-            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource) ||
-                    PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) allowed.add(resource);
+        if (!audioRequested) { request.deny(); return; }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+            return;
         }
-        if (allowed.isEmpty() || allowed.size() != resources.length) { request.deny(); return; }
-        if (needed.isEmpty()) { request.grant(allowed.toArray(new String[0])); return; }
         pendingWebPermission = request;
-        pendingAndroidPermissions = needed.toArray(new String[0]);
+        pendingAndroidPermissions = new String[]{Manifest.permission.RECORD_AUDIO};
         requestPermissions(pendingAndroidPermissions, REQUEST_MEDIA_PERMISSION);
-    }
-
-    private void handleGeoPermission(String origin, GeolocationPermissions.Callback callback) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            callback.invoke(origin, true, false);
-        } else {
-            pendingGeoOrigin = origin; pendingGeoCallback = callback;
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_GEO_PERMISSION);
-        }
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         if (requestCode == REQUEST_MEDIA_PERMISSION && pendingWebPermission != null) {
-            boolean granted = true;
-            for (String permission : pendingAndroidPermissions)
-                if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) granted = false;
-            if (granted) pendingWebPermission.grant(pendingWebPermission.getResources());
+            boolean granted = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+            if (granted) pendingWebPermission.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
             else pendingWebPermission.deny();
             pendingWebPermission = null;
-        } else if (requestCode == REQUEST_GEO_PERMISSION && pendingGeoCallback != null) {
-            boolean granted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
-            pendingGeoCallback = null;
         }
     }
 
@@ -326,7 +296,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
-        if (webView != null) webView.evaluateJavascript("(function(){try{if(window.appData&&window.AndroidApp){AndroidApp.backupData(JSON.stringify(window.appData));}}catch(e){}})();", null);
+        if (webView != null) webView.evaluateJavascript("(function(){try{if(typeof appData!=='undefined'&&window.AndroidApp){AndroidApp.backupData(JSON.stringify(appData));}}catch(e){}})();", null);
         super.onPause();
     }
 
