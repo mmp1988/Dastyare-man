@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+def ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")
+if (ciRunNumber == null || ciRunNumber.trim().isEmpty()) {
+    ciRunNumber = "1"
+}
+
 android {
     namespace 'app.github.mmp1988.dastyareman'
     compileSdk 35
@@ -10,8 +15,8 @@ android {
         applicationId 'app.github.mmp1988.dastyareman'
         minSdk 24
         targetSdk 35
-        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
-        versionName "1.0." + (System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        versionCode ciRunNumber.toInteger()
+        versionName "1.0." + ciRunNumber
     }
 
     signingConfigs {
