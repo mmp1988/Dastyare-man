@@ -4042,68 +4042,6 @@
     }
 
 
-    function downloadDirectFile(filename, contentStr, mimeType = 'text/html;charset=utf-8') {
-      const blob = new Blob([contentStr], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast(`فایل ${filename} دانلود شد ✅`);
-    }
-
-    function downloadIndexHtmlDirect() {
-      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-      downloadDirectFile('index.html', fullHtml, 'text/html;charset=utf-8');
-    }
-
-    function downloadManifestDirect() {
-      const manifestObj = {
-        name: appData.settings.brandName || 'دستیار من',
-        short_name: appData.settings.brandName || 'دستیار من',
-        start_url: './index.html',
-        display: 'standalone',
-        orientation: 'portrait',
-        background_color: '#0b0d12',
-        theme_color: appData.settings.customHex || '#d4af37',
-        lang: 'fa',
-        dir: 'rtl',
-        icons: [
-          { src: './icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: './icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-        ]
-      };
-      downloadDirectFile('manifest.json', JSON.stringify(manifestObj, null, 2), 'application/json;charset=utf-8');
-    }
-
-    function downloadServiceWorkerDirect() {
-      const swCode = `const CACHE_NAME = 'dastyare-man-final-v8';
-const CORE_ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
-self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(CORE_ASSETS))); self.skipWaiting(); });
-self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
-self.addEventListener('message', (e) => { if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting(); });
-self.addEventListener('fetch', (e) => { if (e.request.method !== 'GET') return; e.respondWith(fetch(e.request, { cache: 'no-store' }).then((res) => { if (res && res.status === 200) { const cl = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(e.request, cl)); } return res; }).catch(() => caches.match(e.request).then((c) => c || caches.match('./index.html')))); });`;
-      downloadDirectFile('sw.js', swCode, 'application/javascript;charset=utf-8');
-    }
-
-
-    function triggerDirectZipDownload() {
-      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'index.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast('فایل index.html دانلود شد ✅');
-    }
-
     // --- INIT ---
 
     // ===== SMART DASHBOARD / LOYALTY / GALLERY / ADVANCED SEARCH =====
