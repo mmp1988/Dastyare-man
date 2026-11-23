@@ -1376,6 +1376,14 @@
             <div class="form-group"><label>صدای پاسخ مینا</label><select id="minaVoiceReplies" class="form-control" onchange="saveMinaPersonalization()"><option value="yes">پاسخ صوتی روشن</option><option value="no">فقط پاسخ متنی</option></select></div>
           </div>
           <div class="form-group"><label>حالت نمایش</label><select id="minaThemeChoice" class="form-control" onchange="setMinaTheme(this.value)"><option value="light">روشن و پاستیلی</option><option value="dark">تاریک و ملایم</option></select></div>
+          <div class="form-group" style="padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--surface-soft,rgba(215,127,162,.07));">
+            <label style="font-weight:700;">🎀 بسته صدای فارسی مینا</label>
+            <div class="mina-personal-note" style="margin:7px 0 12px;">برای اینکه مینا با صدای فارسی باهات حرف بزنه، بسته زبان فارسی موتور گفتار گوشی رو نصب کن. این بسته رو خود گوشی یا موتور گفتار ارائه می‌کنه؛ بعد از نصب، پاسخ‌های مینا بدون اینترنت هم قابل پخش می‌شن، اگر موتور گفتار صدای آفلاین فارسی داشته باشه.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-primary" onclick="downloadMinaPersianVoice()">⬇️ دریافت / نصب صدای فارسی</button>
+              <button type="button" class="btn-secondary" onclick="testMinaPersianVoice()">🔊 آزمایش صدای مینا</button>
+            </div>
+          </div>
           <div class="mina-personal-note">تنظیمات ظاهری روی همین حساب و دستگاه ذخیره می‌شود و با بستن برنامه از بین نمی‌رود.</div>
         </div>
 
@@ -4303,10 +4311,29 @@
     function clearMinaChat(){const root=document.getElementById('minaChatMessages');if(root)root.innerHTML='';addMinaMessage('گفتگوی تازه‌ای شروع کنیم عزیزم؟ 💗','assistant');}
     function askMina(text){const input=document.getElementById('minaInput');if(input){input.value=text;sendMinaMessage();}}
     function minaSpeak(text){
-      if(appData.settings.minaVoiceReplies===false || !('speechSynthesis' in window))return;
-      try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fa-IR';u.rate=.96;u.pitch=1.04;
-        const voices=window.speechSynthesis.getVoices();const fa=voices.find(v=>/^fa(-|_)/i.test(v.lang));if(fa)u.voice=fa;window.speechSynthesis.speak(u);
+      if(appData.settings.minaVoiceReplies===false)return;
+      // Native Android TTS is preferred so Mina never silently falls back to an English voice.
+      if(window.AndroidApp && typeof AndroidApp.speakMinaPersian==='function'){
+        try{AndroidApp.speakMinaPersian(String(text||''));}catch(e){showToast('پخش صدای فارسی مینا در دسترس نیست.');}
+        return;
+      }
+      if(!('speechSynthesis' in window))return;
+      try{
+        const voices=window.speechSynthesis.getVoices();
+        const fa=voices.find(v=>/^fa(-|_)/i.test(v.lang));
+        if(!fa){showToast('صدای فارسی روی این مرورگر نصب نیست؛ از نسخه اندروید و بسته صدای فارسی استفاده کن.');return;}
+        window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fa-IR';u.voice=fa;u.rate=.94;u.pitch=1.08;window.speechSynthesis.speak(u);
       }catch(e){}
+    }
+    function downloadMinaPersianVoice(){
+      if(window.AndroidApp && typeof AndroidApp.installMinaPersianVoice==='function'){
+        try{AndroidApp.installMinaPersianVoice();}catch(e){showToast('باز کردن نصب‌کننده صدای فارسی ممکن نشد.');}
+      }else{
+        showToast('برای دریافت صدای فارسی مینا، نسخه اندروید را باز کن و همین گزینه را بزن. 💗');
+      }
+    }
+    function testMinaPersianVoice(){
+      minaSpeak('سلام عزیزم! من مینام. خوشحالم که قراره با صدای فارسی و قشنگ با هم حرف بزنیم. 💗');
     }
     function minaTodayAppointments(){
       const key=getTodayKey();return (appData.appointments||[]).filter(a=>a.dateKey===key&&a.status!=='canceled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
