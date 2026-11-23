@@ -84,6 +84,13 @@ const assert = require('assert');
         spokenTimeAppt.service.includes('لیفت ابرو') && minaIsAssistantAppointment(spokenTimeAppt);
       appData.appointments = [];
       minaConversationBooking = null;
+      const exactUserCommandReply = minaBuildReply('برای فردا ساعت ۵:۳۰ بعد از ظهر برای مینا لیفت ابرو را ثبت کن');
+      const exactUserCommandAppt = appData.appointments[0];
+      const exactUserCommandOk = !!exactUserCommandAppt && exactUserCommandAppt.clientName === 'مینا' &&
+        exactUserCommandAppt.time === '17:30' && exactUserCommandAppt.service.includes('لیفت ابرو') &&
+        minaIsAssistantAppointment(exactUserCommandAppt) && /نوبتت ثبت شد/.test(exactUserCommandReply);
+      appData.appointments = [];
+      minaConversationBooking = null;
       const firstTurnReply = minaBuildReply('برای فردا نوبت لیفت ابرو ثبت کن');
       const followupReply = minaBuildReply('برای ساعت پنج و نیم بعد از ظهر');
       const followupAppt = appData.appointments[0];
@@ -98,13 +105,14 @@ const assert = require('assert');
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply) && !!minaConversationBooking;
-      return { noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
     assert(minaBookingResult.naturalTomorrowOk, 'Mina must understand “انجام بده” and save tomorrow 4 PM lash-lift booking without a client name');
     assert(minaBookingResult.spokenTimeOk, 'Mina must parse Persian spoken half-hour times and tag the appointment as assistant-created');
+    assert(minaBookingResult.exactUserCommandOk, 'Mina must parse the exact natural-language command with 5:30 PM and client name after the date');
     assert(minaBookingResult.conversationalFollowupOk, 'Mina must carry booking context into a time-only follow-up turn');
     assert(minaBookingResult.calendarSourceLabelOk, 'Calendar day schedule must visibly label Mina-created appointments');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
