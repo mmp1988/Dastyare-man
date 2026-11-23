@@ -2751,6 +2751,7 @@
                 <small style="display:block;text-align:center;color:var(--text-secondary);">نوار را حرکت بده تا تفاوت را ببینی</small>` : ''}
             </div>` : (item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:190px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''))}
           ${item.checklist && item.checklist.length ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;">☑ ${item.checklist.map(escapeClientText).join(' • ')}</div>` : ''}
+          ${item.price != null && item.price !== '' ? `<div style="font-size:.78rem;color:var(--accent);margin-top:6px;">💰 مبلغ: ${formatMoney(item.price)} تومان</div>` : ''}
           ${item.createdAt ? `<small style="display:block;color:var(--text-secondary);margin-top:5px;">ثبت در برنامه: ${formatClientTimestamp(item.createdAt)}</small>` : ''}
           ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
           <button class="mini-btn wa" style="margin-top:8px;" onclick="shareClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">📤 ارسال این سابقه</button>
@@ -2833,7 +2834,7 @@
         ? appData.appointments.find(a => a.id === id)
         : (p.records || []).find(a => a.id === id);
       if (!item) return;
-      const photos=[item.beforePhotoRef,item.afterPhotoRef,item.photoRef,item.photo,p.photoRef,p.photo].filter(Boolean);
+      const photos=document.getElementById('shareClientPhotos')?.checked===false?[]:[item.beforePhotoRef,item.afterPhotoRef,item.photoRef,item.photo,p.photoRef,p.photo].filter(Boolean);
       await shareClientPayload(buildClientShareText(key,{...item,source}), photos, 'سابقه مشتری');
     }
     async function shareClientPayload(text, photoData, title) {
