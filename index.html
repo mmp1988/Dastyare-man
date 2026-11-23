@@ -1197,6 +1197,8 @@
           <label><input type="checkbox" id="shareClientNotes" checked /> یادداشت‌ها</label>
           <label><input type="checkbox" id="shareClientCustom" checked /> اطلاعات دلخواه مشتری</label>
           <label><input type="checkbox" id="shareClientWorkCustom" checked /> جزئیات اختصاصی خدمات</label>
+          <div id="shareClientProfileFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
+          <div id="shareClientWorkFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <label><input type="checkbox" id="shareClientHistory" checked /> سوابق خدمات</label>
           <label><input type="checkbox" id="shareClientPrices" checked /> قیمت‌ها</label>
           <label><input type="checkbox" id="shareClientPhotos" checked /> عکس‌های انتخاب‌شده</label>
@@ -2568,6 +2570,7 @@
       renderClientHistory(key);
       renderClientCustomFields(key);
       renderClientWorkFields(key);
+      renderClientShareFieldOptions(key);
       document.getElementById('clientProfileModal').classList.add('open');
     }
     // Keep original photo bytes in IndexedDB: no resizing, recompression or quality loss.
@@ -2717,6 +2720,14 @@
       if(index<0||index>=defs.length)return;
       defs.splice(index,1);saveData();renderClientWorkFields(document.getElementById('clientRecordKey').value);
     }
+    function renderClientShareFieldOptions(key) {
+      const p=getClientProfile(key);
+      const profileBox=document.getElementById('shareClientProfileFieldsList');
+      const workBox=document.getElementById('shareClientWorkFieldsList');
+      profileBox.innerHTML=(p.customFields||[]).filter(f=>f.label&&f.value).map((f,i)=>'<label style="font-size:.72rem;"><input type="checkbox" id="shareProfileField_'+i+'" checked /> '+escapeClientText(f.label)+'</label>').join('');
+      const defs=getClientWorkFieldDefinitions();
+      workBox.innerHTML=defs.map(f=>'<label style="font-size:.72rem;"><input type="checkbox" id="shareWorkField_'+f.id+'" checked /> '+escapeClientText(f.label)+'</label>').join('');
+    }
     function saveClientProfileNotes() {
       const key = document.getElementById('clientRecordKey').value;
       if (!key) return;
@@ -2789,22 +2800,18 @@
             <small style="color:var(--accent);white-space:nowrap;">${item.dateKey?formatJalaliFull(item.dateKey):''}${item.dateKey&&item.time?' • ':''}${item.time?toPersianDigits(item.time):''}</small>
           </div>
           ${item.beforePhotoRef || item.afterPhotoRef ? `
-            <div style="margin-top:10px;padding:9px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
-              <div style="font-weight:800;font-size:.8rem;margin-bottom:8px;">مقایسه عکس قبل و بعد</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div><small style="display:block;text-align:center;color:var(--text-secondary);margin-bottom:4px;">قبل از خدمت</small>${item.beforePhotoRef ? `<img data-photo-ref="${escapeClientText(item.beforePhotoRef)}" alt="قبل از خدمت" style="width:100%;height:145px;object-fit:contain;border-radius:8px;background:var(--bg-input);" />` : '<div style="height:145px;display:grid;place-items:center;color:var(--text-secondary);font-size:.75rem;">عکس ثبت نشده</div>'}</div>
-                <div><small style="display:block;text-align:center;color:var(--text-secondary);margin-bottom:4px;">بعد از خدمت</small>${item.afterPhotoRef ? `<img data-photo-ref="${escapeClientText(item.afterPhotoRef)}" alt="بعد از خدمت" style="width:100%;height:145px;object-fit:contain;border-radius:8px;background:var(--bg-input);" />` : '<div style="height:145px;display:grid;place-items:center;color:var(--text-secondary);font-size:.75rem;">عکس ثبت نشده</div>'}</div>
-              </div>
-              ${item.beforePhotoRef && item.afterPhotoRef ? `
-                <div id="baCompare_${escapeClientText(item.id)}" style="position:relative;width:100%;height:230px;overflow:hidden;border-radius:10px;background:var(--bg-input);margin-top:10px;">
-                  <img data-photo-ref="${escapeClientText(item.afterPhotoRef)}" alt="بعد" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;" />
-                  <img data-photo-ref="${escapeClientText(item.beforePhotoRef)}" alt="قبل" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;clip-path:inset(0 50% 0 0);" />
-                  <span style="position:absolute;top:8px;left:8px;background:#000a;color:white;padding:3px 7px;border-radius:6px;font-size:.7rem;">قبل</span>
-                  <span style="position:absolute;top:8px;right:8px;background:#000a;color:white;padding:3px 7px;border-radius:6px;font-size:.7rem;">بعد</span>
+            <div style="margin-top:10px;border:1px solid var(--border-subtle);border-radius:12px;overflow:hidden;background:var(--bg-secondary);">
+              <div style="display:grid;grid-template-columns:1fr 1fr;min-height:170px;">
+                <div style="position:relative;min-width:0;padding:7px;border-right:2px solid var(--accent);">
+                  <span style="position:absolute;top:12px;left:12px;z-index:1;background:#000b;color:white;padding:3px 8px;border-radius:6px;font-size:.7rem;">قبل / BEFORE</span>
+                  ${item.beforePhotoRef ? `<img data-photo-ref="${escapeClientText(item.beforePhotoRef)}" alt="قبل" style="width:100%;height:190px;object-fit:contain;" />` : '<div style="height:190px;display:grid;place-items:center;color:var(--text-secondary);font-size:.75rem;">عکس قبل ثبت نشده</div>'}
                 </div>
-                <input aria-label="مقایسه قبل و بعد" type="range" min="0" max="100" value="50" style="width:100%;margin-top:8px;" oninput="updateClientBeforeAfter(this,'${encodeURIComponent(item.id)}')" />
-                <small style="display:block;text-align:center;color:var(--text-secondary);">نوار را حرکت بده تا تفاوت را ببینی</small>` : ''}
-            </div>` : (item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:190px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''))}
+                <div style="position:relative;min-width:0;padding:7px;">
+                  <span style="position:absolute;top:12px;right:12px;z-index:1;background:#000b;color:white;padding:3px 8px;border-radius:6px;font-size:.7rem;">بعد / AFTER</span>
+                  ${item.afterPhotoRef ? `<img data-photo-ref="${escapeClientText(item.afterPhotoRef)}" alt="بعد" style="width:100%;height:190px;object-fit:contain;" />` : '<div style="height:190px;display:grid;place-items:center;color:var(--text-secondary);font-size:.75rem;">عکس بعد ثبت نشده</div>'}
+                </div>
+              </div>
+            </div>` : (item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''))}
           ${item.checklist && item.checklist.length ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;">☑ ${item.checklist.map(escapeClientText).join(' • ')}</div>` : ''}
           ${item.price != null && item.price !== '' ? `<div style="font-size:.78rem;color:var(--accent);margin-top:6px;">💰 مبلغ: ${formatMoney(item.price)} تومان</div>` : ''}
           ${item.customValues ? Object.entries(item.customValues).filter(([k,v])=>v).map(([k,v])=>`<div style="font-size:.76rem;line-height:1.8;margin-top:4px;"><strong>${escapeClientText(workFieldLabels[k]||'جزئیات')}:</strong> ${escapeClientText(v)}</div>`).join('') : ''}
@@ -2839,7 +2846,7 @@
       if (checked('shareClientIdentity') && p.name) lines.push('نام: '+p.name);
       if (checked('shareClientIdentity') && p.phone) lines.push('شماره تماس: '+p.phone);
       if (checked('shareClientNotes') && p.notes) lines.push('یادداشت: '+p.notes);
-      if (checked('shareClientCustom') && Array.isArray(p.customFields)) p.customFields.forEach(f=>{if(f.label&&f.value)lines.push(f.label+': '+f.value);});
+      if (checked('shareClientCustom') && Array.isArray(p.customFields)) p.customFields.forEach((f,i)=>{const toggle=document.getElementById('shareProfileField_'+i);if(f.label&&f.value&&(!toggle||toggle.checked))lines.push(f.label+': '+f.value);});
       const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone,a.clientName) === key);
       if (onlyItem) {
         const item = onlyItem.source === 'appointment' ? appointments.find(a=>a.id===onlyItem.id) : (p.records||[]).find(a=>a.id===onlyItem.id);
@@ -2850,6 +2857,7 @@
           if(checked('shareClientPrices') && item.price!=null && item.price!=='') lines.push('مبلغ: '+formatMoney(item.price)+' تومان');
           if(item.notes) lines.push('توضیحات: '+item.notes);
           if(item.checklist && item.checklist.length) lines.push('خدمات: '+item.checklist.join('، '));
+          if(checked('shareClientWorkCustom') && item.customValues) Object.entries(item.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))lines.push((field?.label||'جزئیات')+': '+value);});
         }
       } else if (checked('shareClientHistory')) {
         const done = appointments.filter(a=>a.status==='done').map(a=>({...a,source:'appointment'}));
@@ -2863,6 +2871,7 @@
             if(a.time) parts.push(a.time);
             if(checked('shareClientPrices') && a.price!=null && a.price!=='') parts.push('مبلغ: '+formatMoney(a.price)+' تومان');
             if(a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
+            if(checked('shareClientWorkCustom') && a.customValues) Object.entries(a.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))parts.push((field?.label||'جزئیات')+': '+value);});
             if(a.notes) parts.push(a.notes);
             lines.push(parts.join(' | '));
           });
