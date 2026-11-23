@@ -383,7 +383,12 @@ public class MainActivity extends Activity {
         boolean online = hasValidatedInternetConnection();
         boolean offlineAvailable = !online && android.os.Build.VERSION.SDK_INT >= 31
                 && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
-        startSpeechRecognition(targetInputId, buttonId, offlineAvailable);
+        if (!online && !offlineAvailable) {
+            notifyVoiceButton(buttonId, false);
+            notifyVoiceMessage("اینترنت وصل نیست و موتور گفتار آفلاین هم روی گوشی موجود نیست؛ برای تبدیل گفتار فارسی به متن، اینترنت را وصل کنید.");
+            return;
+        }
+        startSpeechRecognition(targetInputId, buttonId, !online);
     }
 
     private void startSpeechRecognition(String targetInputId, String buttonId, boolean useOfflineEngine) {
