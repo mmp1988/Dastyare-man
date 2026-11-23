@@ -1160,9 +1160,19 @@
             <textarea id="clientWorkNotes" class="form-control" rows="2" placeholder="چه کاری انجام شد؟ چه موادی یا مدلی استفاده شد؟"></textarea>
           </div>
           <div class="form-group full">
-            <label>عکس این جلسه (اختیاری)</label>
+            <label>📸 عکس قبل از انجام خدمت</label>
+            <input type="file" id="clientBeforePhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'before')" />
+            <small id="clientBeforePhotoStatus" style="color:var(--text-secondary);">با دوربین پشت، قبل از شروع کار عکس بگیر.</small>
+          </div>
+          <div class="form-group full">
+            <label>✨ عکس بعد از انجام خدمت</label>
+            <input type="file" id="clientAfterPhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'after')" />
+            <small id="clientAfterPhotoStatus" style="color:var(--text-secondary);">بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.</small>
+          </div>
+          <div class="form-group full">
+            <label>عکس تکمیلی جلسه (اختیاری)</label>
             <input type="file" id="clientWorkPhotoInput" class="form-control" accept="image/*" capture="environment" onchange="handleClientPhoto(event,'work')" />
-            <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس با حجم کم روی گوشی ذخیره می‌شود.</small>
+            <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.</small>
           </div>
           <div class="form-group full">
             <button class="btn-primary" style="width:100%;" onclick="saveClientWorkRecord()">💾 ذخیره سابقه این جلسه</button>
@@ -2465,6 +2475,8 @@
 
     // ==================== CLIENT PHOTO FILES & HISTORY ====================
     let pendingClientWorkPhoto = '';
+    let pendingClientBeforePhoto = '';
+    let pendingClientAfterPhoto = '';
     function escapeClientText(value) {
       return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     }
@@ -2513,8 +2525,14 @@
       document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]').forEach(el => el.checked=false);
       document.getElementById('clientCustomChecklist').value = '';
       document.getElementById('clientWorkPhotoInput').value = '';
-      document.getElementById('clientWorkPhotoStatus').textContent = 'عکس با حجم کم روی گوشی ذخیره می‌شود.';
+      document.getElementById('clientWorkPhotoStatus').textContent = 'عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.';
+      document.getElementById('clientBeforePhotoInput').value = '';
+      document.getElementById('clientAfterPhotoInput').value = '';
+      document.getElementById('clientBeforePhotoStatus').textContent = 'با دوربین پشت، قبل از شروع کار عکس بگیر.';
+      document.getElementById('clientAfterPhotoStatus').textContent = 'بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.';
       pendingClientWorkPhoto = '';
+      pendingClientBeforePhoto = '';
+      pendingClientAfterPhoto = '';
       const future = appointments.filter(a => a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b) => (a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
       document.getElementById('clientNextDate').value = future ? jalaliKeyToGregorianInput(future.dateKey) : '';
       document.getElementById('clientNextTime').value = future ? (future.time || '10:00') : '10:00';
@@ -2584,10 +2602,18 @@
           preview.src = URL.createObjectURL(file); preview.style.display = 'block';
           document.getElementById('clientProfilePhotoEmpty').style.display = 'none';
           showToast('عکس اصلی با کیفیت دوربین ذخیره شد 📷');
+        } else if (target === 'before') {
+          pendingClientBeforePhoto = photoRef;
+          document.getElementById('clientBeforePhotoStatus').textContent = 'عکس قبل از کار با کیفیت اصلی آماده ثبت است.';
+          showToast('عکس قبل از کار آماده شد 📷');
+        } else if (target === 'after') {
+          pendingClientAfterPhoto = photoRef;
+          document.getElementById('clientAfterPhotoStatus').textContent = 'عکس بعد از کار با کیفیت اصلی آماده ثبت است.';
+          showToast('عکس بعد از کار آماده شد 📷');
         } else {
           pendingClientWorkPhoto = photoRef;
-          document.getElementById('clientWorkPhotoStatus').textContent = 'عکس اصلی با کیفیت کامل آماده ثبت است.';
-          showToast('عکس اصلی جلسه آماده ذخیره است 📷');
+          document.getElementById('clientWorkPhotoStatus').textContent = 'عکس تکمیلی با کیفیت کامل آماده ثبت است.';
+          showToast('عکس تکمیلی جلسه آماده شد 📷');
         }
       } catch(e) {
         showToast('ذخیره عکس انجام نشد. فضای خالی گوشی را بررسی کن.');
@@ -2616,18 +2642,30 @@
       const customChecklist = document.getElementById('clientCustomChecklist').value.trim();
       if (customChecklist) checklist.push(customChecklist);
       if (!service) { showToast('نوع خدمت را وارد کن.'); return; }
-      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, checklist, photoRef:pendingClientWorkPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
+      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, checklist, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
       pendingClientWorkPhoto = '';
+      pendingClientBeforePhoto = '';
+      pendingClientAfterPhoto = '';
       saveData();
       document.getElementById('clientWorkService').value = '';
       document.getElementById('clientWorkNotes').value = '';
       document.querySelectorAll('#clientServiceChecklist input[type="checkbox"]').forEach(el => el.checked=false);
       document.getElementById('clientCustomChecklist').value = '';
       document.getElementById('clientWorkPhotoInput').value = '';
-      document.getElementById('clientWorkPhotoStatus').textContent = 'عکس با حجم کم روی گوشی ذخیره می‌شود.';
+      document.getElementById('clientBeforePhotoInput').value = '';
+      document.getElementById('clientAfterPhotoInput').value = '';
+      document.getElementById('clientWorkPhotoStatus').textContent = 'عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.';
+      document.getElementById('clientBeforePhotoStatus').textContent = 'با دوربین پشت، قبل از شروع کار عکس بگیر.';
+      document.getElementById('clientAfterPhotoStatus').textContent = 'بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.';
       renderClientHistory(key);
       renderClientsTab();
       showToast('سابقه کار در پرونده مشتری ثبت شد ✅');
+    }
+    function updateClientBeforeAfter(slider, encodedId) {
+      const id=decodeURIComponent(encodedId), box=document.getElementById('baCompare_'+id);
+      if (!box) return;
+      const before=box.querySelector('img[alt="قبل"]');
+      if (before) before.style.clipPath='inset(0 '+(100-Number(slider.value))+'% 0 0)';
     }
     function renderClientHistory(key) {
       const p = getClientProfile(key);
@@ -2646,7 +2684,23 @@
             <strong style="font-size:.84rem;">${escapeClientText(item.service)}</strong>
             <small style="color:var(--accent);white-space:nowrap;"> ${formatJalaliFull(item.dateKey)} • ${toPersianDigits(item.time || '—')}</small>
           </div>
-          ${item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:190px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : '')}
+          ${item.beforePhotoRef || item.afterPhotoRef ? `
+            <div style="margin-top:10px;padding:9px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
+              <div style="font-weight:800;font-size:.8rem;margin-bottom:8px;">مقایسه عکس قبل و بعد</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div><small style="display:block;text-align:center;color:var(--text-secondary);margin-bottom:4px;">قبل از خدمت</small>${item.beforePhotoRef ? `<img data-photo-ref="${escapeClientText(item.beforePhotoRef)}" alt="قبل از خدمت" style="width:100%;height:145px;object-fit:contain;border-radius:8px;background:var(--bg-input);" />` : '<div style="height:145px;display:grid;place-items:center;color:var(--text-secondary);font-size:.75rem;">عکس ثبت نشده</div>'}</div>
+                <div><small style="display:block;text-align:center;color:var(--text-secondary);margin-bottom:4px;">بعد از خدمت</small>${item.afterPhotoRef ? `<img data-photo-ref="${escapeClientText(item.afterPhotoRef)}" alt="بعد از خدمت" style="width:100%;height:145px;object-fit:contain;border-radius:8px;background:var(--bg-input);" />` : '<div style="height:145px;display:grid;place-items:center;color:var(--text-secondary);font-size:.75rem;">عکس ثبت نشده</div>'}</div>
+              </div>
+              ${item.beforePhotoRef && item.afterPhotoRef ? `
+                <div id="baCompare_${escapeClientText(item.id)}" style="position:relative;width:100%;height:230px;overflow:hidden;border-radius:10px;background:var(--bg-input);margin-top:10px;">
+                  <img data-photo-ref="${escapeClientText(item.afterPhotoRef)}" alt="بعد" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;" />
+                  <img data-photo-ref="${escapeClientText(item.beforePhotoRef)}" alt="قبل" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;clip-path:inset(0 50% 0 0);" />
+                  <span style="position:absolute;top:8px;left:8px;background:#000a;color:white;padding:3px 7px;border-radius:6px;font-size:.7rem;">قبل</span>
+                  <span style="position:absolute;top:8px;right:8px;background:#000a;color:white;padding:3px 7px;border-radius:6px;font-size:.7rem;">بعد</span>
+                </div>
+                <input aria-label="مقایسه قبل و بعد" type="range" min="0" max="100" value="50" style="width:100%;margin-top:8px;" oninput="updateClientBeforeAfter(this,'${encodeURIComponent(item.id)}')" />
+                <small style="display:block;text-align:center;color:var(--text-secondary);">نوار را حرکت بده تا تفاوت را ببینی</small>` : ''}
+            </div>` : (item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:190px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''))}
           ${item.checklist && item.checklist.length ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;">☑ ${item.checklist.map(escapeClientText).join(' • ')}</div>` : ''}
           ${item.createdAt ? `<small style="display:block;color:var(--text-secondary);margin-top:5px;">ثبت در برنامه: ${formatClientTimestamp(item.createdAt)}</small>` : ''}
           ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
@@ -2704,7 +2758,8 @@
         ? appData.appointments.find(a => a.id === id)
         : (p.records || []).find(a => a.id === id);
       if (!item) return;
-      await shareClientPayload(buildClientShareText(key,{...item,source}), item.photoRef || item.photo || p.photoRef || p.photo, 'سابقه مشتری');
+      const photos=[item.beforePhotoRef,item.afterPhotoRef,item.photoRef,item.photo,p.photoRef,p.photo].filter(Boolean);
+      await shareClientPayload(buildClientShareText(key,{...item,source}), photos, 'سابقه مشتری');
     }
     async function shareClientRecord() {
       const key = document.getElementById('clientRecordKey').value;
@@ -2714,24 +2769,30 @@
     }
     async function shareClientPayload(text, photoData, title) {
       try {
-        let photoBlob = null;
-        if (photoData && !String(photoData).startsWith('data:')) photoBlob = await getClientPhotoBlob(photoData);
-        if (photoData && !photoBlob && String(photoData).startsWith('data:')) {
-          const parts=photoData.split(','), mime=(parts[0].match(/:(.*?);/)||[,'image/jpeg'])[1];
-          const binary=atob(parts[1]), bytes=new Uint8Array(binary.length);
-          for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-          photoBlob=new Blob([bytes],{type:mime});
+        const refs=Array.isArray(photoData)?photoData:(photoData?[photoData]:[]);
+        const files=[];
+        for(let index=0;index<refs.length;index++){
+          const ref=refs[index]; let blob=null;
+          if(ref && !String(ref).startsWith('data:')) blob=await getClientPhotoBlob(ref);
+          if(ref && !blob && String(ref).startsWith('data:')){
+            const parts=ref.split(','),mime=(parts[0].match(/:(.*?);/)||[,'image/jpeg'])[1];
+            const binary=atob(parts[1]),bytes=new Uint8Array(binary.length);
+            for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+            blob=new Blob([bytes],{type:mime});
+          }
+          if(blob){
+            const mime=blob.type||'image/jpeg',ext=mime.includes('png')?'png':(mime.includes('webp')?'webp':'jpg');
+            files.push(new File([blob],(index===0?'before':index===1?'after':'customer-photo-'+(index+1))+'.'+ext,{type:mime}));
+          }
         }
-        if (photoBlob && navigator.share && navigator.canShare && window.File) {
-          const mime = photoBlob.type || 'image/jpeg';
-          const file = new File([photoBlob], 'customer-photo.'+(mime.includes('png')?'png':(mime.includes('webp')?'webp':'jpg')), {type:mime});
-          const payload = { title, text, files:[file] };
-          if (navigator.canShare({files:[file]})) { await navigator.share(payload); return; }
+        if(files.length && navigator.share && navigator.canShare && window.File){
+          const payload={title,text,files};
+          if(navigator.canShare({files})){await navigator.share(payload);return;}
         }
         if (navigator.share) { await navigator.share({title,text}); return; }
         const url = 'https://wa.me/?text='+encodeURIComponent(text);
         window.open(url,'_blank');
-        showToast(photoData ? 'پیام آماده شد؛ این مرورگر امکان پیوست مستقیم عکس را نداد.' : 'متن پرونده برای ارسال آماده شد.');
+        showToast((Array.isArray(photoData)?photoData.length:photoData?1:0) ? 'متن آماده شد؛ این مرورگر امکان پیوست عکس را نداد.' : 'متن پرونده برای ارسال آماده شد.');
       } catch(e) {
         if (e && e.name === 'AbortError') return;
         showToast('ارسال انجام نشد؛ دوباره تلاش کن یا متن را از پرونده کپی کن.');
