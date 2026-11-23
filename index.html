@@ -265,12 +265,39 @@
       line-height: 1.2;
       font-weight: 900;
     }
+    #clientJalaliPicker .client-picker-days .day-cell {
+      min-height: 62px;
+      height: 62px;
+      gap: 3px;
+      padding: 7px 2px 5px;
+    }
+    #clientJalaliPicker .client-picker-days .holiday-sub {
+      display: block;
+      max-width: 100%;
+      font-size: 0.5rem;
+      line-height: 1.15;
+      white-space: normal;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      color: var(--danger);
+      font-weight: 800;
+    }
+    #clientJalaliPicker .client-picker-days .day-cell.selected .holiday-sub {
+      color: var(--accent-contrast);
+    }
+    #clientJalaliPicker .client-picker-days .holiday-dot {
+      top: 4px;
+      right: 5px;
+      width: 6px;
+      height: 6px;
+    }
     @media (max-width: 380px) {
       #clientJalaliPicker { padding: 10px !important; }
       #clientJalaliPicker .client-picker-weekdays,
       #clientJalaliPicker .client-picker-days { gap: 4px !important; }
       #clientJalaliPicker .client-picker-weekdays { font-size: 0.58rem; }
-      #clientJalaliPicker .client-picker-days .day-cell { min-height: 46px; height: 46px; }
+      #clientJalaliPicker .client-picker-days .day-cell { min-height: 58px; height: 58px; }
     }
 
     /* Official Holidays */
@@ -2764,7 +2791,18 @@
         if((offset+d-1)%7===6) cell.classList.add('friday');
         if(key===today) cell.classList.add('today');
         if(key===selected) cell.classList.add('selected');
-        cell.innerHTML='<span class="day-num">'+toPersianDigits(d)+'</span>';
+        const holidayReason = getOfficialHolidayReason(key);
+        if(holidayReason) {
+          cell.classList.add('holiday-day');
+          cell.title = holidayReason;
+        }
+        const shortHoliday = (holidayReason && !holidayReason.startsWith('تعطیل رسمی هفتگی:'))
+          ? holidayReason.replace(/^تعطیل رسمی:\\s*/, '').split('(')[0].trim()
+          : '';
+        cell.innerHTML =
+          (holidayReason ? '<span class="holiday-dot"></span>' : '') +
+          '<span class="day-num">'+toPersianDigits(d)+'</span>' +
+          (shortHoliday ? '<span class="holiday-sub">'+shortHoliday+'</span>' : '');
         cell.onclick=()=>selectClientJalaliDate(key);
         grid.appendChild(cell);
       }
