@@ -73,6 +73,14 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(android.graphics.Color.rgb(11,13,18));
         getWindow().setNavigationBarColor(android.graphics.Color.rgb(11,13,18));
         ensureFoldersAndInitialContent();
+        // Remove the obsolete large Persian model from older app versions, if present.
+        speechModelExecutor.execute(() -> {
+            File root = speechModelsRoot();
+            deleteRecursively(new File(root, "fa-large"));
+            deleteRecursively(new File(root, "fa-large-extracting"));
+            File oldArchive = new File(root, "fa-large.zip.part");
+            if (oldArchive.exists()) oldArchive.delete();
+        });
         webView = new WebView(this);
         setContentView(webView);
 
