@@ -3111,7 +3111,9 @@
       return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     }
     function clientKeyFromFields(phone, name) {
-      return (String(phone || '').trim() || String(name || '').trim()).replace(/\s+/g, ' ');
+      const cleanName = String(name || '').trim();
+      const usableName = /^(?:—|نام درج نشده)$/u.test(cleanName) ? '' : cleanName;
+      return (String(phone || '').trim() || usableName).replace(/\s+/g, ' ');
     }
     function getClientProfile(key) {
       if (!appData.clientProfiles) appData.clientProfiles = {};
@@ -4460,7 +4462,7 @@
             id: 'appt_mina_' + Date.now(),
             dateKey: p.dateKey,
             time: p.time,
-            clientName: '—',
+            clientName: 'نام درج نشده',
             clientNameMissing: true,
             phone: p.phone || '',
             service: p.service || 'خدمت ثبت‌نشده',
