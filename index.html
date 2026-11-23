@@ -4798,11 +4798,13 @@
 
       // Friendly small-talk and remembering the visitor's preferred name (local/offline).
       if (!appData.settings) appData.settings = {};
-      const nameMatch = normalized.match(/(?:من\s+([آ-یءئؤإأ‌\-]{2,24})\s+(?:هستم|ام)|اسمم\s+([آ-یءئؤإأ‌\-]{2,24})|اسم\s+من\s+([آ-یءئؤإأ‌\-]{2,24})\s+است)/u);
-      if (nameMatch && /(?:سلام|درود|من\s|اسمم|اسم\s+من)/u.test(normalized)) {
+      // Recognize common natural self-introductions, including colloquial Persian endings.
+      const nameMatch = normalized.match(/(?:من\s+([آ-یءئؤإأ‌\-]{2,24})(?:\s+هستم|م)(?=\s|$)|اسمم\s+([آ-یءئؤإأ‌\-]{2,24})(?:ه)?(?=\s|$)|اسم\s+من\s+([آ-یءئؤإأ‌\-]{2,24})(?:\s+(?:است|ه))(?=\s|$))/u);
+      if (nameMatch) {
         const introducedName = (nameMatch[1] || nameMatch[2] || nameMatch[3] || '').trim();
-        const reserved = /^(?:خوب|خوشحال|کاربر|مشتری|دستیار|من|تو|ما|شما)$/u;
+        const reserved = /^(?:خوب|خوبم|خوشحال|کاربر|مشتری|دستیار|من|تو|ما|شما|آماده)$/u;
         if (introducedName && !reserved.test(introducedName)) {
+          const previousName = String(appData.settings.minaUserName || '').trim();
           appData.settings.minaUserName = introducedName;
           saveData();
           const namePraise = {
@@ -4816,9 +4818,20 @@
             'نیلوفر':'چه اسم لطیف و خوش‌آهنگی داری'
           };
           const praise = namePraise[introducedName] || 'چه اسم قشنگ و دوست‌داشتنی‌ای داری';
+          if (previousName === introducedName) {
+            return 'آره عزیزم، یادمه؛ تو ' + introducedName + ' هستی و منم مینام، دستیار همراهت. خوشحالم دوباره با هم حرف می‌زنیم؛ چه کاری از دستم برمیاد؟ 💗';
+          }
           return 'سلام ' + introducedName + ' جانِ عزیزم! 🌸 ' + praise +
-            '. خیلی خوش اومدی؛ من مینام و با خوشحالی کنارت هستم. امروز چطوری؟ 💗';
+            '. من مینام، دستیار همراهت؛ اسم تو رو هم به خاطر می‌سپارم تا توی گفت‌وگوهای بعدی همین‌طور صدات کنم. دوست داری امروز از کجا شروع کنیم؟ 💗';
         }
+      }
+
+      if (/(?:خودت\s*رو\s*معرفی\s*کن|خودتو\s*معرفی\s*کن|تو\s*کی\s*هستی|اسمت\s*چیه|مینا\s*تو\s*کی\s*هستی)/u.test(normalized) &&
+          !/(?:نوبت|رزرو|وقت|ثبت|حذف)/u.test(normalized)) {
+        const knownName = String(appData.settings.minaUserName || '').trim();
+        return 'من مینام 🌸 دستیار سالن و همراه گفت‌وگوت. می‌تونم نوبت‌ها رو ثبت و پیگیری کنم، برنامه روزانه رو نشون بدم، یادداشت و کار ذخیره کنم و به مدیریت خدمات و مشتری‌ها کمک کنم. ' +
+          (knownName ? 'تو هم ' + knownName + ' جان هستی؛ خوشحالم که می‌شناسمت. ' : 'اگه دوست داری اسمت رو بهم بگو تا توی همین دستگاه به خاطر بسپارم. ') +
+          'هر چیزی لازم داری، راحت و خودمونی بهم بگو 💗';
       }
 
       const visitorName = String(appData.settings.minaUserName || '').trim();
