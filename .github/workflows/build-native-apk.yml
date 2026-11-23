@@ -63,25 +63,42 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "::error::Signing secrets are missing. Add ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD in repository Actions secrets."
-            exit 1
+            echo "SIGNING_READY=false" >> "$GITHUB_ENV"
+            echo "::warning::Signing secrets are not configured. Building an unsigned validation APK only; no public release will be created."
+          else
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/dastyare-release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/dastyare-release.jks" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "SIGNING_READY=true" >> "$GITHUB_ENV"
           fi
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/dastyare-release.jks"
-          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/dastyare-release.jks" >> "$GITHUB_ENV"
-          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Build signed APK
         run: |
           gradle --no-daemon assembleRelease
           mkdir -p output
-          cp app/build/outputs/apk/release/app-release.apk output/Dastyare-man.apk
+          APK_SOURCE="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)"
+          test -n "$APK_SOURCE"
+          cp "$APK_SOURCE" output/Dastyare-man.apk
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           "$BUILD_TOOLS/zipalign" -c -v 4 output/Dastyare-man.apk
-          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs output/Dastyare-man.apk
+          if [ "$SIGNING_READY" = "true" ]; then
+            "$BUILD_TOOLS/apksigner" verify --verbose --print-certs output/Dastyare-man.apk
+          else
+            echo "Unsigned APK generated for compile validation only."
+          fi
+
+      - name: Upload validation APK
+        if: env.SIGNING_READY != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dastyare-man-unsigned-validation
+          path: output/Dastyare-man.apk
+          retention-days: 3
 
       - name: Publish latest APK (stable URL)
+        if: env.SIGNING_READY == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
