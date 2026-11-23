@@ -4608,19 +4608,19 @@
     let minaConversationBooking = null;
     function minaExpandSpokenTime(value) {
       return minaNormalizeDigits(value)
-        .replace(/پنج\\s*و\\s*نیم/g, '5:30').replace(/چهار\\s*و\\s*نیم/g, '4:30')
-        .replace(/سه\\s*و\\s*نیم/g, '3:30').replace(/شش\\s*و\\s*نیم/g, '6:30')
-        .replace(/هفت\\s*و\\s*نیم/g, '7:30').replace(/دو\\s*و\\s*نیم/g, '2:30')
-        .replace(/یک\\s*و\\s*نیم/g, '1:30').replace(/هشت\\s*و\\s*نیم/g, '8:30')
-        .replace(/نه\\s*و\\s*نیم/g, '9:30').replace(/ده\\s*و\\s*نیم/g, '10:30')
-        .replace(/یازده\\s*و\\s*نیم/g, '11:30').replace(/دوازده\\s*و\\s*نیم/g, '12:30')
+        .replace(/پنج\s*و\s*نیم/g, '5:30').replace(/چهار\s*و\s*نیم/g, '4:30')
+        .replace(/سه\s*و\s*نیم/g, '3:30').replace(/شش\s*و\s*نیم/g, '6:30')
+        .replace(/هفت\s*و\s*نیم/g, '7:30').replace(/دو\s*و\s*نیم/g, '2:30')
+        .replace(/یک\s*و\s*نیم/g, '1:30').replace(/هشت\s*و\s*نیم/g, '8:30')
+        .replace(/نه\s*و\s*نیم/g, '9:30').replace(/ده\s*و\s*نیم/g, '10:30')
+        .replace(/یازده\s*و\s*نیم/g, '11:30').replace(/دوازده\s*و\s*نیم/g, '12:30')
         .replace(/(?<![آ-ی])یک(?![آ-ی])/g, '1').replace(/(?<![آ-ی])دو(?![آ-ی])/g, '2')
         .replace(/(?<![آ-ی])سه(?![آ-ی])/g, '3').replace(/(?<![آ-ی])چهار(?![آ-ی])/g, '4')
         .replace(/(?<![آ-ی])پنج(?![آ-ی])/g, '5').replace(/(?<![آ-ی])شش(?![آ-ی])/g, '6')
         .replace(/(?<![آ-ی])هفت(?![آ-ی])/g, '7').replace(/(?<![آ-ی])هشت(?![آ-ی])/g, '8')
         .replace(/(?<![آ-ی])نه(?![آ-ی])/g, '9').replace(/(?<![آ-ی])ده(?![آ-ی])/g, '10')
         .replace(/(?<![آ-ی])یازده(?![آ-ی])/g, '11').replace(/(?<![آ-ی])دوازده(?![آ-ی])/g, '12')
-        .replace(/بعد\\s*از\\s*ظهر/g, 'بعدازظهر');
+        .replace(/بعد\s*از\s*ظهر/g, 'بعدازظهر');
     }
     function minaIsAssistantAppointment(a) {
       return !!a && (a.createdBy === 'mina' || a.source === 'mina' || String(a.id || '').startsWith('appt_mina_'));
@@ -4628,14 +4628,14 @@
     minaBuildReply = function(raw) {
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
-      const hasClock = /(?:ساعت\\s*)?\\d{1,2}(?::\\d{1,2})?\\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized);
+      const hasClock = /(?:ساعت\s*)?\d{1,2}(?::\d{1,2})?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized);
       const isBookingIntent = /(?:نوبت|رزرو|وقت)/.test(normalized) &&
-        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|انجام\\s*بده|انجامش\\s*بده|بده)/.test(normalized);
-      const hasDateAndService = /(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ)/.test(normalized) &&
-        /(?:کاشت\\s*مژه|کاشت\\s*ابرو|لیفت\\s*مژه|لیفت\\s*ابرو|اکستنشن|کلاسیک|والیوم|ترمیم)/.test(normalized);
+        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
+      const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) &&
+        /(?:کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن|کلاسیک|والیوم|ترمیم)/.test(normalized);
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
-        const timeMatch = normalized.match(/(?:ساعت\\s*)?(\\d{1,2}(?::\\d{1,2})?)\\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
+        const timeMatch = normalized.match(/(?:ساعت\s*)?(\d{1,2}(?::\d{1,2})?)\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
         if (timeMatch) {
           const continuation = minaConversationBooking.original + ' ساعت ' + timeMatch[1] + ' ' + timeMatch[2];
           minaConversationBooking = null;
