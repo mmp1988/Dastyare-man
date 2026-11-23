@@ -1190,8 +1190,9 @@
         <div class="section-title" style="margin-bottom:9px;">📅 نوبت بعدی مشتری</div>
         <div class="form-grid">
           <div class="form-group">
-            <label>تاریخ نوبت</label>
-            <input type="date" id="clientNextDate" class="form-control" />
+            <label>تاریخ شمسی نوبت</label>
+            <input type="text" id="clientNextDate" class="form-control" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۹/۰۲" dir="ltr" />
+            <small style="color:var(--text-secondary);">تاریخ را به شمسی وارد کن؛ نمونه: ۱۴۰۵/۰۹/۰۲</small>
           </div>
           <div class="form-group">
             <label>ساعت نوبت</label>
@@ -2633,6 +2634,15 @@
       const g = jalaliToGregorian(p[0], p[1], p[2]);
       return g[0] + '-' + pad2(g[1]) + '-' + pad2(g[2]);
     }
+    function parseClientJalaliDate(value) {
+      const normalized = String(value || '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
+      const match = normalized.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+      if (!match) return null;
+      const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
+      if (y < 1200 || y > 1600 || m < 1 || m > 12 || d < 1 || d > jalaliMonthDays(y, m)) return null;
+      return y + '-' + pad2(m) + '-' + pad2(d);
+    }
+
     function buildClientReminderMessage(client, appointment) {
       const tpl = appData.settings.msgTemplate || 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
       const values = {
@@ -2709,7 +2719,7 @@
       document.getElementById('clientReminderAppointmentInfo').textContent = future
         ? 'پیش‌نویس بر اساس نوبت بعدی: ' + formatJalaliFull(future.dateKey) + ' ساعت ' + toPersianDigits(future.time || '') + (future.service ? ' — ' + future.service : '')
         : 'نوبت آینده‌ای ثبت نشده؛ متن پیام را می‌توانی دستی تنظیم کنی.';
-      document.getElementById('clientNextDate').value = future ? jalaliKeyToGregorianInput(future.dateKey) : '';
+      document.getElementById('clientNextDate').value = future ? toPersianDigits(future.dateKey.replace(/-/g, '/')) : '';
       document.getElementById('clientNextTime').value = future ? (future.time || '10:00') : '10:00';
       document.getElementById('clientNextService').value = future ? (future.service || '') : '';
       document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت‌شده: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '') : 'هنوز نوبت بعدی ثبت نشده است.';
@@ -2983,8 +2993,8 @@
       const dateValue = document.getElementById('clientNextDate').value;
       const time = document.getElementById('clientNextTime').value || '10:00';
       const service = document.getElementById('clientNextService').value.trim() || 'مراجعه بعدی';
-      if (!dateValue) { showToast('تاریخ نوبت بعدی را انتخاب کن.'); return; }
-      const dateKey = gregorianInputToJalali(dateValue);
+      const dateKey = parseClientJalaliDate(dateValue);
+      if (!dateKey) { showToast('تاریخ شمسی را درست وارد کن؛ نمونه: ۱۴۰۵/۰۹/۰۲'); return; }
       const existing = appData.appointments.find(a => clientKeyFromFields(a.phone,a.clientName) === key && a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
       if (existing) { showToast('برای این مشتری در همین تاریخ و ساعت نوبت ثبت شده است.'); return; }
       appData.appointments.push({ id:'appt_'+Date.now(), dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''), service, price:0, deposit:0, commPercent:appData.settings.defaultComm || 0, payMethod:'کارت‌به‌کارت', alarm:'15', status:'pending', notified:false });
