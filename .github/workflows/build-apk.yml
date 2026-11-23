@@ -65,6 +65,13 @@ jobs:
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           test -f "$ANDROID_HOME/platforms/android-35/android.jar"
+
+          # Bubblewrap expects the legacy tools/bin + tools/cli SDK layout.
+          mkdir -p "$ANDROID_HOME/tools"
+          ln -sfn "$ANDROID_HOME/cmdline-tools/latest/bin" "$ANDROID_HOME/tools/bin"
+          ln -sfn "$ANDROID_HOME/cmdline-tools/latest" "$ANDROID_HOME/tools/cli"
+          test -x "$ANDROID_HOME/tools/bin/sdkmanager"
+
           mkdir -p "$HOME/.bubblewrap" android-build
 
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' \
@@ -109,7 +116,7 @@ jobs:
                 path: "./release.keystore",
                 alias: "dastyare"
               },
-              appVersionName: "1.0." + (process.env.GITHUB_RUN_NUMBER || "1"),
+              appVersion: "1.0." + (process.env.GITHUB_RUN_NUMBER || "1"),
               appVersionCode: Number(process.env.GITHUB_RUN_NUMBER || 1),
               shortcuts: [],
               generatorApp: "bubblewrap-cli",
