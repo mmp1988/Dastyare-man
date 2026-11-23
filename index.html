@@ -4346,7 +4346,7 @@
 
       if(/نوبت|رزرو/.test(t)&&/(?:برای|واسه)/.test(t)){
         const timeMatch=t.match(/ساعت\\s*(\\d{1,2})(?::(\\d{2}))?/);
-        const nameMatch=t.match(/(?:برای|واسه)\\s+(.+?)(?=\\s+(?:ساعت|امروز|فردا|پس.?فردا|در تاریخ|تاریخ)|$)/);
+        const nameMatch=t.match(/(?:برای|واسه)\\s+(.+?)(?=\\s+(?:ساعت|امروز|پس.?فردا|فردا|در تاریخ|تاریخ)|$)/);
         if(!nameMatch||!nameMatch[1].trim())return 'قربونت، اسم مشتری رو هم بگو؛ مثلاً «برای نازنین ساعت ۴ نوبت اکستنشن ثبت کن» 🌷';
         if(!timeMatch)return 'حتماً عزیزم! ساعت نوبت رو هم بگو؛ مثلاً «برای نازنین امروز ساعت ۴ نوبت ثبت کن».';
         const hour=Number(timeMatch[1]),minute=Number(timeMatch[2]||0);
@@ -4356,7 +4356,7 @@
         if(explicit)dateKey=explicit[1]+'-'+pad2(Number(explicit[2]))+'-'+pad2(Number(explicit[3]));
         const clientName=nameMatch[1].trim().replace(/\\s+(?:نوبت|رزرو).*$/,'').trim();
         const service=(t.match(/(?:نوبت|رزرو)\\s+(.+?)(?:\\s+ثبت(?:ش)?\\s+کن)?$/)||[])[1]||'';
-        const cleanService=service.replace(/ثبت کن|ثبتش کن/g,'').trim();
+        const cleanService=service.replace(/ثبت(?:ش)?\\s*کن/g,'').replace(/^ثبت$/,'').trim();
         minaPendingBooking={clientName,dateKey,time:pad2(hour)+':'+pad2(minute),service:cleanService};
         return 'عزیزم قبل از ثبت، این نوبت رو با هم چک کنیم؟ 🌸\\n\\n👩🏻 مشتری: '+clientName+'\\n📅 تاریخ: '+formatJalaliFull(dateKey)+'\\n⏰ ساعت: '+minaPendingBooking.time+'\\n💅 خدمت: '+(cleanService||'بعداً مشخص می‌کنی')+'\\n\\nاگر درسته بنویس «تأیید»؛ اگر نه بگو «لغو».';
       }
