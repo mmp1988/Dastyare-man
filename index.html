@@ -567,6 +567,36 @@
     }
     .modal-title { font-size: 1rem; font-weight: 800; color: var(--accent); }
 
+    /* Keep customer-share actions above Android gesture/navigation area. */
+    #clientProfileModal.modal-backdrop {
+      align-items: flex-end;
+      padding: 10px 10px calc(14px + var(--safe-bottom));
+    }
+    #clientProfileModal .modal-box {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 24px - var(--safe-top) - var(--safe-bottom));
+      max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom));
+      min-height: 0;
+      overscroll-behavior: contain;
+    }
+    #clientProfileModal #clientShareActions {
+      position: sticky;
+      bottom: -17px;
+      z-index: 3;
+      flex: 0 0 auto;
+      margin: 12px -17px -17px !important;
+      padding: 12px 17px calc(14px + var(--safe-bottom));
+      background: var(--bg-card-solid);
+      border-top: 1px solid var(--border-subtle);
+      box-shadow: 0 -8px 18px rgba(0,0,0,.12);
+    }
+    #clientProfileModal #clientShareActions button {
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+
+
     .share-link-card { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 14px; padding: 11px; margin-bottom: 10px; }
     .url-display {
       font-size: 0.76rem; color: var(--accent); direction: ltr; word-break: break-all;
@@ -1473,7 +1503,7 @@
         </div>
         <small style="display:block;color:var(--text-secondary);margin-top:7px;">فقط گزینه‌های فعال و اطلاعاتی که واقعاً ثبت کرده‌ای ارسال می‌شوند؛ موارد خالی حذف می‌شوند.</small>
       </div>
-      <div style="display:flex;gap:8px;margin-top:14px;">
+      <div id="clientShareActions" style="display:flex;gap:8px;margin-top:14px;">
         <button class="btn-primary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال موارد انتخاب‌شده</button>
         <button class="btn-secondary" onclick="closeModal('clientProfileModal')">بستن</button>
       </div>
