@@ -3444,15 +3444,20 @@
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
       const future = appointments.filter(a => a.status !== 'canceled' && a.status !== 'done' && a.dateKey >= getTodayKey()).sort((a,b) => (a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
-      clientEditingNextAppointmentId = future ? future.id : null;
+      // The profile form always creates a NEW appointment. Existing bookings are edited
+      // only through the explicit edit button in the appointment list, never overwritten
+      // merely because the profile was opened.
+      clientEditingNextAppointmentId = null;
       document.getElementById('clientReminderPreview').value = buildClientReminderMessage(p, future || null);
       document.getElementById('clientReminderAppointmentInfo').textContent = future
         ? 'پیش‌نویس بر اساس نوبت بعدی: ' + formatJalaliFull(future.dateKey) + ' ساعت ' + toPersianDigits(future.time || '') + (future.service ? ' — ' + future.service : '')
         : 'نوبت آینده‌ای ثبت نشده؛ متن پیام را می‌توانی دستی تنظیم کنی.';
-      document.getElementById('clientNextDate').value = future ? toPersianDigits(future.dateKey.replace(/-/g, '/')) : '';
-      document.getElementById('clientNextTime').value = future ? (future.time || '10:00') : '10:00';
-      document.getElementById('clientNextService').value = future ? (future.service || '') : '';
-      document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت‌شده: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '') : 'هنوز نوبت بعدی ثبت نشده است.';
+      document.getElementById('clientNextDate').value = '';
+      document.getElementById('clientNextTime').value = '10:00';
+      document.getElementById('clientNextService').value = '';
+      document.getElementById('clientNextAppointmentInfo').textContent = future
+        ? 'نوبت آینده فعلی: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '')+'. برای افزودن نوبت جداگانه، تاریخ و ساعت جدید را وارد کن.'
+        : 'هنوز نوبت آینده‌ای ثبت نشده است.';
       renderClientHistory(key);
       renderClientScheduledAppointments(key);
       renderClientLoyaltyAndGallery(key);
