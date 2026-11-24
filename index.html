@@ -3547,7 +3547,7 @@
       // A previously selected follow-up-only filter must not hide a regular booking.
       showFollowupOnly = false;
       const followupFilterBtn = document.getElementById('toggleFollowupFilterBtn');
-      if (followupFilterBtn) followupFilterBtn.classList.remove('active');
+      if (followupFilterBtn) { followupFilterBtn.style.borderColor = ''; followupFilterBtn.style.color = ''; }
       // Close the customer profile overlay; otherwise it remains above the calendar
       // and makes the successful booking look as if it never appeared.
       closeModal('clientProfileModal');
