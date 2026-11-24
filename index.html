@@ -4354,7 +4354,7 @@
     }
     async function sendCustomerMessage(channel) {
       const text = document.getElementById('customerMessagePreview')?.value.trim() || '';
-      const phone = String(document.getElementById('customerMessagePhone')?.value || '').replace(/[^0-9+]/g,'');
+      const phone = minaNormalizeDigits(String(document.getElementById('customerMessagePhone')?.value || '')).replace(/[^0-9]/g,'');
       if (!text) { showToast('اول متن پیام رو آماده کن عزیزم.'); return; }
       if (channel === 'whatsapp' || channel === 'sms') {
         if (!phone) { showToast('برای ارسال مستقیم، شماره تماس مشتری رو وارد کن.'); return; }
