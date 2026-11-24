@@ -26,6 +26,9 @@ const assert = require('assert');
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
+    // Allow the first-install Service Worker controllerchange refresh to settle before browser interactions.
+    await page.waitForTimeout(1500);
+    await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
     // Birthday deletion removes only the birthday date and its own reminder;
     // the customer profile and appointments must remain untouched.
