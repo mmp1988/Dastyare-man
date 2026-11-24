@@ -3151,6 +3151,11 @@
     }
     function findClientProfileKeyForAppointment(a) {
       const profiles = appData.clientProfiles || {};
+      const apptClientId = String(a && a.clientId || '');
+      if (apptClientId) {
+        const byClientId = Object.keys(profiles).find(k => String(profiles[k]?.clientId || '') === apptClientId);
+        if (byClientId) return byClientId;
+      }
       const apptPhone = String(a && a.phone || '').replace(/[^0-9]/g, '');
       const apptName = String(a && a.clientName || '').trim().replace(/\s+/g, ' ');
       if (apptPhone) {
