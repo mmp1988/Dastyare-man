@@ -3185,7 +3185,10 @@
     function getClientAppointments(key, includeCanceled = false) {
       return (appData.appointments || []).filter(a =>
         clientMatchesAppointment(key, a) && (includeCanceled || a.status !== 'canceled')
-      ).sort((a,b) => (String(a.dateKey || '') + String(a.time || '')).localeCompare(String(b.dateKey || '') + String(b.time || '')));
+      ).sort((a,b) => {
+        const kindOrder = Number(isFollowupAppointment(a)) - Number(isFollowupAppointment(b));
+        return kindOrder || (String(a.dateKey || '') + String(a.time || '')).localeCompare(String(b.dateKey || '') + String(b.time || ''));
+      });
     }
     function getAppointmentKindLabel(a) {
       return isFollowupAppointment(a) ? '🔁 نوبت بعدی ترمیم' : '📅 نوبت اصلی';
@@ -3410,7 +3413,7 @@
       const [primary, possibleFollowup] = list;
       if (!primary || !possibleFollowup || primary.appointmentType || primary.parentAppointmentId ||
           possibleFollowup.appointmentType || possibleFollowup.parentAppointmentId) return;
-      if (!/^(?:مراجعه بعدی|ترمیم)(?:\\s|$)/u.test(String(possibleFollowup.service || '').trim())) return;
+      if (!/^(?:مراجعه بعدی|ترمیم)(?:\s|$)/u.test(String(possibleFollowup.service || '').trim())) return;
       primary.appointmentType = 'primary';
       possibleFollowup.appointmentType = 'followup';
       possibleFollowup.parentAppointmentId = primary.id;
