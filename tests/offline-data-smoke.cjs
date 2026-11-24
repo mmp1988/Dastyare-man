@@ -522,6 +522,7 @@ const assert = require('assert');
       await deleteClient(newKey);
       return { exists, duplicateBlocked, edited, deleted:!appData.clientProfiles[newKey] };
     });
+    console.log('Client CRUD diagnostic:', JSON.stringify(clientResult));
     assert(clientResult.exists && clientResult.duplicateBlocked && clientResult.edited && clientResult.deleted, 'Client create/edit/delete or duplicate prevention failed');
 
     // Backup round trip: export a valid JSON backup, clear the data, then restore it.
