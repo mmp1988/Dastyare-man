@@ -4851,14 +4851,16 @@
       if (isCreation && !isMove && !isDelete && !isCancel && !isDone) return null;
       if (!(isDelete || isCancel || isDone || isMove || ((asksTime || asksDate) && /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز)/u.test(text)))) return null;
 
-      const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled' && a.status !== 'done');
-      if (!active.length) return 'عزیزم هیچ نوبت فعالی برای تغییر پیدا نکردم 🌷';
+      const allAppointments = (appData.appointments || []).filter(a => a);
+      const active = allAppointments.filter(a => a.status !== 'canceled' && a.status !== 'done');
+      const selectable = isDelete ? allAppointments : active;
+      if (!selectable.length) return 'عزیزم هیچ نوبتی برای این کار پیدا نکردم 🌷';
 
       // Resolve an explicit customer first, then the last Mina-created booking
       // for phrases such as «نوبت مینا رو تغییر بده».
-      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به)/u) ||
+      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به|انجام|حذف|پاک|کنسل|لغو|تموم)/u) ||
         text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
-      let candidates = active.slice();
+      let candidates = selectable.slice();
       if (nameMatch) {
         const wanted = minaCleanText(nameMatch[1]).toLowerCase();
         const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
