@@ -224,14 +224,21 @@ const assert = require('assert');
       const moveReply = minaBuildReply('نوبت علی رو به ساعت ۵ عصر منتقل کن');
       const moved = appData.appointments.find(a => a.id === 'mina-move-qa');
       const moveOk = moved?.time === '17:00' && moveReply.includes('ساعت جدید');
+      const tomorrowKey = addDaysToJalaliKey(dateKey, 1);
+      appData.appointments.push({ id:'appt_mina_qa_latest', createdBy:'mina', source:'mina', dateKey:tomorrowKey,
+        time:'15:07', clientName:'⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing:true,
+        service:'کاشت ناخن', status:'pending' });
+      const unnamedMoveReply = minaBuildReply('نوبت مینا رو بکن برای ساعت ۳:۱۰ بعدازظهر');
+      const unnamedMoveOk = appData.appointments.find(a => a.id === 'appt_mina_qa_latest')?.time === '15:10' &&
+        unnamedMoveReply.includes('ساعت جدید');
       const deleteReply = minaBuildReply('نوبت سارا رو حذف کن');
       const deleteProtected = appData.appointments.some(a => a.id === 'mina-cancel-qa' && a.status === 'pending');
       const weekReply = minaBuildReply('برنامه هفت روز آینده');
       const weekOk = typeof weekReply === 'string' && (weekReply.includes('برنامه هفت روز آینده') || weekReply.includes('نوبتی ثبت نشده'));
-      return { protectedAfterCancelAndDone, deleteProtected, moveOk, moveReply, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, deleteReply };
+      return { protectedAfterCancelAndDone, deleteProtected, moveOk, unnamedMoveOk, moveReply, unnamedMoveReply, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, deleteReply };
     });
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
-    assert(minaActionsResult.protectedAfterCancelAndDone && minaActionsResult.deleteProtected && minaActionsResult.moveOk && minaActionsResult.weekOk,
+    assert(minaActionsResult.protectedAfterCancelAndDone && minaActionsResult.deleteProtected && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.weekOk,
       'Mina must reschedule the selected appointment while keeping cancel/delete actions protected and weekly reading available');
 
     const exactTimeRegression = await page.evaluate(() => {
