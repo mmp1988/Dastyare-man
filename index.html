@@ -491,21 +491,6 @@
     }
     .todo-item.done span { text-decoration: line-through; color: var(--text-muted); }
 
-    /* Finance */
-    .finance-hero { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 13px; }
-    .fin-kpi { background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: 15px; padding: 11px; }
-    .fin-kpi.highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-glow), var(--bg-input)); }
-    .fin-kpi-title { font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 3px; }
-    .fin-kpi-val { font-size: 1.04rem; font-weight: 900; }
-    .fin-kpi-sub { font-size: 0.69rem; color: var(--text-muted); margin-top: 2px; }
-
-    .split-preview-box {
-      background: var(--bg-secondary); border: 1px dashed var(--accent); border-radius: 14px;
-      padding: 10px 12px; margin-bottom: 11px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center;
-    }
-    .split-item-lbl { font-size: 0.69rem; color: var(--text-secondary); }
-    .split-item-val { font-size: 0.88rem; font-weight: 800; margin-top: 2px; }
-
     .filter-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 11px; }
     .filter-pill {
       padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border-subtle);
@@ -1171,7 +1156,7 @@
 
       <div class="card">
         <div class="section-head">
-          <div class="section-title">✨ تعریف خدمات و تعرفه‌های شخصی</div>
+          <div class="section-title">✨ تعریف خدمات دلخواه سالن</div>
         </div>
         <div class="form-grid" style="background:var(--bg-input); padding:11px; border-radius:14px; margin-bottom:12px;">
           <div class="form-group full">
@@ -1183,6 +1168,52 @@
           </div>
         </div>
         <div id="customServicesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+
+    <!-- ==================== TAB: CUSTOMER MESSAGES ==================== -->
+    <section id="tab-messages" class="tab-section">
+      <div class="card" style="border:1.5px solid var(--accent);">
+        <div class="section-title">💌 پیام‌های آماده برای مشتریان</div>
+        <p style="font-size:.78rem;color:var(--text-secondary);line-height:1.9;margin:5px 0 12px;">یکی از متن‌های آماده را انتخاب کن؛ فقط اطلاعاتی را که لازم داری وارد یا ویرایش کن. هیچ پیامی بدون تأیید خودت ارسال نمی‌شود.</p>
+        <div class="form-group"><label>نوع پیام</label>
+          <select id="customerMessageType" class="form-control" onchange="renderCustomerMessagePreview()">
+            <option value="confirm">تأیید ثبت نوبت</option><option value="reminder">یادآوری نوبت</option>
+            <option value="change">اطلاع تغییر زمان نوبت</option><option value="thanks">تشکر بعد از مراجعه</option>
+            <option value="aftercare">مراقبت بعد از انجام خدمت</option><option value="birthday">تبریک تولد مشتری</option>
+            <option value="nowruz">تبریک نوروز</option><option value="yalda">تبریک شب یلدا</option>
+            <option value="mother">تبریک روز مادر</option><option value="women">تبریک روز زن</option>
+            <option value="discount">پیشنهاد تخفیف ویژه</option><option value="custom">پیام دلخواه</option>
+          </select>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label>نام مشتری (اختیاری)</label><input id="customerMessageName" class="form-control" placeholder="مثلاً نازنین جان" oninput="renderCustomerMessagePreview()" /></div>
+          <div class="form-group"><label>تاریخ (اختیاری)</label><input id="customerMessageDate" class="form-control" placeholder="مثلاً پنجشنبه ۶ آذر" oninput="renderCustomerMessagePreview()" /></div>
+          <div class="form-group"><label>ساعت (اختیاری)</label><input id="customerMessageTime" class="form-control" placeholder="مثلاً ۱۶:۳۰" oninput="renderCustomerMessagePreview()" /></div>
+          <div class="form-group"><label>نوع خدمت (اختیاری)</label><input id="customerMessageService" class="form-control" placeholder="مثلاً رنگ مو یا کاشت ناخن" oninput="renderCustomerMessagePreview()" /></div>
+          <div class="form-group"><label>آدرس سالن (اختیاری)</label><input id="customerMessageAddress" class="form-control" placeholder="آدرس یا لوکیشن سالن" oninput="renderCustomerMessagePreview()" /></div>
+          <div class="form-group"><label>میزان تخفیف (اختیاری)</label><input id="customerMessageDiscount" class="form-control" placeholder="مثلاً ۲۰٪ یا مبلغ دلخواه" oninput="renderCustomerMessagePreview()" /></div>
+        </div>
+        <div class="form-group"><label>متن پیام؛ قبل از ارسال می‌توانی تغییرش بدهی</label>
+          <textarea id="customerMessagePreview" class="form-control" rows="8" placeholder="متن پیام اینجا نمایش داده می‌شود..."></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn-primary" onclick="sendCustomerMessage()">📤 انتخاب برنامه ارسال</button>
+          <button class="btn-secondary" onclick="copyCustomerMessage()">📋 کپی متن</button>
+        </div>
+        <div class="mina-personal-note" style="margin-top:10px;">در اندروید، فهرست برنامه‌های نصب‌شده مثل پیامک، واتساپ و سایر پیام‌رسان‌ها باز می‌شود. در سایت موبایل نیز از منوی اشتراک‌گذاری گوشی استفاده می‌شود؛ ارسال نهایی همیشه با انتخاب خودت است.</div>
+      </div>
+      <div class="card">
+        <div class="section-title">🎁 پیام‌های مناسبتی و تخفیف</div>
+        <div class="mina-suggestions">
+          <button onclick="selectCustomerMessageType('discount')">✨ اعلام تخفیف ویژه</button>
+          <button onclick="selectCustomerMessageType('birthday')">🎂 تولد مشتری</button>
+          <button onclick="selectCustomerMessageType('nowruz')">🌱 نوروز</button>
+          <button onclick="selectCustomerMessageType('yalda')">🍉 شب یلدا</button>
+          <button onclick="selectCustomerMessageType('mother')">💐 روز مادر</button>
+          <button onclick="selectCustomerMessageType('women')">🌷 روز زن</button>
+        </div>
       </div>
     </section>
 
@@ -1301,15 +1332,6 @@
         </div>
 
       <!-- 2. Business & Financial Preferences -->
-      <div class="card">
-        <div class="section-title" style="margin-bottom:10px;">💬 تنظیمات پیام یادآوری مشتریان</div>
-        <div class="form-grid">
-        <div class="form-group">
-          <label>متن قالب پیامک/واتساپ یادآوری (از {name}، {date}، {time}، {service} استفاده کنید)</label>
-          <textarea id="settingMsgTemplate" class="form-control" style="min-height:72px;" onchange="saveSettings()"></textarea>
-        </div>
-      </div>
-
       <!-- 3. Security PIN & Backup -->
       <div class="card">
         <div class="section-title" style="margin-bottom:10px;">🔒 امنیت (رمز ورود) و پشتیبان‌گیری</div>
@@ -1398,6 +1420,9 @@
       <button class="nav-item" onclick="switchTab('clients', this)">
         <span class="nav-icon">👥</span>
         <span>مشتریان</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('messages', this)">
+        <span class="nav-icon">💌</span><span>پیام‌ها</span>
       </button>
       <button class="nav-item" onclick="switchTab('mina', this)">
         <span class="nav-icon">🌸</span>
@@ -1880,7 +1905,6 @@
     const WEEKDAY_NAMES = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
 
     function toPersianDigits(str) { return String(str).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
-    function formatMoney(num) { return toPersianDigits(Math.round(Number(num) || 0).toLocaleString('en-US')); }
     function pad2(n) { return String(n).padStart(2, '0'); }
 
     // Use the device's actual local clock and timezone so "today", "tomorrow",
@@ -1917,7 +1941,6 @@
       appointments: [],
       notes: [],
       todos: [],
-      transactions: [],
       services: [],
       clientNotes: {},
       clientProfiles: {},
@@ -1925,8 +1948,6 @@
         brandName: 'دستیار من',
         brandSub: 'همراه تو در دنیای زیبایی',
         msgTemplate: 'سلام {name} عزیز 🌸\nیادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).\nمنتظر دیدار شما هستیم ✨',
-        defaultComm: 0,
-        monthlyGoal: 0,
         appPin: '',
         customApkUrl: '',
         theme: 'light',
@@ -1963,13 +1984,14 @@
       }
 
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        delete parsed.transactions;
+        if (parsed.settings) { delete parsed.settings.defaultComm; delete parsed.settings.monthlyGoal; }
         appData = {
           ...appData,
           ...parsed,
           appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
           notes: Array.isArray(parsed.notes) ? parsed.notes : [],
           todos: Array.isArray(parsed.todos) ? parsed.todos : [],
-          transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
           services: Array.isArray(parsed.services) ? parsed.services : [],
           clientNotes: parsed.clientNotes && typeof parsed.clientNotes === 'object' ? parsed.clientNotes : {},
           clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles === 'object' ? parsed.clientProfiles : {},
@@ -2038,6 +2060,12 @@
       }
     }
     window.addEventListener('pagehide', persistAppDataOnExit);
+    window.addEventListener('beforeunload', persistAppDataOnExit);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') persistAppDataOnExit(); });
+    async function requestDurableBrowserStorage() {
+      try { if (navigator.storage && typeof navigator.storage.persist === 'function') await navigator.storage.persist(); }
+      catch (e) { /* synchronous localStorage remains the primary store */ }
+    }
     window.addEventListener('beforeunload', persistAppDataOnExit);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') persistAppDataOnExit();
@@ -2215,10 +2243,6 @@
         var status = statusMap[appt.status || 'pending'];
         var alarmLabel = appt.alarm === 'none' ? 'خاموش' : (Number(appt.alarm) === 0 ? 'سرِ ساعت' : toPersianDigits(appt.alarm) + ' دقیقه قبل');
         var phone = String(appt.phone||'').replace(/[^0-9]/g,'');
-        var waPhone = phone.startsWith('0') ? '98'+phone.slice(1) : phone;
-        var template = appData.settings.msgTemplate || 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
-        var message = template.replace(/\{name\}/g,appt.clientName||'مشتری').replace(/\{date\}/g,formatJalaliFull(appt.dateKey)).replace(/\{time\}/g,toPersianDigits(appt.time)).replace(/\{service\}/g,appt.service||'خدمات');
-        var encoded = encodeURIComponent(message);
         return '<tr>'+
           '<td style="font-weight:800;color:var(--accent);direction:ltr;">'+toPersianDigits(appt.time||'')+'</td>'+
           '<td style="font-weight:700;">'+escapeClientText(appt.clientName||'—')+
@@ -2229,8 +2253,7 @@
           '<td><span class="status-pill '+status[1]+'" onclick="cycleStatus(\''+appt.id+'\')">'+status[0]+'</span></td>'+
           '<td><div class="action-row">'+
             (phone?'<a class="mini-btn call" href="tel:'+phone+'">📞</a>':'')+
-            (phone?'<a class="mini-btn wa" href="https://wa.me/'+waPhone+'?text='+encoded+'" target="_blank">💬</a>':'')+
-            (phone?'<a class="mini-btn sms" href="sms:'+phone+'?body='+encoded+'">✉️</a>':'')+
+            '<button class="mini-btn wa" onclick="openCustomerMessageForAppointment(\\''+appt.id+'\\')">💬 پیام</button>'+
             '<button class="mini-btn" onclick="openApptModal(\''+appt.id+'\')">✏️</button>'+
             '<button class="mini-btn del" onclick="deleteAppointment(\''+appt.id+'\')">🗑️</button>'+
           '</div></td></tr>';
@@ -2390,14 +2413,12 @@
       appData.appointments = [];
       appData.notes = [];
       appData.todos = [];
-      // Keep legacy transaction data intact; accounting has been retired from the interface.
       appData.clientNotes = {};
       saveData();
       renderCalendar();
       renderDaySchedule();
       renderTodos();
       renderNotebook();
-      // Legacy financial records remain preserved locally; accounting is retired from the interface.
       renderClientsTab();
       showToast('همه موارد ثبت‌شده توسط شما پاک شد 🗑️');
     }
@@ -2969,7 +2990,7 @@
     }
 
     function buildClientReminderMessage(client, appointment) {
-      const tpl = appData.settings.msgTemplate || 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
+      const tpl = 'سلام {name} عزیز 🌸 یادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).';
       const values = {
         name: client.name || 'مشتری',
         date: appointment ? formatJalaliFull(appointment.dateKey) : '',
@@ -3333,7 +3354,7 @@
     }
         function buildClientShareText(key, onlyItem) {
       const p = getClientProfile(key);
-      const checked = id => { const el=document.getElementById(id); return el ? el.checked : id !== 'shareClientPrices'; };
+      const checked = id => { const el=document.getElementById(id); return !el || el.checked; };
       const lines = [];
       if (checked('shareClientIdentity') && p.name) lines.push('نام: '+p.name);
       if (checked('shareClientIdentity') && p.phone) lines.push('شماره تماس: '+p.phone);
@@ -3346,7 +3367,6 @@
           if(checked('shareClientService') && item.service) lines.push('خدمت: '+item.service);
           if(checked('shareClientDate') && item.dateKey) lines.push('تاریخ: '+formatJalaliFull(item.dateKey));
           if(checked('shareClientTime') && item.time) lines.push('ساعت: '+item.time);
-          if(checked('shareClientPrices') && item.price!=null && item.price!=='') lines.push('مبلغ: '+formatMoney(item.price)+' تومان');
           if(checked('shareClientWorkNotes') && item.notes) lines.push('توضیحات: '+item.notes);
           if(checked('shareClientWorkCustom') && item.checklist && item.checklist.length) lines.push('خدمات: '+item.checklist.join('، '));
           if(checked('shareClientWorkCustom') && item.customValues) Object.entries(item.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))lines.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
@@ -3362,7 +3382,6 @@
             if(checked('shareClientService') && a.service) parts.push((i+1)+') '+a.service);
             if(checked('shareClientDate') && a.dateKey) parts.push(formatJalaliFull(a.dateKey));
             if(checked('shareClientTime') && a.time) parts.push(a.time);
-            if(checked('shareClientPrices') && a.price!=null && a.price!=='') parts.push('مبلغ: '+formatMoney(a.price)+' تومان');
             if(checked('shareClientWorkCustom') && a.checklist && a.checklist.length) parts.push(a.checklist.join('، '));
             if(checked('shareClientWorkCustom') && a.customValues) Object.entries(a.customValues).forEach(([id,value])=>{const toggle=document.getElementById('shareWorkField_'+id);const field=getClientWorkFieldDefinitions().find(f=>f.id===id);if(value&&(!toggle||toggle.checked))parts.push(((value&&value.label)||field?.label||'جزئیات')+': '+(typeof value==='string'?value:value.value));});
             if(checked('shareClientWorkNotes') && a.notes) parts.push(a.notes);
@@ -3533,7 +3552,6 @@
       document.getElementById('appBrandSub').textContent = s.brandSub || 'همراه تو در دنیای زیبایی';
       document.getElementById('settingBrandName').value = s.brandName || '';
       document.getElementById('settingBrandSub').value = s.brandSub || '';
-      document.getElementById('settingMsgTemplate').value = s.msgTemplate || '';
       document.getElementById('settingAppPin').value = s.appPin || '';
       const badge = document.getElementById('pinStatusBadge');
       if (badge) {
@@ -3577,7 +3595,6 @@
     function saveSettings() {
       appData.settings.brandName = document.getElementById('settingBrandName').value.trim() || 'دستیار من';
       appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'همراه تو در دنیای زیبایی';
-      appData.settings.msgTemplate = document.getElementById('settingMsgTemplate').value;
       appData.settings.appPin = document.getElementById('settingAppPin').value.replace(/[^0-9]/g, '').slice(0, 4);
       appData.settings.customApkUrl = document.getElementById('settingCustomApkUrl').value.trim();
       appData.settings.fontScale = document.getElementById('settingFontScale').value;
@@ -3908,6 +3925,7 @@
       if (tabName === 'notebook') { renderTodos(); renderNotebook(); }
       if (tabName === 'clients') { renderClientsTab(); renderServicesTab(); }
       if (tabName === 'settings') { syncShareUrls(); }
+      if (tabName === 'messages') { renderCustomerMessagePreview(); }
       if (tabName === 'mina') { const inp=document.getElementById('minaInput'); if(inp) setTimeout(()=>inp.focus(),120); }
     }
 
@@ -4002,8 +4020,9 @@
         .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
     }
     function minaCleanText(value) {
-      return String(value || '').replace(/[؟?!،,.؛]/g, ' ').replace(/\s+/g, ' ').trim()
-        .replace(/ي/g, 'ی').replace(/ك/g, 'ک');
+      return String(value || '').replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+        .replace(/[؟?!،,.؛]/g, ' ').replace(/[\s\u200c]+/g, ' ').trim()
+        .replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[أإآ]/g, 'ا').replace(/ۀ/g, 'ه');
     }
     function minaStripPrefix(value) {
       return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
@@ -4279,6 +4298,89 @@
       if (/مواد|انبار|رو به اتمام|تموم شده/.test(t)) return 'عزیزم بخش موجودی مواد هنوز فعال نیست؛ نمی‌خوام چیزی رو حدس بزنم. فعلاً حواسم به یادداشت‌ها، کارها و نوبت‌هاته 🌷';
       return 'من مینام، دستیار سبک و همراهتم 💗 می‌تونم نوبت ثبت کنم، یادداشت و کار به فهرستت اضافه کنم، برنامه نوبت‌ها، سوابق مشتری‌ها و یادداشت‌هات رو مدیریت کنم و موعد ترمیم‌ها رو پیدا کنم.\nمثلاً بگو: «برای نازنین فردا ساعت ۴ نوبت اکستنشن ثبت کن»، «یادداشت کن به سارا زنگ بزنم» یا «این کار رو به لیستم اضافه کن: خرید مواد» 🌷';
     }
+
+    const CUSTOMER_MESSAGE_TEMPLATES = {
+      confirm: 'سلام {name} عزیز 🌸\nنوبت شما برای {service} در تاریخ {date} ساعت {time} ثبت شد.\nآدرس سالن: {address}\nمنتظر دیدارتون هستیم 💗',
+      reminder: 'سلام {name} جان 🌷\nاین پیام برای یادآوری نوبت {service} شما در تاریخ {date} ساعت {time} هست.\nآدرس: {address}\nخوشحال می‌شیم ببینیمتون 💗',
+      change: 'سلام {name} عزیز 🌸\nزمان نوبت {service} شما به تاریخ {date} ساعت {time} تغییر کرد.\nآدرس سالن: {address}\nممنون از همراهی‌تون 💗',
+      thanks: 'سلام {name} عزیز 💗\nاز اینکه {service} رو به ما سپردی ممنونیم. امیدواریم از نتیجه راضی باشی؛ دیدار دوباره‌ات باعث خوشحالی ماست 🌸',
+      aftercare: 'سلام {name} جان 🌷\nممنون از اعتمادت برای انجام {service}. برای ماندگاری بهتر نتیجه، مراقبت‌هایی که بهت توضیح داده شد رو رعایت کن. اگر سؤالی داشتی با ما در ارتباط باش 💗',
+      birthday: 'تولدت مبارک {name} عزیز! 🎂🌸\nامیدواریم سال جدید زندگیت پر از سلامتی، شادی و اتفاق‌های قشنگ باشه. به مناسبت تولدت یک سورپرایز ویژه هم برات داریم 💗\n{discount}',
+      nowruz: 'نوروزت مبارک {name} عزیز! 🌱✨\nامیدواریم سال جدید برات پر از آرامش، سلامتی و زیبایی باشه. مشتاق دیدار دوباره‌ات هستیم 💗',
+      yalda: 'شب یلدات مبارک {name} جان 🍉❤️\nامیدواریم بلندترین شب سال برات پر از عشق، خنده و لحظه‌های شیرین باشه. به امید دیدار دوباره‌ات 🌸',
+      mother: 'روز مادر مبارک {name} عزیز 💐💗\nامیدواریم همیشه دلت شاد و لبخندت ماندگار باشه. به پاس این روز قشنگ، یک هدیه ویژه از طرف ما داری: {discount}',
+      women: 'روز زن مبارک {name} جان 🌷✨\nبرات روزهایی پر از شادی، آرامش و زیبایی آرزو می‌کنیم. به مناسبت این روز، از پیشنهاد ویژه ما استفاده کن: {discount}',
+      discount: 'سلام {name} عزیز 🌸\nیک پیشنهاد ویژه برات داریم! برای خدمات {service}، {discount} تخفیف در نظر گرفتیم.\nاین پیشنهاد تا {date} اعتبار داره.\nآدرس سالن: {address}\nبرای هماهنگی و رزرو پیام بده 💗',
+      custom: 'سلام {name} عزیز 🌸\n'
+    };
+    function getCustomerMessageValues() {
+      return {
+        name: document.getElementById('customerMessageName')?.value.trim() || 'دوست عزیز',
+        date: document.getElementById('customerMessageDate')?.value.trim() || '',
+        time: document.getElementById('customerMessageTime')?.value.trim() || '',
+        service: document.getElementById('customerMessageService')?.value.trim() || 'خدمات زیبایی',
+        address: document.getElementById('customerMessageAddress')?.value.trim() || '',
+        discount: document.getElementById('customerMessageDiscount')?.value.trim() || 'یک هدیه ویژه'
+      };
+    }
+    function renderCustomerMessagePreview() {
+      const box = document.getElementById('customerMessagePreview');
+      if (!box) return;
+      const type = document.getElementById('customerMessageType')?.value || 'confirm';
+      const values = getCustomerMessageValues();
+      const template = CUSTOMER_MESSAGE_TEMPLATES[type] || CUSTOMER_MESSAGE_TEMPLATES.confirm;
+      box.value = template.replace(/\{(name|date|time|service|address|discount)\}/g, (match,key) => values[key] || '')
+        .split('\n').map(line => line.replace(/[ \t]+$/g,'').replace(/\s+([،.!؟])/g,'$1')).filter(line => line.trim()).join('\n').trim();
+    }
+    function selectCustomerMessageType(type) {
+      const select = document.getElementById('customerMessageType');
+      if (select) select.value = type;
+      renderCustomerMessagePreview();
+      switchTab('messages', document.querySelector('.nav-item[onclick*="messages"]'));
+    }
+    function openCustomerMessageForAppointment(id) {
+      const appt = appData.appointments.find(a => a.id === id);
+      if (!appt) return;
+      document.getElementById('customerMessageType').value = 'reminder';
+      document.getElementById('customerMessageName').value = appt.clientName || '';
+      document.getElementById('customerMessageDate').value = formatJalaliFull(appt.dateKey);
+      document.getElementById('customerMessageTime').value = toPersianDigits(appt.time || '');
+      document.getElementById('customerMessageService').value = appt.service || '';
+      document.getElementById('customerMessageAddress').value = '';
+      renderCustomerMessagePreview();
+      switchTab('messages', document.querySelector('.nav-item[onclick*="messages"]'));
+    }
+    async function sendCustomerMessage() {
+      const text = document.getElementById('customerMessagePreview')?.value.trim() || '';
+      if (!text) { showToast('اول متن پیام رو آماده کن عزیزم.'); return; }
+      try {
+        if (window.AndroidApp && typeof window.AndroidApp.shareText === 'function') {
+          window.AndroidApp.shareText('پیام مشتری - دستیار من', text);
+          return;
+        }
+        if (navigator.share) { await navigator.share({ title:'پیام مشتری', text }); return; }
+        window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+        showToast('متن آماده شد؛ اگر واتساپ نصب باشد می‌توانی از آن ارسال کنی.');
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        showToast('باز کردن برنامه ارسال انجام نشد؛ متن را کپی کن و دستی بفرست.');
+      }
+    }
+    async function copyCustomerMessage() {
+      const text = document.getElementById('customerMessagePreview')?.value || '';
+      if (!text.trim()) { showToast('متن پیامی برای کپی وجود ندارد.'); return; }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+        else throw new Error('clipboard unavailable');
+        showToast('متن پیام کپی شد 📋');
+      } catch (e) {
+        const box = document.getElementById('customerMessagePreview');
+        box.focus(); box.select();
+        try { document.execCommand('copy'); showToast('متن پیام کپی شد 📋'); }
+        catch (ignored) { showToast('متن را انتخاب و کپی کن.'); }
+      }
+    }
+
     function sendMinaMessage() {
       const input = document.getElementById('minaInput');
       if (!input) return;
@@ -4459,75 +4561,8 @@
           : 'تا هفت روز آینده نوبتی ثبت نشده؛ وقت خوبیه برای برنامه‌ریزی 💗';
       }
 
-      const moveName=nameFrom(/(?:نوبت|وقت)\s+(.+?)\s+(?:رو|را)\s+(?:به|برای)\s*(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|عصر|بعدازظهر|بعد از ظهر)?\s*(?:منتقل|جابجا|جابه.?جا) کن/);
-      if (moveName) {
-        const match=normalized.match(/(?:نوبت|وقت)\s+(.+?)\s+(?:رو|را)\s+(?:به|برای)\s*(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|عصر|بعدازظهر|بعد از ظهر)?\s*(?:منتقل|جابجا|جابه.?جا) کن/);
-        let hour=Number(match[2]), minute=Number(match[3]||0);
-        if(/عصر|بعدازظهر|بعد از ظهر/.test(match[4]||'')&&hour<12)hour+=12;
-        if(hour>23||minute>59)return 'ساعت جدید رو دقیق‌تر می‌گی عزیزم؟ 💗';
-        const found=all.filter(a=>String(a.clientName||'').toLowerCase().includes(match[1].trim()));
-        if(found.length!==1)return found.length?'چند نوبت با این اسم پیدا کردم؛ لطفاً نام کامل‌تر یا تاریخ رو بگو 🌷':'نوبتی با این اسم پیدا نکردم عزیزم.';
-        const appt=found[0], newTime=pad2(hour)+':'+pad2(minute);
-        const conflict=all.some(a=>a.id!==appt.id&&a.dateKey===appt.dateKey&&a.time===newTime);
-        if (conflict) return 'این ساعت قبلاً برای مشتری دیگری رزرو شده؛ ساعت دیگری انتخاب کن عزیزم. هیچ تغییری انجام ندادم ⛔';
-        appt.time=newTime; refreshAfterMinaChange();
-        return 'انجام شد عزیزم 🌸 ساعت نوبت '+(appt.clientName||'مشتری')+' به '+newTime+' تغییر کرد.';
-      }
-
-      // Permanent appointment deletion by date, time, service and/or customer.
-      const asksPermanentDelete = /(?:حذف|پاک\s*کن|بردار|از\s*تقویم\s*حذف)/.test(normalized);
-      if (asksPermanentDelete && /(?:نوبت|وقت|رزرو|تقویم)/.test(normalized)) {
-        const delDate = /پس\s*فردا/.test(normalized) ? addDaysToJalaliKey(todayKey, 2)
-          : /فردا/.test(normalized) ? addDaysToJalaliKey(todayKey, 1) : /امروز/.test(normalized) ? todayKey : null;
-        const timeText = normalized.replace(/(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/g, ' ');
-        const delClockMatch = timeText.match(/(?:ساعت\s*)?(\d{1,2})(?::(\d{1,2}))?\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
-        let delTime = null;
-        if (delClockMatch && /(?:ساعت|صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized)) {
-          let h = Number(delClockMatch[1]), m = Number(delClockMatch[2] || 0);
-          const period = delClockMatch[3] || '';
-          if (/بعدازظهر|عصر|شب/.test(period) && h < 12) h += 12;
-          if (/صبح/.test(period) && h === 12) h = 0;
-          if (h <= 23 && m <= 59) delTime = pad2(h) + ':' + pad2(m);
-        }
-        const serviceHints = ['لیفت ابرو','لیفت مژه','کاشت مژه','کاشت ناخن','کوتاهی مو','رنگ مو'];
-        const delService = serviceHints.find(x => normalized.includes(x));
-        let delName = nameFrom(/(?:برای|مشتری)\s+(.+?)(?=\s+(?:فردا|امروز|پس\s*فردا|ساعت|نوبت|وقت|رزرو|از\s*تقویم)|$)/);
-        if (delName && /^(?:امروز|فردا|پس\s*فردا|صبح|ظهر|عصر|شب)$/u.test(delName)) delName = null;
-        let candidates = (appData.appointments || []).filter(a => a.status !== 'canceled');
-        if (delDate) candidates = candidates.filter(a => a.dateKey === delDate);
-        if (delTime) candidates = candidates.filter(a => a.time === delTime);
-        if (delService) candidates = candidates.filter(a => String(a.service || '').includes(delService));
-        if (delName) candidates = candidates.filter(a => {
-          const storedName = String(a.clientName || '').trim();
-          const nameMatches = storedName.toLowerCase().includes(delName.toLowerCase());
-          const nameWasNotSaved = a.clientNameMissing === true || !storedName ||
-            /^(?:—|نام درج نشده|⚠️ نام درج نشده)/u.test(storedName);
-          return nameMatches || nameWasNotSaved;
-        });
-        if (!delDate && !delTime && !delService && !delName)
-          return 'برای اینکه اشتباهی نوبتی حذف نشه، تاریخ یا ساعت یا نوع خدمت رو هم بگو عزیزم 🌷';
-        if (candidates.length === 0) return 'نوبتی با این مشخصات در تقویم پیدا نکردم؛ چیزی حذف نشد 💗';
-        if (candidates.length > 1) return 'چند نوبت با این مشخصات پیدا کردم؛ لطفاً نام مشتری یا ساعت دقیق‌تر رو بگو تا فقط همون نوبت حذف بشه 🌷';
-        const target = candidates[0];
-        appData.appointments = (appData.appointments || []).filter(a => a.id !== target.id);
-        refreshAfterMinaChange();
-        return 'نوبت از تقویم حذف شد عزیزم 🌸\n📅 ' + formatJalaliFull(target.dateKey) +
-          '\n⏰ ' + target.time + '\n💅 ' + (target.service || 'خدمت') +
-          '\n👩🏻 ' + (target.clientName || 'بدون نام') + '\nاین نوبت دیگر در تقویم نمایش داده نمی‌شود. 💗';
-      }
-
-      const cancelName=nameFrom(/(?:لغو|کنسل)\s+(?:نوبت\s+)?(.+)/);
-      if(cancelName && !/^(?:نوبت|رزرو)$/.test(cancelName)) {
-        const found=all.filter(a=>String(a.clientName||'').toLowerCase().includes(cancelName));
-        if(found.length===1){found[0].status='canceled';refreshAfterMinaChange();return 'نوبت '+(found[0].clientName||'مشتری')+' لغو شد عزیزم. اطلاعاتش حذف نشد و در سوابق می‌مونه 💗';}
-        if(found.length>1)return 'چند نوبت با این اسم پیدا کردم؛ لطفاً نام کامل‌تر رو بگو 🌷';
-      }
-
-      const doneName=nameFrom(/(?:انجام شد|تکمیل شد|تموم شد)\s+(?:نوبت\s+)?(.+)/);
-      if(doneName) {
-        const found=all.filter(a=>String(a.clientName||'').toLowerCase().includes(doneName));
-        if(found.length===1){found[0].status='done';refreshAfterMinaChange();return 'ثبت شد عزیزم 🌸 نوبت '+(found[0].clientName||'مشتری')+' به وضعیت «انجام شد» تغییر کرد.';}
-        if(found.length>1)return 'چند نوبت با این اسم دارم؛ لطفاً نام کامل‌تر رو بگو 💗';
+      if (/(?:حذف|پاک\\s*کن|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر\\s*(?:ساعت|زمان|تاریخ)|انجام\\s*شد|تکمیل\\s*شد)/u.test(normalized) && /(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized)) {
+        return 'عزیزم برای اینکه هیچ نوبتی بدون تصمیم خودت تغییر نکنه، من فقط می‌تونم نوبت جدید ثبت کنم و برنامه رو نشون بدم 💗 برای ویرایش، لغو یا حذف، خودت از بخش تقویم روی دکمه ویرایش یا حذف بزن. همه‌چیز دست خودته 🌷';
       }
       return minaBuildReplyCore(expandedRaw);
     };
@@ -4689,6 +4724,7 @@
     // Refresh the smart panel whenever existing data is saved or the customer record is opened.
 
     loadData();
+    requestDurableBrowserStorage();
     installEnhancementUI();
     installSmartCalendarPanel();
     checkPinLockOnStartup();
