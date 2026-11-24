@@ -2174,6 +2174,28 @@
           clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles === 'object' ? parsed.clientProfiles : {},
           settings: { ...appData.settings, ...(parsed.settings || {}) }
         };
+        // Restore birthday fields from their independent durable snapshot. This prevents
+        // appointment deletion, stale app snapshots, or WebView restarts from erasing birthdays.
+        try {
+          const birthdayRaw = localStorage.getItem('dastyare_man_client_birthdays_v1');
+          if (birthdayRaw !== null) {
+            const birthdaySnapshot = JSON.parse(birthdayRaw);
+            if (birthdaySnapshot && typeof birthdaySnapshot === 'object' && !Array.isArray(birthdaySnapshot)) {
+              Object.entries(birthdaySnapshot).forEach(([savedKey, saved]) => {
+                if (!saved || typeof saved !== 'object') return;
+                let targetKey = savedKey;
+                if (!appData.clientProfiles[targetKey] && saved.clientId) {
+                  targetKey = Object.keys(appData.clientProfiles).find(k => appData.clientProfiles[k] && appData.clientProfiles[k].clientId === saved.clientId) || targetKey;
+                }
+                if (!appData.clientProfiles[targetKey]) appData.clientProfiles[targetKey] = { name: saved.name || savedKey, phone: saved.phone || '', records: [] };
+                const profile = appData.clientProfiles[targetKey];
+                if (saved.clientId && !profile.clientId) profile.clientId = saved.clientId;
+                if (saved.birthDate !== undefined) profile.birthDate = String(saved.birthDate || '');
+                if (saved.birthdayAlertYear !== undefined) profile.birthdayAlertYear = saved.birthdayAlertYear || '';
+              });
+            }
+          }
+        } catch (e) {}
         // Recover legacy appointment-only backups only when the complete record
         // genuinely has no appointments field; never replace a valid current list.
         if (!Array.isArray(parsed.appointments)) {
@@ -2217,6 +2239,21 @@
       try { localStorage.setItem(STORAGE_KEY, serialized); } catch (e) {}
       // Appointment records get their own durable local backup so they survive app restarts/offline use.
       try { localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments || [])); } catch (e) {}
+      // Keep birthday data independently recoverable, including explicit empty values as deletion tombstones.
+      try {
+        const birthdaySnapshot = {};
+        Object.entries(appData.clientProfiles || {}).forEach(([key, profile]) => {
+          if (!profile || typeof profile !== 'object') return;
+          birthdaySnapshot[key] = {
+            birthDate: String(profile.birthDate || ''),
+            birthdayAlertYear: profile.birthdayAlertYear || '',
+            clientId: profile.clientId || '',
+            name: profile.name || '',
+            phone: profile.phone || ''
+          };
+        });
+        localStorage.setItem('dastyare_man_client_birthdays_v1', JSON.stringify(birthdaySnapshot));
+      } catch (e) {}
       try {
         if (window.AndroidApp && typeof window.AndroidApp.backupData === 'function') {
           window.AndroidApp.backupData(serialized);
@@ -2640,6 +2677,14 @@
         alarm: alarmChoice === 'custom' ? String(customAlarm) : alarmChoice,
         status: document.getElementById('apptStatus').value, notified: false
       };
+      // Link every appointment to a durable customer profile, including customers without a phone number.
+      var appointmentProfileKey = findClientProfileKeyForAppointment(payload) || clientKeyFromFields(payload.phone, payload.clientName);
+      if (appointmentProfileKey) {
+        var appointmentProfile = getClientProfile(appointmentProfileKey);
+        appointmentProfile.name = appointmentProfile.name || payload.clientName;
+        appointmentProfile.phone = appointmentProfile.phone || payload.phone;
+        payload.clientId = appointmentProfile.clientId;
+      }
       if (editId) {
         var idx = appData.appointments.findIndex(function(a){return a.id === editId;});
         if (idx > -1) appData.appointments[idx] = Object.assign({},appData.appointments[idx],payload);
@@ -2651,7 +2696,7 @@
         var followupConflict = hasAppointmentSlotConflict(nextDateKey, time, null);
         if (!followupConflict) appData.appointments.push({
           id:'appt_fu_'+Date.now(), dateKey:nextDateKey, time:time, clientName:clientName,
-          phone:payload.phone, service:'ترمیم '+service, notes:'', alarm:'60', status:'pending', notified:false
+          phone:payload.phone, clientId:payload.clientId || '', service:'ترمیم '+service, notes:'', alarm:'60', status:'pending', notified:false
         });
       }
       saveData(); closeModal('apptModal'); renderCalendar(); renderDaySchedule();
@@ -3291,7 +3336,7 @@
 
     let clientEditingNextAppointmentId = null;
     function openClientRecord(key) {
-      const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
+      const appointments = appData.appointments.filter(a => clientMatchesAppointment(key, a));
       const last = appointments[appointments.length - 1] || {};
       const p = getClientProfile(key);
       p.name = p.name || last.clientName || key;
@@ -3574,7 +3619,7 @@
       const count=document.getElementById('clientBirthdayCount');if(count)count.textContent=toPersianDigits(entries.length)+' تولد ثبت‌شده';
       if(!entries.length){root.innerHTML='<div style="font-size:.78rem;color:var(--text-secondary);padding:8px 2px;">تاریخ تولدی ثبت نشده؛ از پرونده هر مشتری تاریخ تولدش را وارد کن.</div>';return;}
       root.innerHTML=entries.map(({key,p,info})=>{
-        const appt=(appData.appointments||[]).filter(a=>clientKeyFromFields(a.phone,a.clientName)===key&&a.status!=='canceled'&&a.status!=='done'&&a.dateKey>=today).sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')))[0];
+        const appt=(appData.appointments||[]).filter(a=>clientMatchesAppointment(key,a)&&a.status!=='canceled'&&a.status!=='done'&&a.dateKey>=today).sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')))[0];
         let apptNear=false;
         if(appt){const d=appt.dateKey.split('-').map(Number),g=jalaliToGregorian(d[0],d[1],d[2]),delta=Math.round((new Date(g[0],g[1]-1,g[2])-info.gregorianDate)/86400000);apptNear=Math.abs(delta)<=7&&/ترمیم/u.test(appt.service||'');}
         const when=info.days===0?'امروز 🎉':info.days===1?'فردا 🎂':'تا '+toPersianDigits(info.days)+' روز دیگر';
@@ -3754,7 +3799,7 @@
       if (conflict) { showToast('این ساعت قبلاً برای مشتری دیگری رزرو شده است؛ زمان دیگری انتخاب کن. ⛔'); return; }
       const alarmMinutes = Math.max(0,Math.min(43200,Number(document.getElementById('clientNextAlarm')?.value ?? 15)||0));
       const notes = (document.getElementById('clientNextNotes')?.value || '').trim();
-      const data = { dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''), service, notes, alarm:String(alarmMinutes), status:'pending', notified:false };
+      const data = { dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''), clientId:p.clientId || '', service, notes, alarm:String(alarmMinutes), status:'pending', notified:false };
       if (editing) Object.assign(editing, data);
       else {
         const created = { id:'appt_'+Date.now(), ...data };
@@ -5482,7 +5527,7 @@
     }
     function getClientLoyaltyStats(key) {
       const p=getClientProfile(key);
-      const appts=appData.appointments.filter(a=>clientKeyFromFields(a.phone,a.clientName)===key && a.status==='done');
+      const appts=appData.appointments.filter(a=>clientMatchesAppointment(key,a) && a.status==='done');
       const records=(p.records||[]);
       const visits=appts.length+records.length;
       const tier=visits>=10?'طلایی':visits>=5?'نقره‌ای':visits>=2?'برنزی':'عضو تازه';
@@ -5515,6 +5560,7 @@
     // Refresh the smart panel whenever existing data is saved or the customer record is opened.
 
     loadData();
+    saveData();
     renderClientBirthdays();
     Object.entries(appData.clientProfiles||{}).forEach(([key,p])=>{if(p&&p.birthDate&&!((appData.reminders||[]).some(r=>r&&r.birthdayClientKey===key)))scheduleNextClientBirthdayAlarm(key,p);});
     checkClientBirthdayAlerts();
