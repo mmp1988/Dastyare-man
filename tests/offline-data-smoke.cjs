@@ -217,29 +217,34 @@ const assert = require('assert');
         { id:'mina-done-qa', dateKey, time:'10:00', clientName:'مریم', service:'لیفت مژه', status:'pending' },
         { id:'mina-move-qa', dateKey, time:'11:00', clientName:'علی', service:'والیوم', status:'pending' }
       ];
-      const cancelReply = minaBuildReply('لغو نوبت سارا');
-      const doneReply = minaBuildReply('انجام شد مریم');
-      const protectedAfterCancelAndDone = appData.appointments.find(a => a.id === 'mina-cancel-qa')?.status === 'pending' &&
-        appData.appointments.find(a => a.id === 'mina-done-qa')?.status === 'pending';
+      const cancelReply = minaBuildReply('نوبت سارا رو کنسل کن');
+      const cancelOk = appData.appointments.find(a => a.id === 'mina-cancel-qa')?.status === 'canceled';
+      const doneReply = minaBuildReply('نوبت مریم انجام شد');
+      const doneOk = appData.appointments.find(a => a.id === 'mina-done-qa')?.status === 'done';
       const moveReply = minaBuildReply('نوبت علی رو به ساعت ۵ عصر منتقل کن');
       const moved = appData.appointments.find(a => a.id === 'mina-move-qa');
-      const moveOk = moved?.time === '17:00' && moveReply.includes('ساعت جدید');
+      const moveOk = moved?.time === '17:00' && moveReply.includes('همان نوبت');
       const tomorrowKey = addDaysToJalaliKey(dateKey, 1);
       appData.appointments.push({ id:'appt_mina_qa_latest', createdBy:'mina', source:'mina', dateKey:tomorrowKey,
         time:'15:07', clientName:'⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing:true,
         service:'کاشت ناخن', status:'pending' });
       const unnamedMoveReply = minaBuildReply('نوبت مینا رو بکن برای ساعت ۳:۱۰ بعدازظهر');
-      const unnamedMoveOk = appData.appointments.find(a => a.id === 'appt_mina_qa_latest')?.time === '15:10' &&
-        unnamedMoveReply.includes('ساعت جدید');
-      const deleteReply = minaBuildReply('نوبت سارا رو حذف کن');
-      const deleteProtected = appData.appointments.some(a => a.id === 'mina-cancel-qa' && a.status === 'pending');
+      const unnamedMoveOk = appData.appointments.find(a => a.id === 'appt_mina_qa_latest')?.time === '15:10';
+      const minuteMoveReply = minaBuildReply('نوبت مینا رو بذار ساعت ۱۵:۴۳');
+      const minuteMoveOk = appData.appointments.find(a => a.id === 'appt_mina_qa_latest')?.time === '15:43';
+      const relativeMoveReply = minaBuildReply('نوبت مینا رو ببر یک ربع به ۳ بعدازظهر');
+      const relativeMoveOk = appData.appointments.find(a => a.id === 'appt_mina_qa_latest')?.time === '14:45';
+      const dateMoveReply = minaBuildReply('نوبت مینا رو بنداز پس فردا');
+      const dateMoveOk = appData.appointments.find(a => a.id === 'appt_mina_qa_latest')?.dateKey === addDaysToJalaliKey(dateKey,2);
+      const deleteReply = minaBuildReply('نوبت سارا رو پاک کن');
+      const deleteOk = !appData.appointments.some(a => a.id === 'mina-cancel-qa');
       const weekReply = minaBuildReply('برنامه هفت روز آینده');
       const weekOk = typeof weekReply === 'string' && (weekReply.includes('برنامه هفت روز آینده') || weekReply.includes('نوبتی ثبت نشده'));
-      return { protectedAfterCancelAndDone, deleteProtected, moveOk, unnamedMoveOk, moveReply, unnamedMoveReply, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, deleteReply };
+      return { cancelOk, doneOk, deleteOk, moveOk, unnamedMoveOk, minuteMoveOk, relativeMoveOk, dateMoveOk, moveReply, unnamedMoveReply, minuteMoveReply, relativeMoveReply, dateMoveReply, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, deleteReply };
     });
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
-    assert(minaActionsResult.protectedAfterCancelAndDone && minaActionsResult.deleteProtected && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.weekOk,
-      'Mina must reschedule the selected appointment while keeping cancel/delete actions protected and weekly reading available');
+    assert(minaActionsResult.cancelOk && minaActionsResult.doneOk && minaActionsResult.deleteOk && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.minuteMoveOk && minaActionsResult.relativeMoveOk && minaActionsResult.dateMoveOk && minaActionsResult.weekOk,
+      'Mina must edit exact minutes and dates, cancel/delete/complete only the selected appointment, and preserve weekly reading');
 
     const exactTimeRegression = await page.evaluate(() => {
       minaConversationBooking = null;
