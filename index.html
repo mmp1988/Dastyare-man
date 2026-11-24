@@ -4770,8 +4770,11 @@
       if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*دقیقه/);
       if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
       if (!m) return null;
-      let hour = Number(m[1]), minute = Number(m[2] || 0);
-      const period = m[3] || (/بعدازظهر|عصر|ظهر|شب/.test(value) ? 'بعدازظهر' : /صبح/.test(value) ? 'صبح' : '');
+      let hour = Number(m[1]);
+      const secondPart = String(m[2] || '');
+      const minute = /^\\d+$/.test(secondPart) ? Number(secondPart) : 0;
+      const period = (/^(?:صبح|ظهر|بعدازظهر|عصر|شب)$/.test(secondPart) ? secondPart : m[3]) ||
+        (/بعدازظهر|عصر|ظهر|شب/.test(value) ? 'بعدازظهر' : /صبح/.test(value) ? 'صبح' : '');
       if (period && /ظهر|بعدازظهر|عصر|شب/.test(period) && hour < 12) hour += 12;
       if (/صبح/.test(period) && hour === 12) hour = 0;
       if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
