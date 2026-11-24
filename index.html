@@ -2815,26 +2815,44 @@
       c.innerHTML = clients.map(cl => {
         const p = (appData.clientProfiles || {})[cl.key] || {};
         const count = cl.visits.length + (p.records || []).length;
-        const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : p.photoRef ? `<img data-client-photo-ref="${escapeClientText(p.photoRef)}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<div style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</div>`;
+        const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : p.photoRef ? `<img data-client-photo-ref="${escapeClientText(p.photoRef)}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<span style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</span>`;
         const encoded = encodeURIComponent(cl.key);
         return `
-          <div style="width:100%;text-align:right;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:14px;padding:10px 12px;color:var(--text-primary);display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-            ${photo}
-            <button type="button" onclick="openClientRecord(decodeURIComponent('${encoded}'))" style="flex:1;min-width:0;text-align:right;background:transparent;border:0;padding:0;color:inherit;cursor:pointer;">
-              <strong style="display:block;font-size:0.9rem;">${escapeClientText(cl.name)}</strong>
-              <small style="display:block;color:var(--text-secondary);margin-top:3px;">${escapeClientText(cl.phone || 'بدون شماره تماس')}</small>
-              <small style="display:block;color:var(--accent);margin-top:3px;">${toPersianDigits(count)} سابقه • مشاهده پرونده</small>
-            </button>
-            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-              <button type="button" class="mini-btn" onclick="openEditClientModal(decodeURIComponent('${encoded}'))" aria-label="ویرایش مشتری">✏️ ویرایش</button>
-              <button type="button" class="mini-btn del" onclick="deleteClient(decodeURIComponent('${encoded}'))" aria-label="حذف مشتری">🗑️ حذف</button>
+          <div style="margin-bottom:8px;">
+            <div style="width:100%;text-align:right;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:14px;padding:10px 12px;color:var(--text-primary);display:flex;align-items:center;gap:10px;">
+              <button type="button" onclick="toggleClientAppointmentPeek(decodeURIComponent('${encoded}'))" title="نمایش نوبت‌های مشتری بدون ورود به پرونده" aria-label="نمایش نوبت‌های مشتری" style="border:0;background:transparent;padding:0;cursor:pointer;flex-shrink:0;">${photo}</button>
+              <button type="button" onclick="openClientRecord(decodeURIComponent('${encoded}'))" style="flex:1;min-width:0;text-align:right;background:transparent;border:0;padding:0;color:inherit;cursor:pointer;">
+                <strong style="display:block;font-size:0.9rem;">${escapeClientText(cl.name)}</strong>
+                <small style="display:block;color:var(--text-secondary);margin-top:3px;">${escapeClientText(cl.phone || 'بدون شماره تماس')}</small>
+                <small style="display:block;color:var(--accent);margin-top:3px;">${toPersianDigits(count)} سابقه • مشاهده پرونده</small>
+              </button>
+              <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                <button type="button" class="mini-btn" onclick="openEditClientModal(decodeURIComponent('${encoded}'))" aria-label="ویرایش مشتری">✏️ ویرایش</button>
+                <button type="button" class="mini-btn del" onclick="deleteClient(decodeURIComponent('${encoded}'))" aria-label="حذف مشتری">🗑️ حذف</button>
+              </div>
             </div>
+            <div id="clientApptPeek_${encoded}" style="display:none;margin-top:5px;padding:10px 12px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);font-size:.78rem;line-height:1.9;"></div>
           </div>
         `;
       }).join('');
       c.querySelectorAll('img[data-client-photo-ref]').forEach(async img => {
         try { const url=await getClientPhotoUrl(img.dataset.clientPhotoRef); if(url) img.src=url; } catch(e) {}
       });
+    }
+
+    function toggleClientAppointmentPeek(key) {
+      const id='clientApptPeek_'+encodeURIComponent(key);
+      const panel=document.getElementById(id);
+      if(!panel)return;
+      if(panel.style.display!=='none' && panel.style.display!=='') { panel.style.display='none'; return; }
+      const today=getTodayKey();
+      const appointments=(appData.appointments||[])
+        .filter(a=>clientKeyFromFields(a.phone,a.clientName)===key && a.status!=='canceled' && a.status!=='done' && a.dateKey>=today)
+        .sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
+      panel.innerHTML=appointments.length
+        ? '<strong style="display:block;margin-bottom:5px;color:var(--accent);">📅 نوبت‌های آینده</strong>'+appointments.map(a=>'<div style="padding:5px 0;border-top:1px solid var(--border-subtle);"><strong>'+escapeClientText(formatJalaliFull(a.dateKey))+'</strong> • <strong>'+toPersianDigits(a.time||'ساعت ثبت نشده')+'</strong><div style="color:var(--text-secondary);">'+escapeClientText(a.service||'خدمت ثبت نشده')+'</div></div>').join('')
+        : '<div style="color:var(--text-secondary);">برای این مشتری نوبت آینده‌ای ثبت نشده است.</div>';
+      panel.style.display='block';
     }
 
     function openEditClientModal(key) {
