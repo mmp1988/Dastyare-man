@@ -503,27 +503,89 @@ const assert = require('assert');
     // Client CRUD: create profile, rename/update phone, then delete it.
     const clientResult = await page.evaluate(async () => {
       document.getElementById('newClientName').value = 'مشتری پرونده تست';
-      document.getElementById('newClientPhone').value = '09129998877';
+      document.getElementById('newClientPhone').value = '09128887766';
       createClientProfile();
-      const oldKey = '09129998877';
+      const oldKey = '09128887766';
       const exists = !!appData.clientProfiles[oldKey];
       document.getElementById('newClientName').value = 'نام تکراری';
-      document.getElementById('newClientPhone').value = '09129998877';
+      document.getElementById('newClientPhone').value = '09128887766';
       createClientProfile();
       const duplicateBlocked = Object.keys(appData.clientProfiles).filter(k => k === oldKey).length === 1 &&
         appData.clientProfiles[oldKey]?.name === 'مشتری پرونده تست';
       document.getElementById('editClientOriginalKey').value = oldKey;
       document.getElementById('editClientName').value = 'مشتری پرونده ویرایش';
-      document.getElementById('editClientPhone').value = '09129998878';
+      document.getElementById('editClientPhone').value = '09128887767';
       saveEditedClient();
-      const newKey = '09129998878';
+      const newKey = '09128887767';
       const edited = !!appData.clientProfiles[newKey] && appData.clientProfiles[newKey].name === 'مشتری پرونده ویرایش';
       window.confirm = () => true;
       await deleteClient(newKey);
       return { exists, duplicateBlocked, edited, deleted:!appData.clientProfiles[newKey] };
     });
-    console.log('Client CRUD diagnostic:', JSON.stringify(clientResult));
     assert(clientResult.exists && clientResult.duplicateBlocked && clientResult.edited && clientResult.deleted, 'Client create/edit/delete or duplicate prevention failed');
+
+    // A customer without a phone number must still have a stable profile identity,
+    // show the next appointment in the directory, and appear in the main calendar.
+    const noPhoneAppointmentQA = await page.evaluate(() => {
+      appData.clientProfiles = {};
+      appData.appointments = [];
+      selectedDateKey = getTodayKey();
+      const set = (id, value) => { document.getElementById(id).value = value; };
+      set('editApptId', '');
+      set('apptClientName', 'مشتری بدون شماره');
+      set('apptPhone', '');
+      set('apptTime', '10:07');
+      set('apptService', 'کاشت ناخن');
+      set('apptNotes', '');
+      set('apptAlarm', '15');
+      set('apptStatus', 'pending');
+      set('apptNextFollowup', '0');
+      saveAppointment();
+      const appt = appData.appointments.find(a => a.clientName === 'مشتری بدون شماره');
+      const key = clientKeyFromFields('', 'مشتری بدون شماره');
+      const profile = appData.clientProfiles[key];
+      renderClientsTab();
+      const card = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes('مشتری بدون شماره'));
+      renderCalendar();
+      renderDaySchedule();
+      return {
+        appointmentCreated: !!appt,
+        phoneIsEmpty: !!appt && !appt.phone,
+        linkedByClientId: !!appt && !!profile && appt.clientId === profile.clientId,
+        customerListed: !!card,
+        dateShown: !!card && card.textContent.includes(formatJalaliFull(appt.dateKey)),
+        timeShown: !!card && card.textContent.includes(toPersianDigits('10:07')),
+        calendarDayCount: appData.appointments.filter(a => a.dateKey === selectedDateKey && a.status !== 'canceled').length
+      };
+    });
+    assert(noPhoneAppointmentQA.appointmentCreated && noPhoneAppointmentQA.phoneIsEmpty &&
+      noPhoneAppointmentQA.linkedByClientId && noPhoneAppointmentQA.customerListed &&
+      noPhoneAppointmentQA.dateShown && noPhoneAppointmentQA.timeShown &&
+      noPhoneAppointmentQA.calendarDayCount === 1,
+      'No-phone customer appointments must remain linked and visible in customer list and main calendar');
+
+    // Birthday fields are restored from their independent local snapshot even if
+    // the main app record is stale after a close/reopen or an appointment change.
+    const birthdayPersistenceQA = await page.evaluate(() => {
+      const key = 'مشتری تولد پایدار';
+      appData.clientProfiles = { [key]: { name:key, phone:'', clientId:'qa-birthday-client', birthDate:'1375-08-12', birthdayAlertYear:'1405', records:[] } };
+      appData.appointments = [{ id:'qa-birthday-appt', dateKey:getTodayKey(), time:'10:07', clientName:key, phone:'', clientId:'qa-birthday-client', service:'کاشت ناخن', status:'pending' }];
+      saveData();
+      appData.appointments = [];
+      saveData();
+      const stale = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      stale.clientProfiles[key].birthDate = '';
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stale));
+      loadData();
+      return {
+        birthdayRestored: appData.clientProfiles[key]?.birthDate === '1375-08-12',
+        appointmentStillDeleted: !appData.appointments.some(a => a.id === 'qa-birthday-appt'),
+        separateSnapshotExists: !!localStorage.getItem('dastyare_man_client_birthdays_v1')
+      };
+    });
+    assert(birthdayPersistenceQA.birthdayRestored && birthdayPersistenceQA.appointmentStillDeleted &&
+      birthdayPersistenceQA.separateSnapshotExists,
+      'Customer birthdays must survive stale app snapshots independently of appointments');
 
     // Backup round trip: export a valid JSON backup, clear the data, then restore it.
     await page.evaluate(async () => {
