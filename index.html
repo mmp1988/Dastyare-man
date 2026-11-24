@@ -3041,14 +3041,14 @@
     }
     function findClientProfileKeyForAppointment(a) {
       const profiles = appData.clientProfiles || {};
-      const apptPhone = String(a && a.phone || '').replace(/\\D/g, '');
-      const apptName = String(a && a.clientName || '').trim().replace(/\\s+/g, ' ');
+      const apptPhone = String(a && a.phone || '').replace(/[^0-9]/g, '');
+      const apptName = String(a && a.clientName || '').trim().replace(/\s+/g, ' ');
       if (apptPhone) {
-        const byPhone = Object.keys(profiles).find(k => String(profiles[k]?.phone || '').replace(/\\D/g, '') === apptPhone);
+        const byPhone = Object.keys(profiles).find(k => String(profiles[k]?.phone || '').replace(/[^0-9]/g, '') === apptPhone);
         if (byPhone) return byPhone;
       }
-      if (apptName && !/^(?:—|نام درج نشده|⚠️ نام درج نشده \\(قابل تکمیل\\))$/u.test(apptName)) {
-        const byName = Object.keys(profiles).find(k => String(profiles[k]?.name || '').trim().replace(/\\s+/g, ' ') === apptName || String(k).trim().replace(/\\s+/g, ' ') === apptName);
+      if (apptName && !/^(?:—|نام درج نشده|⚠️ نام درج نشده \(قابل تکمیل\))$/u.test(apptName)) {
+        const byName = Object.keys(profiles).find(k => String(profiles[k]?.name || '').trim().replace(/\s+/g, ' ') === apptName || String(k).trim().replace(/\s+/g, ' ') === apptName);
         if (byName) return byName;
       }
       const legacyKey = clientKeyFromFields(a && a.phone, a && a.clientName);
