@@ -5333,6 +5333,7 @@
 
       let m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})/u);
       if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*دقیقه/u);
+      if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*(صبح|ظهر|بعدازظهر|عصر|شب)/u);
       if (!m) m = value.match(new RegExp('(?:ساعت\\\\s*)?(' + numberWord + ')\\\\s+و\\\\s+(' + numberWord + ')\\\\s*دقیقه', 'u'));
       if (!m) m = value.match(new RegExp('(?:ساعت\\\\s*)?(' + numberWord + ')\\\\s*(صبح|ظهر|بعدازظهر|عصر|شب)', 'u'));
       if (!m) return null;
