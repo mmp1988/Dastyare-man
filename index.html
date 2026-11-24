@@ -4851,7 +4851,14 @@
       if (namedMatch) {
         const wanted = namedMatch[1];
         const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
-        if (named.length) candidates = named;
+        if (named.length) {
+          candidates = named;
+        } else {
+          // A just-created Mina booking may still carry the temporary no-name label.
+          // In that case, resolve the reference to the latest Mina-created appointment.
+          const minaCreated = active.filter(a => minaIsAssistantAppointment(a));
+          if (minaCreated.length) candidates = [minaCreated[minaCreated.length - 1]];
+        }
       }
 
       if (/(?:فردا)/u.test(text)) {
