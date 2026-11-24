@@ -1189,6 +1189,7 @@
         </div>
         <div class="form-grid">
           <div class="form-group"><label>نام مشتری (اختیاری)</label><input id="customerMessageName" class="form-control" placeholder="مثلاً نازنین جان" oninput="renderCustomerMessagePreview()" /></div>
+          <div class="form-group"><label>شماره تماس مشتری (اختیاری)</label><input id="customerMessagePhone" class="form-control" inputmode="tel" placeholder="مثلاً 0912..." /></div>
           <div class="form-group"><label>تاریخ (اختیاری)</label><input id="customerMessageDate" class="form-control" placeholder="مثلاً پنجشنبه ۶ آذر" oninput="renderCustomerMessagePreview()" /></div>
           <div class="form-group"><label>ساعت (اختیاری)</label><input id="customerMessageTime" class="form-control" placeholder="مثلاً ۱۶:۳۰" oninput="renderCustomerMessagePreview()" /></div>
           <div class="form-group"><label>نوع خدمت (اختیاری)</label><input id="customerMessageService" class="form-control" placeholder="مثلاً رنگ مو یا کاشت ناخن" oninput="renderCustomerMessagePreview()" /></div>
@@ -1199,7 +1200,9 @@
           <textarea id="customerMessagePreview" class="form-control" rows="8" placeholder="متن پیام اینجا نمایش داده می‌شود..."></textarea>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button class="btn-primary" onclick="sendCustomerMessage()">📤 انتخاب برنامه ارسال</button>
+          <button class="btn-primary" onclick="sendCustomerMessage()">📤 سایر برنامه‌ها</button>
+          <button class="btn-secondary" onclick="sendCustomerMessage('whatsapp')">واتساپ</button>
+          <button class="btn-secondary" onclick="sendCustomerMessage('sms')">پیامک</button>
           <button class="btn-secondary" onclick="copyCustomerMessage()">📋 کپی متن</button>
         </div>
         <div class="mina-personal-note" style="margin-top:10px;">در اندروید، فهرست برنامه‌های نصب‌شده مثل پیامک، واتساپ و سایر پیام‌رسان‌ها باز می‌شود. در سایت موبایل نیز از منوی اشتراک‌گذاری گوشی استفاده می‌شود؛ ارسال نهایی همیشه با انتخاب خودت است.</div>
@@ -4341,6 +4344,7 @@
       if (!appt) return;
       document.getElementById('customerMessageType').value = 'reminder';
       document.getElementById('customerMessageName').value = appt.clientName || '';
+      document.getElementById('customerMessagePhone').value = appt.phone || '';
       document.getElementById('customerMessageDate').value = formatJalaliFull(appt.dateKey);
       document.getElementById('customerMessageTime').value = toPersianDigits(appt.time || '');
       document.getElementById('customerMessageService').value = appt.service || '';
@@ -4348,9 +4352,19 @@
       renderCustomerMessagePreview();
       switchTab('messages', document.querySelector('.nav-item[onclick*="messages"]'));
     }
-    async function sendCustomerMessage() {
+    async function sendCustomerMessage(channel) {
       const text = document.getElementById('customerMessagePreview')?.value.trim() || '';
+      const phone = String(document.getElementById('customerMessagePhone')?.value || '').replace(/[^0-9+]/g,'');
       if (!text) { showToast('اول متن پیام رو آماده کن عزیزم.'); return; }
+      if (channel === 'whatsapp' || channel === 'sms') {
+        if (!phone) { showToast('برای ارسال مستقیم، شماره تماس مشتری رو وارد کن.'); return; }
+        const body = encodeURIComponent(text);
+        const url = channel === 'whatsapp'
+          ? 'https://wa.me/' + phone.replace(/^0/,'98') + '?text=' + body
+          : 'sms:' + phone + '?body=' + body;
+        window.location.href = url;
+        return;
+      }
       try {
         if (window.AndroidApp && typeof window.AndroidApp.shareText === 'function') {
           window.AndroidApp.shareText('پیام مشتری - دستیار من', text);
@@ -4560,7 +4574,7 @@
           : 'تقویمت رو بررسی کردم؛ تداخل زمانی ثبت‌شده‌ای پیدا نکردم عزیزم 💗';
       }
 
-      if (/(?:حذف|پاک\s*کن|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر\s*(?:ساعت|زمان|تاریخ)|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized))) {
+      if (/(?:حذف|پاک|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر|عوض|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized))) {
         return 'عزیزم برای اینکه هیچ نوبتی بدون تصمیم خودت تغییر نکنه، من فقط می‌تونم نوبت جدید ثبت کنم و برنامه رو نشون بدم 💗 برای ویرایش، لغو یا حذف، خودت از بخش تقویم روی دکمه ویرایش یا حذف بزن. همه‌چیز دست خودته 🌷';
       }
       return minaBuildReplyCore(expandedRaw);
