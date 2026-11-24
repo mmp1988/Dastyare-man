@@ -593,6 +593,16 @@ const assert = require('assert');
       const card = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
       const cardText = card?.textContent || '';
       if (key) openClientRecord(key);
+      const nextFormStartsNew = clientEditingNextAppointmentId === null &&
+        !document.getElementById('clientNextDate').value &&
+        document.getElementById('clientNextTime').value === '10:00';
+      const extraDate = addDaysToJalaliKey(selectedDateKey, 21);
+      document.getElementById('clientNextDate').value = toPersianDigits(extraDate.replace(/-/g, '/'));
+      document.getElementById('clientNextTime').value = '11:33';
+      document.getElementById('clientNextService').value = 'مراجعه جداگانه سوم';
+      saveClientNextAppointment();
+      const extraAppointment = appData.appointments.find(a => a.clientName === clientName && a.service === 'مراجعه جداگانه سوم');
+      if (key) openClientRecord(key);
       const profileText = document.getElementById('clientScheduledAppointmentsList')?.textContent || '';
       const primaryDate = primary?.dateKey || '';
       const followupDate = followup?.dateKey || '';
@@ -617,6 +627,10 @@ const assert = require('assert');
         cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('نوبت ترمیم'),
         profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت ترمیم'),
         profileHasEditDelete:!!document.querySelector('#clientScheduledAppointmentsList [data-client-appt-edit]') && !!document.querySelector('#clientScheduledAppointmentsList [data-client-appt-delete]'),
+        profileFormAddsNewWithoutOverwriting:nextFormStartsNew && !!extraAppointment &&
+          appData.appointments.some(a => a.id === primary.id) &&
+          appData.appointments.some(a => a.id === followup.id) &&
+          extraAppointment.dateKey === extraDate && extraAppointment.time === '11:33',
         calendarShowsFollowup,
         scheduleShowsFollowup,
         followupStillShownAfterDone,
@@ -629,6 +643,8 @@ const assert = require('assert');
       'Primary and follow-up must be separately stored with a stable parent link and exact date/time');
     assert(primaryFollowupQA.cardShowsBoth && primaryFollowupQA.profileShowsBoth && primaryFollowupQA.profileHasEditDelete,
       'Customer card and profile must show both appointment types with edit/delete actions');
+    assert(primaryFollowupQA.profileFormAddsNewWithoutOverwriting,
+      'Adding another appointment from the customer profile must create a new record without overwriting the primary or follow-up');
     assert(primaryFollowupQA.calendarShowsFollowup && primaryFollowupQA.scheduleShowsFollowup,
       'Main calendar and day schedule must visibly distinguish follow-up appointments');
     assert(primaryFollowupQA.followupStillShownAfterDone,
