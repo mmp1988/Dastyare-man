@@ -27,6 +27,47 @@ const assert = require('assert');
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
+    // Birthday deletion removes only the birthday date and its own reminder;
+    // the customer profile and appointments must remain untouched.
+    page.once('dialog', dialog => dialog.accept());
+    const birthdayDeleteQA = await page.evaluate(() => {
+      const key = clientKeyFromFields('09120001122', 'مشتری تست تولد');
+      appData.clientProfiles = appData.clientProfiles || {};
+      appData.clientProfiles[key] = { name:'مشتری تست تولد', phone:'09120001122', birthDate:'1370-05-21', birthdayAlertYear:'1405', records:[] };
+      appData.appointments = appData.appointments || [];
+      appData.appointments.push({ id:'qa-birthday-preserve-appt', dateKey:getTodayKey(), time:'17:15', clientName:'مشتری تست تولد', phone:'09120001122', service:'کاشت ناخن', status:'pending' });
+      appData.reminders = appData.reminders || [];
+      appData.reminders.push({ id:'qa-birthday-reminder', date:getTodayKey(), time:'09:00', message:'یادآوری تولد آزمایشی', birthdayClientKey:key, birthdayYear:1405 });
+      renderClientBirthdays();
+      deleteClientBirthday(key);
+      return {
+        birthDate:appData.clientProfiles[key].birthDate,
+        profileExists:!!appData.clientProfiles[key],
+        appointmentExists:appData.appointments.some(a=>a.id==='qa-birthday-preserve-appt'),
+        birthdayReminderExists:appData.reminders.some(a=>a.id==='qa-birthday-reminder')
+      };
+    });
+    assert.strictEqual(birthdayDeleteQA.birthDate, '', 'Birthday deletion must clear only the birth date');
+    assert(birthdayDeleteQA.profileExists, 'Birthday deletion must preserve the customer profile');
+    assert(birthdayDeleteQA.appointmentExists, 'Birthday deletion must preserve customer appointments');
+    assert(!birthdayDeleteQA.birthdayReminderExists, 'Birthday deletion must cancel the birthday reminder');
+    console.log('Birthday deletion safety:', JSON.stringify(birthdayDeleteQA));
+
+    // Custom services support edit and delete without rewriting historical appointments.
+    const serviceEditQA = await page.evaluate(() => {
+      appData.services = [{ id:'qa-service-edit', name:'خدمت آزمایشی' }];
+      appData.appointments = appData.appointments || [];
+      appData.appointments.push({ id:'qa-service-history', dateKey:getTodayKey(), time:'12:00', clientName:'مشتری تاریخی', service:'خدمت آزمایشی', status:'done' });
+      renderServicesTab();
+      return { row:document.getElementById('customServicesList')?.textContent || '', history:appData.appointments.find(a=>a.id==='qa-service-history')?.service };
+    });
+    assert(serviceEditQA.row.includes('ویرایش') && serviceEditQA.row.includes('حذف'), 'Custom service row must expose edit and delete actions');
+    assert.strictEqual(serviceEditQA.history, 'خدمت آزمایشی', 'Service management must preserve historical appointment text');
+    page.once('dialog', dialog => { assert.strictEqual(dialog.type(), 'prompt'); dialog.accept('خدمت آزمایشی جدید'); });
+    await page.evaluate(() => editCustomService('qa-service-edit'));
+    const renamedService = await page.evaluate(() => appData.services.find(s=>s.id==='qa-service-edit')?.name);
+    assert.strictEqual(renamedService, 'خدمت آزمایشی جدید', 'Custom service edit must save the new title');
+
     // Responsive integration audit across phone, tablet and desktop viewports.
     const responsiveFailures = [];
     for (const width of [320, 360, 390, 430, 768, 1024, 1366]) {
