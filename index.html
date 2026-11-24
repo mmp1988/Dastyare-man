@@ -5444,6 +5444,11 @@
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text);
       const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
       const isMove = /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار))/u.test(text);
+      const serviceTail = text.match(/(?:به|برای)\s+(.+?)\s+(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)/u) ||
+        text.match(/(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)\s+(?:به\s+)?(.+)$/u);
+      let requestedService = serviceTail ? serviceTail[1].trim() : '';
+      if (requestedService && (requestedService.length > 80 ||
+          /(?:\d|ساعت|دقیقه|ربع|صبح|ظهر|بعدازظهر|عصر|شب|امروز|فردا|پس\s*فردا)/u.test(requestedService))) requestedService = '';
       if (/(?:لغو|کنسل|حذف|پاک|عوض|تغییر|جابجا|جابه.?جا)\s*(?:نکن|نشه|نشود|نکنه)/u.test(text)) return 'باشه عزیزم؛ هیچ تغییری روی نوبت انجام ندادم 💗';
       const isCreation = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s+بده)/u.test(text);
       if (isCreation && !isMove && !isDelete && !isCancel && !isDone) return null;
@@ -5501,6 +5506,15 @@
       if (candidates.length !== 1) return 'نوبت موردنظرت رو با این مشخصات پیدا نکردم؛ اسم مشتری یا تاریخش رو بگو عزیزم 🌷';
       const appt = candidates[0];
 
+      if (isMove && !isDelete && !isCancel && !isDone && !asksTime && !asksDate && requestedService) {
+        const previousService = appt.service || 'خدمت ثبت‌نشده';
+        appt.service = requestedService;
+        appt.reminderNotified = false;
+        saveData(); renderCalendar(); renderDaySchedule();
+        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+        return 'انجام شد عزیزم 🌸 خدمت نوبت «' + (appt.clientName || 'بدون نام') +
+          '» از «' + previousService + '» به «' + requestedService + '» تغییر کرد. تاریخ و ساعت نوبت دست‌نخورده موند 💗';
+      }
       if (isMove && !isDelete && !isCancel && !isDone && !asksTime && !asksDate) {
         return 'حتماً عزیزم 💗 نوبت «' + (appt.clientName || 'بدون نام') + '» رو پیدا کردم. به چه تاریخ یا ساعتی منتقلش کنم؟ هر دقیقه‌ای خواستی بگو؛ مثلاً «۱۶:۰۷» یا «یک ربع به ۳ بعدازظهر».';
       }
