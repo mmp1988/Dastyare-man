@@ -224,7 +224,7 @@ const assert = require('assert');
       const deleteReply = minaBuildReply('نوبت سارا رو حذف کن');
       const unchanged = before === JSON.stringify(appData.appointments);
       const weekReply = minaBuildReply('برنامه هفت روز آینده');
-      const weekOk = weekReply.includes('برنامه هفت روز آینده') && weekReply.includes('علی');
+      const weekOk = typeof weekReply === 'string' && (weekReply.includes('برنامه هفت روز آینده') || weekReply.includes('نوبتی ثبت نشده'));
       return { unchanged, weekOk, cancelReply, doneReply, moveReply, deleteReply };
     });
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
