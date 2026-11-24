@@ -4612,6 +4612,86 @@
       return minaBuildReplyCore(expandedRaw);
     };
 
+
+    // Persian conversational reminder layer: bind follow-up requests to the appointment
+    // already being discussed, without asking the user to repeat its date or service.
+    function minaParseReminderClock(raw) {
+      const value = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
+      let m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s*[:٫.]\\s*(\\d{1,2})/);
+      if (!m) m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s+و\\s+(\\d{1,2})\\s*دقیقه/);
+      if (!m) m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
+      if (!m) return null;
+      let hour = Number(m[1]), minute = Number(m[2] || 0);
+      const period = m[3] || (/بعدازظهر|عصر|ظهر|شب/.test(value) ? 'بعدازظهر' : /صبح/.test(value) ? 'صبح' : '');
+      if (period && /ظهر|بعدازظهر|عصر|شب/.test(period) && hour < 12) hour += 12;
+      if (/صبح/.test(period) && hour === 12) hour = 0;
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+      return pad2(hour) + ':' + pad2(minute);
+    }
+    function minaFindReferencedAppointment(raw) {
+      const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
+      const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled');
+      if (!active.length) return null;
+      const nameMatch = text.match(/(?:برای|مشتری)\\s+([آ-یءئؤإأ‌\\-]{2,30})/u);
+      if (nameMatch) {
+        const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(nameMatch[1]));
+        if (named.length === 1) return named[0];
+        if (named.length > 1) return named.sort((a,b)=>(b.dateKey||'').localeCompare(a.dateKey||''))[0];
+      }
+      // The most recently added appointment is the natural referent of «این نوبت».
+      return active[active.length - 1];
+    }
+    function minaTrySetAppointmentReminder(raw) {
+      const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
+      if (!/(?:یادم\\s*بمونه|یادم\\s*نره|یادم\\s*بنداز|یادآوری|هشدار|خبرم\\s*کن|یادم\\s*بیار)/u.test(text)) return null;
+      if (!/(?:نوبت|رزرو|وقت|مراجعه|این\\s+نوبت)/u.test(text)) return null;
+      const reminderTime = minaParseReminderClock(raw);
+      if (!reminderTime) return 'حتماً عزیزم 💗 ساعت هشدار رو دقیق‌تر بگو؛ مثلاً «۱۴:۰۰» یا «دو و ربع بعدازظهر».';
+      const appointment = minaFindReferencedAppointment(raw);
+      if (!appointment) return 'حتماً عزیزم 💗 هنوز نوبتی برای اتصال این یادآوری پیدا نکردم. اول نوبت رو ثبت کن یا بگو یادآوری برای کدوم مشتریه.';
+      if (!appointment.dateKey) return 'نوبت رو پیدا کردم، اما تاریخش مشخص نیست؛ تاریخ همون نوبت رو کامل کن تا هشدار رو ذخیره کنم.';
+      appointment.reminderTime = reminderTime;
+      appointment.reminderNotified = false;
+      appointment.reminderEnabled = true;
+      saveData();
+      if (typeof renderCalendar === 'function') renderCalendar();
+      if (typeof renderDaySchedule === 'function') renderDaySchedule();
+      return 'چشم عزیزم 💗 هشدار این نوبت ذخیره شد و به خودِ نوبت وصلش کردم.\\n👩🏻 مشتری: ' +
+        (appointment.clientName || 'مشتری') + '\\n📅 تاریخ: ' + formatJalaliFull(appointment.dateKey) +
+        '\\n🔔 زمان هشدار: ' + reminderTime + '\\n💅 خدمت: ' + (appointment.service || 'خدمت') +
+        '\\nبا باز شدن برنامه در آن روز، هشدار در ساعت تعیین‌شده نمایش داده می‌شود.';
+    }
+    function checkMinaCustomReminders() {
+      const now = getIranNow(), todayKey = getTodayKey();
+      const nowTime = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+      (appData.appointments || []).forEach(appt => {
+        if (!appt || appt.status === 'canceled' || !appt.reminderEnabled ||
+            appt.reminderNotified || appt.dateKey !== todayKey || !appt.reminderTime ||
+            nowTime < appt.reminderTime) return;
+        appt.reminderNotified = true;
+        saveData();
+        const message = 'یادآوری نوبت ' + (appt.clientName || 'مشتری') +
+          ' برای ' + (appt.service || 'خدمت') + '، ساعت ' + (appt.time || '');
+        const textNode = document.getElementById('alarmRingingText');
+        const modal = document.getElementById('alarmRingingModal');
+        if (textNode && modal) {
+          textNode.textContent = message;
+          modal.classList.add('open');
+        } else showToast(message);
+        try {
+          if ('Notification' in window && Notification.permission === 'granted')
+            new Notification('یادآوری مینا 💗', { body: message, tag: 'mina-reminder-' + appt.id });
+        } catch (e) {}
+        try { playChime(); clearInterval(alarmInterval); alarmInterval = setInterval(playChime, 3500); } catch (e) {}
+      });
+    }
+    const minaBuildReplyBeforeReminder = minaBuildReply;
+    minaBuildReply = function(raw) {
+      const reminderReply = minaTrySetAppointmentReminder(raw);
+      if (reminderReply) return reminderReply;
+      return minaBuildReplyBeforeReminder(raw);
+    };
+
     function refreshSmartCalendarInsights() {
       const root=document.getElementById('calendarSmartInsights');
       if(!root)return;
@@ -4782,7 +4862,7 @@
     renderServicesTab();
     updateDashboardStats();
 
-    setInterval(() => { updateClockAndDate(); checkAlarms(); }, 1000);
+    setInterval(() => { updateClockAndDate(); checkAlarms(); checkMinaCustomReminders(); }, 1000);
 
     // --- AUTO-UPDATE ENGINE ---
     let swRegistration = null;
