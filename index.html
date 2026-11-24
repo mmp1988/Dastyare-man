@@ -4560,14 +4560,6 @@
           : 'تقویمت رو بررسی کردم؛ تداخل زمانی ثبت‌شده‌ای پیدا نکردم عزیزم 💗';
       }
 
-      if (/(?:این هفته|هفت روز آینده)/.test(normalized) && /(?:نوبت|برنامه|کار|مشتری|من)/.test(normalized)) {
-        const end=addDaysToJalaliKey(todayKey,6);
-        const week=all.filter(a=>a.dateKey>=todayKey&&a.dateKey<=end)
-          .sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
-          ? 'برنامه هفت روز آینده‌ات اینه عزیزم 🌸\n' + upcoming.slice(0,20).map(a => '• ' + formatJalaliFull(a.dateKey) + '، ' + (a.time || 'بدون ساعت') + ' — ' + (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت')).join('\n') + '\n\nمجموع: ' + toPersianDigits(upcoming.length) + ' نوبت'
-          : 'تا هفت روز آینده نوبتی ثبت نشده؛ وقت خوبیه برای برنامه‌ریزی 💗';
-      }
-
       if (/(?:حذف|پاک\s*کن|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر\s*(?:ساعت|زمان|تاریخ)|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized))) {
         return 'عزیزم برای اینکه هیچ نوبتی بدون تصمیم خودت تغییر نکنه، من فقط می‌تونم نوبت جدید ثبت کنم و برنامه رو نشون بدم 💗 برای ویرایش، لغو یا حذف، خودت از بخش تقویم روی دکمه ویرایش یا حذف بزن. همه‌چیز دست خودته 🌷';
       }
