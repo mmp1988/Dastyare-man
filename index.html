@@ -2721,14 +2721,6 @@
       } else appData.appointments.push(payload);
       var followupSel = document.getElementById('apptNextFollowup').value;
       var followupDays = followupSel === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value)||0) : (Number(followupSel)||0);
-      if (followupDays > 0) {
-        var nextDateKey = addDaysToJalaliKey(selectedDateKey,followupDays);
-        var followupConflict = hasAppointmentSlotConflict(nextDateKey, time, null);
-        if (!followupConflict) appData.appointments.push({
-          id:'appt_fu_'+Date.now(), dateKey:nextDateKey, time:time, clientName:clientName,
-          phone:payload.phone, clientId:payload.clientId || '', service:'ترمیم '+service, notes:'', alarm:'60', status:'pending', notified:false
-        });
-      }
       // Keep one linked follow-up per primary appointment; editing the primary updates it.
       if (!editId) payload.appointmentType = 'primary';
       var followupCreatedOrUpdated = false;
