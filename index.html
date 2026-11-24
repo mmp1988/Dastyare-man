@@ -2405,12 +2405,26 @@
       document.getElementById('customAlarmMinutesBox').style.display = document.getElementById('apptAlarm').value === 'custom' ? 'block' : 'none';
     }
 
+    // One salon time slot can belong to only one active appointment, regardless of entry path.
+    function normalizeAppointmentSlotTime(value) {
+      const raw = String(value || '').replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).trim();
+      const match = raw.match(/^(\\d{1,2}):(\\d{2})$/);
+      if (!match) return raw;
+      return String(Number(match[1])).padStart(2,'0') + ':' + match[2];
+    }
+    function hasAppointmentSlotConflict(dateKey, time, excludeId) {
+      const slot = normalizeAppointmentSlotTime(time);
+      if (!dateKey || !slot) return false;
+      return (appData.appointments || []).some(function(a) {
+        return a && a.id !== excludeId && a.dateKey === dateKey &&
+          a.status !== 'canceled' && normalizeAppointmentSlotTime(a.time) === slot;
+      });
+    }
+
     function checkTimeConflict() {
       var editId = document.getElementById('editApptId').value;
       var time = document.getElementById('apptTime').value;
-      var conflict = !!time && appData.appointments.some(function(a){
-        return a.dateKey === selectedDateKey && a.id !== editId && a.status !== 'canceled' && a.time === time;
-      });
+      var conflict = !!time && hasAppointmentSlotConflict(selectedDateKey, time, editId);
       var warning = document.getElementById('conflictWarningBox');
       warning.style.display = conflict ? 'block' : 'none';
       warning.textContent = conflict ? '⛔ این ساعت قبلاً برای مشتری دیگری رزرو شده؛ برای هیچ خدمت دیگری هم قابل ثبت نیست.' : '';
@@ -2480,9 +2494,7 @@
       if (!time) { showToast('ساعت نوبت را مشخص کن ⚠️'); return; }
       if (!service) { showToast('نوع خدمت یا کاری که قرار است انجام شود را بنویس ⚠️'); return; }
       var editId = document.getElementById('editApptId').value;
-      var conflict = appData.appointments.some(function(a){
-        return a.id !== editId && a.dateKey === selectedDateKey && a.time === time && a.status !== 'canceled';
-      });
+      var conflict = hasAppointmentSlotConflict(selectedDateKey, time, editId);
       if (conflict) { checkTimeConflict(); showToast('این ساعت از قبل رزرو شده است؛ مشتری دوم ثبت نشد. زمان دیگری انتخاب کن. ⛔'); return; }
       var alarmChoice = document.getElementById('apptAlarm').value;
       var customAlarm = Number(document.getElementById('apptCustomAlarmMinutes').value);
@@ -2505,7 +2517,7 @@
       var followupDays = followupSel === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value)||0) : (Number(followupSel)||0);
       if (followupDays > 0) {
         var nextDateKey = addDaysToJalaliKey(selectedDateKey,followupDays);
-        var followupConflict = appData.appointments.some(function(a){return a.id !== payload.id && a.dateKey === nextDateKey && a.time === time && a.status !== 'canceled';});
+        var followupConflict = hasAppointmentSlotConflict(nextDateKey, time, null);
         if (!followupConflict) appData.appointments.push({
           id:'appt_fu_'+Date.now(), dateKey:nextDateKey, time:time, clientName:clientName,
           phone:payload.phone, service:'ترمیم '+service, notes:'', alarm:'60', status:'pending', notified:false
@@ -3390,7 +3402,7 @@
       if (!dateKey) { showToast('ابتدا تاریخ شمسی نوبت را از تقویم انتخاب کن.'); return; }
       if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time || '')) { showToast('ساعت نوبت را دقیق انتخاب کن.'); return; }
       const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId && a.status !== 'canceled') : null;
-      const conflict = appData.appointments.some(a => a.id !== (editing && editing.id) && a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
+      const conflict = hasAppointmentSlotConflict(dateKey, time, editing && editing.id);
       if (conflict) { showToast('این ساعت قبلاً برای مشتری دیگری رزرو شده است؛ زمان دیگری انتخاب کن. ⛔'); return; }
       const alarmMinutes = Math.max(0,Math.min(43200,Number(document.getElementById('clientNextAlarm')?.value ?? 15)||0));
       const notes = (document.getElementById('clientNextNotes')?.value || '').trim();
@@ -4204,8 +4216,7 @@
           a.dateKey === p.dateKey && a.time === p.time &&
           String(a.clientName || '').trim() === p.clientName && a.status !== 'canceled');
         if (exists) return 'این نوبت با همین مشخصات از قبل ثبت شده بود؛ دوباره ثبتش نکردم 💗';
-        const conflict = (appData.appointments || []).some(a =>
-          a.dateKey === p.dateKey && a.time === p.time && a.status !== 'canceled');
+        const conflict = hasAppointmentSlotConflict(p.dateKey, p.time, null);
         if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
           id: 'appt_mina_' + Date.now(),
@@ -4376,7 +4387,7 @@
              a.clientName === 'نام درج نشده' || a.clientName === '⚠️ نام درج نشده (قابل تکمیل)')) &&
           String(a.service || '') === service);
         if (duplicate) return 'این نوبت با همین مشخصات از قبل ثبت شده عزیزم؛ تکراری ثبتش نکردم 💗';
-        const conflict = (appData.appointments || []).some(a => a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
+        const conflict = hasAppointmentSlotConflict(dateKey, time, null);
         if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
           id: 'appt_mina_' + Date.now(), createdBy: 'mina', source: 'mina', dateKey, time,
