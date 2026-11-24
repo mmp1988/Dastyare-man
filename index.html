@@ -1669,28 +1669,8 @@
           </div>
         </div>
         <div class="form-group">
-          <label>مبلغ کل (تومان)</label>
-          <input type="number" id="apptPrice" class="form-control" placeholder="۰" />
-        </div>
-        <div class="form-group">
-          <label>مبلغ بیعانه دریافتی (تومان)</label>
-          <input type="number" id="apptDeposit" class="form-control" placeholder="۰" />
-        </div>
-        <div class="form-group">
-          <label>درصد سهم سالن/همکار (٪)</label>
-          <input type="number" id="apptCommPercent" class="form-control" placeholder="۰" />
-        </div>
-        <div class="form-group">
-          <label>روش پرداخت</label>
-          <select id="apptPayMethod" class="form-control">
-            <option value="کارت‌به‌کارت">💳 کارت‌به‌کارت</option>
-            <option value="کارت‌خوان">🏧 کارت‌خوان</option>
-            <option value="نقدی">💵 نقدی</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label>زنگ هشدار یادآوری</label>
-          <select id="apptAlarm" class="form-control">
+          <select id="apptAlarm" class="form-control" onchange="updateAppointmentAlarmUI()">
             <option value="none">بدون زنگ هشدار</option>
             <option value="0">سرِ ساعت نوبت</option>
             <option value="5">۵ دقیقه قبل</option>
@@ -2451,14 +2431,14 @@
       appData.appointments = [];
       appData.notes = [];
       appData.todos = [];
-      appData.transactions = [];
+      // Keep legacy transaction data intact; accounting has been retired from the interface.
       appData.clientNotes = {};
       saveData();
       renderCalendar();
       renderDaySchedule();
       renderTodos();
       renderNotebook();
-      renderFinanceTab();
+      // Legacy financial records remain preserved locally; accounting is retired from the interface.
       renderClientsTab();
       showToast('همه موارد ثبت‌شده توسط شما پاک شد 🗑️');
     }
@@ -2803,18 +2783,18 @@
     }
 
     // ==================== CLIENTS & SERVICES ====================
+
     function addCustomService() {
       const name = document.getElementById('newServiceName').value.trim();
-      const price = Number(document.getElementById('newServicePrice').value) || 0;
-      const commPercent = Number(document.getElementById('newServiceComm').value) || 0;
       if (!name) { showToast('عنوان خدمت را بنویسید ⚠️'); return; }
-      appData.services.push({ id: 'srv_' + Date.now(), name, price, commPercent });
+      if (appData.services.some(s => String(s.name||'').trim().toLowerCase() === name.toLowerCase())) {
+        showToast('این خدمت قبلاً در فهرست وجود دارد.'); return;
+      }
+      appData.services.push({id:'srv_'+Date.now(),name});
       document.getElementById('newServiceName').value = '';
-      document.getElementById('newServicePrice').value = '';
-      document.getElementById('newServiceComm').value = '';
       saveData(); renderServicesTab(); showToast('خدمت جدید اضافه شد ✅');
     }
-    function deleteCustomService(id) {
+        function deleteCustomService(id) {
       if (!confirm('این خدمت از فهرست خدمات شما حذف شود؟')) return;
       appData.services = appData.services.filter(s => s.id !== id);
       saveData(); renderServicesTab();
@@ -3543,6 +3523,7 @@
         try { const url=await getClientPhotoUrl(img.getAttribute('data-photo-ref')); if(url)img.src=url; } catch(e) {}
       });
     }
+
     function saveClientNextAppointment() {
       const key = document.getElementById('clientRecordKey').value;
       if (!key) return;
@@ -3552,16 +3533,21 @@
       const service = document.getElementById('clientNextService').value.trim() || 'مراجعه بعدی';
       const dateKey = parseClientJalaliDate(dateValue);
       if (!dateKey) { showToast('تاریخ شمسی را درست وارد کن؛ نمونه: ۱۴۰۵/۰۹/۰۲'); return; }
-      const existing = appData.appointments.find(a => clientKeyFromFields(a.phone,a.clientName) === key && a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
-      if (existing) { showToast('برای این مشتری در همین تاریخ و ساعت نوبت ثبت شده است.'); return; }
-      appData.appointments.push({ id:'appt_'+Date.now(), dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''), service, price:0, deposit:0, commPercent:appData.settings.defaultComm || 0, payMethod:'کارت‌به‌کارت', alarm:'15', status:'pending', notified:false });
-      saveData(); renderCalendar(); renderDaySchedule(); renderClientsTab();
-      renderClientHistory(key);
+      const conflict = appData.appointments.some(a => a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
+      if (conflict) { showToast('این ساعت قبلاً برای مشتری دیگری رزرو شده است؛ زمان دیگری انتخاب کن. ⛔'); return; }
+      const alarmMinutes = Math.max(0,Math.min(43200,Number(document.getElementById('clientNextAlarm')?.value ?? 15)||0));
+      const notes = (document.getElementById('clientNextNotes')?.value || '').trim();
+      appData.appointments.push({
+        id:'appt_'+Date.now(), dateKey, time, clientName:p.name || key,
+        phone:p.phone || (key.match(/^\d/) ? key : ''), service, notes,
+        alarm:String(alarmMinutes), status:'pending', notified:false
+      });
+      saveData(); renderCalendar(); renderDaySchedule(); renderClientsTab(); renderClientHistory(key);
       const future = appData.appointments.filter(a => clientKeyFromFields(a.phone,a.clientName) === key && a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
       document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت شد: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time)+' — '+future.service : 'نوبتی ثبت نشده است.';
       showToast('نوبت بعدی در تقویم ثبت شد 📅');
     }
-    function buildClientShareText(key, onlyItem) {
+        function buildClientShareText(key, onlyItem) {
       const p = getClientProfile(key);
       const checked = id => { const el=document.getElementById(id); return !el || el.checked; };
       const lines = [];
@@ -3961,58 +3947,48 @@
     function testAlarmSound() { playChime(); showToast('🔔 صدای زنگ هشدار پخش شد'); }
     function stopAlarm() { clearInterval(alarmInterval); closeModal('alarmRingingModal'); }
 
+
     function checkAlarms() {
-      const now = getIranNow(), todayKey = getTodayKey();
-      const nowMin = now.getHours() * 60 + now.getMinutes();
-      appData.appointments.forEach(appt => {
-        if (appt.dateKey !== todayKey || appt.status === 'canceled' || appt.alarm === 'none' || appt.notified) return;
-        const [h, m] = (appt.time || '00:00').split(':').map(Number);
-        const reminderAt=(h*60+m)-Math.max(0,Number(appt.alarm)||0);
-        if (nowMin >= reminderAt && nowMin <= h*60+m) {
-          appt.notified = true; saveData();
-          const message=`یادآوری نوبت ${appt.clientName}، ساعت ${appt.time||''}`;
-          document.getElementById('alarmRingingText').textContent=message;
+      const now = getIranNow();
+      appData.appointments.forEach(function(appt) {
+        if (appt.status === 'canceled' || appt.alarm === 'none' || appt.notified || !appt.dateKey || !appt.time) return;
+        const parts = appt.dateKey.split('-').map(Number);
+        const gregorian = jalaliToGregorian(parts[0],parts[1],parts[2]);
+        const hm = appt.time.split(':').map(Number);
+        const appointmentAt = new Date(gregorian[0],gregorian[1]-1,gregorian[2],hm[0],hm[1],0,0);
+        const alarmMinutes = Math.max(0,Math.min(43200,Number(appt.alarm)||0));
+        const remindAt = appointmentAt.getTime() - alarmMinutes*60000;
+        if (now.getTime() >= remindAt && now.getTime() <= appointmentAt.getTime()) {
+          appt.notified = true;
+          saveData();
+          const message = 'یادآوری نوبت ' + (appt.clientName||'مشتری') + '، ساعت ' + (appt.time||'');
+          document.getElementById('alarmRingingText').textContent = message;
           document.getElementById('alarmRingingModal').classList.add('open');
-          try { if ('Notification' in window && Notification.permission==='granted') new Notification('دستیار من',{body:message,tag:'appt-'+appt.id}); } catch(e) {}
-          playChime(); clearInterval(alarmInterval);
-          alarmInterval = setInterval(playChime, 3500);
+          try { if ('Notification' in window && Notification.permission === 'granted') new Notification('دستیار من',{body:message,tag:'appt-'+appt.id}); } catch(e) {}
+          playChime(); clearInterval(alarmInterval); alarmInterval = setInterval(playChime,3500);
         }
       });
     }
 
-    function updateClockAndDate() {
+        function updateClockAndDate() {
       const now = getIranNow();
       const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
       document.getElementById('todayJalaliText').textContent = `امروز: ${WEEKDAY_NAMES[now.getDay()]} ${toPersianDigits(j[2])} ${JALALI_MONTHS[j[1] - 1]} ${toPersianDigits(j[0])}`;
       document.getElementById('iranClock').textContent = `${toPersianDigits(pad2(now.getHours()))}:${toPersianDigits(pad2(now.getMinutes()))}:${toPersianDigits(pad2(now.getSeconds()))}`;
     }
 
+
     function updateDashboardStats() {
       const todayKey = getTodayKey();
-      const monthPrefix = `${viewYear}-${pad2(viewMonth)}-`;
+      const monthPrefix = viewYear + '-' + pad2(viewMonth) + '-';
       const todayCount = appData.appointments.filter(a => a.dateKey === todayKey && a.status !== 'canceled').length;
       const monthCount = appData.appointments.filter(a => a.dateKey.startsWith(monthPrefix) && a.status !== 'canceled').length;
-      let monthNet = 0;
-      appData.transactions.filter(t => t.dateKey.startsWith(monthPrefix)).forEach(t => monthNet += Number(t.netAmount) || 0);
-
       document.getElementById('statTodayCount').textContent = toPersianDigits(todayCount);
       document.getElementById('statMonthCount').textContent = toPersianDigits(monthCount);
-      document.getElementById('statNetProfitMonth').textContent = formatMoney(monthNet);
-
-      const goal = Number(appData.settings.monthlyGoal) || 0;
-      const goalBox = document.getElementById('monthlyGoalBox');
-      if (goal > 0) {
-        goalBox.style.display = 'block';
-        const pct = Math.min(100, Math.max(0, Math.round((monthNet / goal) * 100)));
-        document.getElementById('goalProgressText').textContent = `${toPersianDigits(pct)}٪ (${formatMoney(monthNet)} از ${formatMoney(goal)} ت)`;
-        document.getElementById('goalProgressFill').style.width = `${pct}%`;
-      } else {
-        goalBox.style.display = 'none';
-      }
       if (typeof renderSmartDashboard === 'function') renderSmartDashboard();
     }
 
-    // ==================== BACKUP & NAVIGATION ==================
+        // ==================== BACKUP & NAVIGATION ==================
     function downloadBackupPayload(payload, suffix='') {
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -4150,7 +4126,6 @@
         }
       }
       if (tabName === 'notebook') { renderTodos(); renderNotebook(); }
-      if (tabName === 'finance') renderFinanceTab();
       if (tabName === 'clients') { renderClientsTab(); renderServicesTab(); }
       if (tabName === 'settings') { syncShareUrls(); }
       if (tabName === 'mina') { const inp=document.getElementById('minaInput'); if(inp) setTimeout(()=>inp.focus(),120); }
@@ -4288,6 +4263,7 @@
         if (exists) return 'این نوبت با همین مشخصات از قبل ثبت شده بود؛ دوباره ثبتش نکردم 💗';
         const conflict = (appData.appointments || []).some(a =>
           a.dateKey === p.dateKey && a.time === p.time && a.status !== 'canceled');
+        if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
           id: 'appt_mina_' + Date.now(),
           createdBy: 'mina', source: 'mina',
@@ -4308,7 +4284,7 @@
         saveData();
         if (typeof renderCalendar === 'function') renderCalendar();
         if (typeof renderDaySchedule === 'function') renderDaySchedule();
-        if (typeof renderFinanceTab === 'function') renderFinanceTab();
+        
         const warning = conflict ? '\n⚠️ در این ساعت نوبت دیگری هم داری؛ لطفاً تقویم را بررسی کن.' : '';
         return 'یوهوو! نوبت با موفقیت ثبت شد ' + greeting + ' 🌸\n' +
           '👩🏻 مشتری: ' + p.clientName + '\n📅 تاریخ: ' + formatJalaliFull(p.dateKey) +
@@ -4475,7 +4451,7 @@
         saveData();
         if (typeof renderCalendar === 'function') renderCalendar();
         if (typeof renderDaySchedule === 'function') renderDaySchedule();
-        if (typeof renderFinanceTab === 'function') renderFinanceTab();
+
         return 'انجام شد عزیزم 🌸 نوبتت ثبت شد!' +
           (clientName ? '\n👩🏻 مشتری: ' + clientName : '\n👩🏻 مشتری: بدون نام؛ هر وقت خواستی تکمیلش کن') +
           '\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\n⏰ ساعت: ' + time +
@@ -4498,12 +4474,6 @@
           today.map((a, i) => (i + 1) + ') ' + (a.time || 'بدون ساعت') + ' — ' +
             (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت ثبت‌نشده')).join('\n') +
           '\n\nدر مجموع ' + today.length + ' نوبت داری.';
-      }
-      if (/این هفته/.test(t) && /درآمد|فروش|پول|دریافتی/.test(t)) {
-        const from = addDaysToJalaliKey(todayKey, -6);
-        const total = (appData.transactions || []).filter(x => x.type === 'income' && x.dateKey >= from && x.dateKey <= todayKey)
-          .reduce((n, x) => n + (Number(x.amount) || 0), 0);
-        return 'در هفت روز اخیر، مجموع درآمدهای ثبت‌شده‌ات ' + formatMoney(total) + ' تومان بوده عزیزم 💕';
       }
       if (/ترمیم|موعد|سررسید/.test(t)) {
         const due = (appData.appointments || []).filter(a => a.status !== 'canceled' &&
@@ -4533,7 +4503,7 @@
       }
       if (/سلام|درود|خوبی|چه خبر|چطوری/.test(t)) return 'سلام خوشگلم! چه خوب که اومدی 💗 بگو ببینم امروز چه کاری رو با هم انجام بدیم؟ 🌸';
       if (/مواد|انبار|رو به اتمام|تموم شده/.test(t)) return 'عزیزم بخش موجودی مواد هنوز فعال نیست؛ نمی‌خوام چیزی رو حدس بزنم. فعلاً حواسم به یادداشت‌ها، کارها و نوبت‌هاته 🌷';
-      return 'من مینام، دستیار سبک و همراهتم 💗 می‌تونم نوبت ثبت کنم، یادداشت و کار به فهرستت اضافه کنم، برنامه و درآمد ثبت‌شده رو نشون بدم و موعد ترمیم‌ها رو پیدا کنم.\nمثلاً بگو: «برای نازنین فردا ساعت ۴ نوبت اکستنشن ثبت کن»، «یادداشت کن به سارا زنگ بزنم» یا «این کار رو به لیستم اضافه کن: خرید مواد» 🌷';
+      return 'من مینام، دستیار سبک و همراهتم 💗 می‌تونم نوبت ثبت کنم، یادداشت و کار به فهرستت اضافه کنم، برنامه نوبت‌ها، سوابق مشتری‌ها و یادداشت‌هات رو مدیریت کنم و موعد ترمیم‌ها رو پیدا کنم.\nمثلاً بگو: «برای نازنین فردا ساعت ۴ نوبت اکستنشن ثبت کن»، «یادداشت کن به سارا زنگ بزنم» یا «این کار رو به لیستم اضافه کن: خرید مواد» 🌷';
     }
     function sendMinaMessage() {
       const input = document.getElementById('minaInput');
@@ -4851,7 +4821,7 @@
             <div class="stats-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
               <div class="stat-card"><div class="stat-val" id="smartTodayPending">۰</div><div class="stat-lbl">نوبت در انتظار</div></div>
               <div class="stat-card"><div class="stat-val" id="smartTodayDone">۰</div><div class="stat-lbl">خدمات انجام‌شده</div></div>
-              <div class="stat-card"><div class="stat-val" id="smartTodayIncome">۰</div><div class="stat-lbl">دریافتی امروز (تومان)</div></div>
+              <div class="stat-card"><div class="stat-val" id="smartTodayClients">۰</div><div class="stat-lbl">مشتری امروز</div></div>
               <div class="stat-card"><div class="stat-val" id="smartUpcoming">۰</div><div class="stat-lbl">نوبت‌های ۷ روز آینده</div></div>
             </div>
             <div style="font-size:.8rem;font-weight:800;margin:8px 0;color:var(--accent);">⏰ نزدیک‌ترین نوبت‌ها و یادآورها</div>
@@ -4889,13 +4859,13 @@
       const today=getTodayKey(), now=getIranNow(), nowMin=now.getHours()*60+now.getMinutes();
       const todays=appData.appointments.filter(a=>a.dateKey===today && a.status!=='canceled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
       const pending=todays.filter(a=>a.status!=='done').length, done=todays.filter(a=>a.status==='done').length;
-      const income=appData.transactions.filter(t=>t.dateKey===today && t.type==='income').reduce((n,t)=>n+(Number(t.amount)||0),0);
+      const uniqueClients = new Set(todays.map(a => String(a.phone || a.clientName || '').trim()).filter(Boolean)).size;
       const limit=addDaysToJalaliKey(today,7);
       const upcoming=appData.appointments.filter(a=>a.status!=='canceled' && a.dateKey>=today && a.dateKey<=limit).sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
       document.getElementById('smartDashDate').textContent=formatJalaliFull(today);
       document.getElementById('smartTodayPending').textContent=toPersianDigits(pending);
       document.getElementById('smartTodayDone').textContent=toPersianDigits(done);
-      document.getElementById('smartTodayIncome').textContent=formatMoney(income);
+      document.getElementById('smartTodayClients').textContent=toPersianDigits(uniqueClients);
       document.getElementById('smartUpcoming').textContent=toPersianDigits(upcoming.length);
       const list=document.getElementById('smartUpcomingList');
       if(!upcoming.length){list.innerHTML='<div style="font-size:.78rem;color:var(--text-secondary);padding:8px;">در هفت روز آینده نوبتی ثبت نشده است.</div>';return;}
