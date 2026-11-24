@@ -5238,7 +5238,11 @@
           '! 🥹💗 منم با کلی انرژی و محبت کنارتم؛ بگو ببینم چه خبر؟';
       }
 
-      const hasClock = /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/.test(normalized) || /(?:ساعت\s*)?\d{1,2}\s*(?:و\s*)\d{1,2}\s*دقیقه/.test(normalized) || /(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized) || /(?:یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه)\s*(?:به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)/.test(normalized);
+      const hasClock = !!minaParseReminderClock(expandedRaw) ||
+        /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/.test(normalized) ||
+        /(?:ساعت\s*)?\d{1,2}\s*(?:و\s*)\d{1,2}\s*دقیقه/.test(normalized) ||
+        /(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized) ||
+        /(?:یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه)\s*(?:به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)/.test(normalized);
       const isBookingIntent = (/(?:نوبت|رزرو|وقت)/.test(normalized) ||
         (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) && /(?:برای|خدمت)/.test(normalized))) &&
         /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
@@ -5354,13 +5358,28 @@
       const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled');
       if (!active.length) return null;
       const nameMatch = text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
+      let candidates = active;
       if (nameMatch) {
-        const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(nameMatch[1]));
-        if (named.length === 1) return named[0];
-        if (named.length > 1) return named.sort((a,b)=>(b.dateKey||'').localeCompare(a.dateKey||''))[0];
+        candidates = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(nameMatch[1]));
+        if (!candidates.length) return null;
       }
-      // The most recently added appointment is the natural referent of «این نوبت».
-      return active[active.length - 1];
+      const relativeDate = text.match(/پس\s*فردا|پسفردا|فردا|امروز/u);
+      if (relativeDate) {
+        const key = /پس\s*فردا|پسفردا/u.test(relativeDate[0])
+          ? addDaysToJalaliKey(getTodayKey(), 2)
+          : /فردا/u.test(relativeDate[0])
+            ? addDaysToJalaliKey(getTodayKey(), 1)
+            : getTodayKey();
+        const dated = candidates.filter(a => a.dateKey === key);
+        if (dated.length) candidates = dated;
+        else return null;
+      }
+      if (candidates.length === 1) return candidates[0];
+      if (/(?:این\s+نوبت|همین\s+نوبت|آخرین\s+نوبت|نوبت\s+قبلی|همون\s+نوبت)/u.test(text)) {
+        return candidates[candidates.length - 1] || null;
+      }
+      // Never attach a reminder to an arbitrary booking when several are possible.
+      return null;
     }
     function minaTrySetAppointmentReminder(raw) {
       const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
@@ -5435,42 +5454,48 @@
       const selectable = isDelete ? allAppointments : active;
       if (!selectable.length) return 'عزیزم هیچ نوبتی برای این کار پیدا نکردم 🌷';
 
-      // Resolve an explicit customer first, then the last Mina-created booking
-      // for phrases such as «نوبت مینا رو تغییر بده».
+      // Resolve the customer against the same set that the requested action may affect.
       const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به|انجام|حذف|پاک|کنسل|لغو|تموم)/u) ||
         text.match(/(?:کنسل|لغو|حذف|پاک)\s+(?:کردن\s+)?(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})/u) ||
         text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
       let candidates = selectable.slice();
       if (nameMatch) {
         const wanted = minaCleanText(nameMatch[1]).toLowerCase();
-        const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
+        const named = selectable.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
         if (named.length) candidates = named;
         else if (/مینا/u.test(wanted)) {
-          const minaItems = active.filter(minaIsAssistantAppointment);
+          const minaItems = selectable.filter(minaIsAssistantAppointment);
           if (minaItems.length) candidates = [minaItems[minaItems.length - 1]];
+          else return 'نوبتی که با دستیار مینا ثبت شده باشد پیدا نکردم؛ هیچ تغییری ندادم 💗';
+        } else {
+          return 'برای «' + nameMatch[1] + '» نوبتی پیدا نکردم؛ هیچ نوبت دیگری را تغییر ندادم عزیزم 💗';
         }
       }
-      if (/فردا/u.test(text)) {
-        const key = addDaysToJalaliKey(getTodayKey(),1);
-        const found = candidates.filter(a => a.dateKey === key);
-        if (found.length) candidates = found;
-      } else if (/پس\s*فردا|پسفردا/u.test(text)) {
-        const key = addDaysToJalaliKey(getTodayKey(),2);
-        const found = candidates.filter(a => a.dateKey === key);
-        if (found.length) candidates = found;
-      } else if (/امروز/u.test(text)) {
-        const found = candidates.filter(a => a.dateKey === getTodayKey());
-        if (found.length) candidates = found;
+
+      // A date after a move verb is the destination, not the identity of the old booking.
+      const dateMatch = text.match(/پس\s*فردا|پسفردا|فردا|امروز/u);
+      const moveVerb = text.match(/تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز|بکنش|بچرخون/u);
+      const dateIdentifiesOldBooking = dateMatch && (!isMove || !moveVerb || dateMatch.index < moveVerb.index);
+      if (dateIdentifiesOldBooking) {
+        const key = /پس\s*فردا|پسفردا/u.test(dateMatch[0])
+          ? addDaysToJalaliKey(getTodayKey(),2)
+          : /فردا/u.test(dateMatch[0])
+            ? addDaysToJalaliKey(getTodayKey(),1)
+            : getTodayKey();
+        candidates = candidates.filter(a => a.dateKey === key);
+        if (!candidates.length) return 'برای این مشتری در تاریخی که گفتی نوبتی پیدا نکردم؛ هیچ تغییری انجام ندادم 💗';
       }
       if (candidates.length > 1 && nameMatch) {
         const exact = candidates.filter(a => minaCleanText(a.clientName || '').toLowerCase() === minaCleanText(nameMatch[1]).toLowerCase());
         if (exact.length === 1) candidates = exact;
       }
-      if (candidates.length > 1 && !nameMatch) {
-        if (/(?:این\s+نوبت|همین\s+نوبت|آخرین\s+نوبت|نوبت\s+قبلی|همون\s+نوبت)/u.test(text)) {
+      if (candidates.length > 1) {
+        if (!nameMatch && /(?:این\s+نوبت|همین\s+نوبت|آخرین\s+نوبت|نوبت\s+قبلی|همون\s+نوبت)/u.test(text)) {
           candidates = [candidates[candidates.length - 1]];
         } else {
-          return 'چند نوبت فعال دارم عزیزم؛ اسم مشتری یا تاریخ نوبت رو بگو تا دقیقاً همون رو تغییر بدم 💗';
+          return nameMatch
+            ? 'برای «' + nameMatch[1] + '» چند نوبت پیدا کردم؛ تاریخ یا ساعت نوبت رو هم بگو تا اشتباهی تغییر ندم 💗'
+            : 'چند نوبت فعال دارم عزیزم؛ اسم مشتری یا تاریخ نوبت رو بگو تا دقیقاً همون رو تغییر بدم 💗';
         }
       }
       if (candidates.length !== 1) return 'نوبت موردنظرت رو با این مشخصات پیدا نکردم؛ اسم مشتری یا تاریخش رو بگو عزیزم 🌷';
