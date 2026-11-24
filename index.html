@@ -1070,21 +1070,6 @@
           <div class="stat-val" id="statMonthCount">۰</div>
           <div class="stat-lbl">نوبت‌های این ماه</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-val" id="statNetProfitMonth" style="color:var(--success);">۰</div>
-          <div class="stat-lbl">سود خالص ماه (ت)</div>
-        </div>
-      </div>
-
-      <!-- Monthly Goal Progress -->
-      <div class="goal-card" id="monthlyGoalBox" style="display:none;">
-        <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:700;">
-          <span>🎯 پیشرفت هدف سود ماهانه</span>
-          <span id="goalProgressText" style="color:var(--accent);">۰٪</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" id="goalProgressFill" style="width:0%;"></div>
-        </div>
       </div>
 
       <div class="card">
@@ -1107,7 +1092,7 @@
         <div class="section-head" style="padding-bottom:9px; border-bottom:1px solid var(--border-subtle);">
           <div>
             <div class="section-title" id="selectedDateLabel">برنامه روز انتخاب‌شده</div>
-            <div style="font-size:0.74rem; color:var(--text-secondary);" id="selectedDaySummary">جمع دریافتی: ۰ تومان</div>
+            <div style="font-size:0.74rem; color:var(--text-secondary);" id="selectedDaySummary">مشتریان و خدمات ثبت‌شده در این روز</div>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button class="btn-secondary" id="toggleFollowupFilterBtn" onclick="toggleFollowupOnlyView()">🔁 نوبت‌های ترمیم</button>
@@ -1123,8 +1108,7 @@
                 <th>ساعت</th>
                 <th>نام مشتری</th>
                 <th>نوع کار</th>
-                <th>مبلغ / مانده</th>
-                <th>هشدار</th>
+<th>هشدار</th>
                 <th>وضعیت</th>
                 <th>عملیات</th>
               </tr>
@@ -1172,117 +1156,6 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 3: FINANCE & PROFIT CALCULATOR ==================== -->
-    <section id="tab-finance" class="tab-section">
-      <div class="card">
-        <div class="section-head">
-          <div class="section-title">💰 حسابداری، درآمد و محاسبه سود</div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-secondary" onclick="openFinanceModal('expense')">➖ هزینه</button>
-            <button class="btn-primary" onclick="openFinanceModal('income')">➕ درآمد</button>
-          </div>
-        </div>
-
-        <div class="filter-pills">
-          <button class="filter-pill active" onclick="setFinancePeriod('month', this)">این ماه شمسی</button>
-          <button class="filter-pill" onclick="setFinancePeriod('today', this)">امروز</button>
-          <button class="filter-pill" onclick="setFinancePeriod('all', this)">کل سوابق</button>
-        </div>
-
-        <div style="background:var(--bg-secondary); border:1px solid var(--border-subtle); border-radius:13px; padding:8px 11px; margin-bottom:11px; font-size:0.75rem; color:var(--text-secondary);" id="finSourceBreakdown">
-          سود نوبت‌های انجام‌شده: ۰ ت • سود ثبت دستی: ۰ ت
-        </div>
-        <div class="finance-hero">
-          <div class="fin-kpi">
-            <div class="fin-kpi-title">کل پول دریافتی (ناخالص)</div>
-            <div class="fin-kpi-val" style="color:var(--info);" id="finGrossIncome">۰ تومان</div>
-            <div class="fin-kpi-sub" id="finIncomeCount">۰ تراکنش</div>
-          </div>
-          <div class="fin-kpi">
-            <div class="fin-kpi-title">درصد پرداختی (سهم سالن/همکار)</div>
-            <div class="fin-kpi-val" style="color:var(--warning);" id="finTotalCommission">۰ تومان</div>
-            <div class="fin-kpi-sub">کسرشده از درآمدها</div>
-          </div>
-          <div class="fin-kpi">
-            <div class="fin-kpi-title">سایر هزینه‌ها</div>
-            <div class="fin-kpi-val" style="color:var(--danger);" id="finTotalExpenses">۰ تومان</div>
-            <div class="fin-kpi-sub" id="finExpenseCount">۰ مورد هزینه</div>
-          </div>
-          <div class="fin-kpi highlight">
-            <div class="fin-kpi-title">✨ سود خالص نهایی شما</div>
-            <div class="fin-kpi-val" style="color:var(--success);" id="finNetProfit">۰ تومان</div>
-            <div class="fin-kpi-sub" id="finProfitMargin">حاشیه سود: ۰٪</div>
-          </div>
-        </div>
-
-        <!-- Payment Method Breakdown -->
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:13px; text-align:center;">
-          <div style="background:var(--bg-input); padding:8px; border-radius:12px; font-size:0.73rem;">
-            <div style="color:var(--text-secondary);">💳 کارت‌به‌کارت</div>
-            <div style="font-weight:800; margin-top:2px;" id="payCardTotal">۰ ت</div>
-          </div>
-          <div style="background:var(--bg-input); padding:8px; border-radius:12px; font-size:0.73rem;">
-            <div style="color:var(--text-secondary);">🏧 کارت‌خوان</div>
-            <div style="font-weight:800; margin-top:2px;" id="payPosTotal">۰ ت</div>
-          </div>
-          <div style="background:var(--bg-input); padding:8px; border-radius:12px; font-size:0.73rem;">
-            <div style="color:var(--text-secondary);">💵 نقدی</div>
-            <div style="font-weight:800; margin-top:2px;" id="payCashTotal">۰ ت</div>
-          </div>
-        </div>
-
-        <!-- Quick Percentage Calculator -->
-        <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:16px; padding:11px; margin-bottom:13px;">
-          <div style="font-size:0.8rem; font-weight:800; color:var(--accent); margin-bottom:7px;">🧮 ماشین‌حساب فوری درصد و سهم</div>
-          <div class="form-grid" style="margin-bottom:7px;">
-            <div class="form-group" style="margin-bottom:0;">
-              <label>مبلغ دریافتی (تومان)</label>
-              <input type="number" id="quickCalcAmount" class="form-control" placeholder="مثلاً: 1500000" oninput="runQuickCalc()" />
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label>درصد کسری / سهم سالن (٪)</label>
-              <input type="number" id="quickCalcPercent" class="form-control" placeholder="مثلاً: 30" oninput="runQuickCalc()" />
-            </div>
-          </div>
-          <div class="split-preview-box" style="margin-bottom:0;">
-            <div>
-              <div class="split-item-lbl">درصد پرداختی</div>
-              <div class="split-item-val" style="color:var(--warning);" id="qcCommissionVal">۰ ت</div>
-            </div>
-            <div>
-              <div class="split-item-lbl">سهم خالص شما</div>
-              <div class="split-item-val" style="color:var(--success);" id="qcNetVal">۰ ت</div>
-            </div>
-            <div>
-              <div class="split-item-lbl">درصد سهم شما</div>
-              <div class="split-item-val" style="color:var(--accent);" id="qcMyPercentVal">۱۰۰٪</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Ledger Header & Excel Export -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:0.83rem; font-weight:800;">📊 ریز تراکنش‌های مالی</span>
-          <button class="btn-secondary" style="padding:6px 10px; font-size:0.75rem;" onclick="exportFinanceCSV()">📥 خروجی اکسل (CSV)</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>تاریخ</th>
-                <th>شرح / روش پرداخت</th>
-                <th>مبلغ کل</th>
-                <th>درصد داده‌شده</th>
-                <th>سود خالص</th>
-                <th>حذف</th>
-              </tr>
-            </thead>
-            <tbody id="financeLedgerBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
     <!-- ==================== TAB 4: CLIENTS & CUSTOM SERVICES ==================== -->
     <section id="tab-clients" class="tab-section">
       <div class="card">
@@ -1305,15 +1178,7 @@
             <label>عنوان خدمت</label>
             <input type="text" id="newServiceName" class="form-control" placeholder="عنوان خدمت دلخواه..." />
           </div>
-          <div class="form-group">
-            <label>قیمت پیش‌فرض (تومان)</label>
-            <input type="number" id="newServicePrice" class="form-control" placeholder="۰" />
-          </div>
-          <div class="form-group">
-            <label>درصد سالن/همکار (٪)</label>
-            <input type="number" id="newServiceComm" class="form-control" placeholder="۰" />
-          </div>
-          <div class="form-group full" style="margin-bottom:0;">
+<div class="form-group full" style="margin-bottom:0;">
             <button class="btn-primary" style="width:100%;" onclick="addCustomService()">➕ افزودن خدمت</button>
           </div>
         </div>
@@ -1524,7 +1389,6 @@
   <!-- Floating Quick Action Button -->
   <div class="fab-menu" id="fabMenu">
     <button class="btn-primary" onclick="toggleFabMenu(); openApptModal();">📅 ثبت نوبت سریع</button>
-    <button class="btn-primary" onclick="toggleFabMenu(); openFinanceModal('income');">💰 ثبت درآمد سریع</button>
     <button class="btn-primary" onclick="toggleFabMenu(); openNoteModal();">📒 یادداشت سریع</button>
   </div>
   <button class="fab-btn" onclick="toggleFabMenu()" title="دسترسی سریع">+</button>
@@ -1539,10 +1403,6 @@
       <button class="nav-item" onclick="switchTab('notebook', this)">
         <span class="nav-icon">📒</span>
         <span>یادداشت‌ها</span>
-      </button>
-      <button class="nav-item" onclick="switchTab('finance', this)">
-        <span class="nav-icon">💰</span>
-        <span>درآمد و سود</span>
       </button>
       <button class="nav-item" onclick="switchTab('clients', this)">
         <span class="nav-icon">👥</span>
@@ -1676,8 +1536,8 @@
               <div id="clientWorkFieldDefinitions" style="display:flex;flex-direction:column;gap:6px;"></div>
             </div>
           </div>
-          <div class="form-group">
-            <label>مبلغ دریافت‌شده (تومان) — اختیاری</label>
+          <div class="form-group" style="display:none;">
+            <label>مبلغ دریافت‌شده (اطلاعات قدیمی)</label>
             <input type="number" min="0" id="clientWorkPrice" class="form-control" inputmode="numeric" placeholder="مثلاً ۸۰۰۰۰۰" />
           </div>
           <div class="form-group full">
@@ -1757,8 +1617,7 @@
           <div id="shareClientProfileFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <div id="shareClientWorkFieldsList" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;"></div>
           <label><input type="checkbox" id="shareClientHistory" checked /> سوابق خدمات</label>
-          <label><input type="checkbox" id="shareClientPrices" checked /> قیمت‌ها</label>
-          <label><input type="checkbox" id="shareClientPhotos" checked /> ارسال عکس‌ها</label>
+<label><input type="checkbox" id="shareClientPhotos" checked /> ارسال عکس‌ها</label>
           <label><input type="checkbox" id="shareClientProfilePhoto" checked /> عکس پروفایل مشتری</label>
           <label><input type="checkbox" id="shareClientWorkPhotos" checked /> عکس‌های قبل، بعد و کار</label>
           <label><input type="checkbox" id="shareClientNext" /> نوبت بعدی</label>
@@ -1838,7 +1697,16 @@
             <option value="15" selected>۱۵ دقیقه قبل</option>
             <option value="30">۳۰ دقیقه قبل</option>
             <option value="60">۱ ساعت قبل</option>
+            <option value="custom">زمان دلخواه (دقیقه قبل)</option>
           </select>
+        </div>
+        <div class="form-group" id="customAlarmMinutesBox" style="display:none;">
+          <label>چند دقیقه قبل از نوبت هشدار بدهم؟</label>
+          <input type="number" id="apptCustomAlarmMinutes" class="form-control" min="0" max="43200" step="1" value="15" placeholder="مثلاً ۴۵ یا ۱۲۰" />
+        </div>
+        <div class="form-group full">
+          <label>یادداشت و توضیحات نوبت</label>
+          <textarea id="apptNotes" class="form-control" rows="3" placeholder="توضیحات دلخواه درباره مشتری، نوع کار یا نکات لازم..."></textarea>
         </div>
         <div class="form-group">
           <label>رزرو خودکار نوبت ترمیم بعدی</label>
@@ -1861,7 +1729,7 @@
           <label>وضعیت نوبت</label>
           <select id="apptStatus" class="form-control">
             <option value="pending">در انتظار مراجعه</option>
-            <option value="done">انجام شد (ثبت خودکار در درآمد و سود)</option>
+            <option value="done">خدمت انجام شد</option>
             <option value="canceled">لغو شد</option>
           </select>
         </div>
@@ -1919,63 +1787,6 @@
       <div style="display:flex; gap:8px;">
         <button class="btn-primary" style="flex:1;" onclick="saveNote()">✅ ذخیره یادداشت</button>
         <button class="btn-secondary" onclick="closeModal('noteModal')">انصراف</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL 3: FINANCE ==================== -->
-  <div class="modal-backdrop" id="financeModal">
-    <div class="modal-box">
-      <div class="modal-head">
-        <div class="modal-title" id="finModalTitle">ثبت تراکنش مالی</div>
-        <button class="icon-btn" onclick="closeModal('financeModal')">✕</button>
-      </div>
-      <input type="hidden" id="finTypeInput" value="income" />
-      <div class="form-group">
-        <label id="finTitleLabel">شرح درآمد / نام مشتری *</label>
-        <input type="text" id="finTitleInput" class="form-control" placeholder="شرح..." />
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label id="finAmountLabel">مبلغ کل (تومان) *</label>
-          <input type="number" id="finAmountInput" class="form-control" placeholder="۰" oninput="updateFinModalPreview()" />
-        </div>
-        <div class="form-group" id="finCommGroup">
-          <label>درصد سالن/همکار (٪)</label>
-          <input type="number" id="finCommInput" class="form-control" placeholder="مثلاً: 30" oninput="updateFinModalPreview()" />
-        </div>
-      </div>
-      <div class="split-preview-box" id="finModalPreviewBox">
-        <div>
-          <div class="split-item-lbl">کل پول دریافتی</div>
-          <div class="split-item-val" style="color:var(--info);" id="prevGross">۰ ت</div>
-        </div>
-        <div>
-          <div class="split-item-lbl">درصد پرداختی</div>
-          <div class="split-item-val" style="color:var(--warning);" id="prevComm">۰ ت</div>
-        </div>
-        <div>
-          <div class="split-item-lbl">سود خالص شما</div>
-          <div class="split-item-val" style="color:var(--success);" id="prevNet">۰ ت</div>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>روش پرداخت</label>
-          <select id="finPayMethodInput" class="form-control">
-            <option value="کارت‌به‌کارت">💳 کارت‌به‌کارت</option>
-            <option value="کارت‌خوان">🏧 کارت‌خوان</option>
-            <option value="نقدی">💵 نقدی</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>یادداشت (اختیاری)</label>
-          <input type="text" id="finNoteInput" class="form-control" placeholder="توضیحات..." />
-        </div>
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn-primary" style="flex:1;" onclick="saveFinanceTx()">✅ ثبت در حسابداری</button>
-        <button class="btn-secondary" onclick="closeModal('financeModal')">انصراف</button>
       </div>
     </div>
   </div>
