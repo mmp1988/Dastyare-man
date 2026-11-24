@@ -381,6 +381,20 @@ const assert = require('assert');
       const weekOk = typeof weekReply === 'string' && (weekReply.includes('برنامه هفت روز آینده') || weekReply.includes('نوبتی ثبت نشده'));
       return { cancelOk, doneOk, deleteOk, cancelVerbOk, moveOk, unnamedMoveOk, exactMinuteOk, minuteMoveOk, relativeMoveOk, dateMoveOk, moveReply, unnamedMoveReply, minuteMoveReply, relativeMoveReply, dateMoveReply, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, deleteReply };
     });
+    const spokenClockUpgrade = await page.evaluate(() => ({
+      spokenHourMinute: minaParseReminderClock('ساعت پانزده و چهل و سه دقیقه'),
+      spokenRelativeBefore: minaParseReminderClock('بیست دقیقه به سه بعدازظهر'),
+      spokenRelativeAfter: minaParseReminderClock('هفت دقیقه بعد از سه بعدازظهر'),
+      midnight: minaParseReminderClock('دوازده شب'),
+      invalidMinute: minaParseReminderClock('ساعت ۱۳:۶۰')
+    }));
+    assert(spokenClockUpgrade.spokenHourMinute === '15:43', 'Mina must parse Persian number words for exact hour/minute values');
+    assert(spokenClockUpgrade.spokenRelativeBefore === '14:40', 'Mina must parse spoken minute offsets before an afternoon hour');
+    assert(spokenClockUpgrade.spokenRelativeAfter === '15:07', 'Mina must parse spoken minute offsets after an afternoon hour');
+    assert(spokenClockUpgrade.midnight === '00:00', 'Mina must interpret twelve at night as midnight');
+    assert.strictEqual(spokenClockUpgrade.invalidMinute, null, 'Mina must reject invalid minute values without changing appointments');
+    console.log('Mina spoken clock upgrade:', JSON.stringify(spokenClockUpgrade));
+
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
     assert(minaActionsResult.cancelOk && minaActionsResult.doneOk && minaActionsResult.deleteOk && minaActionsResult.cancelVerbOk && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.exactMinuteOk && minaActionsResult.minuteMoveOk && minaActionsResult.relativeMoveOk && minaActionsResult.dateMoveOk && minaActionsResult.weekOk,
       'Mina must edit exact minutes and dates, cancel/delete/complete only the selected appointment, and preserve weekly reading');
