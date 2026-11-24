@@ -36,7 +36,10 @@ public class PersonalReminderReceiver extends BroadcastReceiver {
             item.put("at", atMillis);
             item.put("message", message == null ? "" : message);
             next.put(item);
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(ITEMS, next.toString()).apply();
+            android.content.SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            java.util.Set<String> fired = new java.util.HashSet<>(prefs.getStringSet("fired", new java.util.HashSet<>()));
+            fired.remove(id);
+            prefs.edit().putString(ITEMS, next.toString()).putStringSet("fired", fired).apply();
             scheduleSystemAlarm(context, id, atMillis, message);
         } catch (Exception ignored) { }
     }
@@ -53,6 +56,11 @@ public class PersonalReminderReceiver extends BroadcastReceiver {
             }
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(ITEMS, next.toString()).apply();
         } catch (Exception ignored) { }
+    }
+
+    public static boolean wasFired(Context context, String id) {
+        if (id == null) return false;
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet("fired", new java.util.HashSet<>()).contains(id);
     }
 
     private static JSONArray readItems(Context context) {
@@ -116,6 +124,10 @@ public class PersonalReminderReceiver extends BroadcastReceiver {
         String id = intent.getStringExtra("id");
         String message = intent.getStringExtra("message");
         if (id == null) return;
+        android.content.SharedPreferences firedPrefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        java.util.Set<String> firedIds = new java.util.HashSet<>(firedPrefs.getStringSet("fired", new java.util.HashSet<>()));
+        firedIds.add(id);
+        firedPrefs.edit().putStringSet("fired", firedIds).apply();
         cancel(context, id);
         try {
             if (Build.VERSION.SDK_INT >= 33
