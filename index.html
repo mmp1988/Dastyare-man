@@ -2821,7 +2821,7 @@
       container.innerHTML = appData.services.map(function(service){
         return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);padding:9px 12px;border-radius:13px;border:1px solid var(--border-subtle);">'+
           '<div style="font-weight:700;font-size:.88rem;">'+escapeClientText(service.name)+'</div>'+
-          '<div class="action-row"><button class="mini-btn" onclick="editCustomService(\\''+service.id+'\\')">✏️ ویرایش</button><button class="mini-btn del" onclick="deleteCustomService(\\''+service.id+'\\')">🗑️ حذف</button></div></div>';
+          '<div class="action-row"><button class="mini-btn" onclick="editCustomService(\''+service.id+'\')">✏️ ویرایش</button><button class="mini-btn del" onclick="deleteCustomService(\''+service.id+'\')">🗑️ حذف</button></div></div>';
       }).join('');
     }
 
