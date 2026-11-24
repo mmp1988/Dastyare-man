@@ -2867,10 +2867,12 @@
       const c = document.getElementById('clientsListContainer');
       const map = {};
       appData.appointments.forEach(a => {
-        const key = clientKeyFromFields(a.phone, a.clientName);
+        const key = findClientProfileKeyForAppointment(a) || clientKeyFromFields(a.phone, a.clientName);
         if (!key) return;
-        if (!map[key]) map[key] = { key, name: a.clientName || key, phone: a.phone || '', visits: [] };
+        if (!map[key]) map[key] = { key, name: (appData.clientProfiles || {})[key]?.name || a.clientName || key, phone: (appData.clientProfiles || {})[key]?.phone || a.phone || '', visits: [] };
         map[key].visits.push(a);
+        const profile = (appData.clientProfiles || {})[key];
+        if (profile && profile.clientId && !a.clientId) a.clientId = profile.clientId;
       });
       Object.keys(appData.clientProfiles || {}).forEach(key => {
         const p = appData.clientProfiles[key] || {};
@@ -2940,7 +2942,7 @@
       if(panel.style.display!=='none' && panel.style.display!=='') { panel.style.display='none'; return; }
       const today=getTodayKey();
       const appointments=(appData.appointments||[])
-        .filter(a=>clientKeyFromFields(a.phone,a.clientName)===key && a.status!=='canceled' && a.status!=='done' && a.dateKey>=today)
+        .filter(a=>clientMatchesAppointment(key,a) && a.status!=='canceled' && a.status!=='done' && a.dateKey>=today)
         .sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
       panel.innerHTML=appointments.length
         ? '<strong style="display:block;margin-bottom:5px;color:var(--accent);">📅 نوبت‌های آینده</strong>'+appointments.map(a=>'<div style="padding:5px 0;border-top:1px solid var(--border-subtle);"><strong>'+escapeClientText(formatJalaliFull(a.dateKey))+'</strong> • <strong>'+toPersianDigits(a.time||'ساعت ثبت نشده')+'</strong><div style="color:var(--text-secondary);">'+escapeClientText(a.service||'خدمت ثبت نشده')+'</div></div>').join('')
@@ -2950,7 +2952,7 @@
 
     function openEditClientModal(key) {
       const p = getClientProfile(key);
-      const visits = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
+      const visits = appData.appointments.filter(a => clientMatchesAppointment(key, a));
       document.getElementById('editClientOriginalKey').value = key;
       document.getElementById('editClientName').value = p.name || visits[0]?.clientName || key;
       document.getElementById('editClientPhone').value = p.phone || visits[0]?.phone || '';
@@ -3011,7 +3013,7 @@
 
     async function deleteClient(key) {
       const profile = (appData.clientProfiles || {})[key] || null;
-      const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
+      const appointments = appData.appointments.filter(a => clientMatchesAppointment(key, a));
       const recordsCount = (profile && profile.records ? profile.records.length : 0) + appointments.length;
       const name = (profile && profile.name) || appointments[0]?.clientName || key;
       if (!confirm('مشتری «' + name + '» و پرونده، یادداشت‌ها، سوابق خدمات و نوبت‌های مرتبط حذف شوند؟ این کار برگشت‌پذیر نیست.')) return;
@@ -3037,10 +3039,34 @@
       const usableName = /^(?:—|نام درج نشده|⚠️ نام درج نشده \(قابل تکمیل\))$/u.test(cleanName) ? '' : cleanName;
       return (String(phone || '').trim() || usableName).replace(/\s+/g, ' ');
     }
+    function findClientProfileKeyForAppointment(a) {
+      const profiles = appData.clientProfiles || {};
+      const apptPhone = String(a && a.phone || '').replace(/\\D/g, '');
+      const apptName = String(a && a.clientName || '').trim().replace(/\\s+/g, ' ');
+      if (apptPhone) {
+        const byPhone = Object.keys(profiles).find(k => String(profiles[k]?.phone || '').replace(/\\D/g, '') === apptPhone);
+        if (byPhone) return byPhone;
+      }
+      if (apptName && !/^(?:—|نام درج نشده|⚠️ نام درج نشده \\(قابل تکمیل\\))$/u.test(apptName)) {
+        const byName = Object.keys(profiles).find(k => String(profiles[k]?.name || '').trim().replace(/\\s+/g, ' ') === apptName || String(k).trim().replace(/\\s+/g, ' ') === apptName);
+        if (byName) return byName;
+      }
+      const legacyKey = clientKeyFromFields(a && a.phone, a && a.clientName);
+      return legacyKey && profiles[legacyKey] ? legacyKey : '';
+    }
+    function clientMatchesAppointment(key, a) {
+      if (!a) return false;
+      if (a.clientId && appData.clientProfiles && appData.clientProfiles[key]?.clientId) {
+        return a.clientId === appData.clientProfiles[key].clientId;
+      }
+      if (findClientProfileKeyForAppointment(a) === key) return true;
+      return clientKeyFromFields(a.phone, a.clientName) === key;
+    }
     function getClientProfile(key) {
       if (!appData.clientProfiles) appData.clientProfiles = {};
       if (!appData.clientProfiles[key]) appData.clientProfiles[key] = { name: '', phone: '', photo: '', notes: '', records: [] };
       const p = appData.clientProfiles[key];
+      if (!p.clientId) p.clientId = 'client_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
       if (!Array.isArray(p.records)) p.records = [];
       return p;
     }
@@ -3641,7 +3667,7 @@
     function renderClientHistory(key) {
       const p = getClientProfile(key);
       const workFieldLabels=Object.fromEntries(getClientWorkFieldDefinitions().map(f=>[f.id,f.label]));
-      const appts = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key && a.status === 'done')
+      const appts = appData.appointments.filter(a => clientMatchesAppointment(key, a) && a.status === 'done')
         .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:a.notes || '', photo:'', source:'appointment' }));
       const records = (p.records || []).map(r => ({...r, source:'record'}));
       const items = appts.concat(records).sort((a,b) => (b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
