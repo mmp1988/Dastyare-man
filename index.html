@@ -607,6 +607,43 @@
     }
     .modal-title { font-size: 1rem; font-weight: 800; color: var(--accent); }
 
+
+    /* Customer file: compact, consistent layout for web and Android WebView. */
+    #clientProfileModal .modal-box { width:min(620px,calc(100vw - 20px)); padding:16px !important; border-radius:20px; font-size:.88rem; }
+    #clientProfileModal .modal-head { position:sticky; top:-1px; z-index:8; margin:-2px -2px 12px; padding:3px 2px 10px; background:var(--bg-card-solid); }
+    #clientProfileModal .modal-title { font-size:.98rem; }
+    #clientProfileModal .client-profile-hero { align-items:flex-start !important; gap:10px !important; margin-bottom:10px !important; }
+    #clientProfileModal .client-profile-hero > img, #clientProfileModal .client-profile-hero > #clientProfilePhotoEmpty { width:68px !important; height:68px !important; flex:0 0 68px; border-radius:14px !important; }
+    #clientProfileModal .client-profile-card { padding:11px !important; margin-top:9px !important; border-radius:14px !important; }
+    #clientProfileModal .client-profile-card > div:first-child, #clientProfileModal .client-profile-section > .section-title { font-size:.86rem !important; line-height:1.5; }
+    #clientProfileModal .form-control { min-height:43px; border-radius:10px; font-size:.86rem; box-sizing:border-box; }
+    #clientProfileModal textarea.form-control { min-height:76px; padding:10px; }
+    #clientProfileModal label { margin-bottom:5px; font-size:.76rem; font-weight:750; line-height:1.6; }
+    #clientProfileModal .form-group { margin-bottom:10px; min-width:0; }
+    #clientProfileModal .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 10px; }
+    #clientProfileModal .form-grid > .form-group.full { grid-column:1 / -1; }
+    #clientProfileModal .client-date-group, #clientProfileModal .client-time-group { grid-column:1 / -1 !important; }
+    #clientProfileModal .client-profile-photo-actions label { display:inline-flex; align-items:center; justify-content:center; min-height:40px; margin:0; padding:8px 11px; border-radius:10px; font-size:.76rem; }
+    #clientProfileModal .client-profile-notes textarea { min-height:68px; }
+    #clientProfileModal .client-profile-section { margin-top:13px !important; padding-top:12px !important; }
+    #clientProfileModal .client-profile-section > .section-title { margin-bottom:9px !important; }
+    #clientProfileModal .client-work-section .form-grid, #clientProfileModal .client-next-section .form-grid { gap:8px; }
+    #clientProfileModal .client-work-section small, #clientProfileModal .client-next-section small { line-height:1.65; }
+    #clientProfileModal input[type="file"] { width:100%; min-width:0; padding:8px; font-size:.75rem; border-radius:10px; }
+    #clientProfileModal button, #clientProfileModal .btn-primary, #clientProfileModal .btn-secondary { min-height:40px; border-radius:10px; font-size:.78rem; line-height:1.4; touch-action:manipulation; }
+    #clientProfileModal #clientShareActions { gap:8px !important; padding:10px 14px calc(12px + var(--safe-bottom)) !important; margin:12px -16px -16px !important; border-radius:0 0 18px 18px; }
+    #clientProfileModal #clientShareActions button:first-child { flex:1 1 100% !important; min-height:46px; font-size:.9rem; }
+    #clientProfileModal #clientShareActions button:not(:first-child) { flex:1 1 0; }
+    #clientProfileModal #clientShareActions button:last-child { flex:0 0 auto; min-width:74px; }
+    #clientProfileModal .client-share-section label { display:flex; align-items:center; gap:6px; min-height:34px; margin:0; font-size:.74rem; font-weight:600; }
+    #clientProfileModal input[type="checkbox"] { flex:0 0 auto; }
+    @media (max-width:420px) {
+      #clientProfileModal .modal-box { padding:13px !important; }
+      #clientProfileModal .form-grid { grid-template-columns:minmax(0,1fr); }
+      #clientProfileModal .client-birthday-card > div > div[style*="grid-template-columns"] { grid-template-columns:1.2fr 1fr 1fr !important; }
+      #clientProfileModal #clientShareActions { margin-left:-13px !important; margin-right:-13px !important; }
+    }
+
     /* Keep customer-share actions above Android gesture/navigation area. */
     #clientProfileModal.modal-backdrop {
       align-items: flex-end;
@@ -1558,7 +1595,7 @@
         <div style="flex:1;min-width:0;">
           <div id="clientProfileName" style="font-weight:900;font-size:1.02rem;"></div>
           <div id="clientProfilePhone" style="color:var(--text-secondary);font-size:0.78rem;margin-top:4px;"></div>
-          <div style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
+          <div class="client-profile-card" style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
             <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">🎂 تاریخ تولد مشتری</div>
             <div style="margin:0 0 8px;">
               <label style="display:block;font-size:.74rem;font-weight:700;margin-bottom:7px;">تاریخ تولد شمسی</label>
@@ -1572,7 +1609,7 @@
             <small style="display:block;color:var(--text-secondary);font-size:.68rem;line-height:1.7;">یک روز قبل از تولد یادآوری می‌شود؛ تاریخ در پرونده مشتری می‌ماند.</small>
             <button type="button" class="btn-primary" style="width:100%;margin-top:8px;" onclick="saveClientBirthday()">💾 ذخیره تاریخ تولد</button>
           </div>
-          <div style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
+          <div class="client-profile-card" style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
             <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">📨 ارسال یادآوری به مشتری</div>
             <div id="clientReminderAppointmentInfo" style="font-size:.72rem;color:var(--text-secondary);margin-bottom:7px;">متن پیام را بررسی و در صورت نیاز ویرایش کن.</div>
             <textarea id="clientReminderPreview" class="form-control" rows="4" placeholder="متن پیام برای مشتری..." style="min-height:100px;"></textarea>
@@ -1582,7 +1619,7 @@
             </div>
             <small style="display:block;color:var(--text-muted);font-size:.68rem;margin-top:7px;">پیام در برنامه انتخابی باز می‌شود؛ ارسال نهایی را خودت تأیید می‌کنی.</small>
           </div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">
+          <div class="client-profile-photo-actions" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">
             <label class="btn-secondary" for="clientProfileCameraInput" style="cursor:pointer;">📷 عکس با دوربین</label>
             <label class="btn-secondary" for="clientProfilePhotoInput" style="cursor:pointer;">🖼️ انتخاب از گالری</label>
           </div>
@@ -1600,7 +1637,7 @@
         <textarea id="clientProfileNotes" class="form-control" rows="3" placeholder="مثلاً حساسیت، مدل مورد علاقه، رنگ، نکات مهم برای مراجعه بعدی..." onchange="saveClientProfileNotes()"></textarea>
         <small id="clientProfileNotesTimestamp" style="display:block;color:var(--text-secondary);margin-top:5px;"></small>
       </div>
-      <div style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;margin:10px 0;">
+      <div class="client-profile-card client-custom-fields" style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;margin:10px 0;">
         <div style="font-weight:800;font-size:.82rem;margin-bottom:8px;">➕ اطلاعات دلخواه مشتری</div>
         <div class="form-grid">
           <div class="form-group"><label>عنوان فیلد</label><input id="clientCustomFieldLabel" class="form-control" placeholder="مثلاً رنگ مورد علاقه" /></div>
@@ -1609,7 +1646,7 @@
         </div>
         <div id="clientCustomFieldsList" style="display:flex;flex-direction:column;gap:6px;"></div>
       </div>
-      <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
+      <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">➕ ثبت کار انجام‌شده</div>
         <div class="form-grid">
           <div class="form-group full client-date-group">
@@ -1676,7 +1713,7 @@
           </div>
         </div>
       </div>
-      <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
+      <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">📅 نوبت بعدی مشتری</div>
         <div class="form-grid">
           <div class="form-group full client-date-group">
@@ -1719,11 +1756,11 @@
         </div>
         <div id="clientNextAppointmentInfo" style="font-size:0.8rem;color:var(--accent);line-height:1.8;"></div>
       </div>
-      <div style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
+      <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">🧾 سوابق کارهای انجام‌شده</div>
         <div id="clientHistoryList" style="display:flex;flex-direction:column;gap:9px;"></div>
       </div>
-      <div style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:12px;">
+      <div class="client-profile-section client-share-section" style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:12px;">
         <div style="font-weight:800;font-size:.82rem;margin-bottom:8px;">📤 انتخاب مواردی که برای مشتری ارسال شود</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.78rem;">
           <label><input type="checkbox" id="shareClientIdentity" checked /> نام و شماره تماس</label>
