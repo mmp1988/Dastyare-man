@@ -593,6 +593,9 @@ public class MainActivity extends Activity {
         io.execute(() -> {
             HttpURLConnection connection = null;
             try {
+                android.content.SharedPreferences updatePrefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
+                long lastCheck = updatePrefs.getLong("last_check_ms", 0L);
+                if (!manual && System.currentTimeMillis() - lastCheck < 6L * 60L * 60L * 1000L) return;
                 connection = (HttpURLConnection)new URL(LATEST_RELEASE_API).openConnection();
                 connection.setConnectTimeout(7000);
                 connection.setReadTimeout(10000);
@@ -693,6 +696,9 @@ public class MainActivity extends Activity {
                 return;
             }
             Uri contentUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
+            // Clear the pending marker before handing off; returning from a canceled
+            // installer must not repeatedly reopen the installer on every resume.
+            prefs.edit().remove("pending_apk").remove("pending_version").apply();
             Intent install = new Intent(Intent.ACTION_VIEW);
             install.setDataAndType(contentUri, "application/vnd.android.package-archive");
             install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
