@@ -1690,9 +1690,11 @@
         </div>
         <small style="display:block;color:var(--text-secondary);margin-top:7px;">فقط گزینه‌های فعال و اطلاعاتی که واقعاً ثبت کرده‌ای ارسال می‌شوند؛ موارد خالی حذف می‌شوند.</small>
       </div>
-      <div id="clientShareActions" style="display:flex;gap:8px;margin-top:14px;">
-        <button class="btn-primary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال موارد انتخاب‌شده</button>
-        <button class="btn-secondary" onclick="closeModal('clientProfileModal')">بستن</button>
+      <div id="clientShareActions" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:sticky;bottom:0;z-index:5;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--border-subtle);">
+        <button type="button" class="btn-primary" style="flex:1 1 100%;" onclick="saveClientNextAppointment()">🗓️ ذخیره نوبت و نمایش در تقویم</button>
+        <button type="button" class="btn-secondary" style="flex:1;" onclick="saveClientWorkRecord()">💾 ثبت کار انجام‌شده</button>
+        <button type="button" class="btn-secondary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال اطلاعات</button>
+        <button type="button" class="btn-secondary" onclick="closeModal('clientProfileModal')">بستن</button>
       </div>
     </div>
   </div>
@@ -3062,6 +3064,7 @@
       link.remove();
     }
 
+    let clientEditingNextAppointmentId = null;
     function openClientRecord(key) {
       const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
       const last = appointments[appointments.length - 1] || {};
@@ -3099,6 +3102,7 @@
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
       const future = appointments.filter(a => a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b) => (a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
+      clientEditingNextAppointmentId = future ? future.id : null;
       document.getElementById('clientReminderPreview').value = buildClientReminderMessage(p, future || null);
       document.getElementById('clientReminderAppointmentInfo').textContent = future
         ? 'پیش‌نویس بر اساس نوبت بعدی: ' + formatJalaliFull(future.dateKey) + ' ساعت ' + toPersianDigits(future.time || '') + (future.service ? ' — ' + future.service : '')
@@ -3373,25 +3377,36 @@
       if (!key) return;
       const p = getClientProfile(key);
       const dateValue = document.getElementById('clientNextDate').value;
-      const time = document.getElementById('clientNextTime').value || '10:00';
+      const time = document.getElementById('clientNextTime').value;
       const service = document.getElementById('clientNextService').value.trim() || 'مراجعه بعدی';
       const dateKey = parseClientJalaliDate(dateValue);
-      if (!dateKey) { showToast('تاریخ شمسی را درست وارد کن؛ نمونه: ۱۴۰۵/۰۹/۰۲'); return; }
-      const conflict = appData.appointments.some(a => a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
+      if (!dateKey) { showToast('ابتدا تاریخ شمسی نوبت را از تقویم انتخاب کن.'); return; }
+      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time || '')) { showToast('ساعت نوبت را دقیق انتخاب کن.'); return; }
+      const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId && a.status !== 'canceled') : null;
+      const conflict = appData.appointments.some(a => a.id !== (editing && editing.id) && a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
       if (conflict) { showToast('این ساعت قبلاً برای مشتری دیگری رزرو شده است؛ زمان دیگری انتخاب کن. ⛔'); return; }
       const alarmMinutes = Math.max(0,Math.min(43200,Number(document.getElementById('clientNextAlarm')?.value ?? 15)||0));
       const notes = (document.getElementById('clientNextNotes')?.value || '').trim();
-      appData.appointments.push({
-        id:'appt_'+Date.now(), dateKey, time, clientName:p.name || key,
-        phone:p.phone || (key.match(/^\d/) ? key : ''), service, notes,
-        alarm:String(alarmMinutes), status:'pending', notified:false
-      });
-      saveData(); renderCalendar(); renderDaySchedule(); renderClientsTab(); renderClientHistory(key);
-      const future = appData.appointments.filter(a => clientKeyFromFields(a.phone,a.clientName) === key && a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
-      document.getElementById('clientNextAppointmentInfo').textContent = future ? 'نوبت ثبت شد: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time)+' — '+future.service : 'نوبتی ثبت نشده است.';
-      showToast('نوبت بعدی در تقویم ثبت شد 📅');
+      const data = { dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\\d/) ? key : ''), service, notes, alarm:String(alarmMinutes), status:'pending', notified:false };
+      if (editing) Object.assign(editing, data);
+      else {
+        const created = { id:'appt_'+Date.now(), ...data };
+        appData.appointments.push(created);
+        clientEditingNextAppointmentId = created.id;
+      }
+      saveData();
+      selectedDateKey = dateKey;
+      viewYear = Number(dateKey.slice(0,4));
+      viewMonth = Number(dateKey.slice(5,7));
+      renderCalendar();
+      renderDaySchedule();
+      renderClientsTab();
+      renderClientHistory(key);
+      const info = document.getElementById('clientNextAppointmentInfo');
+      if (info) info.textContent = 'نوبت در تقویم ثبت شد: '+formatJalaliFull(dateKey)+' ساعت '+toPersianDigits(time)+' — '+service;
+      showToast(editing ? 'تغییرات نوبت ذخیره و در تقویم به‌روزرسانی شد ✅' : 'نوبت ثبت شد و در تقویم نمایش داده شد 📅');
     }
-        function buildClientShareText(key, onlyItem) {
+    function buildClientShareText(key, onlyItem) {
       const p = getClientProfile(key);
       const checked = id => { const el=document.getElementById(id); return !el || el.checked; };
       const lines = [];
