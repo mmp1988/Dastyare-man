@@ -3880,8 +3880,11 @@
       const modal=document.getElementById('alarmRingingModal');
       if (textNode && modal) { textNode.textContent=message; modal.classList.add('open'); }
       try {
-        if ('Notification' in window && Notification.permission === 'granted')
+        if (window.AndroidApp && typeof AndroidApp.showAppointmentNotification === 'function') {
+          AndroidApp.showAppointmentNotification(String(activeAlarmId), message);
+        } else if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(title || 'دستیار من', { body:message, tag:'appt-'+activeAlarmId });
+        }
       } catch(e) {}
       playChime();
       if (alarmInterval) clearInterval(alarmInterval);
