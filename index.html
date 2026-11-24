@@ -1339,9 +1339,14 @@
         </div>
 
         <div class="form-group">
-          <label>نام برنامه و دستیار هوشمند</label>
-          <div class="form-control" aria-readonly="true" style="display:flex;align-items:center;min-height:44px;font-weight:900;cursor:default;">دستیار من · مینا</div>
-          <small style="display:block;margin-top:6px;color:var(--text-secondary);">نام «مینا» و عنوان برنامه ثابت هستند و کاربران نمی‌توانند آن‌ها را تغییر دهند.</small>
+          <label for="settingBrandName">نام دلخواه برنامه در سربرگ و صفحه شروع</label>
+          <input type="text" id="settingBrandName" class="form-control" maxlength="40" placeholder="مثلاً سالن زیبایی من" onchange="saveSettings()" />
+          <small style="display:block;margin-top:6px;color:var(--text-secondary);">این نام فقط برای همین کاربر و داخل سربرگ و صفحه شروع نمایش داده می‌شود.</small>
+        </div>
+        <div class="form-group">
+          <label>نام دستیار هوشمند</label>
+          <div class="form-control" aria-readonly="true" style="display:flex;align-items:center;min-height:44px;font-weight:900;cursor:default;">مینا</div>
+          <small style="display:block;margin-top:6px;color:var(--text-secondary);">نام دستیار هوشمند مینا ثابت است و قابل تغییر نیست.</small>
         </div>
         <div class="form-group">
           <label>زیرعنوان برنامه</label>
@@ -3625,10 +3630,13 @@
 
     function applySettingsUI() {
       const s = appData.settings;
-      // Fixed product and assistant identity: user personalization must never rename either.
-      appData.settings.brandName = 'دستیار من';
-      document.getElementById('appBrandTitle').textContent = 'دستیار من';
-      document.getElementById('splashBrandTitle').textContent = 'دستیار من';
+      // Per-user in-app display name; this does not change the installed app identity or Mina's name.
+      const displayName = (s.brandName || 'دستیار من').trim().slice(0, 40) || 'دستیار من';
+      s.brandName = displayName;
+      document.getElementById('appBrandTitle').textContent = displayName;
+      document.getElementById('splashBrandTitle').textContent = displayName;
+      const brandNameInput = document.getElementById('settingBrandName');
+      if (brandNameInput) brandNameInput.value = displayName;
       document.getElementById('appBrandSub').textContent = s.brandSub || 'همراه تو در دنیای زیبایی';
       document.getElementById('settingBrandSub').value = s.brandSub || '';
       document.getElementById('settingAppPin').value = s.appPin || '';
@@ -3674,7 +3682,7 @@
     }
 
     function saveSettings() {
-      appData.settings.brandName = 'دستیار من';
+      appData.settings.brandName = (document.getElementById('settingBrandName')?.value || 'دستیار من').trim().slice(0, 40) || 'دستیار من';
       appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'همراه تو در دنیای زیبایی';
       appData.settings.appPin = document.getElementById('settingAppPin').value.replace(/[^0-9]/g, '').slice(0, 4);
       appData.settings.customApkUrl = document.getElementById('settingCustomApkUrl').value.trim();
