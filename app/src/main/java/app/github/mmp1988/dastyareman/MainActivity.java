@@ -730,6 +730,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void showAppointmentNotification(String appointmentId, String message) {
             runOnUiThread(() -> MainActivity.this.showAppointmentNotification(appointmentId, message));
         }
+        @JavascriptInterface public void schedulePersonalReminder(String reminderId, long triggerAtMillis, String message) {
+            PersonalReminderReceiver.schedule(MainActivity.this, reminderId, triggerAtMillis, message);
+        }
+        @JavascriptInterface public void cancelPersonalReminder(String reminderId) {
+            PersonalReminderReceiver.cancel(MainActivity.this, reminderId);
+        }
 
         @JavascriptInterface public void saveBackup(String json, String filename) {
             saveBackupInternal(json, filename);
