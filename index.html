@@ -4829,6 +4829,81 @@
       return minaBuildReplyBeforeReminder(raw);
     };
 
+
+    // Natural-language appointment editing: update the existing record instead of
+    // falling through to the old read-only change/cancel response.
+    function minaTryRescheduleAppointment(raw) {
+      const expanded = minaExpandSpokenTime(raw);
+      const text = minaCleanText(expanded).toLowerCase();
+      if (!/(?:نوبت|رزرو|وقت)/u.test(text)) return null;
+      if (!/(?:تغییر|عوض|بکن|بذار|بزار|منتقل|جابجا|جابه.?جا|ببر|بکنش)/u.test(text)) return null;
+      if (!/(?:ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text)) return null;
+
+      const newTime = minaParseReminderClock(expanded);
+      if (!newTime) return 'ساعت جدید رو متوجه نشدم عزیزم؛ لطفاً مثل «۱۵:۱۰» یا «۳ و ۱۰ دقیقه بعدازظهر» بگو 💗';
+
+      const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled' && a.status !== 'done');
+      if (!active.length) return 'نوبتی برای ویرایش پیدا نکردم عزیزم؛ اول نوبت رو ثبت کن 🌷';
+
+      const namedMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|را\s*)/u) ||
+        text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
+      let candidates = active;
+      if (namedMatch) {
+        const wanted = namedMatch[1];
+        const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
+        if (named.length) candidates = named;
+      }
+
+      if (/(?:فردا)/u.test(text)) {
+        const tomorrowKey = addDaysToJalaliKey(getTodayKey(), 1);
+        const tomorrow = candidates.filter(a => a.dateKey === tomorrowKey);
+        if (tomorrow.length) candidates = tomorrow;
+      } else if (/(?:امروز)/u.test(text)) {
+        const todayKey = getTodayKey();
+        const todayMatches = candidates.filter(a => a.dateKey === todayKey);
+        if (todayMatches.length) candidates = todayMatches;
+      }
+
+      if (candidates.length > 1 && namedMatch) {
+        const exact = candidates.filter(a => minaCleanText(a.clientName || '').toLowerCase() === namedMatch[1]);
+        if (exact.length === 1) candidates = exact;
+      }
+      if (candidates.length > 1 && !namedMatch) {
+        // «این نوبت» / «نوبت رو...» refers to the latest active booking.
+        candidates = [candidates[candidates.length - 1]];
+      }
+      if (candidates.length !== 1) {
+        return 'چند نوبت مشابه پیدا کردم عزیزم؛ اسم مشتری یا تاریخ نوبت رو بگو تا اشتباهی نوبت دیگری رو تغییر ندم 💗';
+      }
+
+      const appointment = candidates[0];
+      if (normalizeAppointmentSlotTime(appointment.time) === normalizeAppointmentSlotTime(newTime)) {
+        return 'عزیزم ساعت این نوبت از قبل ' + newTime + ' بوده؛ تغییری لازم نبود 💗';
+      }
+      if (hasAppointmentSlotConflict(appointment.dateKey, newTime, appointment.id)) {
+        return 'این ساعت در ' + formatJalaliFull(appointment.dateKey) + ' برای نوبت دیگری رزرو شده؛ نوبت قبلی رو دست نزدم. یک ساعت دیگه بگو 💗';
+      }
+
+      const oldTime = appointment.time || 'بدون ساعت';
+      appointment.time = newTime;
+      appointment.notified = false;
+      appointment.reminderNotified = false;
+      saveData();
+      if (typeof renderCalendar === 'function') renderCalendar();
+      if (typeof renderDaySchedule === 'function') renderDaySchedule();
+      if (typeof updateDashboardStats === 'function') updateDashboardStats();
+      return 'انجام شد عزیزم 🌸 ساعت همان نوبت رو تغییر دادم؛ نوبت جدیدی نساختم.\n👩🏻 مشتری: ' +
+        (appointment.clientName || 'بدون نام') + '\n📅 تاریخ: ' + formatJalaliFull(appointment.dateKey) +
+        '\n⏰ ساعت قبلی: ' + oldTime + '\n⏰ ساعت جدید: ' + newTime +
+        '\n💅 خدمت: ' + (appointment.service || 'خدمت ثبت‌نشده') + '\nاطلاعات قبلی نوبت هم حفظ شد 💗';
+    }
+    const minaBuildReplyBeforeReschedule = minaBuildReply;
+    minaBuildReply = function(raw) {
+      const rescheduleReply = minaTryRescheduleAppointment(raw);
+      if (rescheduleReply) return rescheduleReply;
+      return minaBuildReplyBeforeReschedule(raw);
+    };
+
     function refreshSmartCalendarInsights() {
       const root=document.getElementById('calendarSmartInsights');
       if(!root)return;
