@@ -1273,7 +1273,7 @@
         </div>
         <div class="form-group">
           <label>زیرعنوان برنامه</label>
-          <input type="text" id="settingBrandSub" class="form-control" placeholder="مدیریت هوشمند نوبت‌دهی و مالی" onchange="saveSettings()" />
+          <input type="text" id="settingBrandSub" class="form-control" placeholder="مدیریت هوشمند نوبت‌دهی و مشتریان" onchange="saveSettings()" />
         </div>
         <div class="form-group">
           <label>تغییر عکس پروفایل و لوگوی داخلی برنامه (آیکون صفحه گوشی ثابت می‌ماند)</label>
@@ -2767,7 +2767,7 @@
       const appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key);
       const recordsCount = (profile && profile.records ? profile.records.length : 0) + appointments.length;
       const name = (profile && profile.name) || appointments[0]?.clientName || key;
-      if (!confirm('مشتری «' + name + '» و پرونده، یادداشت‌ها، سوابق خدمات و نوبت‌های مرتبط حذف شوند؟ این کار برگشت‌پذیر نیست. تراکنش‌های مالی مستقل حذف نمی‌شوند.')) return;
+      if (!confirm('مشتری «' + name + '» و پرونده، یادداشت‌ها، سوابق خدمات و نوبت‌های مرتبط حذف شوند؟ این کار برگشت‌پذیر نیست.')) return;
       if (profile) await deleteClientPhotoRefs(profile);
       delete appData.clientProfiles[key];
       if (appData.clientNotes) delete appData.clientNotes[key];
@@ -4389,7 +4389,7 @@
           '! 🥹💗 منم با کلی انرژی و محبت کنارتم؛ بگو ببینم چه خبر؟';
       }
 
-      const hasClock = /(?:ساعت\s*)?\d{1,2}(?::\d{1,2})?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized);
+      const hasClock = /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/.test(normalized) || /(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized) || /(?:یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه)\s*(?:به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)/.test(normalized);
       const isBookingIntent = (/(?:نوبت|رزرو|وقت)/.test(normalized) ||
         (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) && /(?:برای|خدمت)/.test(normalized))) &&
         /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
@@ -4405,12 +4405,9 @@
       }
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
-        const timeMatch = normalized.match(/(?:ساعت\s*)?(\d{1,2}(?::\d{1,2})?)\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
-        if (timeMatch) {
-          const continuation = minaConversationBooking.original + ' ساعت ' + timeMatch[1] + ' ' + timeMatch[2];
-          minaConversationBooking = null;
-          return minaBuildReplyCore(continuation);
-        }
+        const continuation = minaConversationBooking.original + ' ' + expandedRaw;
+        minaConversationBooking = null;
+        return minaBuildReplyCore(continuation);
       }
       if (isBookingIntent && hasClock && !hasDateAndService &&
           /(?:کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین)/.test(normalized) &&
