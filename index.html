@@ -3040,7 +3040,7 @@
       profile.name = name;
       profile.phone = phone;
       appData.appointments.forEach(a => {
-        if (clientKeyFromFields(a.phone, a.clientName) === oldKey) {
+        if (clientMatchesAppointment(oldKey, a) || clientKeyFromFields(a.phone, a.clientName) === oldKey) {
           a.clientName = name;
           a.phone = phone;
         }
@@ -3079,7 +3079,7 @@
       if (profile) await deleteClientPhotoRefs(profile);
       delete appData.clientProfiles[key];
       if (appData.clientNotes) delete appData.clientNotes[key];
-      appData.appointments = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) !== key);
+      appData.appointments = appData.appointments.filter(a => !clientMatchesAppointment(key, a) && clientKeyFromFields(a.phone, a.clientName) !== key);
       saveData();
       renderClientsTab();
       showToast('پرونده مشتری و ' + recordsCount + ' سابقه/نوبت مرتبط حذف شد.');
