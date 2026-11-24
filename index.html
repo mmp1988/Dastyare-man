@@ -3540,14 +3540,23 @@
         clientEditingNextAppointmentId = created.id;
       }
       saveData();
+      // Move the calendar to the appointment's exact date before showing it.
       selectedDateKey = dateKey;
       viewYear = Number(dateKey.slice(0,4));
       viewMonth = Number(dateKey.slice(5,7));
+      // A previously selected follow-up-only filter must not hide a regular booking.
+      showFollowupOnly = false;
+      const followupFilterBtn = document.getElementById('toggleFollowupFilterBtn');
+      if (followupFilterBtn) followupFilterBtn.classList.remove('active');
+      // Close the customer profile overlay; otherwise it remains above the calendar
+      // and makes the successful booking look as if it never appeared.
+      closeModal('clientProfileModal');
+      switchTab('calendar');
       renderCalendar();
       renderDaySchedule();
+      updateDashboardStats();
       renderClientsTab();
       renderClientHistory(key);
-      switchTab('calendar');
       const info = document.getElementById('clientNextAppointmentInfo');
       if (info) info.textContent = 'نوبت در تقویم ثبت شد: '+formatJalaliFull(dateKey)+' ساعت '+toPersianDigits(time)+' — '+service;
       showToast(editing ? 'تغییرات نوبت ذخیره و در تقویم به‌روزرسانی شد ✅' : 'نوبت ثبت شد و در تقویم نمایش داده شد 📅');
