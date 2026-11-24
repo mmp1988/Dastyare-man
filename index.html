@@ -575,6 +575,32 @@
       min-height: 42px;
       touch-action: manipulation;
     }
+
+    /* Note editor: lift the sheet clear of Android's bottom system navigation bar. */
+    #noteModal.modal-backdrop {
+      align-items: flex-end;
+      padding: 10px 10px calc(24px + var(--safe-bottom));
+      padding-bottom: max(24px, calc(24px + var(--safe-bottom)));
+      overscroll-behavior: contain;
+    }
+    #noteModal .modal-box {
+      max-height: calc(100vh - 28px - var(--safe-top) - var(--safe-bottom));
+      max-height: calc(100dvh - 28px - var(--safe-top) - var(--safe-bottom));
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(20px + var(--safe-bottom));
+      scroll-padding-bottom: calc(28px + var(--safe-bottom));
+    }
+    #noteModal .modal-box > div:last-child {
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+      padding: 10px 0 calc(8px + var(--safe-bottom));
+      margin-bottom: calc(-8px - var(--safe-bottom));
+      background: var(--bg-card-solid);
+    }
     .modal-head {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 13px; padding-bottom: 9px; border-bottom: 1px solid var(--border-subtle);
