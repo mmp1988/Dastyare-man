@@ -1175,6 +1175,10 @@
           <div class="section-title">👥 پرونده مشتریان و سوابق</div>
           <button class="btn-primary" type="button" onclick="openAddClientModal()">➕ افزودن مشتری</button>
         </div>
+        <div class="card" id="clientBirthdaysCard" style="margin:0 0 12px;box-shadow:none;border-color:var(--accent);">
+          <div class="section-head"><div class="section-title">🎂 تولد مشتریان</div><span id="clientBirthdayCount" style="font-size:.72rem;color:var(--text-secondary);"></span></div>
+          <div id="clientBirthdaysList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
         <div class="form-group">
           <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
         </div>
@@ -1554,6 +1558,12 @@
         <div style="flex:1;min-width:0;">
           <div id="clientProfileName" style="font-weight:900;font-size:1.02rem;"></div>
           <div id="clientProfilePhone" style="color:var(--text-secondary);font-size:0.78rem;margin-top:4px;"></div>
+          <div style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
+            <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">🎂 تاریخ تولد مشتری</div>
+            <div class="form-group" style="margin:0 0 7px;"><label for="clientProfileBirthday">تاریخ تولد (شمسی)</label><input id="clientProfileBirthday" class="form-control" type="text" inputmode="numeric" placeholder="مثلاً ۱۳۷۰/۰۵/۲۱" /></div>
+            <small style="display:block;color:var(--text-secondary);font-size:.68rem;line-height:1.7;">یک روز قبل از تولد یادآوری می‌شود؛ تاریخ در پرونده مشتری می‌ماند.</small>
+            <button type="button" class="btn-primary" style="width:100%;margin-top:8px;" onclick="saveClientBirthday()">💾 ذخیره تاریخ تولد</button>
+          </div>
           <div style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
             <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">📨 ارسال یادآوری به مشتری</div>
             <div id="clientReminderAppointmentInfo" style="font-size:.72rem;color:var(--text-secondary);margin-bottom:7px;">متن پیام را بررسی و در صورت نیاز ویرایش کن.</div>
@@ -3131,6 +3141,7 @@
       document.getElementById('clientRecordKey').value = key;
       document.getElementById('clientProfileName').textContent = p.name;
       document.getElementById('clientProfilePhone').textContent = p.phone || 'شماره تماس ثبت نشده';
+      document.getElementById('clientProfileBirthday').value = p.birthDate || '';
       document.getElementById('clientProfileNotes').value = p.notes || appData.clientNotes[key] || '';
       document.getElementById('clientProfileNotesTimestamp').textContent = p.notesUpdatedAt ? 'آخرین ثبت یا ویرایش: '+formatClientTimestamp(p.notesUpdatedAt) : 'یادداشت هنوز زمان ثبت ندارد.';
       const img = document.getElementById('clientProfilePhotoPreview');
@@ -3333,6 +3344,75 @@
       const fields=new Map(getClientWorkFieldDefinitions().map(f=>[f.id,f.label]));
       (p.records||[]).forEach(record=>Object.entries(record.customValues||{}).forEach(([id,value])=>fields.set(id,(value&&value.label)||fields.get(id)||'جزئیات')));
       workBox.innerHTML=Array.from(fields.entries()).map(([id,label])=>'<label style="font-size:.72rem;"><input type="checkbox" id="shareWorkField_'+id+'" checked /> '+escapeClientText(label)+'</label>').join('');
+    }
+
+    function cancelClientBirthdayAlarm(key){
+      (appData.reminders||[]).filter(r=>r&&r.birthdayClientKey===key).forEach(r=>{try{if(window.AndroidApp&&typeof AndroidApp.cancelPersonalReminder==='function')AndroidApp.cancelPersonalReminder(String(r.id));}catch(e){}});
+      appData.reminders=(appData.reminders||[]).filter(r=>!r||r.birthdayClientKey!==key);
+    }
+    function nextClientBirthdayInfo(profile){
+      if(!profile||!profile.birthDate)return null;
+      const parts=profile.birthDate.split('-').map(Number),today=getTodayKey().split('-').map(Number);
+      let year=today[0],g=jalaliToGregorian(year,parts[1],parts[2]);
+      const tg=jalaliToGregorian(today[0],today[1],today[2]);
+      const todayDate=new Date(tg[0],tg[1]-1,tg[2]);todayDate.setHours(0,0,0,0);
+      let birthdayDate=new Date(g[0],g[1]-1,g[2]);birthdayDate.setHours(0,0,0,0);
+      if(birthdayDate<todayDate){year++;g=jalaliToGregorian(year,parts[1],parts[2]);birthdayDate=new Date(g[0],g[1]-1,g[2]);birthdayDate.setHours(0,0,0,0);}
+      return {year,days:Math.round((birthdayDate-todayDate)/86400000),dateKey:year+'-'+pad2(parts[1])+'-'+pad2(parts[2]),gregorianDate:birthdayDate};
+    }
+    function scheduleNextClientBirthdayAlarm(key,p){
+      cancelClientBirthdayAlarm(key);
+      const info=nextClientBirthdayInfo(p);if(!info)return;
+      const trigger=new Date(info.gregorianDate.getTime()-86400000);trigger.setHours(9,0,0,0);
+      if(trigger.getTime()<=Date.now())return;
+      const id='birthday_'+encodeURIComponent(key)+'_'+info.year;
+      const message='فردا تولد '+(p.name||key)+' است 🎂 برای تبریک و هدیه یا تخفیف ویژه آماده شو.';
+      const item={id,date:localReminderDate(trigger),time:'09:00',message,enabled:true,notified:false,birthdayClientKey:key,birthdayYear:info.year};
+      appData.reminders=appData.reminders||[];appData.reminders.push(item);
+      try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==='function')AndroidApp.schedulePersonalReminder(String(id),trigger.getTime(),message);}catch(e){}
+      saveData();
+    }
+    function saveClientBirthday(){
+      const key=document.getElementById('clientRecordKey').value;if(!key)return;
+      const p=getClientProfile(key),raw=String(document.getElementById('clientProfileBirthday').value||'').trim();
+      if(!raw){p.birthDate='';p.birthdayAlertYear='';cancelClientBirthdayAlarm(key);saveData();renderClientBirthdays();showToast('تاریخ تولد از پرونده حذف شد.');return;}
+      const parsed=parseClientJalaliDate(raw);
+      if(!parsed){showToast('تاریخ را شمسی و به شکل سال/ماه/روز وارد کن؛ مثل ۱۳۷۰/۰۵/۲۱.');return;}
+      const [y,m,d]=parsed.split('-').map(Number),cy=Number(getTodayKey().slice(0,4));
+      if(y<1200||y>cy||m<1||m>12||d<1||d>31){showToast('تاریخ تولد معتبر نیست.');return;}
+      p.birthDate=parsed;p.birthdayAlertYear='';
+      saveData();scheduleNextClientBirthdayAlarm(key,p);renderClientBirthdays();renderClientsTab();
+      showToast('تاریخ تولد مشتری ذخیره شد 🎂');
+    }
+    function renderClientBirthdays(){
+      const root=document.getElementById('clientBirthdaysList');if(!root)return;
+      const today=getTodayKey();
+      const entries=Object.entries(appData.clientProfiles||{}).filter(([,p])=>p&&p.birthDate).map(([key,p])=>({key,p,info:nextClientBirthdayInfo(p)})).filter(x=>x.info).sort((a,b)=>a.info.days-b.info.days);
+      const count=document.getElementById('clientBirthdayCount');if(count)count.textContent=toPersianDigits(entries.length)+' تولد ثبت‌شده';
+      if(!entries.length){root.innerHTML='<div style="font-size:.78rem;color:var(--text-secondary);padding:8px 2px;">تاریخ تولدی ثبت نشده؛ از پرونده هر مشتری تاریخ تولدش را وارد کن.</div>';return;}
+      root.innerHTML=entries.map(({key,p,info})=>{
+        const appt=(appData.appointments||[]).filter(a=>clientKeyFromFields(a.phone,a.clientName)===key&&a.status!=='canceled'&&a.status!=='done'&&a.dateKey>=today).sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')))[0];
+        let apptNear=false;
+        if(appt){const d=appt.dateKey.split('-').map(Number),g=jalaliToGregorian(d[0],d[1],d[2]),delta=Math.round((new Date(g[0],g[1]-1,g[2])-info.gregorianDate)/86400000);apptNear=Math.abs(delta)<=7&&/ترمیم/u.test(appt.service||'');}
+        const when=info.days===0?'امروز 🎉':info.days===1?'فردا 🎂':'تا '+toPersianDigits(info.days)+' روز دیگر';
+        return '<div style="padding:9px;border-radius:11px;background:var(--bg-input);border:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="min-width:0;"><strong style="font-size:.82rem;">'+escapeClientText(p.name||key)+'</strong><small style="display:block;color:var(--text-secondary);margin-top:3px;">'+when+' • '+toPersianDigits(p.birthDate.replace(/-/g,'/'))+'</small>'+(apptNear?'<small style="display:block;color:var(--warning);margin-top:4px;">⚠️ نوبت ترمیم نزدیک تولد است؛ زمان آن را بررسی کن.</small>':'')+'</div><button class="mini-btn" onclick="openClientRecord(decodeURIComponent(\''+encodeURIComponent(key)+'\'))">پرونده</button></div>';
+      }).join('');
+    }
+    function checkClientBirthdayAlerts(){
+      Object.entries(appData.clientProfiles||{}).forEach(([key,p])=>{
+        if(!p||!p.birthDate)return;
+        const info=nextClientBirthdayInfo(p);if(!info)return;
+        if(info.days===1&&String(p.birthdayAlertYear||'')!==String(info.year)){
+          p.birthdayAlertYear=String(info.year);
+          const message='فردا تولد '+(p.name||key)+' است 🎂 برای تبریک و هدیه یا تخفیف آماده شو.';
+          showToast(message);
+          try{if('Notification'in window&&Notification.permission==='granted')new Notification('یادآوری تولد مشتری',{body:message,tag:'birthday-'+encodeURIComponent(key)+'-'+info.year});}catch(e){}
+          if(!(appData.reminders||[]).some(r=>r&&r.birthdayClientKey===key&&Number(r.birthdayYear)===info.year))scheduleNextClientBirthdayAlarm(key,p);
+          saveData();renderClientBirthdays();
+        }else if(info.days>1&&!(appData.reminders||[]).some(r=>r&&r.birthdayClientKey===key&&Number(r.birthdayYear)===info.year)){
+          scheduleNextClientBirthdayAlarm(key,p);
+        }
+      });
     }
     function saveClientProfileNotes() {
       const key = document.getElementById('clientRecordKey').value;
@@ -5194,6 +5274,9 @@
     // Refresh the smart panel whenever existing data is saved or the customer record is opened.
 
     loadData();
+    renderClientBirthdays();
+    Object.entries(appData.clientProfiles||{}).forEach(([key,p])=>{if(p&&p.birthDate)scheduleNextClientBirthdayAlarm(key,p);});
+    checkClientBirthdayAlerts();
     resetPersonalReminderForm();
     renderPersonalReminders();
     requestDurableBrowserStorage();
@@ -5209,7 +5292,7 @@
     renderServicesTab();
     updateDashboardStats();
 
-    setInterval(() => { updateClockAndDate(); checkAlarms(); checkMinaCustomReminders(); checkPersonalReminders(); }, 1000);
+    setInterval(() => { updateClockAndDate(); checkAlarms(); checkMinaCustomReminders(); checkPersonalReminders(); checkClientBirthdayAlerts(); }, 1000);
 
     // --- AUTO-UPDATE ENGINE ---
     let swRegistration = null;
