@@ -4077,7 +4077,7 @@
       targetTab.classList.add('active');
       // Start each tab at its own top. Prevent a previous tab's scroll offset
       // from hiding the first settings card (official contact information).
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
