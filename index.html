@@ -652,6 +652,7 @@
     #clientProfileModal .modal-box {
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
       max-height: calc(100vh - 24px - var(--safe-top) - var(--safe-bottom));
       max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom));
       min-height: 0;
@@ -662,8 +663,8 @@
       bottom: -17px;
       z-index: 3;
       flex: 0 0 auto;
-      margin: 12px -17px -17px !important;
-      padding: 12px 17px calc(14px + var(--safe-bottom));
+      margin: 12px 0 -17px !important;
+      padding: 12px 0 calc(14px + var(--safe-bottom));
       background: var(--bg-card-solid);
       border-top: 1px solid var(--border-subtle);
       box-shadow: 0 -8px 18px rgba(0,0,0,.12);
