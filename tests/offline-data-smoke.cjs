@@ -56,36 +56,31 @@ const assert = require('assert');
       }
     }
 
-    // Reopen and measure the customer file at every width; check the sticky actions
-    // stay reachable and the form never exceeds the viewport.
-    await page.evaluate(() => {
-      appData.clientProfiles = { 'qa-layout-client': { name:'مشتری آزمایشی', phone:'09120000000', records:[] } };
-    });
+    // Measure the customer file sheet at compact phone, standard phone,
+    // tablet and desktop widths without mutating customer data.
     for (const width of [320, 360, 390, 430, 768, 1366]) {
       await page.setViewportSize({ width, height: width < 500 ? 800 : 900 });
-      await page.evaluate(() => openClientRecord('qa-layout-client'));
-      await page.waitForFunction(() => {
-        const modal = document.querySelector('#clientProfileModal');
-        const box = modal?.querySelector('.modal-box');
-        return modal?.classList.contains('open') && box?.getBoundingClientRect().width > 0;
-      });
       const profileLayout = await page.evaluate(() => {
-        const modal = document.querySelector('#clientProfileModal .modal-box');
+        const backdrop = document.getElementById('clientProfileModal');
+        backdrop.classList.add('open');
+        const modal = backdrop.querySelector('.modal-box');
         const rect = modal.getBoundingClientRect();
-        const width = document.documentElement.clientWidth;
+        const viewportWidth = document.documentElement.clientWidth;
         const footerButtons = [...document.querySelectorAll('#clientShareActions button')].map(b => {
           const r = b.getBoundingClientRect();
           return { text:b.textContent.trim(), left:r.left, right:r.right, height:r.height };
         });
-        return { width, modalLeft:rect.left, modalRight:rect.right, modalWidth:rect.width,
-          modalScrollWidth:modal.scrollWidth, modalClientWidth:modal.clientWidth, footerButtons };
+        const result = { width:viewportWidth, modalLeft:rect.left, modalRight:rect.right,
+          modalWidth:rect.width, modalScrollWidth:modal.scrollWidth, modalClientWidth:modal.clientWidth,
+          footerButtons };
+        backdrop.classList.remove('open');
+        return result;
       });
       if (profileLayout.modalLeft < -1 || profileLayout.modalRight > width + 1 ||
-          profileLayout.modalScrollWidth > profileLayout.modalClientWidth + 2 ||
+          profileLayout.modalWidth <= 0 || profileLayout.modalScrollWidth > profileLayout.modalClientWidth + 2 ||
           profileLayout.footerButtons.some(b => b.left < -1 || b.right > width + 1 || b.height < 38)) {
         responsiveFailures.push({ width, tab:'client-profile', ...profileLayout });
       }
-      await page.evaluate(() => document.getElementById('clientProfileModal').classList.remove('open'));
     }
     assert.deepStrictEqual(responsiveFailures, [], 'Responsive layout overflow or clipped controls detected: ' + JSON.stringify(responsiveFailures));
     console.log('Responsive layout audit:', JSON.stringify({ widths:[320,360,390,430,768,1024,1366], tabs:6, profile:true, failures:responsiveFailures.length }));
