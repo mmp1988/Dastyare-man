@@ -4772,7 +4772,7 @@
       if (!m) return null;
       let hour = Number(m[1]);
       const secondPart = String(m[2] || '');
-      const minute = /^\\d+$/.test(secondPart) ? Number(secondPart) : 0;
+      const minute = /^\d+$/.test(secondPart) ? Number(secondPart) : 0;
       const period = (/^(?:صبح|ظهر|بعدازظهر|عصر|شب)$/.test(secondPart) ? secondPart : m[3]) ||
         (/بعدازظهر|عصر|ظهر|شب/.test(value) ? 'بعدازظهر' : /صبح/.test(value) ? 'صبح' : '');
       if (period && /ظهر|بعدازظهر|عصر|شب/.test(period) && hour < 12) hour += 12;
