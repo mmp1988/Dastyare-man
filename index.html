@@ -4846,7 +4846,8 @@
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text);
       const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
       const isMove = /(?:تغییر|عوض|بکن|بذار|بزار|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش)/u.test(text);
-      if (!(isDelete || isCancel || isDone || ((isMove || asksTime || asksDate) && (asksTime || asksDate)))) return null;
+      if (/(?:لغو|کنسل|حذف|پاک|عوض|تغییر|جابجا|جابه.?جا)\s*(?:نکن|نشه|نشود|نکنه)/u.test(text)) return 'باشه عزیزم؛ هیچ تغییری روی نوبت انجام ندادم 💗';
+      if (!(isDelete || isCancel || isDone || isMove || asksTime || asksDate)) return null;
 
       const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled' && a.status !== 'done');
       if (!active.length) return 'عزیزم هیچ نوبت فعالی برای تغییر پیدا نکردم 🌷';
@@ -4891,6 +4892,9 @@
       if (candidates.length !== 1) return 'نوبت موردنظرت رو با این مشخصات پیدا نکردم؛ اسم مشتری یا تاریخش رو بگو عزیزم 🌷';
       const appt = candidates[0];
 
+      if (isMove && !isDelete && !isCancel && !isDone && !asksTime && !asksDate) {
+        return 'حتماً عزیزم 💗 نوبت «' + (appt.clientName || 'بدون نام') + '» رو پیدا کردم. به چه تاریخ یا ساعتی منتقلش کنم؟ هر دقیقه‌ای خواستی بگو؛ مثلاً «۱۶:۰۷» یا «یک ربع به ۳ بعدازظهر».';
+      }
       if (isDelete) {
         appData.appointments = appData.appointments.filter(a => a.id !== appt.id);
         saveData(); renderCalendar(); renderDaySchedule();
