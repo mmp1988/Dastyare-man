@@ -4429,7 +4429,7 @@
         const upcoming = (appData.appointments || []).filter(a => a.status !== 'canceled' && a.dateKey >= from && a.dateKey <= to)
           .sort((a,b) => (a.dateKey + (a.time || '')).localeCompare(b.dateKey + (b.time || '')));
         return upcoming.length
-          ? 'برنامه هفت روز آینده‌ات اینه عزیزم 🌸\\n' + upcoming.slice(0,20).map(a => '• ' + formatJalaliFull(a.dateKey) + '، ' + (a.time || 'بدون ساعت') + ' — ' + (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت')).join('\\n') + '\\n\\nمجموع: ' + toPersianDigits(upcoming.length) + ' نوبت'
+          ? 'برنامه هفت روز آینده‌ات اینه عزیزم 🌸\n' + upcoming.slice(0,20).map(a => '• ' + formatJalaliFull(a.dateKey) + '، ' + (a.time || 'بدون ساعت') + ' — ' + (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت')).join('\n') + '\n\nمجموع: ' + toPersianDigits(upcoming.length) + ' نوبت'
           : 'برنامه هفت روز آینده‌ات رو بررسی کردم؛ فعلاً نوبتی ثبت نشده عزیزم 💗';
       }
 
@@ -4564,7 +4564,7 @@
         const end=addDaysToJalaliKey(todayKey,6);
         const week=all.filter(a=>a.dateKey>=todayKey&&a.dateKey<=end)
           .sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
-        return week.length ? 'برنامه هفت روز آینده‌ات اینه عزیزم 🌸\n'+week.slice(0,20).map(a=>'• '+formatJalaliFull(a.dateKey)+'، '+(a.time||'بدون ساعت')+' — '+(a.clientNameMissing?'⚠️ نام درج نشده':(a.clientName||'مشتری'))+'، '+(a.service||'خدمت')).join('\n')+'\n\nمجموع: '+toPersianDigits(week.length)+' نوبت'
+          ? 'برنامه هفت روز آینده‌ات اینه عزیزم 🌸\n' + upcoming.slice(0,20).map(a => '• ' + formatJalaliFull(a.dateKey) + '، ' + (a.time || 'بدون ساعت') + ' — ' + (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت')).join('\n') + '\n\nمجموع: ' + toPersianDigits(upcoming.length) + ' نوبت'
           : 'تا هفت روز آینده نوبتی ثبت نشده؛ وقت خوبیه برای برنامه‌ریزی 💗';
       }
 
