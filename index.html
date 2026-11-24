@@ -1302,17 +1302,8 @@
 
       <!-- 2. Business & Financial Preferences -->
       <div class="card">
-        <div class="section-title" style="margin-bottom:10px;">💼 تنظیمات کاری، مالی و پیامک</div>
+        <div class="section-title" style="margin-bottom:10px;">💬 تنظیمات پیام یادآوری مشتریان</div>
         <div class="form-grid">
-          <div class="form-group">
-            <label>هدف سود خالص ماهانه (تومان)</label>
-            <input type="number" id="settingMonthlyGoal" class="form-control" placeholder="مثلاً: 50000000" onchange="saveSettings()" />
-          </div>
-          <div class="form-group">
-            <label>درصد پیش‌فرض سالن/همکار (٪)</label>
-            <input type="number" id="settingDefaultComm" class="form-control" placeholder="مثلاً: 0 یا 30" onchange="saveSettings()" />
-          </div>
-        </div>
         <div class="form-group">
           <label>متن قالب پیامک/واتساپ یادآوری (از {name}، {date}، {time}، {service} استفاده کنید)</label>
           <textarea id="settingMsgTemplate" class="form-control" style="min-height:72px;" onchange="saveSettings()"></textarea>
@@ -1591,7 +1582,15 @@
           </div>
           <div class="form-group full">
             <label>خدمت نوبت بعدی</label>
-            <input type="text" id="clientNextService" class="form-control" placeholder="مثلاً ترمیم..." />
+            <input type="text" id="clientNextService" class="form-control" placeholder="مثلاً ترمیم، رنگ ریشه، کاشت ناخن..." />
+          </div>
+          <div class="form-group full">
+            <label>چند دقیقه قبل هشدار بده؟</label>
+            <input type="number" id="clientNextAlarm" class="form-control" min="0" max="43200" value="15" placeholder="مثلاً ۳۰ یا ۱۲۰ دقیقه" />
+          </div>
+          <div class="form-group full">
+            <label>یادداشت این نوبت (اختیاری)</label>
+            <textarea id="clientNextNotes" class="form-control" rows="2" placeholder="توضیحات یا نکات لازم برای مراجعه بعدی..."></textarea>
           </div>
           <div class="form-group full">
             <button class="btn-secondary" style="width:100%;" onclick="saveClientNextAppointment()">🗓️ ثبت نوبت بعدی در تقویم</button>
@@ -2273,10 +2272,6 @@
       ctx.fillText(`ساعت: ${toPersianDigits(appt.time)}`, 360, 285);
       if (appt.service) ctx.fillText(`خدمت: ${appt.service}`, 360, 335);
 
-      ctx.fillStyle = '#10b981';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText(`مبلغ کل: ${formatMoney(appt.price)} تومان | بیعانه: ${formatMoney(appt.deposit)} تومان`, 360, 395);
-
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
@@ -2284,29 +2279,6 @@
       a.click();
       showToast('کارت گرافیکی نوبت دانلود شد 🖼️');
     }
-
-    function syncAppointmentToFinance(appt) {
-      appData.transactions = appData.transactions.filter(t => t.sourceApptId !== appt.id);
-      if (appt.status === 'done' && Number(appt.price) > 0) {
-        const gross = Number(appt.price) || 0;
-        const pct = Number(appt.commPercent) || 0;
-        const commAmt = Math.round((gross * pct) / 100);
-        appData.transactions.unshift({
-          id: 'tx_' + Date.now() + Math.random().toString(36).slice(2, 5),
-          type: 'income',
-          dateKey: appt.dateKey,
-          title: `${appt.clientName}${appt.service ? ` (${appt.service})` : ''}`,
-          amount: gross,
-          commPercent: pct,
-          commAmount: commAmt,
-          netAmount: gross - commAmt,
-          payMethod: appt.payMethod || 'کارت‌به‌کارت',
-          note: 'ثبت خودکار از نوبت انجام‌شده',
-          sourceApptId: appt.id
-        });
-      }
-    }
-
 
     function cycleStatus(id) {
       var item = appData.appointments.find(function(a){return a.id === id;});
@@ -2365,15 +2337,6 @@
     function updateAppointmentAlarmUI() {
       document.getElementById('customAlarmMinutesBox').style.display = document.getElementById('apptAlarm').value === 'custom' ? 'block' : 'none';
     }
-
-        function applyServiceChip(serviceId) {
-      const s = appData.services.find(x => x.id === serviceId);
-      if (!s) return;
-      document.getElementById('apptService').value = s.name;
-      if (s.price) document.getElementById('apptPrice').value = s.price;
-      if (s.commPercent !== undefined) document.getElementById('apptCommPercent').value = s.commPercent;
-    }
-
 
     function checkTimeConflict() {
       var editId = document.getElementById('editApptId').value;
@@ -2617,169 +2580,6 @@
           <div style="font-size:0.81rem; color:var(--text-secondary); white-space:pre-line; line-height:1.6;">${n.body}</div>
         </div>
       `).join('');
-    }
-
-    // ==================== FINANCE & EXCEL EXPORT ====================
-    let activeFinPeriod = 'month';
-    function setFinancePeriod(period, btn) {
-      activeFinPeriod = period;
-      document.querySelectorAll('#tab-finance .filter-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active'); renderFinanceTab();
-    }
-    function runQuickCalc() {
-      const amt = Number(document.getElementById('quickCalcAmount').value) || 0;
-      const pct = Math.min(100, Math.max(0, Number(document.getElementById('quickCalcPercent').value) || 0));
-      const comm = Math.round((amt * pct) / 100);
-      document.getElementById('qcCommissionVal').textContent = `${formatMoney(comm)} ت`;
-      document.getElementById('qcNetVal').textContent = `${formatMoney(amt - comm)} ت`;
-      document.getElementById('qcMyPercentVal').textContent = `${toPersianDigits(100 - pct)}٪`;
-    }
-    function openFinanceModal(type) {
-      document.getElementById('finTypeInput').value = type;
-      document.getElementById('finTitleInput').value = '';
-      document.getElementById('finAmountInput').value = '';
-      document.getElementById('finNoteInput').value = '';
-      if (type === 'income') {
-        document.getElementById('finModalTitle').textContent = '➕ ثبت درآمد و محاسبه درصد';
-        document.getElementById('finTitleLabel').textContent = 'شرح درآمد / نام مشتری *';
-        document.getElementById('finAmountLabel').textContent = 'مبلغ کل دریافتی (تومان) *';
-        document.getElementById('finCommGroup').style.display = 'flex';
-        document.getElementById('finModalPreviewBox').style.display = 'grid';
-        document.getElementById('finCommInput').value = appData.settings.defaultComm || 0;
-      } else {
-        document.getElementById('finModalTitle').textContent = '➖ ثبت هزینه';
-        document.getElementById('finTitleLabel').textContent = 'عنوان هزینه *';
-        document.getElementById('finAmountLabel').textContent = 'مبلغ هزینه (تومان) *';
-        document.getElementById('finCommGroup').style.display = 'none';
-        document.getElementById('finModalPreviewBox').style.display = 'none';
-      }
-      updateFinModalPreview();
-      document.getElementById('financeModal').classList.add('open');
-    }
-    function updateFinModalPreview() {
-      const gross = Number(document.getElementById('finAmountInput').value) || 0;
-      const pct = Math.min(100, Math.max(0, Number(document.getElementById('finCommInput').value) || 0));
-      const comm = Math.round((gross * pct) / 100);
-      document.getElementById('prevGross').textContent = `${formatMoney(gross)} ت`;
-      document.getElementById('prevComm').textContent = `${formatMoney(comm)} ت`;
-      document.getElementById('prevNet').textContent = `${formatMoney(gross - comm)} ت`;
-    }
-    function saveFinanceTx() {
-      const type = document.getElementById('finTypeInput').value;
-      const title = document.getElementById('finTitleInput').value.trim();
-      const amount = Number(document.getElementById('finAmountInput').value) || 0;
-      if (!title || amount <= 0) { showToast('عنوان و مبلغ معتبر وارد کنید ⚠️'); return; }
-      const pct = type === 'income' ? Math.min(100, Math.max(0, Number(document.getElementById('finCommInput').value) || 0)) : 0;
-      const commAmt = type === 'income' ? Math.round((amount * pct) / 100) : 0;
-      appData.transactions.unshift({
-        id: 'tx_' + Date.now(),
-        type,
-        dateKey: selectedDateKey || getTodayKey(),
-        title,
-        amount,
-        commPercent: pct,
-        commAmount: commAmt,
-        netAmount: type === 'income' ? (amount - commAmt) : -amount,
-        payMethod: document.getElementById('finPayMethodInput').value,
-        note: document.getElementById('finNoteInput').value.trim()
-      });
-      saveData(); closeModal('financeModal'); renderFinanceTab();
-      showToast('در دفتر حسابداری ثبت شد 💰');
-    }
-    function deleteFinanceTx(id) {
-      if (!confirm('حذف شود؟')) return;
-      appData.transactions = appData.transactions.filter(t => t.id !== id);
-      saveData(); renderFinanceTab();
-    }
-    function getFilteredTransactions() {
-      const todayKey = getTodayKey();
-      const monthPrefix = `${viewYear}-${pad2(viewMonth)}-`;
-      if (activeFinPeriod === 'today') return appData.transactions.filter(t => t.dateKey === todayKey);
-      if (activeFinPeriod === 'month') return appData.transactions.filter(t => t.dateKey.startsWith(monthPrefix));
-      return appData.transactions;
-    }
-    function renderFinanceTab() {
-      const list = getFilteredTransactions();
-      let grossIncome = 0, totalComm = 0, totalExpenses = 0, incomeCount = 0, expenseCount = 0;
-      let payCard = 0, payPos = 0, payCash = 0;
-
-      list.forEach(t => {
-        if (t.type === 'income') {
-          grossIncome += Number(t.amount) || 0;
-          totalComm += Number(t.commAmount) || 0;
-          incomeCount++;
-          if (t.payMethod === 'کارت‌خوان') payPos += Number(t.amount) || 0;
-          else if (t.payMethod === 'نقدی') payCash += Number(t.amount) || 0;
-          else payCard += Number(t.amount) || 0;
-        } else {
-          totalExpenses += Number(t.amount) || 0;
-          expenseCount++;
-        }
-      });
-
-      let apptProfit = 0, manualProfit = 0;
-      list.forEach(t => {
-        if (t.type === 'income') {
-          if (t.sourceApptId) apptProfit += Number(t.netAmount) || 0;
-          else manualProfit += Number(t.netAmount) || 0;
-        }
-      });
-      document.getElementById('finSourceBreakdown').textContent =
-        `سود نوبت‌های انجام‌شده: ${formatMoney(apptProfit)} ت • سود ثبت دستی: ${formatMoney(manualProfit)} ت`;
-      const netProfit = grossIncome - totalComm - totalExpenses;
-      const margin = grossIncome > 0 ? Math.round((netProfit / grossIncome) * 100) : 0;
-
-      document.getElementById('finGrossIncome').textContent = `${formatMoney(grossIncome)} تومان`;
-      document.getElementById('finIncomeCount').textContent = `${toPersianDigits(incomeCount)} مورد دریافتی`;
-      document.getElementById('finTotalCommission').textContent = `${formatMoney(totalComm)} تومان`;
-      document.getElementById('finTotalExpenses').textContent = `${formatMoney(totalExpenses)} تومان`;
-      document.getElementById('finExpenseCount').textContent = `${toPersianDigits(expenseCount)} مورد هزینه`;
-      document.getElementById('finNetProfit').textContent = `${formatMoney(netProfit)} تومان`;
-      document.getElementById('finNetProfit').style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
-      document.getElementById('finProfitMargin').textContent = `حاشیه سود: ${toPersianDigits(margin)}٪`;
-
-      document.getElementById('payCardTotal').textContent = `${formatMoney(payCard)} ت`;
-      document.getElementById('payPosTotal').textContent = `${formatMoney(payPos)} ت`;
-      document.getElementById('payCashTotal').textContent = `${formatMoney(payCash)} ت`;
-
-      const tbody = document.getElementById('financeLedgerBody');
-      if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-secondary);">تراکنشی در این بازه ثبت نشده است.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = list.map(t => {
-        const isInc = t.type === 'income';
-        return `
-          <tr>
-            <td style="font-size:0.72rem; color:var(--text-secondary);">${formatJalaliFull(t.dateKey)}</td>
-            <td>
-              <div style="font-weight:700;">${isInc ? '🟢' : '🔴'} ${t.title}</div>
-              <div style="font-size:0.68rem; color:var(--text-muted);">${t.payMethod || ''} ${t.note ? `• ${t.note}` : ''}</div>
-            </td>
-            <td style="font-weight:700; color:${isInc ? 'var(--info)' : 'var(--danger)'};">${isInc ? '' : '-'}${formatMoney(t.amount)} ت</td>
-            <td style="color:var(--warning); font-size:0.74rem;">${isInc && t.commPercent > 0 ? `${toPersianDigits(t.commPercent)}٪ (${formatMoney(t.commAmount)})` : '—'}</td>
-            <td style="font-weight:800; color:${isInc ? 'var(--success)' : 'var(--danger)'};">${formatMoney(t.netAmount)} ت</td>
-            <td><button class="mini-btn del" onclick="deleteFinanceTx('${t.id}')">🗑️</button></td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function exportFinanceCSV() {
-      const list = getFilteredTransactions();
-      if (list.length === 0) { showToast('تراکنشی برای خروجی وجود ندارد ⚠️'); return; }
-      let csv = '\uFEFFتاریخ,نوع,شرح,روش پرداخت,مبلغ کل,درصد سالن,مبلغ درصد,سود خالص\n';
-      list.forEach(t => {
-        csv += `"${t.dateKey}","${t.type === 'income' ? 'درآمد' : 'هزینه'}","${t.title}","${t.payMethod || ''}",${t.amount},${t.commPercent || 0},${t.commAmount || 0},${t.netAmount}\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `hesabdari-dastyare-man-${getTodayKey()}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('فایل اکسل حسابداری دانلود شد 📥');
     }
 
     // ==================== CLIENTS & SERVICES ====================
@@ -3549,7 +3349,7 @@
     }
         function buildClientShareText(key, onlyItem) {
       const p = getClientProfile(key);
-      const checked = id => { const el=document.getElementById(id); return !el || el.checked; };
+      const checked = id => { const el=document.getElementById(id); return el ? el.checked : id !== 'shareClientPrices'; };
       const lines = [];
       if (checked('shareClientIdentity') && p.name) lines.push('نام: '+p.name);
       if (checked('shareClientIdentity') && p.phone) lines.push('شماره تماس: '+p.phone);
@@ -3749,8 +3549,6 @@
       document.getElementById('appBrandSub').textContent = s.brandSub || 'همراه تو در دنیای زیبایی';
       document.getElementById('settingBrandName').value = s.brandName || '';
       document.getElementById('settingBrandSub').value = s.brandSub || '';
-      document.getElementById('settingDefaultComm').value = s.defaultComm || 0;
-      document.getElementById('settingMonthlyGoal').value = s.monthlyGoal || '';
       document.getElementById('settingMsgTemplate').value = s.msgTemplate || '';
       document.getElementById('settingAppPin').value = s.appPin || '';
       const badge = document.getElementById('pinStatusBadge');
@@ -3795,8 +3593,6 @@
     function saveSettings() {
       appData.settings.brandName = document.getElementById('settingBrandName').value.trim() || 'دستیار من';
       appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'همراه تو در دنیای زیبایی';
-      appData.settings.defaultComm = Number(document.getElementById('settingDefaultComm').value) || 0;
-      appData.settings.monthlyGoal = Number(document.getElementById('settingMonthlyGoal').value) || 0;
       appData.settings.msgTemplate = document.getElementById('settingMsgTemplate').value;
       appData.settings.appPin = document.getElementById('settingAppPin').value.replace(/[^0-9]/g, '').slice(0, 4);
       appData.settings.customApkUrl = document.getElementById('settingCustomApkUrl').value.trim();
@@ -4073,7 +3869,7 @@
             services: parsed.services || [], clientNotes: parsed.clientNotes && typeof parsed.clientNotes==='object' ? parsed.clientNotes : (appData.clientNotes||{}),
             clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles==='object' ? parsed.clientProfiles : (appData.clientProfiles||{}),
             settings: { ...(appData.settings||{}), ...(parsed.settings||{}) } };
-          saveData(); applySettingsUI(); renderCalendar(); renderDaySchedule(); renderNotebook(); renderTodos(); renderFinanceTab(); renderServicesTab(); renderClientsTab(); updateDashboardStats();
+          saveData(); applySettingsUI(); renderCalendar(); renderDaySchedule(); renderNotebook(); renderTodos(); renderServicesTab(); renderClientsTab(); updateDashboardStats();
           showToast('بازیابی انجام شد؛ نسخه قبلی هم به‌عنوان پشتیبان ذخیره شد ✅');
         } catch (err) { showToast('فایل پشتیبان خوانده نشد؛ اطلاعات فعلی دست‌نخورده ماند.'); }
         finally { event.target.value=''; }
@@ -4428,8 +4224,7 @@
             /(?:پس\s*فردا|فردا|امروز|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|ظهر|شب|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
-        const priceMatch = t.match(/(?:با هزینه|هزینه|مبلغ|قیمت)\s*(\d{3,})/);
-        const time = pad2(hour) + ':' + pad2(minute);
+          const time = pad2(hour) + ':' + pad2(minute);
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === time && a.status !== 'canceled' &&
           (clientName ? String(a.clientName || '').trim() === clientName :
@@ -4438,12 +4233,12 @@
           String(a.service || '') === service);
         if (duplicate) return 'این نوبت با همین مشخصات از قبل ثبت شده عزیزم؛ تکراری ثبتش نکردم 💗';
         const conflict = (appData.appointments || []).some(a => a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
+        if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
           id: 'appt_mina_' + Date.now(), createdBy: 'mina', source: 'mina', dateKey, time,
           clientName: clientName || '⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing: !clientName,
           phone: phoneMatch ? phoneMatch[0] : '', service,
-          price: priceMatch ? Number(priceMatch[1]) : 0, deposit: 0,
-          commPercent: Number(appData.settings.defaultComm) || 0, payMethod: 'کارت‌به‌کارت',
+          notes: '',
           alarm: '15', status: 'pending', notified: false
         };
         appData.appointments.push(appointment);
@@ -4659,7 +4454,6 @@
         saveData();
         renderCalendar();
         renderDaySchedule();
-        if (typeof renderFinanceTab === 'function') renderFinanceTab();
         if (typeof updateDashboardStats === 'function') updateDashboardStats();
       };
 
@@ -4739,7 +4533,6 @@
         if (candidates.length > 1) return 'چند نوبت با این مشخصات پیدا کردم؛ لطفاً نام مشتری یا ساعت دقیق‌تر رو بگو تا فقط همون نوبت حذف بشه 🌷';
         const target = candidates[0];
         appData.appointments = (appData.appointments || []).filter(a => a.id !== target.id);
-        appData.transactions = (appData.transactions || []).filter(t => t.sourceApptId !== target.id);
         refreshAfterMinaChange();
         return 'نوبت از تقویم حذف شد عزیزم 🌸\n📅 ' + formatJalaliFull(target.dateKey) +
           '\n⏰ ' + target.time + '\n💅 ' + (target.service || 'خدمت') +
@@ -4929,7 +4722,6 @@
     renderDaySchedule();
     renderTodos();
     renderNotebook();
-    renderFinanceTab();
     renderServicesTab();
     updateDashboardStats();
 
