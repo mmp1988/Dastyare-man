@@ -3402,6 +3402,7 @@
       renderDaySchedule();
       renderClientsTab();
       renderClientHistory(key);
+      switchTab('calendar');
       const info = document.getElementById('clientNextAppointmentInfo');
       if (info) info.textContent = 'نوبت در تقویم ثبت شد: '+formatJalaliFull(dateKey)+' ساعت '+toPersianDigits(time)+' — '+service;
       showToast(editing ? 'تغییرات نوبت ذخیره و در تقویم به‌روزرسانی شد ✅' : 'نوبت ثبت شد و در تقویم نمایش داده شد 📅');
