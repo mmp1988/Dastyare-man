@@ -478,6 +478,26 @@ const assert = require('assert');
     assert(conversationalSafetyQA.moveDestinationSafe,
       'A date after a move verb must be treated as the destination date, not the old appointment date');
 
+    const serviceEditByMinaQA = await page.evaluate(() => {
+      const dateKey = getTodayKey();
+      appData.appointments = [
+        { id:'qa-service-edit-by-mina', dateKey, time:'14:13', clientName:'سارا', service:'کاشت ناخن', status:'pending' }
+      ];
+      const reply = minaBuildReply('خدمت نوبت سارا رو به رنگ مو تغییر بده');
+      const appt = appData.appointments[0];
+      return {
+        reply,
+        serviceChanged: appt.service === 'رنگ مو',
+        datePreserved: appt.dateKey === dateKey,
+        timePreserved: appt.time === '14:13',
+        noDuplicate: appData.appointments.length === 1
+      };
+    });
+    assert(serviceEditByMinaQA.serviceChanged && serviceEditByMinaQA.datePreserved &&
+      serviceEditByMinaQA.timePreserved && serviceEditByMinaQA.noDuplicate,
+      'Mina must edit an appointment service in place without changing its date/time or creating a duplicate');
+    console.log('Mina service edit:', JSON.stringify(serviceEditByMinaQA));
+
     const exactTimeRegression = await page.evaluate(() => {
       minaConversationBooking = null;
       minaPendingBooking = null;
