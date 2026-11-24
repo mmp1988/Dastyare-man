@@ -542,6 +542,14 @@ const assert = require('assert');
     assert(nativeJava.includes('RecognizerIntent.EXTRA_PARTIAL_RESULTS, true'), 'Android speech should enable partial results');
     assert(nativeJava.includes('startSpeechRecognition(targetInputId, buttonId, false)'), 'Android must start the default recognizer without a strict network validation gate');
     assert(nativeJava.includes('Manifest.permission.RECORD_AUDIO'), 'Android microphone permission handling is missing');
+    assert(nativeJava.includes('target.getName() + ".previous"') &&
+      nativeJava.includes('Cannot restore previous'), 'Android bundled page replacement must retain rollback safety');
+    assert(nativeJava.includes('bytes.size() < 50_000') &&
+      nativeJava.includes('lowerHtml.contains("</html>")') &&
+      nativeJava.includes('lowerHtml.contains("</script>")'),
+      'Android content updater must reject truncated or invalid HTML before replacing the offline page');
+    assert(nativeJava.includes('Only throttle future checks after the new content is safely installed'),
+      'Android updater must retry after failed content installation');
     assert(nativeJava.includes('Intent.ACTION_SENDTO, smsUri'), 'Android must open the installed SMS app for prepared customer messages');
     assert(nativeJava.includes('Intent.ACTION_DIAL, uri'), 'Android must route phone links to the dialer');
     assert(nativeJava.includes('Intent.createChooser(sendIntent, "ارسال با...")'), 'Android must offer installed apps through the share chooser');
