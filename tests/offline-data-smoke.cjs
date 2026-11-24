@@ -567,6 +567,74 @@ const assert = require('assert');
       noPhoneAppointmentQA.calendarDayCount === 1,
       'No-phone customer appointments must remain linked and visible in customer list and main calendar');
 
+    // Primary appointment + linked follow-up must be two durable records,
+    // both visible in the client profile and the main calendar.
+    const primaryFollowupQA = await page.evaluate(() => {
+      appData.appointments = [];
+      appData.clientProfiles = {};
+      const clientName = 'مشتری نوبت اصلی و ترمیم';
+      selectedDateKey = getTodayKey();
+      const set = (id, value) => { document.getElementById(id).value = value; };
+      set('editApptId', '');
+      set('apptClientName', clientName);
+      set('apptPhone', '');
+      set('apptTime', '10:17');
+      set('apptService', 'کاشت مژه');
+      set('apptNotes', 'نوبت اصلی تست');
+      set('apptAlarm', '15');
+      set('apptStatus', 'pending');
+      set('apptNextFollowup', 'custom');
+      set('apptFollowupCustomDays', '14');
+      saveAppointment();
+      const primary = appData.appointments.find(a => a.clientName === clientName && !isFollowupAppointment(a));
+      const followup = appData.appointments.find(a => a.parentAppointmentId === primary?.id);
+      const key = primary ? findClientProfileKeyForAppointment(primary) : '';
+      renderClientsTab();
+      const card = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
+      const cardText = card?.textContent || '';
+      if (key) openClientRecord(key);
+      const profileText = document.getElementById('clientScheduledAppointmentsList')?.textContent || '';
+      const primaryDate = primary?.dateKey || '';
+      const followupDate = followup?.dateKey || '';
+      viewYear = Number(followupDate.slice(0,4));
+      viewMonth = Number(followupDate.slice(5,7));
+      selectedDateKey = followupDate;
+      showFollowupOnly = false;
+      renderCalendar();
+      renderDaySchedule();
+      const calendarText = document.getElementById('calendarGrid').textContent || '';
+      const scheduleText = document.getElementById('dayAppointmentsBody').textContent || '';
+      const calendarShowsFollowup = calendarText.includes('ترمیم');
+      const scheduleShowsFollowup = scheduleText.includes('ترمیم');
+      if (primary) cycleStatus(primary.id);
+      const cardAfterDone = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
+      const followupStillShownAfterDone = !!cardAfterDone && cardAfterDone.textContent.includes('نوبت ترمیم');
+      return {
+        primaryCreated:!!primary,
+        followupCreated:!!followup,
+        linkedToPrimary:!!followup && followup.parentAppointmentId === primary.id,
+        followupHasOwnDateAndTime:!!followup && followup.dateKey === addDaysToJalaliKey(primary.dateKey,14) && followup.time === '10:17',
+        cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('نوبت ترمیم'),
+        profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت ترمیم'),
+        profileHasEditDelete:!!document.querySelector('#clientScheduledAppointmentsList [data-client-appt-edit]') && !!document.querySelector('#clientScheduledAppointmentsList [data-client-appt-delete]'),
+        calendarShowsFollowup,
+        scheduleShowsFollowup,
+        followupStillShownAfterDone,
+        primaryDate,
+        followupDate
+      };
+    });
+    assert(primaryFollowupQA.primaryCreated && primaryFollowupQA.followupCreated &&
+      primaryFollowupQA.linkedToPrimary && primaryFollowupQA.followupHasOwnDateAndTime,
+      'Primary and follow-up must be separately stored with a stable parent link and exact date/time');
+    assert(primaryFollowupQA.cardShowsBoth && primaryFollowupQA.profileShowsBoth && primaryFollowupQA.profileHasEditDelete,
+      'Customer card and profile must show both appointment types with edit/delete actions');
+    assert(primaryFollowupQA.calendarShowsFollowup && primaryFollowupQA.scheduleShowsFollowup,
+      'Main calendar and day schedule must visibly distinguish follow-up appointments');
+    assert(primaryFollowupQA.followupStillShownAfterDone,
+      'Marking the primary appointment done must not hide or remove its future follow-up');
+    console.log('Primary/follow-up integration:', JSON.stringify(primaryFollowupQA));
+
     // Birthday fields are restored from their independent local snapshot even if
     // the main app record is stale after a close/reopen or an appointment change.
     const birthdayPersistenceQA = await page.evaluate(() => {
