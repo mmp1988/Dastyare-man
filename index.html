@@ -2880,10 +2880,16 @@
         else { map[key].name = p.name || map[key].name; map[key].phone = p.phone || map[key].phone; }
       });
       // Give legacy customer profiles and their existing appointments a durable shared identity.
+      let migratedClientIdentity = false;
       Object.values(map).forEach(cl => {
+        const hadClientId = !!(appData.clientProfiles || {})[cl.key]?.clientId;
         const profile = getClientProfile(cl.key);
-        cl.visits.forEach(a => { if (!a.clientId) a.clientId = profile.clientId; });
+        if (!hadClientId) migratedClientIdentity = true;
+        cl.visits.forEach(a => {
+          if (!a.clientId) { a.clientId = profile.clientId; migratedClientIdentity = true; }
+        });
       });
+      if (migratedClientIdentity) saveData();
       const serviceQuery = (document.getElementById('advancedClientService')?.value || '').trim().toLowerCase();
       const segment = document.getElementById('advancedClientSegment')?.value || 'all';
       const clients = Object.values(map).filter(x => {
