@@ -399,6 +399,85 @@ const assert = require('assert');
     assert(minaActionsResult.cancelOk && minaActionsResult.doneOk && minaActionsResult.deleteOk && minaActionsResult.cancelVerbOk && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.exactMinuteOk && minaActionsResult.minuteMoveOk && minaActionsResult.relativeMoveOk && minaActionsResult.dateMoveOk && minaActionsResult.weekOk,
       'Mina must edit exact minutes and dates, cancel/delete/complete only the selected appointment, and preserve weekly reading');
 
+    const conversationalSafetyQA = await page.evaluate(() => {
+      const today = getTodayKey();
+      const tomorrow = addDaysToJalaliKey(today, 1);
+      const dayAfter = addDaysToJalaliKey(today, 2);
+      appData.appointments = [];
+      minaConversationBooking = null;
+      minaPendingBooking = null;
+      const firstTurn = minaBuildReply('برای فردا نوبت رنگ مو برای سارا ثبت کن');
+      const secondTurn = minaBuildReply('پانزده و چهل و سه دقیقه');
+      const continued = appData.appointments.find(a => a.clientName === 'سارا');
+      const multiTurnExactMinute = !!continued && continued.dateKey === tomorrow && continued.time === '15:43';
+
+      appData.appointments = [
+        { id:'qa-sara-today', dateKey:today, time:'09:00', clientName:'سارا', service:'کاشت ناخن', status:'pending' },
+        { id:'qa-sara-tomorrow', dateKey:tomorrow, time:'10:00', clientName:'سارا', service:'رنگ مو', status:'pending' }
+      ];
+      const ambiguousDeleteReply = minaBuildReply('نوبت سارا رو پاک کن');
+      const ambiguousDeleteSafe = appData.appointments.length === 2 &&
+        appData.appointments.every(a => a.status !== 'canceled');
+
+      const exactDateDeleteReply = minaBuildReply('نوبت سارا فردا رو پاک کن');
+      const exactDateDeleteSafe = appData.appointments.some(a => a.id === 'qa-sara-today') &&
+        !appData.appointments.some(a => a.id === 'qa-sara-tomorrow');
+
+      appData.appointments = [
+        { id:'qa-done-delete', dateKey:today, time:'11:00', clientName:'مریم', service:'لیفت مژه', status:'done' },
+        { id:'qa-keep-other', dateKey:today, time:'12:00', clientName:'الهام', service:'کاشت ناخن', status:'pending' }
+      ];
+      const completedDeleteReply = minaBuildReply('نوبت مریم رو حذف کن');
+      const completedDeleteSafe = !appData.appointments.some(a => a.id === 'qa-done-delete') &&
+        appData.appointments.some(a => a.id === 'qa-keep-other');
+
+      appData.appointments = [
+        { id:'qa-unknown-keep', dateKey:today, time:'13:00', clientName:'الهام', service:'کاشت ناخن', status:'pending' }
+      ];
+      const unknownDeleteReply = minaBuildReply('نوبت ناشناس رو حذف کن');
+      const unknownDeleteSafe = appData.appointments.length === 1 &&
+        appData.appointments[0].id === 'qa-unknown-keep';
+
+      appData.appointments = [
+        { id:'qa-reminder-sara-1', dateKey:today, time:'09:00', clientName:'سارا', service:'کاشت ناخن', status:'pending' },
+        { id:'qa-reminder-sara-2', dateKey:tomorrow, time:'10:00', clientName:'سارا', service:'رنگ مو', status:'pending' }
+      ];
+      const ambiguousReminder = minaFindReferencedAppointment('برای سارا یادآوری نوبت رو ساعت ۱۴ تنظیم کن');
+      const reminderAmbiguitySafe = ambiguousReminder === null &&
+        appData.appointments.every(a => !a.reminderEnabled);
+
+      appData.appointments = [
+        { id:'qa-move-destination', dateKey:tomorrow, time:'15:07', clientName:'سارا', service:'رنگ مو', status:'pending' }
+      ];
+      const moveDestinationReply = minaBuildReply('نوبت سارا رو بنداز پس فردا');
+      const moveDestinationSafe = appData.appointments[0].dateKey === dayAfter;
+
+      return {
+        firstTurn, secondTurn, multiTurnExactMinute,
+        ambiguousDeleteReply, ambiguousDeleteSafe,
+        exactDateDeleteReply, exactDateDeleteSafe,
+        completedDeleteReply, completedDeleteSafe,
+        unknownDeleteReply, unknownDeleteSafe,
+        reminderAmbiguitySafe,
+        moveDestinationReply, moveDestinationSafe
+      };
+    });
+    console.log('Mina conversational safety:', JSON.stringify(conversationalSafetyQA));
+    assert(conversationalSafetyQA.multiTurnExactMinute,
+      'Mina must preserve a booking when the exact spoken time arrives in the next message');
+    assert(conversationalSafetyQA.ambiguousDeleteSafe,
+      'Mina must never delete one of several same-customer appointments without a date/time');
+    assert(conversationalSafetyQA.exactDateDeleteSafe,
+      'Mina must select the appointment matching the explicitly named date');
+    assert(conversationalSafetyQA.completedDeleteSafe,
+      'Mina must be able to delete the explicitly named completed appointment without touching others');
+    assert(conversationalSafetyQA.unknownDeleteSafe,
+      'An unknown customer name must not fall through and delete another appointment');
+    assert(conversationalSafetyQA.reminderAmbiguitySafe,
+      'Mina must not attach a reminder to an arbitrary appointment when multiple matches exist');
+    assert(conversationalSafetyQA.moveDestinationSafe,
+      'A date after a move verb must be treated as the destination date, not the old appointment date');
+
     const exactTimeRegression = await page.evaluate(() => {
       minaConversationBooking = null;
       minaPendingBooking = null;
