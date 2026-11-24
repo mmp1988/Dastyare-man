@@ -249,13 +249,19 @@ public class MainActivity extends Activity {
 
     private void copyAssetAtomically(String name, File target) throws Exception {
         File temp = new File(target.getParentFile(), target.getName() + ".new");
+        File previous = new File(target.getParentFile(), target.getName() + ".previous");
         try (InputStream in = getAssets().open(name); FileOutputStream out = new FileOutputStream(temp)) {
             byte[] buffer = new byte[8192]; int n;
             while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
             out.getFD().sync();
         }
-        if (target.exists() && !target.delete()) throw new Exception("Cannot replace " + target.getName());
-        if (!temp.renameTo(target)) throw new Exception("Cannot install " + target.getName());
+        if (previous.exists() && !previous.delete()) throw new Exception("Cannot clear previous " + target.getName());
+        if (target.exists() && !target.renameTo(previous)) throw new Exception("Cannot stage current " + target.getName());
+        if (!temp.renameTo(target)) {
+            if (previous.exists() && !previous.renameTo(target)) throw new Exception("Cannot restore previous " + target.getName());
+            throw new Exception("Cannot install " + target.getName());
+        }
+        if (previous.exists()) previous.delete();
     }
 
     private void copyAssetIfPresent(String name, File target) {
@@ -544,7 +550,12 @@ public class MainActivity extends Activity {
                             while ((n = in.read(buffer)) > 0) bytes.write(buffer, 0, n);
                         }
                         String html = bytes.toString("UTF-8");
-                        if (!html.toLowerCase(Locale.ROOT).contains("<html") || !html.contains("STORAGE_KEY")) return;
+                        String lowerHtml = html.toLowerCase(Locale.ROOT);
+                        // Reject truncated GitHub/error pages before they can replace the working offline copy.
+                        if (bytes.size() < 50_000 || bytes.size() > 10 * 1024 * 1024
+                                || !lowerHtml.contains("<html") || !lowerHtml.contains("</html>")
+                                || !lowerHtml.contains("<script") || !lowerHtml.contains("</script>")
+                                || !html.contains("STORAGE_KEY")) return;
     
                         File dir = new File(getFilesDir(), "content"); dir.mkdirs();
                         File current = new File(dir, "index.html");
@@ -557,8 +568,10 @@ public class MainActivity extends Activity {
                                 unchanged = java.util.Arrays.equals(oldBytes.toByteArray(), bytes.toByteArray());
                             }
                         }
-                        prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
-                        if (unchanged) return;
+                        if (unchanged) {
+                            prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
+                            return;
+                        }
     
                         File temp = new File(dir, "index.html.new");
                         try (FileOutputStream out = new FileOutputStream(temp)) {
@@ -573,6 +586,8 @@ public class MainActivity extends Activity {
                             if (previous.exists()) previous.renameTo(current);
                             throw new Exception("Atomic update failed");
                         }
+                        // Only throttle future checks after the new content is safely installed.
+                        prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
                         runOnUiThread(() -> {
                             Toast.makeText(MainActivity.this, "بخش‌های جدید دریافت شد؛ اطلاعات ذخیره‌شده حفظ شد", Toast.LENGTH_LONG).show();
                             if (webView != null) webView.loadUrl(APP_ORIGIN + "/content/index.html");
