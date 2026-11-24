@@ -232,6 +232,29 @@ const assert = require('assert');
       minaActionsResult.moveOk && minaActionsResult.weekOk,
       'Mina cancel/complete/reschedule/weekly schedule command failed');
 
+    const exactTimeRegression = await page.evaluate(() => {
+      minaConversationBooking = null;
+      minaPendingBooking = null;
+      appData.appointments = [];
+      const exactReply = minaBuildReply('برای مشتری دقیقه‌ای فردا ساعت ۱۳:۴۳ نوبت رنگ مو ثبت کن');
+      const exactAppt = appData.appointments[0];
+      appData.appointments = [];
+      const quarterReply = minaBuildReply('برای نازنین فردا یک ربع به ۳ ظهر نوبت کراتین مو ثبت کن');
+      const quarterAppt = appData.appointments[0];
+      appData.appointments = [{ id:'slot-taken', dateKey:getTodayKey(), time:'14:45', clientName:'مشتری اول', service:'کاشت ناخن', status:'pending' }];
+      const conflictReply = minaBuildReply('برای سارا امروز یک ربع به ۳ ظهر نوبت کاشت مژه ثبت کن');
+      return {
+        exactTime: exactAppt?.time,
+        exactOk: exactAppt?.time === '13:43',
+        quarterTime: quarterAppt?.time,
+        quarterOk: quarterAppt?.time === '14:45',
+        conflictBlocked: appData.appointments.length === 1 && conflictReply.includes('قبلاً رزرو شده')
+      };
+    });
+    console.log('Mina exact-time and salon conflict regression:', JSON.stringify(exactTimeRegression));
+    assert(exactTimeRegression.exactOk && exactTimeRegression.quarterOk && exactTimeRegression.conflictBlocked,
+      'Mina must understand exact minutes, quarter-to times, and reject cross-service time conflicts');
+
     // Static native Android guardrails: validated internet selects Android's normal
     // recognition service; Persian locale and microphone permission remain configured.
     const nativeJava = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/MainActivity.java'), 'utf8');
