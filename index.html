@@ -4438,7 +4438,7 @@
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
 
-      if (/(?:این هفته|هفت روز آینده)/u.test(normalized)) {
+      if (/(?:این هفته|هفت روز (?:آینده|اینده))/u.test(normalized)) {
         const from = getTodayKey(), to = addDaysToJalaliKey(from, 6);
         const upcoming = (appData.appointments || []).filter(a => a.status !== 'canceled' && a.dateKey >= from && a.dateKey <= to)
           .sort((a,b) => (a.dateKey + (a.time || '')).localeCompare(b.dateKey + (b.time || '')));
