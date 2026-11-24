@@ -1339,8 +1339,9 @@
         </div>
 
         <div class="form-group">
-          <label>نام نمایشی بالای برنامه (شخصی‌سازی برای هر کاربر)</label>
-          <input type="text" id="settingBrandName" class="form-control" placeholder="دستیار من" onchange="saveSettings()" />
+          <label>نام برنامه و دستیار هوشمند</label>
+          <div class="form-control" aria-readonly="true" style="display:flex;align-items:center;min-height:44px;font-weight:900;cursor:default;">دستیار من · مینا</div>
+          <small style="display:block;margin-top:6px;color:var(--text-secondary);">نام «مینا» و عنوان برنامه ثابت هستند و کاربران نمی‌توانند آن‌ها را تغییر دهند.</small>
         </div>
         <div class="form-group">
           <label>زیرعنوان برنامه</label>
@@ -3624,10 +3625,11 @@
 
     function applySettingsUI() {
       const s = appData.settings;
-      document.getElementById('appBrandTitle').textContent = s.brandName || 'دستیار من';
-      document.getElementById('splashBrandTitle').textContent = s.brandName || 'دستیار من';
+      // Fixed product and assistant identity: user personalization must never rename either.
+      appData.settings.brandName = 'دستیار من';
+      document.getElementById('appBrandTitle').textContent = 'دستیار من';
+      document.getElementById('splashBrandTitle').textContent = 'دستیار من';
       document.getElementById('appBrandSub').textContent = s.brandSub || 'همراه تو در دنیای زیبایی';
-      document.getElementById('settingBrandName').value = s.brandName || '';
       document.getElementById('settingBrandSub').value = s.brandSub || '';
       document.getElementById('settingAppPin').value = s.appPin || '';
       const badge = document.getElementById('pinStatusBadge');
@@ -3672,7 +3674,7 @@
     }
 
     function saveSettings() {
-      appData.settings.brandName = document.getElementById('settingBrandName').value.trim() || 'دستیار من';
+      appData.settings.brandName = 'دستیار من';
       appData.settings.brandSub = document.getElementById('settingBrandSub').value.trim() || 'همراه تو در دنیای زیبایی';
       appData.settings.appPin = document.getElementById('settingAppPin').value.replace(/[^0-9]/g, '').slice(0, 4);
       appData.settings.customApkUrl = document.getElementById('settingCustomApkUrl').value.trim();
