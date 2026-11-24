@@ -531,7 +531,7 @@ public class MainActivity extends Activity {
                         // Check at most every six hours after a successful connection; failed/offline checks are retried.
                         if (!force && System.currentTimeMillis() - lastSuccess < 6L * 60L * 60L * 1000L) return;
     
-                        connection = (HttpURLConnection)new URL(UPDATE_URL).openConnection();
+                        connection = (HttpURLConnection)new URL(UPDATE_URL + "?refresh=" + System.currentTimeMillis()).openConnection();
                         connection.setConnectTimeout(4500);
                         connection.setReadTimeout(6500);
                         connection.setRequestProperty("Cache-Control", "no-cache");
@@ -907,7 +907,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return ""; }
         }
         @JavascriptInterface public void updateApp() {
-            performContentUpdate(false);
+            performContentUpdate(true);
         }
     }
 
