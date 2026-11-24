@@ -1132,6 +1132,7 @@
 
     <!-- ==================== TAB 2: NOTEBOOK & DAILY CHECKLIST ==================== -->
     <section id="tab-notebook" class="tab-section">
+      <div class="card" id="personalRemindersCard"><div class="section-head"><div class="section-title">🔔 هشدارهای شخصی من</div><span style="font-size:.72rem;color:var(--text-secondary);">مستقل از نوبت مشتری</span></div><div class="form-grid"><div class="form-group"><label>تاریخ هشدار</label><input type="date" id="personalReminderDate" class="form-control"></div><div class="form-group"><label>ساعت دقیق هشدار</label><input type="time" id="personalReminderTime" class="form-control" step="60"></div><div class="form-group full"><label>متن یادآوری</label><textarea id="personalReminderText" class="form-control" rows="2" placeholder="مثلاً: ساعت ۲ باید برم سالن"></textarea></div><div class="form-group full" style="display:flex;flex-direction:row;gap:8px"><button class="btn-primary" id="savePersonalReminderBtn" style="flex:1" onclick="savePersonalReminder()">🔔 ثبت هشدار</button><button class="btn-secondary" id="cancelPersonalReminderEditBtn" style="display:none" onclick="resetPersonalReminderForm()">انصراف از ویرایش</button></div></div><div style="font-size:.73rem;color:var(--text-secondary);line-height:1.7;margin:2px 0 10px">برای اعلان، اجازه اعلان برنامه را فعال کن. هشدارها پس از بستن و باز کردن برنامه باقی می‌مانند.</div><div id="personalReminderList" style="display:flex;flex-direction:column;gap:8px"></div></div>
       <!-- Daily Quick To-Do Checklist -->
       <div class="card">
         <div class="section-head">
@@ -2022,6 +2023,7 @@
 
     let appData = {
       appointments: [],
+      reminders: [],
       notes: [],
       todos: [],
       services: [],
@@ -2071,6 +2073,7 @@
           ...appData,
           ...parsed,
           appointments: Array.isArray(parsed.appointments) ? parsed.appointments : [],
+          reminders: Array.isArray(parsed.reminders) ? parsed.reminders : [],
           notes: Array.isArray(parsed.notes) ? parsed.notes : [],
           todos: Array.isArray(parsed.todos) ? parsed.todos : [],
           services: Array.isArray(parsed.services) ? parsed.services : [],
@@ -4857,7 +4860,17 @@
         '\n🔔 زمان هشدار: ' + reminderTime + '\n💅 خدمت: ' + (appointment.service || 'خدمت') +
         '\nبا باز شدن برنامه در آن روز، هشدار در ساعت تعیین‌شده نمایش داده می‌شود.';
     }
+
+    let editingPersonalReminderId = null;
+    function localReminderDate(d){return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+    function resetPersonalReminderForm(){editingPersonalReminderId=null;const d=new Date();d.setDate(d.getDate()+1);document.getElementById("personalReminderDate").value=localReminderDate(d);document.getElementById("personalReminderTime").value="13:00";document.getElementById("personalReminderText").value="";document.getElementById("savePersonalReminderBtn").textContent="🔔 ثبت هشدار";document.getElementById("cancelPersonalReminderEditBtn").style.display="none";}
+    function renderPersonalReminders(){const root=document.getElementById("personalReminderList");if(!root)return;const items=(appData.reminders||[]).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||""));root.innerHTML="";if(!items.length){root.textContent="هنوز هشدار شخصی ثبت نشده است.";return;}items.forEach(x=>{const card=document.createElement("div");card.style.cssText="padding:10px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-input)";const p=(x.date||"").split("-").map(Number);const j=p.length===3?gregorianToJalali(p[0],p[1],p[2]):null;const key=j?j[0]+"-"+pad2(j[1])+"-"+pad2(j[2]):"";const head=document.createElement("strong");head.textContent="⏰ "+toPersianDigits(x.time||"")+" • "+(key?formatJalaliFull(key):"");const msg=document.createElement("div");msg.style.cssText="white-space:pre-wrap;line-height:1.7;margin:6px 0";msg.textContent=x.message||"";const actions=document.createElement("div");actions.style.cssText="display:flex;gap:6px";const edit=document.createElement("button");edit.className="mini-btn";edit.textContent="✏️ ویرایش";edit.onclick=()=>editPersonalReminder(x.id);const del=document.createElement("button");del.className="mini-btn del";del.textContent="حذف";del.onclick=()=>deletePersonalReminder(x.id);const status=document.createElement("small");status.textContent=x.notified?"اعلان داده شده":"فعال";actions.append(edit,del,status);card.append(head,msg,actions);root.appendChild(card);});}
+    async function savePersonalReminder(){const date=document.getElementById("personalReminderDate").value;const time=document.getElementById("personalReminderTime").value;const message=document.getElementById("personalReminderText").value.trim();if(!date||!time||!message){showToast("تاریخ، ساعت و متن یادآوری را کامل کن.");return;}const target=new Date(date+"T"+time+":00");if(Number.isNaN(target.getTime())||target.getTime()<=Date.now()){showToast("زمان هشدار باید در آینده باشد.");return;}if("Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission();}catch(e){}}if(!Array.isArray(appData.reminders))appData.reminders=[];if(editingPersonalReminderId){const old=appData.reminders.find(x=>x.id===editingPersonalReminderId);if(old)Object.assign(old,{date,time,message,notified:false,enabled:true});}else{appData.reminders.push({id:"rem_"+Date.now(),date,time,message,notified:false,enabled:true,createdAt:Date.now()});}saveData();renderPersonalReminders();resetPersonalReminderForm();showToast("هشدار شخصی ذخیره شد 🔔");}
+    function editPersonalReminder(id){const x=(appData.reminders||[]).find(a=>a.id===id);if(!x)return;editingPersonalReminderId=id;document.getElementById("personalReminderDate").value=x.date||"";document.getElementById("personalReminderTime").value=x.time||"";document.getElementById("personalReminderText").value=x.message||"";document.getElementById("savePersonalReminderBtn").textContent="💾 ذخیره تغییرات";document.getElementById("cancelPersonalReminderEditBtn").style.display="inline-flex";document.getElementById("personalRemindersCard").scrollIntoView({behavior:"smooth",block:"start"});}
+    function deletePersonalReminder(id){if(!confirm("این هشدار حذف شود؟"))return;appData.reminders=(appData.reminders||[]).filter(x=>x.id!==id);saveData();renderPersonalReminders();if(editingPersonalReminderId===id)resetPersonalReminderForm();showToast("هشدار حذف شد.");}
+    function checkPersonalReminders(){if(activeAlarmId)return;const now=new Date();const today=localReminderDate(now);const current=pad2(now.getHours())+":"+pad2(now.getMinutes());const x=(appData.reminders||[]).filter(a=>a&&a.enabled!==false&&!a.notified&&a.date===today&&a.time&&current>=a.time).sort((a,b)=>(a.time||"").localeCompare(b.time||""))[0];if(!x)return;x.notified=true;saveData();renderPersonalReminders();activeAlarmId=x.id;const msg=x.message||"زمان انجام یادآوری رسیده است.";const node=document.getElementById("alarmRingingText");const modal=document.getElementById("alarmRingingModal");const title=modal&&modal.querySelector(".modal-title");if(title)title.textContent="یادآوری شخصی شما";if(node&&modal){node.textContent=msg;modal.classList.add("open");}try{if(window.AndroidApp&&typeof AndroidApp.showAppointmentNotification==="function"){AndroidApp.showAppointmentNotification(String(x.id),msg);}else if("Notification" in window&&Notification.permission==="granted"){new Notification("یادآوری شخصی",{body:msg,tag:"personal-"+x.id});}}catch(e){}playChime();if(alarmInterval)clearInterval(alarmInterval);alarmInterval=setInterval(()=>{if(activeAlarmId)playChime();},3500);}
     function checkMinaCustomReminders() {
+
       if (activeAlarmId) return;
       const now=getIranNow(), todayKey=getTodayKey();
       const nowTime=pad2(now.getHours())+':'+pad2(now.getMinutes());
@@ -5181,6 +5194,8 @@
     // Refresh the smart panel whenever existing data is saved or the customer record is opened.
 
     loadData();
+    resetPersonalReminderForm();
+    renderPersonalReminders();
     requestDurableBrowserStorage();
     installEnhancementUI();
     installSmartCalendarPanel();
@@ -5194,7 +5209,7 @@
     renderServicesTab();
     updateDashboardStats();
 
-    setInterval(() => { updateClockAndDate(); checkAlarms(); checkMinaCustomReminders(); }, 1000);
+    setInterval(() => { updateClockAndDate(); checkAlarms(); checkMinaCustomReminders(); checkPersonalReminders(); }, 1000);
 
     // --- AUTO-UPDATE ENGINE ---
     let swRegistration = null;
