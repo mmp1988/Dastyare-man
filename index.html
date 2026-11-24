@@ -4617,9 +4617,9 @@
     // already being discussed, without asking the user to repeat its date or service.
     function minaParseReminderClock(raw) {
       const value = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
-      let m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s*[:٫.]\\s*(\\d{1,2})/);
-      if (!m) m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s+و\\s+(\\d{1,2})\\s*دقیقه/);
-      if (!m) m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
+      let m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})/);
+      if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*دقیقه/);
+      if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*(صبح|ظهر|بعدازظهر|عصر|شب)/);
       if (!m) return null;
       let hour = Number(m[1]), minute = Number(m[2] || 0);
       const period = m[3] || (/بعدازظهر|عصر|ظهر|شب/.test(value) ? 'بعدازظهر' : /صبح/.test(value) ? 'صبح' : '');
@@ -4632,7 +4632,7 @@
       const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
       const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled');
       if (!active.length) return null;
-      const nameMatch = text.match(/(?:برای|مشتری)\\s+([آ-یءئؤإأ‌\\-]{2,30})/u);
+      const nameMatch = text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
       if (nameMatch) {
         const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(nameMatch[1]));
         if (named.length === 1) return named[0];
@@ -4643,8 +4643,8 @@
     }
     function minaTrySetAppointmentReminder(raw) {
       const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
-      if (!/(?:یادم\\s*بمونه|یادم\\s*نره|یادم\\s*بنداز|یادآوری|هشدار|خبرم\\s*کن|یادم\\s*بیار)/u.test(text)) return null;
-      if (!/(?:نوبت|رزرو|وقت|مراجعه|این\\s+نوبت)/u.test(text)) return null;
+      if (!/(?:یادم\s*بمونه|یادم\s*نره|یادم\s*بنداز|یادآوری|هشدار|خبرم\s*کن|یادم\s*بیار)/u.test(text)) return null;
+      if (!/(?:نوبت|رزرو|وقت|مراجعه|این\s+نوبت)/u.test(text)) return null;
       const reminderTime = minaParseReminderClock(raw);
       if (!reminderTime) return 'حتماً عزیزم 💗 ساعت هشدار رو دقیق‌تر بگو؛ مثلاً «۱۴:۰۰» یا «دو و ربع بعدازظهر».';
       const appointment = minaFindReferencedAppointment(raw);
@@ -4656,10 +4656,10 @@
       saveData();
       if (typeof renderCalendar === 'function') renderCalendar();
       if (typeof renderDaySchedule === 'function') renderDaySchedule();
-      return 'چشم عزیزم 💗 هشدار این نوبت ذخیره شد و به خودِ نوبت وصلش کردم.\\n👩🏻 مشتری: ' +
-        (appointment.clientName || 'مشتری') + '\\n📅 تاریخ: ' + formatJalaliFull(appointment.dateKey) +
-        '\\n🔔 زمان هشدار: ' + reminderTime + '\\n💅 خدمت: ' + (appointment.service || 'خدمت') +
-        '\\nبا باز شدن برنامه در آن روز، هشدار در ساعت تعیین‌شده نمایش داده می‌شود.';
+      return 'چشم عزیزم 💗 هشدار این نوبت ذخیره شد و به خودِ نوبت وصلش کردم.\n👩🏻 مشتری: ' +
+        (appointment.clientName || 'مشتری') + '\n📅 تاریخ: ' + formatJalaliFull(appointment.dateKey) +
+        '\n🔔 زمان هشدار: ' + reminderTime + '\n💅 خدمت: ' + (appointment.service || 'خدمت') +
+        '\nبا باز شدن برنامه در آن روز، هشدار در ساعت تعیین‌شده نمایش داده می‌شود.';
     }
     function checkMinaCustomReminders() {
       const now = getIranNow(), todayKey = getTodayKey();
