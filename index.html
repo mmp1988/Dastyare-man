@@ -2552,7 +2552,11 @@
       if (editId) {
         var appt = appData.appointments.find(function(a){return a.id === editId;});
         if (!appt) return;
-        document.getElementById('apptModalTitle').textContent = 'ویرایش نوبت مشتری';
+        selectedDateKey = appt.dateKey;
+        viewYear = Number(appt.dateKey.slice(0,4));
+        viewMonth = Number(appt.dateKey.slice(5,7));
+        renderCalendar();
+        document.getElementById('apptModalTitle').textContent = (isFollowupAppointment(appt) ? 'ویرایش نوبت ترمیم مشتری' : 'ویرایش نوبت اصلی مشتری');
         document.getElementById('apptClientName').value = appt.clientName || '';
         document.getElementById('apptPhone').value = appt.phone || '';
         document.getElementById('apptTime').value = appt.time || '10:00';
@@ -2561,6 +2565,17 @@
         if (document.getElementById('apptAlarm').value === 'custom') document.getElementById('apptCustomAlarmMinutes').value = String(Math.max(0,Number(appt.alarm)||0));
         document.getElementById('apptNotes').value = appt.notes || '';
         document.getElementById('apptStatus').value = appt.status || 'pending';
+        const linkedFollowup = !isFollowupAppointment(appt) && appData.appointments.find(a => a.parentAppointmentId === appt.id && a.status !== 'canceled');
+        if (linkedFollowup) {
+          let followupDays = 0;
+          for (let d = 1; d <= 365; d++) if (addDaysToJalaliKey(appt.dateKey, d) === linkedFollowup.dateKey) { followupDays = d; break; }
+          if ([14,21,28].includes(followupDays)) document.getElementById('apptNextFollowup').value = String(followupDays);
+          else {
+            document.getElementById('apptNextFollowup').value = 'custom';
+            document.getElementById('apptFollowupCustomDays').value = String(followupDays || 10);
+          }
+          updateFollowupUI();
+        }
       } else {
         document.getElementById('apptModalTitle').textContent = 'ثبت نوبت برای ' + formatJalaliFull(selectedDateKey);
         document.getElementById('apptClientName').value = '';
@@ -2681,8 +2696,11 @@
       if (alarmChoice === 'custom' && (!Number.isInteger(customAlarm) || customAlarm < 0 || customAlarm > 43200)) {
         showToast('زمان هشدار دلخواه باید بین صفر تا ۴۳۲۰۰ دقیقه باشد.'); return;
       }
+      var existingAppointment = editId ? appData.appointments.find(a => a.id === editId) : null;
       var payload = {
         id: editId || ('appt_' + Date.now()),
+        appointmentType: existingAppointment?.appointmentType || (existingAppointment && isFollowupAppointment(existingAppointment) ? 'followup' : 'primary'),
+        parentAppointmentId: existingAppointment?.parentAppointmentId || '',
         dateKey: selectedDateKey, time: time, clientName: clientName,
         phone: document.getElementById('apptPhone').value.trim(),
         service: service, notes: document.getElementById('apptNotes').value.trim(),
@@ -3428,7 +3446,7 @@
       pendingClientWorkPhoto = '';
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
-      const future = appointments.filter(a => a.status !== 'canceled' && a.dateKey >= getTodayKey()).sort((a,b) => (a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
+      const future = appointments.filter(a => a.status !== 'canceled' && a.status !== 'done' && a.dateKey >= getTodayKey()).sort((a,b) => (a.dateKey+a.time).localeCompare(b.dateKey+b.time))[0];
       clientEditingNextAppointmentId = future ? future.id : null;
       document.getElementById('clientReminderPreview').value = buildClientReminderMessage(p, future || null);
       document.getElementById('clientReminderAppointmentInfo').textContent = future
