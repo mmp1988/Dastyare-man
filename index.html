@@ -1672,7 +1672,7 @@
             <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.</small>
           </div>
           <div class="form-group full">
-            <button class="btn-primary" style="width:100%;" onclick="saveClientWorkRecord()">💾 ذخیره سابقه این جلسه</button>
+            <small style="color:var(--text-secondary);">پس از تکمیل اطلاعات، از دکمه «ثبت کار» در پایین پرونده استفاده کن.</small>
           </div>
         </div>
       </div>
@@ -1714,7 +1714,7 @@
             <textarea id="clientNextNotes" class="form-control" rows="2" placeholder="توضیحات یا نکات لازم برای مراجعه بعدی..."></textarea>
           </div>
           <div class="form-group full">
-            <button class="btn-secondary" style="width:100%;" onclick="saveClientNextAppointment()">🗓️ ثبت نوبت بعدی در تقویم</button>
+            <small style="color:var(--text-secondary);">تاریخ و ساعت نوبت بعدی را وارد کن؛ با زدن «ثبت کار»، نوبت به‌صورت خودکار در تقویم ثبت می‌شود.</small>
           </div>
         </div>
         <div id="clientNextAppointmentInfo" style="font-size:0.8rem;color:var(--accent);line-height:1.8;"></div>
@@ -1745,8 +1745,7 @@
         <small style="display:block;color:var(--text-secondary);margin-top:7px;">فقط گزینه‌های فعال و اطلاعاتی که واقعاً ثبت کرده‌ای ارسال می‌شوند؛ موارد خالی حذف می‌شوند.</small>
       </div>
       <div id="clientShareActions" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:sticky;bottom:0;z-index:5;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--border-subtle);">
-        <button type="button" class="btn-primary" style="flex:1 1 100%;" onclick="saveClientNextAppointment()">🗓️ ذخیره نوبت و نمایش در تقویم</button>
-        <button type="button" class="btn-secondary" style="flex:1;" onclick="saveClientWorkRecord()">💾 ثبت کار انجام‌شده</button>
+        <button type="button" class="btn-primary" style="flex:1 1 100%;" onclick="saveClientWorkAndNextAppointment()">💾 ثبت کار</button>
         <button type="button" class="btn-secondary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال اطلاعات</button>
         <button type="button" class="btn-secondary" onclick="closeModal('clientProfileModal')">بستن</button>
       </div>
@@ -3448,6 +3447,30 @@
       saveData();
       showToast('نکات پرونده ذخیره شد ✅');
     }
+    function saveClientWorkAndNextAppointment() {
+      const dateValue = document.getElementById('clientNextDate')?.value || '';
+      const hasNextAppointment = !!dateValue.trim();
+      const hasCustomWorkValues = Array.from(document.querySelectorAll('[data-work-field]')).some(el => !!el.value.trim());
+      const hasWorkDetails = !!(
+        document.getElementById('clientWorkDate')?.value ||
+        document.getElementById('clientWorkTime')?.value ||
+        document.getElementById('clientWorkService')?.value.trim() ||
+        document.getElementById('clientWorkNotes')?.value.trim() ||
+        hasCustomWorkValues ||
+        pendingClientWorkPhoto || pendingClientBeforePhoto || pendingClientAfterPhoto
+      );
+      if (!hasWorkDetails && !hasNextAppointment) {
+        showToast('اطلاعات کار انجام‌شده یا تاریخ نوبت بعدی را وارد کن.');
+        return;
+      }
+      if (hasWorkDetails && !saveClientWorkRecord()) return;
+      if (hasNextAppointment) {
+        saveClientNextAppointment();
+      } else {
+        showToast('کار با موفقیت در پرونده مشتری ثبت شد. ✅');
+      }
+    }
+
     function saveClientWorkRecord() {
       const key = document.getElementById('clientRecordKey').value;
       if (!key) return;
@@ -3461,7 +3484,7 @@
       document.querySelectorAll('[data-work-field]').forEach(el=>{if(el.value.trim()){const def=getClientWorkFieldDefinitions().find(f=>f.id===el.dataset.workField);customValues[el.dataset.workField]={label:def?.label||'جزئیات',value:el.value.trim()};}});
       if (!service && !notes && !date && !time && !Object.keys(customValues).length && !pendingClientWorkPhoto && !pendingClientBeforePhoto && !pendingClientAfterPhoto) {
         showToast('حداقل یک مورد مثل خدمت، توضیح یا عکس اضافه کن.');
-        return;
+        return false;
       }
       p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, customValues, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
       pendingClientWorkPhoto = '';
@@ -3482,7 +3505,8 @@
       renderClientHistory(key);
       renderClientsTab();
       showToast('سابقه کار در پرونده مشتری ثبت شد ✅');
-    }
+    return true;
+     }
     function updateClientBeforeAfter(slider, encodedId) {
       const id=decodeURIComponent(encodedId), box=document.getElementById('baCompare_'+id);
       if (!box) return;
