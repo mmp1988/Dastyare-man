@@ -971,6 +971,37 @@
       .filter-pill { min-height: 34px; padding: 6px 10px; }
     }
     #clientProfileModal .modal-box { overflow-x: hidden; }
+
+    /* Show each customer's next booking directly in the customer list. */
+    #clientsListContainer .client-next-appointment,
+    #clientsListContainer .client-no-appointment {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:4px 7px;
+      margin-top:6px;
+      line-height:1.65;
+      font-size:.74rem;
+      white-space:normal;
+    }
+    #clientsListContainer .client-next-appointment {
+      color:var(--text-primary);
+      background:var(--bg-secondary);
+      border:1px solid var(--border-subtle);
+      border-radius:8px;
+      padding:4px 7px;
+      width:fit-content;
+      max-width:100%;
+    }
+    #clientsListContainer .client-next-appointment > span:first-child { color:var(--accent); font-weight:750; }
+    #clientsListContainer .client-next-appointment-time { font-weight:800; color:var(--accent); }
+    #clientsListContainer .client-next-appointment-service { color:var(--text-secondary); }
+    #clientsListContainer .client-no-appointment { color:var(--text-secondary); }
+    @media (max-width:380px) {
+      #clientsListContainer .client-next-appointment,
+      #clientsListContainer .client-no-appointment { font-size:.69rem; gap:3px 5px; }
+    }
+
     /* Responsive safety rails shared by the website and Android WebView. */
     .container, .card, .form-grid, .form-group, .form-control,
     .client-date-group, .client-time-group, .table-wrap { min-width: 0; max-width: 100%; }
@@ -2859,6 +2890,13 @@
       c.innerHTML = clients.map(cl => {
         const p = (appData.clientProfiles || {})[cl.key] || {};
         const count = cl.visits.length + (p.records || []).length;
+        const todayKey = getTodayKey();
+        const nextAppointment = cl.visits
+          .filter(a => a.status !== 'canceled' && a.status !== 'done' && a.dateKey && a.dateKey >= todayKey)
+          .sort((a,b) => (a.dateKey + (a.time || '')).localeCompare(b.dateKey + (b.time || '')))[0] || null;
+        const appointmentLine = nextAppointment
+          ? `<small class="client-next-appointment"><span>📅 نوبت بعدی:</span> <strong>${escapeClientText(formatJalaliFull(nextAppointment.dateKey))}</strong><span class="client-next-appointment-time">🕒 ${toPersianDigits(nextAppointment.time || 'ساعت ثبت نشده')}</span>${nextAppointment.service ? `<span class="client-next-appointment-service"> • ${escapeClientText(nextAppointment.service)}</span>` : ''}</small>`
+          : `<small class="client-no-appointment">📅 نوبت آینده ثبت نشده</small>`;
         const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : p.photoRef ? `<img data-client-photo-ref="${escapeClientText(p.photoRef)}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<span style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</span>`;
         const encoded = encodeURIComponent(cl.key);
         return `
@@ -2868,6 +2906,7 @@
               <button type="button" onclick="openClientRecord(decodeURIComponent('${encoded}'))" style="flex:1;min-width:0;text-align:right;background:transparent;border:0;padding:0;color:inherit;cursor:pointer;">
                 <strong style="display:block;font-size:0.9rem;">${escapeClientText(cl.name)}</strong>
                 <small style="display:block;color:var(--text-secondary);margin-top:3px;">${escapeClientText(cl.phone || 'بدون شماره تماس')}</small>
+                ${appointmentLine}
                 <small style="display:block;color:var(--accent);margin-top:3px;">${toPersianDigits(count)} سابقه • مشاهده پرونده</small>
               </button>
               <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
