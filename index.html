@@ -2879,6 +2879,11 @@
         if (!map[key]) map[key] = { key, name: p.name || key, phone: p.phone || '', visits: [] };
         else { map[key].name = p.name || map[key].name; map[key].phone = p.phone || map[key].phone; }
       });
+      // Give legacy customer profiles and their existing appointments a durable shared identity.
+      Object.values(map).forEach(cl => {
+        const profile = getClientProfile(cl.key);
+        cl.visits.forEach(a => { if (!a.clientId) a.clientId = profile.clientId; });
+      });
       const serviceQuery = (document.getElementById('advancedClientService')?.value || '').trim().toLowerCase();
       const segment = document.getElementById('advancedClientSegment')?.value || 'all';
       const clients = Object.values(map).filter(x => {
