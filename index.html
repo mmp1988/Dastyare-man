@@ -3381,13 +3381,13 @@
       const service = document.getElementById('clientNextService').value.trim() || 'مراجعه بعدی';
       const dateKey = parseClientJalaliDate(dateValue);
       if (!dateKey) { showToast('ابتدا تاریخ شمسی نوبت را از تقویم انتخاب کن.'); return; }
-      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time || '')) { showToast('ساعت نوبت را دقیق انتخاب کن.'); return; }
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time || '')) { showToast('ساعت نوبت را دقیق انتخاب کن.'); return; }
       const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId && a.status !== 'canceled') : null;
       const conflict = appData.appointments.some(a => a.id !== (editing && editing.id) && a.dateKey === dateKey && a.time === time && a.status !== 'canceled');
       if (conflict) { showToast('این ساعت قبلاً برای مشتری دیگری رزرو شده است؛ زمان دیگری انتخاب کن. ⛔'); return; }
       const alarmMinutes = Math.max(0,Math.min(43200,Number(document.getElementById('clientNextAlarm')?.value ?? 15)||0));
       const notes = (document.getElementById('clientNextNotes')?.value || '').trim();
-      const data = { dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\\d/) ? key : ''), service, notes, alarm:String(alarmMinutes), status:'pending', notified:false };
+      const data = { dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''), service, notes, alarm:String(alarmMinutes), status:'pending', notified:false };
       if (editing) Object.assign(editing, data);
       else {
         const created = { id:'appt_'+Date.now(), ...data };
