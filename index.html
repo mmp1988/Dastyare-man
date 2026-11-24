@@ -2270,9 +2270,16 @@
         hBanner.classList.toggle('visible',!!(!showFollowupOnly && reasonNow));
       }
       var tbody = document.getElementById('dayAppointmentsBody');
+      var compareAppointmentTime = function(a,b) {
+        var at = String(a.time || '99:99').match(/^(\\d{1,2}):(\\d{2})$/);
+        var bt = String(b.time || '99:99').match(/^(\\d{1,2}):(\\d{2})$/);
+        var am = at ? Number(at[1])*60+Number(at[2]) : 9999;
+        var bm = bt ? Number(bt[1])*60+Number(bt[2]) : 9999;
+        return am-bm || String(a.clientName||'').localeCompare(String(b.clientName||''),'fa');
+      };
       var list = showFollowupOnly
-        ? appData.appointments.filter(function(a){return (a.service||'').includes('ترمیم') && a.status !== 'canceled';}).sort(function(a,b){return a.dateKey.localeCompare(b.dateKey)||a.time.localeCompare(b.time);})
-        : appData.appointments.filter(function(a){return a.dateKey === selectedDateKey;}).sort(function(a,b){return (a.time||'').localeCompare(b.time||'');});
+        ? appData.appointments.filter(function(a){return (a.service||'').includes('ترمیم') && a.status !== 'canceled';}).sort(function(a,b){return a.dateKey.localeCompare(b.dateKey)||compareAppointmentTime(a,b);})
+        : appData.appointments.filter(function(a){return a.dateKey === selectedDateKey;}).sort(compareAppointmentTime);
       var summary = document.getElementById('selectedDaySummary');
       if (summary) summary.textContent = toPersianDigits(list.filter(function(a){return a.status !== 'canceled';}).length) + ' نوبت ثبت‌شده';
       if (!list.length) {
@@ -3784,14 +3791,19 @@
     }
 
     // ==================== CLOCK, ALARMS & STATS ====================
-    let audioCtx = null, alarmInterval = null;
+    let audioCtx = null, alarmInterval = null, alarmAudioElement = null, activeAlarmId = null;
     function playChime() {
       const settings = (appData && appData.settings) || {};
       if (settings.alarmSoundChoice === 'custom' && settings.customAlarmAudio) {
         try {
-          const audio = new Audio(settings.customAlarmAudio);
-          audio.volume = 1;
-          audio.play().catch(() => playPresetAlarmSound(settings.alarmSoundFallback || 'classic'));
+          if (!alarmAudioElement || alarmAudioElement.src !== settings.customAlarmAudio) {
+            if (alarmAudioElement) { alarmAudioElement.pause(); alarmAudioElement.src = ''; }
+            alarmAudioElement = new Audio(settings.customAlarmAudio);
+            alarmAudioElement.loop = false;
+          }
+          alarmAudioElement.currentTime = 0;
+          alarmAudioElement.volume = 1;
+          alarmAudioElement.play().catch(() => playPresetAlarmSound(settings.alarmSoundFallback || 'classic'));
           return;
         } catch (e) { playPresetAlarmSound(settings.alarmSoundFallback || 'classic'); return; }
       }
@@ -3847,35 +3859,52 @@
       delete appData.settings.customAlarmAudio;
       delete appData.settings.customAlarmAudioName;
       appData.settings.alarmSoundChoice='classic';
+      if (alarmAudioElement) { alarmAudioElement.pause(); alarmAudioElement.src=''; alarmAudioElement=null; }
       saveData(); applySettingsUI();
       const file=document.getElementById('settingAlarmAudioFile'); if(file)file.value='';
       showToast('آهنگ شخصی حذف شد؛ زنگ کلاسیک فعال شد.');
     }
 
     function testAlarmSound() { playChime(); showToast('🔔 صدای زنگ هشدار پخش شد'); }
-    function stopAlarm() { clearInterval(alarmInterval); closeModal('alarmRingingModal'); }
-
-
+    function stopAlarm() {
+      if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; }
+      if (alarmAudioElement) { alarmAudioElement.pause(); try { alarmAudioElement.currentTime=0; } catch(e) {} }
+      activeAlarmId = null;
+      closeModal('alarmRingingModal');
+    }
+    function presentAppointmentAlarm(appt, title) {
+      if (!appt || activeAlarmId) return false;
+      activeAlarmId = appt.id || ('alarm_'+Date.now());
+      const message = 'یادآوری نوبت ' + (appt.clientName||'مشتری') + '، ساعت ' + (appt.time||'');
+      const textNode=document.getElementById('alarmRingingText');
+      const modal=document.getElementById('alarmRingingModal');
+      if (textNode && modal) { textNode.textContent=message; modal.classList.add('open'); }
+      try {
+        if ('Notification' in window && Notification.permission === 'granted')
+          new Notification(title || 'دستیار من', { body:message, tag:'appt-'+activeAlarmId });
+      } catch(e) {}
+      playChime();
+      if (alarmInterval) clearInterval(alarmInterval);
+      alarmInterval=setInterval(()=>{ if(activeAlarmId) playChime(); },3500);
+      return true;
+    }
     function checkAlarms() {
-      const now = getIranNow();
-      appData.appointments.forEach(function(appt) {
-        if (appt.status === 'canceled' || appt.alarm === 'none' || appt.notified || !appt.dateKey || !appt.time) return;
-        const parts = appt.dateKey.split('-').map(Number);
-        const gregorian = jalaliToGregorian(parts[0],parts[1],parts[2]);
-        const hm = appt.time.split(':').map(Number);
-        const appointmentAt = new Date(gregorian[0],gregorian[1]-1,gregorian[2],hm[0],hm[1],0,0);
-        const alarmMinutes = Math.max(0,Math.min(43200,Number(appt.alarm)||0));
-        const remindAt = appointmentAt.getTime() - alarmMinutes*60000;
-        if (now.getTime() >= remindAt && now.getTime() <= appointmentAt.getTime()) {
-          appt.notified = true;
-          saveData();
-          const message = 'یادآوری نوبت ' + (appt.clientName||'مشتری') + '، ساعت ' + (appt.time||'');
-          document.getElementById('alarmRingingText').textContent = message;
-          document.getElementById('alarmRingingModal').classList.add('open');
-          try { if ('Notification' in window && Notification.permission === 'granted') new Notification('دستیار من',{body:message,tag:'appt-'+appt.id}); } catch(e) {}
-          playChime(); clearInterval(alarmInterval); alarmInterval = setInterval(playChime,3500);
-        }
-      });
+      if (activeAlarmId) return;
+      const now=getIranNow();
+      const due=(appData.appointments||[]).filter(appt=>{
+        if (!appt || appt.status==='canceled' || appt.status==='done' || appt.alarm==='none' || appt.notified || !appt.dateKey || !appt.time) return false;
+        const parts=appt.dateKey.split('-').map(Number), gregorian=jalaliToGregorian(parts[0],parts[1],parts[2]);
+        const hm=appt.time.split(':').map(Number);
+        const appointmentAt=new Date(gregorian[0],gregorian[1]-1,gregorian[2],hm[0],hm[1],0,0);
+        const alarmMinutes=Math.max(0,Math.min(43200,Number(appt.alarm)||0));
+        const remindAt=appointmentAt.getTime()-alarmMinutes*60000;
+        return now.getTime()>=remindAt && now.getTime()<=appointmentAt.getTime();
+      }).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time));
+      const appt=due[0];
+      if (!appt) return;
+      appt.notified=true;
+      saveData();
+      presentAppointmentAlarm(appt,'دستیار من');
     }
 
         function updateClockAndDate() {
@@ -4768,28 +4797,16 @@
         '\nبا باز شدن برنامه در آن روز، هشدار در ساعت تعیین‌شده نمایش داده می‌شود.';
     }
     function checkMinaCustomReminders() {
-      const now = getIranNow(), todayKey = getTodayKey();
-      const nowTime = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
-      (appData.appointments || []).forEach(appt => {
-        if (!appt || appt.status === 'canceled' || !appt.reminderEnabled ||
-            appt.reminderNotified || appt.dateKey !== todayKey || !appt.reminderTime ||
-            nowTime < appt.reminderTime) return;
-        appt.reminderNotified = true;
-        saveData();
-        const message = 'یادآوری نوبت ' + (appt.clientName || 'مشتری') +
-          ' برای ' + (appt.service || 'خدمت') + '، ساعت ' + (appt.time || '');
-        const textNode = document.getElementById('alarmRingingText');
-        const modal = document.getElementById('alarmRingingModal');
-        if (textNode && modal) {
-          textNode.textContent = message;
-          modal.classList.add('open');
-        } else showToast(message);
-        try {
-          if ('Notification' in window && Notification.permission === 'granted')
-            new Notification('یادآوری مینا 💗', { body: message, tag: 'mina-reminder-' + appt.id });
-        } catch (e) {}
-        try { playChime(); clearInterval(alarmInterval); alarmInterval = setInterval(playChime, 3500); } catch (e) {}
-      });
+      if (activeAlarmId) return;
+      const now=getIranNow(), todayKey=getTodayKey();
+      const nowTime=pad2(now.getHours())+':'+pad2(now.getMinutes());
+      const appt=(appData.appointments||[]).filter(a=>a && a.status!=='canceled' && a.status!=='done' &&
+        a.reminderEnabled && !a.reminderNotified && a.dateKey===todayKey && a.reminderTime &&
+        nowTime>=a.reminderTime).sort((a,b)=>(a.reminderTime||'').localeCompare(b.reminderTime||''))[0];
+      if (!appt) return;
+      appt.reminderNotified=true;
+      saveData();
+      presentAppointmentAlarm(appt,'یادآوری مینا 💗');
     }
     const minaBuildReplyBeforeReminder = minaBuildReply;
     minaBuildReply = function(raw) {
