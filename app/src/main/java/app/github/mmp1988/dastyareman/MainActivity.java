@@ -909,6 +909,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void updateApp() {
             performContentUpdate(true);
         }
+        @JavascriptInterface public void checkForUpdates() {
+            performContentUpdate(true);
+            checkForApkUpdate(true);
+        }
     }
 
     @Override protected void onPause() {
