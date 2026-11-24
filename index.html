@@ -964,6 +964,12 @@
     }
 
 
+    /* Keep small-screen filter controls fully visible instead of clipping the row. */
+    @media (max-width: 440px) {
+      .filter-pills { flex-wrap: wrap; overflow-x: visible; row-gap: 7px; }
+      .filter-pill { min-height: 34px; padding: 6px 10px; }
+    }
+    #clientProfileModal .modal-box { overflow-x: hidden; }
     /* Responsive safety rails shared by the website and Android WebView. */
     .container, .card, .form-grid, .form-group, .form-control,
     .client-date-group, .client-time-group, .table-wrap { min-width: 0; max-width: 100%; }
