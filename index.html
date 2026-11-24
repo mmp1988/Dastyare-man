@@ -1947,7 +1947,6 @@
       settings: {
         brandName: 'دستیار من',
         brandSub: 'همراه تو در دنیای زیبایی',
-        msgTemplate: 'سلام {name} عزیز 🌸\nیادآوری نوبت شما در تاریخ {date} ساعت {time} ({service}).\nمنتظر دیدار شما هستیم ✨',
         appPin: '',
         customApkUrl: '',
         theme: 'light',
@@ -1984,8 +1983,6 @@
       }
 
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        delete parsed.transactions;
-        if (parsed.settings) { delete parsed.settings.defaultComm; delete parsed.settings.monthlyGoal; }
         appData = {
           ...appData,
           ...parsed,
@@ -2253,7 +2250,7 @@
           '<td><span class="status-pill '+status[1]+'" onclick="cycleStatus(\''+appt.id+'\')">'+status[0]+'</span></td>'+
           '<td><div class="action-row">'+
             (phone?'<a class="mini-btn call" href="tel:'+phone+'">📞</a>':'')+
-            '<button class="mini-btn wa" onclick="openCustomerMessageForAppointment(\\''+appt.id+'\\')">💬 پیام</button>'+
+            '<button class="mini-btn wa" data-appointment-id="'+appt.id+'" onclick="openCustomerMessageForAppointment(this.dataset.appointmentId)">💬 پیام</button>'+
             '<button class="mini-btn" onclick="openApptModal(\''+appt.id+'\')">✏️</button>'+
             '<button class="mini-btn del" onclick="deleteAppointment(\''+appt.id+'\')">🗑️</button>'+
           '</div></td></tr>';
@@ -3844,7 +3841,7 @@
     }
     function validateBackupData(parsed) {
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
-      const arrays = ['appointments','notes','todos','transactions','services'];
+      const arrays = ['appointments','notes','todos','services'];
       if (!arrays.some(k => Array.isArray(parsed[k]))) return false;
       return arrays.every(k => parsed[k] === undefined || Array.isArray(parsed[k])) &&
         (parsed.clientProfiles === undefined || (parsed.clientProfiles && typeof parsed.clientProfiles === 'object' && !Array.isArray(parsed.clientProfiles))) &&
@@ -3863,10 +3860,9 @@
           downloadBackupPayload({ ...appData, _photoArchive:currentPhotos, backupMeta:{ app:'Dastyare-man', schema:3, createdAt:new Date().toISOString(), reason:'pre-restore-safety-copy', photoCount:currentPhotos.length } }, '-before-restore');
           await restoreClientPhotoArchive(parsed._photoArchive || []);
           delete parsed._photoArchive;
-          const defaults = { appointments:[], notes:[], todos:[], transactions:[], services:[], clientNotes:{}, clientProfiles:{}, settings:{} };
+          const defaults = { appointments:[], notes:[], todos:[], services:[], clientNotes:{}, clientProfiles:{}, settings:{} };
           appData = { ...defaults, ...appData, ...parsed,
             appointments: parsed.appointments || appData.appointments || [],
-            notes: parsed.notes || [], todos: parsed.todos || [], transactions: parsed.transactions || [],
             services: parsed.services || [], clientNotes: parsed.clientNotes && typeof parsed.clientNotes==='object' ? parsed.clientNotes : (appData.clientNotes||{}),
             clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles==='object' ? parsed.clientProfiles : (appData.clientProfiles||{}),
             settings: { ...(appData.settings||{}), ...(parsed.settings||{}) } };
@@ -4329,8 +4325,11 @@
       const type = document.getElementById('customerMessageType')?.value || 'confirm';
       const values = getCustomerMessageValues();
       const template = CUSTOMER_MESSAGE_TEMPLATES[type] || CUSTOMER_MESSAGE_TEMPLATES.confirm;
-      box.value = template.replace(/\{(name|date|time|service|address|discount)\}/g, (match,key) => values[key] || '')
-        .split('\n').map(line => line.replace(/[ \t]+$/g,'').replace(/\s+([،.!؟])/g,'$1')).filter(line => line.trim()).join('\n').trim();
+      box.value = template.replace(/\\{(name|date|time|service|address|discount)\\}/g, (match,key) => values[key] || '')
+        .split('\\n').map(line => line.replace(/[ \\t]+$/g,'').replace(/\\s+([،.!؟])/g,'$1').trim())
+        .filter(line => line && !/:$/.test(line))
+        .map(line => line.replace(/در تاریخ(?=\\s*(?:ساعت|ثبت شد|$))/g,'').replace(/ساعت(?=\\s*(?:ثبت شد|تغییر کرد|$))/g,'').replace(/تا(?=\\s*اعتبار)/g,'').replace(/\\s{2,}/g,' '))
+        .filter(line => line.trim()).join('\\n').trim();
     }
     function selectCustomerMessageType(type) {
       const select = document.getElementById('customerMessageType');
@@ -4466,13 +4465,13 @@
 
       const visitorName = String(appData.settings.minaUserName || '').trim();
       const hasGreeting = /^(?:سلام|درود|صبح\s+بخیر|صبح\s+به\s+خیر|عصر\s+بخیر|شب\s+بخیر|سلام\s+عزیزم|سلام\s+مینا)(?:\s|$)/u.test(normalized);
-      if (hasGreeting && !/(?:نوبت|رزرو|وقت|ثبت|حذف|تقویم|برنامه|درآمد)/u.test(normalized)) {
+      if (hasGreeting && !/(?:نوبت|رزرو|وقت|ثبت|حذف|تقویم|برنامه|)/u.test(normalized)) {
         const hello = visitorName
           ? 'سلام دوباره ' + visitorName + ' جانِ قشنگم! 🌷 از دیدنت خوشحال شدم. حالت چطوره؟'
           : 'سلام به روی ماهت عزیزم! 🌷 خوش اومدی؛ حالت چطوره؟';
         return hello + ' هرچی دوست داری بگو، با دقت گوش می‌دم 💗';
       }
-      if (/(?:خوبی|حالت چطوره|چه خبر|چطوری)/u.test(normalized) && !/(?:نوبت|رزرو|وقت|ثبت|حذف|تقویم|درآمد)/u.test(normalized)) {
+      if (/(?:خوبی|حالت چطوره|چه خبر|چطوری)/u.test(normalized) && !/(?:نوبت|رزرو|وقت|ثبت|حذف|تقویم|)/u.test(normalized)) {
         return (visitorName ? visitorName + ' جان، ' : '') +
           'مرسی که پرسیدی عزیز دلم! من خوبم و آماده‌ام کمکت کنم 🥰 تو چطوری؟ امروز روزت چطور گذشته؟ 🌸';
       }
