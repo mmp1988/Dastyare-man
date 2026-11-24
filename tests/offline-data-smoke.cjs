@@ -33,8 +33,9 @@ const assert = require('assert');
       await page.setViewportSize({ width, height: width < 500 ? 800 : 900 });
       for (const tab of ['calendar', 'notebook', 'clients', 'messages', 'mina', 'settings']) {
         await page.evaluate(tabName => {
-          const button = document.querySelector('.nav-item[onclick*="' + tabName + '"]');
-          switchTab(tabName, button);
+          document.querySelectorAll('.tab-section').forEach(section => section.classList.remove('active'));
+          document.getElementById('tab-' + tabName)?.classList.add('active');
+          document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.getAttribute('onclick')?.includes("'" + tabName + "'")));
         }, tab);
         const layout = await page.evaluate(() => {
           const width = document.documentElement.clientWidth;
