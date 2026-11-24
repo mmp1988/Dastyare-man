@@ -3415,10 +3415,9 @@
       const list = getClientAppointments(key, false);
       if (list.length !== 2) return;
       const [primary, possibleFollowup] = list;
-      if (!primary || !possibleFollowup || primary.appointmentType || primary.parentAppointmentId ||
-          possibleFollowup.appointmentType || possibleFollowup.parentAppointmentId) return;
-      if (!/^(?:مراجعه بعدی|ترمیم)(?:\s|$)/u.test(String(possibleFollowup.service || '').trim())) return;
-      primary.appointmentType = 'primary';
+      if (!primary || !possibleFollowup || isFollowupAppointment(primary) || isFollowupAppointment(possibleFollowup)) return;
+      if (!/^(?:مراجعه بعدی|ترمیم)(?:\\s|$)/u.test(String(possibleFollowup.service || '').trim())) return;
+      primary.appointmentType = primary.appointmentType || 'primary';
       possibleFollowup.appointmentType = 'followup';
       possibleFollowup.parentAppointmentId = primary.id;
       saveData();
