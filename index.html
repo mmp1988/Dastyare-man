@@ -2599,23 +2599,21 @@
       appData.services = appData.services.filter(s => s.id !== id);
       saveData(); renderServicesTab();
     }
+
     function renderServicesTab() {
-      const c = document.getElementById('customServicesList');
-      if (appData.services.length === 0) {
-        c.innerHTML = `<div style="text-align:center; padding:14px; color:var(--text-secondary); font-size:0.8rem;">خدمتی ثبت نشده است.</div>`;
+      const container = document.getElementById('customServicesList');
+      if (!appData.services.length) {
+        container.innerHTML = '<div style="text-align:center;padding:14px;color:var(--text-secondary);font-size:.8rem;">هنوز خدمتی اضافه نشده است؛ می‌توانی هر نوع کار سالن را خودت تعریف کنی.</div>';
         return;
       }
-      c.innerHTML = appData.services.map(s => `
-        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-input); padding:9px 12px; border-radius:13px; border:1px solid var(--border-subtle);">
-          <div>
-            <div style="font-weight:700; font-size:0.88rem;">${s.name}</div>
-            <div style="font-size:0.73rem; color:var(--accent);">${formatMoney(s.price)} ت • درصد سالن: ${toPersianDigits(s.commPercent || 0)}٪</div>
-          </div>
-          <button class="mini-btn del" onclick="deleteCustomService('${s.id}')">حذف</button>
-        </div>
-      `).join('');
+      container.innerHTML = appData.services.map(function(service){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);padding:9px 12px;border-radius:13px;border:1px solid var(--border-subtle);">'+
+          '<div style="font-weight:700;font-size:.88rem;">'+escapeClientText(service.name)+'</div>'+
+          '<button class="mini-btn del" onclick="deleteCustomService(\''+service.id+'\')">حذف</button></div>';
+      }).join('');
     }
-    function openAddClientModal() {
+
+        function openAddClientModal() {
       document.getElementById('newClientName').value = '';
       document.getElementById('newClientPhone').value = '';
       document.getElementById('addClientModal').classList.add('open');
@@ -3038,7 +3036,6 @@
       document.getElementById('clientWorkDate').value = '';
       document.getElementById('clientWorkTime').value = '';
       document.getElementById('clientWorkService').value = '';
-      document.getElementById('clientWorkPrice').value = '';
       document.getElementById('clientWorkNotes').value = '';
       document.querySelectorAll('[data-work-field]').forEach(el=>el.value='');
       document.getElementById('clientWorkPhotoInput').value = '';
@@ -3245,15 +3242,13 @@
       const time = document.getElementById('clientWorkTime').value;
       const service = document.getElementById('clientWorkService').value.trim();
       const notes = document.getElementById('clientWorkNotes').value.trim();
-      const priceValue = document.getElementById('clientWorkPrice').value.trim();
-      const price = priceValue === '' ? null : Math.max(0, Number(priceValue) || 0);
       const customValues={};
       document.querySelectorAll('[data-work-field]').forEach(el=>{if(el.value.trim()){const def=getClientWorkFieldDefinitions().find(f=>f.id===el.dataset.workField);customValues[el.dataset.workField]={label:def?.label||'جزئیات',value:el.value.trim()};}});
-      if (!service && !notes && price === null && !date && !time && !Object.keys(customValues).length && !pendingClientWorkPhoto && !pendingClientBeforePhoto && !pendingClientAfterPhoto) {
-        showToast('حداقل یک مورد مثل خدمت، توضیح، قیمت یا عکس اضافه کن.');
+      if (!service && !notes && !date && !time && !Object.keys(customValues).length && !pendingClientWorkPhoto && !pendingClientBeforePhoto && !pendingClientAfterPhoto) {
+        showToast('حداقل یک مورد مثل خدمت، توضیح یا عکس اضافه کن.');
         return;
       }
-      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, price, customValues, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
+      p.records.unshift({ id:'work_'+Date.now(), dateKey:date, time, service, notes, customValues, photoRef:pendingClientWorkPhoto || '', beforePhotoRef:pendingClientBeforePhoto || '', afterPhotoRef:pendingClientAfterPhoto || '', photo:'', createdAt:Date.now(), updatedAt:Date.now() });
       pendingClientWorkPhoto = '';
       pendingClientBeforePhoto = '';
       pendingClientAfterPhoto = '';
@@ -3284,7 +3279,7 @@
       const p = getClientProfile(key);
       const workFieldLabels=Object.fromEntries(getClientWorkFieldDefinitions().map(f=>[f.id,f.label]));
       const appts = appData.appointments.filter(a => clientKeyFromFields(a.phone, a.clientName) === key && a.status === 'done')
-        .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:'ثبت‌شده از نوبت‌های برنامه', photo:'', source:'appointment' }));
+        .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:a.notes || '', photo:'', source:'appointment' }));
       const records = (p.records || []).map(r => ({...r, source:'record'}));
       const items = appts.concat(records).sort((a,b) => (b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
       const box = document.getElementById('clientHistoryList');
@@ -3311,8 +3306,7 @@
                 </div>
               </div>
             </div>` : (item.photo ? `<img src="${item.photo}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : (item.photoRef ? `<img data-photo-ref="${escapeClientText(item.photoRef)}" alt="عکس جلسه" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;margin-top:8px;background:var(--bg-secondary);" />` : ''))}
-          ${item.checklist && item.checklist.length ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;">☑ ${item.checklist.map(escapeClientText).join(' • ')}</div>` : ''}
-          ${item.price != null && item.price !== '' ? `<div style="font-size:.78rem;color:var(--accent);margin-top:6px;">💰 مبلغ: ${formatMoney(item.price)} تومان</div>` : ''}
+          ${item.checklist && item.checklist.length ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:6px;">☑ ${item.checklist.map(escapeClientText).join(' • ')}</div>` : ''}تومان</div>` : ''}
           ${item.customValues ? Object.entries(item.customValues).filter(([k,v])=>v && (typeof v==='string'?v:v.value)).map(([k,v])=>`<div style="font-size:.76rem;line-height:1.8;margin-top:4px;"><strong>${escapeClientText((v&&v.label)||workFieldLabels[k]||'جزئیات')}:</strong> ${escapeClientText(typeof v==='string'?v:v.value)}</div>`).join('') : ''}
           ${item.createdAt ? `<small style="display:block;color:var(--text-secondary);margin-top:5px;">ثبت در برنامه: ${formatClientTimestamp(item.createdAt)}</small>` : ''}
           ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
@@ -4679,9 +4673,8 @@
       const appts=appData.appointments.filter(a=>clientKeyFromFields(a.phone,a.clientName)===key && a.status==='done');
       const records=(p.records||[]);
       const visits=appts.length+records.length;
-      const spend=appts.reduce((n,a)=>n+(Number(a.price)||0),0)+records.reduce((n,a)=>n+(Number(a.price)||0),0);
       const tier=visits>=10?'طلایی':visits>=5?'نقره‌ای':visits>=2?'برنزی':'عضو تازه';
-      return {visits,spend,tier,remaining:visits>=5?5-(visits%5)||5:5-visits};
+      return {visits,tier,remaining:visits>=5?5-(visits%5)||5:5-visits};
     }
     function renderClientLoyaltyAndGallery(key) {
       const p=getClientProfile(key), stats=getClientLoyaltyStats(key);
@@ -4690,7 +4683,7 @@
         <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;text-align:center;">
           <div class="stat-card"><div class="stat-val">${toPersianDigits(stats.visits)}</div><div class="stat-lbl">مراجعه انجام‌شده</div></div>
           <div class="stat-card"><div class="stat-val">${stats.tier}</div><div class="stat-lbl">سطح عضویت</div></div>
-          <div class="stat-card"><div class="stat-val">${formatMoney(stats.spend)}</div><div class="stat-lbl">مجموع خرید (تومان)</div></div>
+          <div class="stat-card"><div class="stat-val">${toPersianDigits(stats.remaining)}</div><div class="stat-lbl">تا مراجعه بعدی</div></div>
         </div>
         <div style="font-size:.77rem;color:var(--text-secondary);margin-top:9px;">🎁 ${stats.visits>=5?'برای هر ۵ مراجعه انجام‌شده، یک پاداش قابل تعریف در سالن در نظر بگیر.': 'تا رسیدن به اولین پاداش، '+toPersianDigits(stats.remaining)+' مراجعه باقی مانده است.'}</div>`;
       const gallery=document.getElementById('clientGalleryContent'); if(!gallery)return;
