@@ -4146,7 +4146,7 @@
           (/(?:امروز|فردا|پس\s*فردا|تاریخ)/.test(t) || /\d{1,2}(?::\d{1,2})?/.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/.test(t))) {
         // Understand digital clocks and natural relative expressions such as "a quarter to 3".
         let clock = t.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})\s*(?:دقیقه\s*)?(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
-          t.match(/ساعت\s*(\d{1,2})(?:\s*و\s*(\d{1,2})\s*دقیقه)?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
+          t.match(/(?:ساعت\s*)?(\d{1,2})(?:\s*و\s*(\d{1,2})\s*دقیقه)?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
           t.match(/(?:^|\s)(\d{1,2})(?::(\d{1,2}))?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)(?:\s|$)/);
         let relativeTime = false;
         const wordNumbers = { 'یک':1,'یه':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'شیش':6,'هفت':7,'هشت':8,'نه':9,'ده':10,'یازده':11,'دوازده':12 };
@@ -4433,27 +4433,34 @@
     // ===== SMART MINA + CALENDAR UPGRADE (offline-first, local data only) =====
     const minaBuildReplyCore = minaBuildReply;
     let minaConversationBooking = null;
+    function minaPersianNumberValue(value) {
+      const word = minaCleanText(value).replace(/\s+/g, ' ').trim();
+      const units = { 'صفر':0,'یک':1,'یه':1,'يك':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'شیش':6,'هفت':7,'هشت':8,'نه':9 };
+      const direct = { 'ده':10,'یازده':11,'دوازده':12,'سیزده':13,'چهارده':14,'پانزده':15,'شانزده':16,'هفده':17,'هجده':18,'نوزده':19,'بیست':20,'سی':30,'چهل':40,'پنجاه':50,'شصت':60 };
+      if (Object.prototype.hasOwnProperty.call(units, word)) return units[word];
+      if (Object.prototype.hasOwnProperty.call(direct, word)) return direct[word];
+      const compound = word.match(/^(بیست|سی|چهل|پنجاه)\s+و\s+(یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه)$/);
+      if (compound) return ({ 'بیست':20,'سی':30,'چهل':40,'پنجاه':50 }[compound[1]]) + units[compound[2]];
+      return NaN;
+    }
     function minaExpandSpokenTime(value) {
-      return minaNormalizeDigits(value)
-        .replace(/بعد\s*از\s*ظهر/g, 'بعدازظهر')
+      let result = minaNormalizeDigits(value).replace(/بعد\s*از\s*ظهر/g, 'بعدازظهر');
+      result = result
         .replace(/پنج\s*و\s*نیم/g, '5:30').replace(/چهار\s*و\s*نیم/g, '4:30')
         .replace(/سه\s*و\s*نیم/g, '3:30').replace(/شش\s*و\s*نیم/g, '6:30')
         .replace(/هفت\s*و\s*نیم/g, '7:30').replace(/دو\s*و\s*نیم/g, '2:30')
         .replace(/یک\s*و\s*نیم/g, '1:30').replace(/هشت\s*و\s*نیم/g, '8:30')
         .replace(/نه\s*و\s*نیم/g, '9:30').replace(/ده\s*و\s*نیم/g, '10:30')
-        .replace(/یازده\s*و\s*نیم/g, '11:30').replace(/دوازده\s*و\s*نیم/g, '12:30')
-        .replace(/(?<![آ-ی])یک(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '1')
-        .replace(/(?<![آ-ی])دو(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '2')
-        .replace(/(?<![آ-ی])سه(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '3')
-        .replace(/(?<![آ-ی])چهار(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '4')
-        .replace(/(?<![آ-ی])پنج(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '5')
-        .replace(/(?<![آ-ی])شش(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '6')
-        .replace(/(?<![آ-ی])هفت(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '7')
-        .replace(/(?<![آ-ی])هشت(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '8')
-        .replace(/(?<![آ-ی])نه(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '9')
-        .replace(/(?<![آ-ی])ده(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '10')
-        .replace(/(?<![آ-ی])یازده(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '11')
-        .replace(/(?<![آ-ی])دوازده(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, '12');
+        .replace(/یازده\s*و\s*نیم/g, '11:30').replace(/دوازده\s*و\s*نیم/g, '12:30');
+      const spokenNumber = '(?:صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?)';
+      const spokenMinutes = new RegExp('(?:ساعت\\s*)?(' + spokenNumber + ')\\s+و\\s+(' + spokenNumber + ')\\s*دقیقه', 'g');
+      result = result.replace(spokenMinutes, (match, hourWord, minuteWord) => {
+        const h = minaPersianNumberValue(hourWord), m = minaPersianNumberValue(minuteWord);
+        return Number.isFinite(h) && Number.isFinite(m) ? String(h) + ' و ' + String(m) + ' دقیقه' : match;
+      });
+      const hourWords = { 'یک':'1','یه':'1','دو':'2','سه':'3','چهار':'4','پنج':'5','شش':'6','شیش':'6','هفت':'7','هشت':'8','نه':'9','ده':'10','یازده':'11','دوازده':'12' };
+      result = result.replace(/(?<![آ-ی])(یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)(?=\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/g, word => hourWords[word]);
+      return result;
     }
     function minaIsAssistantAppointment(a) {
       return !!a && (a.createdBy === 'mina' || a.source === 'mina' || String(a.id || '').startsWith('appt_mina_'));
@@ -4536,7 +4543,7 @@
           '! 🥹💗 منم با کلی انرژی و محبت کنارتم؛ بگو ببینم چه خبر؟';
       }
 
-      const hasClock = /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/.test(normalized) || /(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized) || /(?:یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه)\s*(?:به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)/.test(normalized);
+      const hasClock = /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/.test(normalized) || /(?:ساعت\s*)?\d{1,2}\s*(?:و\s*)\d{1,2}\s*دقیقه/.test(normalized) || /(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized) || /(?:یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه)\s*(?:به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)/.test(normalized);
       const isBookingIntent = (/(?:نوبت|رزرو|وقت)/.test(normalized) ||
         (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ)/.test(normalized) && /(?:برای|خدمت)/.test(normalized))) &&
         /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده)/.test(normalized);
