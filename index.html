@@ -5719,10 +5719,13 @@
     async function checkAllAppUpdates(){
       const button=document.querySelector('.header-actions button[title="بررسی و دریافت آخرین نسخه"]');
       if(button){button.disabled=true;button.textContent='⏳ بررسی...';}
-      const isAndroid=!!(window.AndroidApp&&typeof window.AndroidApp.updateApp==='function');
+      const isAndroid=!!(window.AndroidApp&&(typeof window.AndroidApp.checkForUpdates==='function'||typeof window.AndroidApp.updateApp==='function'));
       try{
-        if(isAndroid){checkNativeContentUpdate(true);}
-        else{await checkForAppUpdate(true);}
+        if(isAndroid){
+          if(typeof window.AndroidApp.checkForUpdates==='function')window.AndroidApp.checkForUpdates();
+          else checkNativeContentUpdate(true);
+          showToast('بررسی نسخه برنامه و فایل نصب آغاز شد؛ اگر نسخه جدید باشد، برای نصب تأیید می‌گیری.');
+        }else{await checkForAppUpdate(true);}
       }finally{if(button){button.disabled=false;button.textContent='🔄 بروزرسانی';}}
     }
 
