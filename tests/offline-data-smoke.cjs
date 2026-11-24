@@ -217,19 +217,22 @@ const assert = require('assert');
         { id:'mina-done-qa', dateKey, time:'10:00', clientName:'مریم', service:'لیفت مژه', status:'pending' },
         { id:'mina-move-qa', dateKey, time:'11:00', clientName:'علی', service:'والیوم', status:'pending' }
       ];
-      const before = JSON.stringify(appData.appointments);
       const cancelReply = minaBuildReply('لغو نوبت سارا');
       const doneReply = minaBuildReply('انجام شد مریم');
+      const protectedAfterCancelAndDone = appData.appointments.find(a => a.id === 'mina-cancel-qa')?.status === 'pending' &&
+        appData.appointments.find(a => a.id === 'mina-done-qa')?.status === 'pending';
       const moveReply = minaBuildReply('نوبت علی رو به ساعت ۵ عصر منتقل کن');
+      const moved = appData.appointments.find(a => a.id === 'mina-move-qa');
+      const moveOk = moved?.time === '17:00' && moveReply.includes('ساعت جدید');
       const deleteReply = minaBuildReply('نوبت سارا رو حذف کن');
-      const unchanged = before === JSON.stringify(appData.appointments);
+      const deleteProtected = appData.appointments.some(a => a.id === 'mina-cancel-qa' && a.status === 'pending');
       const weekReply = minaBuildReply('برنامه هفت روز آینده');
       const weekOk = typeof weekReply === 'string' && (weekReply.includes('برنامه هفت روز آینده') || weekReply.includes('نوبتی ثبت نشده'));
-      return { unchanged, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, moveReply, deleteReply };
+      return { protectedAfterCancelAndDone, deleteProtected, moveOk, moveReply, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, deleteReply };
     });
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
-    assert(minaActionsResult.unchanged && minaActionsResult.weekOk,
-      'Mina must never modify, cancel, or delete an existing appointment; weekly reading must still work');
+    assert(minaActionsResult.protectedAfterCancelAndDone && minaActionsResult.deleteProtected && minaActionsResult.moveOk && minaActionsResult.weekOk,
+      'Mina must reschedule the selected appointment while keeping cancel/delete actions protected and weekly reading available');
 
     const exactTimeRegression = await page.evaluate(() => {
       minaConversationBooking = null;
