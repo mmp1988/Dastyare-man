@@ -1983,6 +1983,7 @@
       }
 
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        delete parsed.transactions;
         appData = {
           ...appData,
           ...parsed,
@@ -3860,6 +3861,8 @@
           downloadBackupPayload({ ...appData, _photoArchive:currentPhotos, backupMeta:{ app:'Dastyare-man', schema:3, createdAt:new Date().toISOString(), reason:'pre-restore-safety-copy', photoCount:currentPhotos.length } }, '-before-restore');
           await restoreClientPhotoArchive(parsed._photoArchive || []);
           delete parsed._photoArchive;
+          delete parsed.transactions;
+          if (parsed.settings) { delete parsed.settings.defaultComm; delete parsed.settings.monthlyGoal; delete parsed.settings.msgTemplate; }
           const defaults = { appointments:[], notes:[], todos:[], services:[], clientNotes:{}, clientProfiles:{}, settings:{} };
           appData = { ...defaults, ...appData, ...parsed,
             appointments: parsed.appointments || appData.appointments || [],
@@ -4325,11 +4328,11 @@
       const type = document.getElementById('customerMessageType')?.value || 'confirm';
       const values = getCustomerMessageValues();
       const template = CUSTOMER_MESSAGE_TEMPLATES[type] || CUSTOMER_MESSAGE_TEMPLATES.confirm;
-      box.value = template.replace(/\\{(name|date|time|service|address|discount)\\}/g, (match,key) => values[key] || '')
-        .split('\\n').map(line => line.replace(/[ \\t]+$/g,'').replace(/\\s+([،.!؟])/g,'$1').trim())
+      box.value = template.replace(/\{(name|date|time|service|address|discount)\}/g, (match,key) => values[key] || '')
+        .split('\n').map(line => line.replace(/[ \t]+$/g,'').replace(/\s+([،.!؟])/g,'$1').trim())
         .filter(line => line && !/:$/.test(line))
-        .map(line => line.replace(/در تاریخ(?=\\s*(?:ساعت|ثبت شد|$))/g,'').replace(/ساعت(?=\\s*(?:ثبت شد|تغییر کرد|$))/g,'').replace(/تا(?=\\s*اعتبار)/g,'').replace(/\\s{2,}/g,' '))
-        .filter(line => line.trim()).join('\\n').trim();
+        .map(line => line.replace(/در تاریخ(?=\s*(?:ساعت|ثبت شد|$))/g,'').replace(/ساعت(?=\s*(?:ثبت شد|تغییر کرد|$))/g,'').replace(/تا(?=\s*اعتبار)/g,'').replace(/\s{2,}/g,' '))
+        .filter(line => line.trim()).join('\n').trim();
     }
     function selectCustomerMessageType(type) {
       const select = document.getElementById('customerMessageType');
