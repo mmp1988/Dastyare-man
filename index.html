@@ -4424,6 +4424,15 @@
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
 
+      if (/(?:این هفته|هفت روز آینده)/u.test(normalized)) {
+        const from = getTodayKey(), to = addDaysToJalaliKey(from, 6);
+        const upcoming = (appData.appointments || []).filter(a => a.status !== 'canceled' && a.dateKey >= from && a.dateKey <= to)
+          .sort((a,b) => (a.dateKey + (a.time || '')).localeCompare(b.dateKey + (b.time || '')));
+        return upcoming.length
+          ? 'برنامه هفت روز آینده‌ات اینه عزیزم 🌸\\n' + upcoming.slice(0,20).map(a => '• ' + formatJalaliFull(a.dateKey) + '، ' + (a.time || 'بدون ساعت') + ' — ' + (a.clientName || 'مشتری') + '، ' + (a.service || 'خدمت')).join('\\n') + '\\n\\nمجموع: ' + toPersianDigits(upcoming.length) + ' نوبت'
+          : 'برنامه هفت روز آینده‌ات رو بررسی کردم؛ فعلاً نوبتی ثبت نشده عزیزم 💗';
+      }
+
       // Friendly small-talk and remembering the visitor's preferred name (local/offline).
       if (!appData.settings) appData.settings = {};
       // Recognize common natural self-introductions, including colloquial Persian endings.
