@@ -4833,84 +4833,129 @@
     };
 
 
-    // Natural-language appointment editing: update the existing record instead of
-    // falling through to the old read-only change/cancel response.
-    function minaTryRescheduleAppointment(raw) {
-      const expanded = minaExpandSpokenTime(raw);
+    // Unified offline Persian intent engine for appointment management.
+    // Understands colloquial verbs and updates the existing record only.
+    function minaTryManageAppointment(raw) {
+      const expanded = minaExpandSpokenTime(minaNormalizeDigits(raw));
       const text = minaCleanText(expanded).toLowerCase();
-      if (!/(?:نوبت|رزرو|وقت)/u.test(text)) return null;
-      if (!/(?:تغییر|عوض|بکن|بذار|بزار|منتقل|جابجا|جابه.?جا|ببر|بکنش)/u.test(text)) return null;
-      if (!/(?:ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text)) return null;
+      if (!/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text)) return null;
 
-      const newTime = minaParseReminderClock(expanded);
-      if (!newTime) return 'ساعت جدید رو متوجه نشدم عزیزم؛ لطفاً مثل «۱۵:۱۰» یا «۳ و ۱۰ دقیقه بعدازظهر» بگو 💗';
+      const isDelete = /(?:حذف|پاک\s*کن|پاکش\s*کن|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
+      const isCancel = !isDelete && /(?:لغو|کنسل|کنسلش|بی\s*خیال\s*نوبت|منتفی|دیگه\s*نمیاد)/u.test(text);
+      const isDone = /(?:انجام\s*شد|تموم\s*شد|تمام\s*شد|انجامش\s*دادم|مراجعه\s*کرد|کارش\s*انجام)/u.test(text);
+      const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text);
+      const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
+      const isMove = /(?:تغییر|عوض|بکن|بذار|بزار|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش)/u.test(text);
+      if (!(isDelete || isCancel || isDone || ((isMove || asksTime || asksDate) && (asksTime || asksDate)))) return null;
 
       const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled' && a.status !== 'done');
-      if (!active.length) return 'نوبتی برای ویرایش پیدا نکردم عزیزم؛ اول نوبت رو ثبت کن 🌷';
+      if (!active.length) return 'عزیزم هیچ نوبت فعالی برای تغییر پیدا نکردم 🌷';
 
-      const namedMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|را\s*)/u) ||
+      // Resolve an explicit customer first, then the last Mina-created booking
+      // for phrases such as «نوبت مینا رو تغییر بده».
+      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به)/u) ||
         text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
-      let candidates = active;
-      if (namedMatch) {
-        const wanted = namedMatch[1];
+      let candidates = active.slice();
+      if (nameMatch) {
+        const wanted = minaCleanText(nameMatch[1]).toLowerCase();
         const named = active.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
-        if (named.length) {
-          candidates = named;
-        } else {
-          // A just-created Mina booking may still carry the temporary no-name label.
-          // In that case, resolve the reference to the latest Mina-created appointment.
-          const minaCreated = active.filter(a => minaIsAssistantAppointment(a));
-          if (minaCreated.length) candidates = [minaCreated[minaCreated.length - 1]];
+        if (named.length) candidates = named;
+        else if (/مینا/u.test(wanted)) {
+          const minaItems = active.filter(minaIsAssistantAppointment);
+          if (minaItems.length) candidates = [minaItems[minaItems.length - 1]];
         }
       }
-
-      if (/(?:فردا)/u.test(text)) {
-        const tomorrowKey = addDaysToJalaliKey(getTodayKey(), 1);
-        const tomorrow = candidates.filter(a => a.dateKey === tomorrowKey);
-        if (tomorrow.length) candidates = tomorrow;
-      } else if (/(?:امروز)/u.test(text)) {
-        const todayKey = getTodayKey();
-        const todayMatches = candidates.filter(a => a.dateKey === todayKey);
-        if (todayMatches.length) candidates = todayMatches;
+      if (/فردا/u.test(text)) {
+        const key = addDaysToJalaliKey(getTodayKey(),1);
+        const found = candidates.filter(a => a.dateKey === key);
+        if (found.length) candidates = found;
+      } else if (/پس\s*فردا|پسفردا/u.test(text)) {
+        const key = addDaysToJalaliKey(getTodayKey(),2);
+        const found = candidates.filter(a => a.dateKey === key);
+        if (found.length) candidates = found;
+      } else if (/امروز/u.test(text)) {
+        const found = candidates.filter(a => a.dateKey === getTodayKey());
+        if (found.length) candidates = found;
       }
-
-      if (candidates.length > 1 && namedMatch) {
-        const exact = candidates.filter(a => minaCleanText(a.clientName || '').toLowerCase() === namedMatch[1]);
+      if (candidates.length > 1 && nameMatch) {
+        const exact = candidates.filter(a => minaCleanText(a.clientName || '').toLowerCase() === minaCleanText(nameMatch[1]).toLowerCase());
         if (exact.length === 1) candidates = exact;
       }
-      if (candidates.length > 1 && !namedMatch) {
-        // «این نوبت» / «نوبت رو...» refers to the latest active booking.
-        candidates = [candidates[candidates.length - 1]];
+      if (candidates.length > 1 && !nameMatch) {
+        if (/(?:این\s+نوبت|همین\s+نوبت|آخرین\s+نوبت|نوبت\s+قبلی|همون\s+نوبت)/u.test(text)) {
+          candidates = [candidates[candidates.length - 1]];
+        } else {
+          return 'چند نوبت فعال دارم عزیزم؛ اسم مشتری یا تاریخ نوبت رو بگو تا دقیقاً همون رو تغییر بدم 💗';
+        }
       }
-      if (candidates.length !== 1) {
-        return 'چند نوبت مشابه پیدا کردم عزیزم؛ اسم مشتری یا تاریخ نوبت رو بگو تا اشتباهی نوبت دیگری رو تغییر ندم 💗';
+      if (candidates.length !== 1) return 'نوبت موردنظرت رو با این مشخصات پیدا نکردم؛ اسم مشتری یا تاریخش رو بگو عزیزم 🌷';
+      const appt = candidates[0];
+
+      if (isDelete) {
+        appData.appointments = appData.appointments.filter(a => a.id !== appt.id);
+        saveData(); renderCalendar(); renderDaySchedule();
+        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+        return 'انجام شد عزیزم 🌸 نوبت ' + (appt.clientName || 'بدون نام') + ' از تقویم حذف شد.\\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\\n💅 ' + (appt.service || 'خدمت') + '\\nفقط همان نوبت حذف شد 💗';
+      }
+      if (isCancel) {
+        appt.status = 'canceled';
+        appt.notified = true;
+        appt.reminderEnabled = false;
+        saveData(); renderCalendar(); renderDaySchedule();
+        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+        return 'چشم عزیزم 🌸 نوبت ' + (appt.clientName || 'بدون نام') + ' لغو شد و از نوبت‌های فعال خارج شد.\\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\\nاطلاعاتش برای سوابق حفظ شد 💗';
+      }
+      if (isDone) {
+        appt.status = 'done';
+        appt.notified = true;
+        saveData(); renderCalendar(); renderDaySchedule();
+        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+        return 'عالیه عزیزم 🌸 وضعیت نوبت ' + (appt.clientName || 'بدون نام') + ' به «انجام‌شده» تغییر کرد 💗';
       }
 
-      const appointment = candidates[0];
-      if (normalizeAppointmentSlotTime(appointment.time) === normalizeAppointmentSlotTime(newTime)) {
-        return 'عزیزم ساعت این نوبت از قبل ' + newTime + ' بوده؛ تغییری لازم نبود 💗';
+      let changed = [];
+      if (asksTime) {
+        const newTime = minaParseReminderClock(expanded);
+        if (!newTime) return 'ساعت رو دقیق متوجه نشدم؛ می‌تونی هر ساعت و دقیقه رو مثل «۱۵:۰۷»، «۳ و ۷ دقیقه بعدازظهر» یا «یک ربع به ۳» بگی 💗';
+        if (hasAppointmentSlotConflict(appt.dateKey,newTime,appt.id)) return 'این ساعت در ' + formatJalaliFull(appt.dateKey) + ' قبلاً رزرو شده؛ نوبت قبلی رو تغییر ندادم. یک زمان دیگه بگو 💗';
+        if (normalizeAppointmentSlotTime(appt.time) !== newTime) {
+          changed.push('ساعت از ' + (appt.time || 'ثبت‌نشده') + ' به ' + newTime);
+          appt.time = newTime;
+          appt.notified = false;
+          appt.reminderNotified = false;
+        }
       }
-      if (hasAppointmentSlotConflict(appointment.dateKey, newTime, appointment.id)) {
-        return 'این ساعت در ' + formatJalaliFull(appointment.dateKey) + ' برای نوبت دیگری رزرو شده؛ نوبت قبلی رو دست نزدم. یک ساعت دیگه بگو 💗';
+      if (asksDate) {
+        let newDate = null;
+        if (/پس\s*فردا|پسفردا/u.test(text)) newDate = addDaysToJalaliKey(getTodayKey(),2);
+        else if (/فردا/u.test(text)) newDate = addDaysToJalaliKey(getTodayKey(),1);
+        else if (/امروز/u.test(text)) newDate = getTodayKey();
+        const numeric = text.match(/\b(14\d{2}|20\d{2})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/u);
+        if (numeric) newDate = numeric[1] + '-' + pad2(numeric[2]) + '-' + pad2(numeric[3]);
+        if (!newDate) {
+          const monthMatch = text.match(/(\d{1,2})\s+(فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)(?:\s+(14\d{2}))?/u);
+          if (monthMatch) {
+            const months = {'فروردین':1,'اردیبهشت':2,'خرداد':3,'تیر':4,'مرداد':5,'شهریور':6,'مهر':7,'آبان':8,'آذر':9,'اذر':9,'دی':10,'بهمن':11,'اسفند':12};
+            const y = Number(monthMatch[3] || getTodayKey().split('-')[0]), m = months[monthMatch[2]], d = Number(monthMatch[1]);
+            if (d >= 1 && d <= jalaliMonthDays(y,m)) newDate = y + '-' + pad2(m) + '-' + pad2(d);
+          }
+        }
+        if (!newDate) return 'تاریخ جدید رو دقیق متوجه نشدم؛ بگو «فردا»، «پس‌فردا» یا مثلاً «۵ آذر» 💗';
+        if (appt.time && hasAppointmentSlotConflict(newDate,appt.time,appt.id)) return 'در تاریخ جدید، ساعت ' + appt.time + ' از قبل رزرو شده؛ نوبت قبلی رو تغییر ندادم 💗';
+        if (appt.dateKey !== newDate) { changed.push('تاریخ به ' + formatJalaliFull(newDate)); appt.dateKey = newDate; }
       }
-
-      const oldTime = appointment.time || 'بدون ساعت';
-      appointment.time = newTime;
-      appointment.notified = false;
-      appointment.reminderNotified = false;
-      saveData();
-      if (typeof renderCalendar === 'function') renderCalendar();
-      if (typeof renderDaySchedule === 'function') renderDaySchedule();
+      if (!changed.length) return 'عزیزم نوبت همون تاریخ و ساعت رو داره؛ تغییری لازم نبود 💗';
+      appt.reminderNotified = false;
+      saveData(); renderCalendar(); renderDaySchedule();
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
-      return 'انجام شد عزیزم 🌸 ساعت همان نوبت رو تغییر دادم؛ نوبت جدیدی نساختم.\n👩🏻 مشتری: ' +
-        (appointment.clientName || 'بدون نام') + '\n📅 تاریخ: ' + formatJalaliFull(appointment.dateKey) +
-        '\n⏰ ساعت قبلی: ' + oldTime + '\n⏰ ساعت جدید: ' + newTime +
-        '\n💅 خدمت: ' + (appointment.service || 'خدمت ثبت‌نشده') + '\nاطلاعات قبلی نوبت هم حفظ شد 💗';
+      return 'انجام شد عزیزم 🌸 همان نوبت رو ویرایش کردم؛ نوبت تکراری نساختم.\\n👩🏻 مشتری: ' + (appt.clientName || 'بدون نام') +
+        '\\n📅 تاریخ: ' + formatJalaliFull(appt.dateKey) + '\\n⏰ ساعت: ' + (appt.time || 'بدون ساعت') +
+        '\\n💅 خدمت: ' + (appt.service || 'خدمت ثبت‌نشده') + '\\nتغییر: ' + changed.join('؛ ') + '\\nاطلاعات دیگه نوبت حفظ شد 💗';
     }
     const minaBuildReplyBeforeReschedule = minaBuildReply;
     minaBuildReply = function(raw) {
-      const rescheduleReply = minaTryRescheduleAppointment(raw);
-      if (rescheduleReply) return rescheduleReply;
+      const manageReply = minaTryManageAppointment(raw);
+      if (manageReply) return manageReply;
       return minaBuildReplyBeforeReschedule(raw);
     };
 
