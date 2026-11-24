@@ -1646,6 +1646,7 @@
             </div>
             <small style="display:block;color:var(--text-secondary);font-size:.68rem;line-height:1.7;">یک روز قبل از تولد یادآوری می‌شود؛ تاریخ در پرونده مشتری می‌ماند.</small>
             <button type="button" class="btn-primary" style="width:100%;margin-top:8px;" onclick="saveClientBirthday()">💾 ذخیره تاریخ تولد</button>
+            <button type="button" class="btn-secondary" style="width:100%;margin-top:7px;" onclick="deleteClientBirthday()">🗑️ حذف تاریخ تولد</button>
           </div>
           <div class="client-profile-card" style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
             <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">📨 ارسال یادآوری به مشتری</div>
@@ -3530,13 +3531,31 @@
       try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==='function')AndroidApp.schedulePersonalReminder(String(id),trigger.getTime(),message);}catch(e){}
       saveData();
     }
+    function deleteClientBirthday(){
+      const key=document.getElementById('clientRecordKey').value;
+      if(!key)return;
+      const p=getClientProfile(key);
+      if(!p.birthDate){showToast('برای این مشتری تاریخ تولدی ثبت نشده است.');return;}
+      if(!confirm('فقط تاریخ تولد این مشتری و یادآوری تولدش حذف شود؟ پرونده، سوابق و نوبت‌های مشتری باقی می‌مانند.'))return;
+      p.birthDate='';
+      p.birthdayAlertYear='';
+      cancelClientBirthdayAlarm(key);
+      saveData();
+      document.getElementById('clientBirthdayYear').value='';
+      document.getElementById('clientBirthdayMonth').value='';
+      document.getElementById('clientBirthdayDay').value='';
+      renderClientBirthdays();
+      renderClientsTab();
+      showToast('فقط تاریخ تولد حذف شد؛ پرونده و سوابق مشتری باقی ماندند.');
+    }
+
     function saveClientBirthday(){
       const key=document.getElementById('clientRecordKey').value;if(!key)return;
       const p=getClientProfile(key);
       const year=String(document.getElementById('clientBirthdayYear').value||'').trim();
       const month=String(document.getElementById('clientBirthdayMonth').value||'').trim();
       const day=String(document.getElementById('clientBirthdayDay').value||'').trim();
-      if(!year&&!month&&!day){p.birthDate='';p.birthdayAlertYear='';cancelClientBirthdayAlarm(key);saveData();renderClientBirthdays();showToast('تاریخ تولد از پرونده حذف شد.');return;}
+      if(!year&&!month&&!day){showToast('برای حذف تاریخ تولد، از دکمه «حذف تاریخ تولد» استفاده کن.');return;}
       if(!year||!month||!day){showToast('لطفاً هر سه قسمت سال، ماه و روز را کامل کن.');return;}
       const parsed=parseClientJalaliDate(year+'/'+month+'/'+day);
       if(!parsed){showToast('تاریخ را شمسی و به شکل سال/ماه/روز وارد کن؛ مثل ۱۳۷۰/۰۵/۲۱.');return;}
