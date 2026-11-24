@@ -6,4 +6,5 @@
     <cache-path
         name="shared_customer_files"
         path="shared/" />
+    <external-files-path name="app_updates" path="updates/" />
 </paths>
