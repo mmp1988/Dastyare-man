@@ -2,6 +2,13 @@ package app.github.mmp1988.dastyareman;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.os.Build;
+import androidx.core.app.NotificationCompat;
 import android.content.Intent;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -78,6 +85,8 @@ public class MainActivity extends Activity {
         ensureFoldersAndInitialContent();
         webView = new WebView(this);
         setContentView(webView);
+        createAppointmentNotificationChannel();
+        requestNotificationPermissionIfNeeded();
 
         WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
                 .setDomain("appassets.androidplatform.net")
@@ -571,6 +580,56 @@ public class MainActivity extends Activity {
         });
     }
 
+    private static final String APPOINTMENT_CHANNEL_ID = "dastyare_appointments_v1";
+    private void createAppointmentNotificationChannel() {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager == null || manager.getNotificationChannel(APPOINTMENT_CHANNEL_ID) != null) return;
+        android.net.Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        AudioAttributes audio = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+        NotificationChannel channel = new NotificationChannel(
+                APPOINTMENT_CHANNEL_ID, "یادآوری نوبت‌ها", NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription("هشدار زمان نوبت مشتریان");
+        channel.setSound(sound, audio);
+        channel.enableVibration(true);
+        manager.createNotificationChannel(channel);
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 705);
+        }
+    }
+
+    private void showAppointmentNotification(String appointmentId, String message) {
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
+        try {
+            createAppointmentNotificationChannel();
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager == null) return;
+            Intent launch = new Intent(this, MainActivity.class);
+            launch.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            int requestId = appointmentId == null ? (int)System.currentTimeMillis() : appointmentId.hashCode();
+            PendingIntent pending = PendingIntent.getActivity(this, requestId, launch,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, APPOINTMENT_CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setContentTitle("دستیار من — یادآوری نوبت")
+                    .setContentText(message == null ? "زمان نوبت مشتری رسیده است." : message)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message == null ? "" : message))
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setAutoCancel(true)
+                    .setContentIntent(pending);
+            manager.notify(requestId, builder.build());
+        } catch (Exception ignored) { }
+    }
+
     private class AppBridge {
         @JavascriptInterface public void startOfflineSpeechRecognition(String targetInputId, String buttonId) {
             runOnUiThread(() -> {
@@ -666,6 +725,10 @@ public class MainActivity extends Activity {
                     Toast.makeText(MainActivity.this, "ارسال عکس‌ها انجام نشد؛ دوباره تلاش کن", Toast.LENGTH_LONG).show();
                 }
             });
+        }
+
+        @JavascriptInterface public void showAppointmentNotification(String appointmentId, String message) {
+            runOnUiThread(() -> MainActivity.this.showAppointmentNotification(appointmentId, message));
         }
 
         @JavascriptInterface public void saveBackup(String json, String filename) {
