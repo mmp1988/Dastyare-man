@@ -251,10 +251,7 @@ const assert = require('assert');
       set('apptPhone', '09121112233');
       set('apptTime', '11:30');
       set('apptService', 'کلاسیک');
-      set('apptPrice', '750000');
-      set('apptDeposit', '0');
-      set('apptCommPercent', '0');
-      set('apptPayMethod', 'کارت‌به‌کارت');
+      set('apptNotes', 'یادداشت تست نوبت');
       set('apptAlarm', '15');
       set('apptStatus', 'pending');
       set('apptNextFollowup', '0');
@@ -269,34 +266,31 @@ const assert = require('assert');
       const editOk = edited?.clientName === 'مشتری تست ویرایش‌شده' && edited?.time === '12:00';
       window.confirm = () => true;
       deleteAppointment(created.id);
-      return { created:true, editOk, deleted:!appData.appointments.some(a => a.id === created.id) };
+      return { created:true, editOk, notesSaved:edited?.notes === 'یادداشت تست نوبت', deleted:!appData.appointments.some(a => a.id === created.id) };
     });
-    assert(appointmentResult.created && appointmentResult.editOk && appointmentResult.deleted, 'Appointment create/edit/delete failed');
+    assert(appointmentResult.created && appointmentResult.editOk && appointmentResult.notesSaved && appointmentResult.deleted, 'Appointment create/edit/delete/notes failed');
 
-    // Duplicate prevention: the same client cannot be booked twice at the same date and time.
+    // Salon-wide exclusivity: two different customers/services cannot share one date and time.
     const duplicateResult = await page.evaluate(() => {
       const set = (id, value) => { document.getElementById(id).value = value; };
       appData.appointments = [];
       selectedDateKey = getTodayKey();
-      const fill = () => {
+      const fill = (name, phone, service) => {
         set('editApptId', '');
-        set('apptClientName', 'مشتری تکراری');
-        set('apptPhone', '09123334455');
+        set('apptClientName', name);
+        set('apptPhone', phone);
         set('apptTime', '14:00');
-        set('apptService', 'والیوم');
-        set('apptPrice', '800000');
-        set('apptDeposit', '0');
-        set('apptCommPercent', '0');
-        set('apptPayMethod', 'کارت‌به‌کارت');
+        set('apptService', service);
+        set('apptNotes', '');
         set('apptAlarm', '15');
         set('apptStatus', 'pending');
         set('apptNextFollowup', '0');
       };
-      fill(); saveAppointment();
-      fill(); saveAppointment();
-      return appData.appointments.filter(a => a.phone === '09123334455' && a.time === '14:00').length;
+      fill('مشتری اول', '09123334455', 'والیوم'); saveAppointment();
+      fill('مشتری دوم', '09125556677', 'کراتین مو'); saveAppointment();
+      return appData.appointments.filter(a => a.dateKey === selectedDateKey && a.time === '14:00' && a.status !== 'canceled').length;
     });
-    assert.strictEqual(duplicateResult, 1, 'Duplicate appointment was not blocked');
+    assert.strictEqual(duplicateResult, 1, 'Salon-wide same-time appointment conflict was not blocked');
 
     // Client CRUD: create profile, rename/update phone, then delete it.
     const clientResult = await page.evaluate(async () => {
