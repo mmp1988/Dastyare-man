@@ -62,6 +62,9 @@ public class MainActivity extends Activity {
     private static final int REQUEST_EXPORT_BACKUP = 704;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private static final String UPDATE_URL = "https://raw.githubusercontent.com/mmp1988/Dastyare-man/main/index.html";
+    private static final String LATEST_RELEASE_API = "https://api.github.com/repos/mmp1988/Dastyare-man/releases/tags/latest";
+    private static final String EXPECTED_PACKAGE = "app.github.mmp1988.dastyareman";
+    private volatile boolean apkUpdateCheckRunning = false;
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
@@ -194,6 +197,7 @@ public class MainActivity extends Activity {
 
         webView.loadUrl(APP_ORIGIN + "/content/index.html");
         registerNetworkMonitoring();
+        checkForApkUpdate(false);
     }
 
     private void registerNetworkMonitoring() {
@@ -204,6 +208,7 @@ public class MainActivity extends Activity {
                 @Override public void onAvailable(Network network) {
                     // A fresh connection bypasses the six-hour startup throttle.
                     performContentUpdate(true);
+                    checkForApkUpdate(false);
                 }
             };
             connectivityManager.registerDefaultNetworkCallback(networkCallback);
@@ -578,6 +583,130 @@ public class MainActivity extends Activity {
                         if (connection != null) connection.disconnect();
                     }
         });
+    }
+
+    // Checks the signed APK release independently from the offline-first web bundle.
+    // Android always asks the user to approve installation through the system installer.
+    private void checkForApkUpdate(boolean manual) {
+        if (apkUpdateCheckRunning) return;
+        apkUpdateCheckRunning = true;
+        io.execute(() -> {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection)new URL(LATEST_RELEASE_API).openConnection();
+                connection.setConnectTimeout(7000);
+                connection.setReadTimeout(10000);
+                connection.setRequestProperty("Accept", "application/vnd.github+json");
+                connection.setRequestProperty("Cache-Control", "no-cache");
+                if (connection.getResponseCode() != 200) throw new Exception("Release check failed");
+                ByteArrayOutputStream responseBytes = new ByteArrayOutputStream();
+                try (InputStream in = new BufferedInputStream(connection.getInputStream())) {
+                    byte[] buffer = new byte[8192]; int n;
+                    while ((n = in.read(buffer)) > 0) responseBytes.write(buffer, 0, n);
+                }
+                JSONObject release = new JSONObject(responseBytes.toString("UTF-8"));
+                JSONArray assets = release.optJSONArray("assets");
+                String apkUrl = null;
+                if (assets != null) for (int i = 0; i < assets.length(); i++) {
+                    JSONObject asset = assets.optJSONObject(i);
+                    if (asset != null && "Dastyare-man.apk".equals(asset.optString("name"))) {
+                        apkUrl = asset.optString("browser_download_url", null);
+                        break;
+                    }
+                }
+                if (apkUrl == null || !apkUrl.startsWith("https://github.com/mmp1988/Dastyare-man/releases/"))
+                    throw new Exception("Trusted APK asset not found");
+
+                File updateDir = new File(getFilesDir(), "updates");
+                if (!updateDir.exists()) updateDir.mkdirs();
+                File apkFile = new File(updateDir, "Dastyare-man-update.apk");
+                File temp = new File(updateDir, "Dastyare-man-update.apk.new");
+                HttpURLConnection apkConnection = null;
+                try {
+                    apkConnection = (HttpURLConnection)new URL(apkUrl).openConnection();
+                    apkConnection.setConnectTimeout(10000);
+                    apkConnection.setReadTimeout(20000);
+                    apkConnection.setInstanceFollowRedirects(true);
+                    if (apkConnection.getResponseCode() != 200) throw new Exception("APK download failed");
+                    long length = apkConnection.getContentLengthLong();
+                    if (length > 100L * 1024L * 1024L) throw new Exception("APK too large");
+                    try (InputStream in = new BufferedInputStream(apkConnection.getInputStream());
+                         FileOutputStream out = new FileOutputStream(temp)) {
+                        byte[] buffer = new byte[16384]; int n; long total = 0;
+                        while ((n = in.read(buffer)) > 0) {
+                            total += n;
+                            if (total > 100L * 1024L * 1024L) throw new Exception("APK too large");
+                            out.write(buffer, 0, n);
+                        }
+                        out.getFD().sync();
+                    }
+                } finally { if (apkConnection != null) apkConnection.disconnect(); }
+
+                android.content.pm.PackageInfo candidate = getPackageManager().getPackageArchiveInfo(temp.getAbsolutePath(), 0);
+                if (candidate == null || !EXPECTED_PACKAGE.equals(candidate.packageName)) throw new Exception("Invalid APK package");
+                long candidateVersion = Build.VERSION.SDK_INT >= 28 ? candidate.getLongVersionCode() : candidate.versionCode;
+                long installedVersion;
+                android.content.pm.PackageInfo installed = getPackageManager().getPackageInfo(getPackageName(), 0);
+                installedVersion = Build.VERSION.SDK_INT >= 28 ? installed.getLongVersionCode() : installed.versionCode;
+                if (candidateVersion <= installedVersion) {
+                    temp.delete();
+                    getSharedPreferences("apk_updates", MODE_PRIVATE).edit()
+                            .putLong("last_check_ms", System.currentTimeMillis()).apply();
+                    if (manual) runOnUiThread(() -> Toast.makeText(this, "اپلیکیشن روی آخرین نسخه است ✅", Toast.LENGTH_LONG).show());
+                    return;
+                }
+                if (apkFile.exists()) apkFile.delete();
+                if (!temp.renameTo(apkFile)) throw new Exception("Cannot stage downloaded APK");
+                getSharedPreferences("apk_updates", MODE_PRIVATE).edit()
+                        .putString("pending_apk", apkFile.getAbsolutePath())
+                        .putLong("pending_version", candidateVersion)
+                        .putLong("last_check_ms", System.currentTimeMillis()).apply();
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "نسخه جدید اپ آماده نصب است؛ برای تکمیل به‌روزرسانی تأیید کن.", Toast.LENGTH_LONG).show();
+                    installPendingApkIfAllowed();
+                });
+            } catch (Exception e) {
+                if (manual) runOnUiThread(() -> Toast.makeText(this, "بررسی نسخه جدید انجام نشد؛ بعداً دوباره تلاش کن.", Toast.LENGTH_LONG).show());
+            } finally {
+                if (connection != null) connection.disconnect();
+                apkUpdateCheckRunning = false;
+            }
+        });
+    }
+
+    private void installPendingApkIfAllowed() {
+        try {
+            android.content.SharedPreferences prefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
+            String path = prefs.getString("pending_apk", "");
+            if (path == null || path.isEmpty()) return;
+            File apk = new File(path);
+            if (!apk.exists() || apk.length() == 0) {
+                prefs.edit().remove("pending_apk").remove("pending_version").apply();
+                return;
+            }
+            if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+                Intent settings = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName()));
+                settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(settings);
+                Toast.makeText(this, "برای نصب به‌روزرسانی، اجازه نصب برنامه از این منبع را فعال کن.", Toast.LENGTH_LONG).show();
+                return;
+            }
+            Uri contentUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
+            Intent install = new Intent(Intent.ACTION_VIEW);
+            install.setDataAndType(contentUri, "application/vnd.android.package-archive");
+            install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(install);
+        } catch (Exception e) {
+            Toast.makeText(this, "باز کردن نصب‌کننده به‌روزرسانی ممکن نشد.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls()) {
+            installPendingApkIfAllowed();
+        }
     }
 
     private static final String APPOINTMENT_CHANNEL_ID = "dastyare_appointments_v1";
