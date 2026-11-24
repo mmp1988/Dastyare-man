@@ -1560,7 +1560,15 @@
           <div id="clientProfilePhone" style="color:var(--text-secondary);font-size:0.78rem;margin-top:4px;"></div>
           <div style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
             <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">🎂 تاریخ تولد مشتری</div>
-            <div class="form-group" style="margin:0 0 7px;"><label for="clientProfileBirthday">تاریخ تولد (شمسی)</label><input id="clientProfileBirthday" class="form-control" type="text" inputmode="numeric" placeholder="مثلاً ۱۳۷۰/۰۵/۲۱" /></div>
+            <div style="margin:0 0 8px;">
+              <label style="display:block;font-size:.74rem;font-weight:700;margin-bottom:7px;">تاریخ تولد شمسی</label>
+              <div style="display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:7px;direction:rtl;">
+                <div><input id="clientBirthdayYear" class="form-control" type="text" inputmode="numeric" maxlength="4" placeholder="سال" aria-label="سال تولد" style="text-align:center;font-size:1rem;font-weight:800;min-height:48px;" /></div>
+                <div><input id="clientBirthdayMonth" class="form-control" type="text" inputmode="numeric" maxlength="2" placeholder="ماه" aria-label="ماه تولد" style="text-align:center;font-size:1rem;font-weight:800;min-height:48px;" /></div>
+                <div><input id="clientBirthdayDay" class="form-control" type="text" inputmode="numeric" maxlength="2" placeholder="روز" aria-label="روز تولد" style="text-align:center;font-size:1rem;font-weight:800;min-height:48px;" /></div>
+              </div>
+              <small style="display:block;color:var(--text-secondary);font-size:.68rem;margin-top:6px;">سال، ماه و روز را جداگانه وارد کن؛ مثلاً ۱۳۷۰ / ۰۵ / ۲۱</small>
+            </div>
             <small style="display:block;color:var(--text-secondary);font-size:.68rem;line-height:1.7;">یک روز قبل از تولد یادآوری می‌شود؛ تاریخ در پرونده مشتری می‌ماند.</small>
             <button type="button" class="btn-primary" style="width:100%;margin-top:8px;" onclick="saveClientBirthday()">💾 ذخیره تاریخ تولد</button>
           </div>
@@ -3141,7 +3149,10 @@
       document.getElementById('clientRecordKey').value = key;
       document.getElementById('clientProfileName').textContent = p.name;
       document.getElementById('clientProfilePhone').textContent = p.phone || 'شماره تماس ثبت نشده';
-      document.getElementById('clientProfileBirthday').value = p.birthDate || '';
+      const birthdayParts=String(p.birthDate||'').split('-');
+      document.getElementById('clientBirthdayYear').value=birthdayParts[0]||'';
+      document.getElementById('clientBirthdayMonth').value=birthdayParts[1]||'';
+      document.getElementById('clientBirthdayDay').value=birthdayParts[2]||'';
       document.getElementById('clientProfileNotes').value = p.notes || appData.clientNotes[key] || '';
       document.getElementById('clientProfileNotesTimestamp').textContent = p.notesUpdatedAt ? 'آخرین ثبت یا ویرایش: '+formatClientTimestamp(p.notesUpdatedAt) : 'یادداشت هنوز زمان ثبت ندارد.';
       const img = document.getElementById('clientProfilePhotoPreview');
@@ -3374,9 +3385,13 @@
     }
     function saveClientBirthday(){
       const key=document.getElementById('clientRecordKey').value;if(!key)return;
-      const p=getClientProfile(key),raw=String(document.getElementById('clientProfileBirthday').value||'').trim();
-      if(!raw){p.birthDate='';p.birthdayAlertYear='';cancelClientBirthdayAlarm(key);saveData();renderClientBirthdays();showToast('تاریخ تولد از پرونده حذف شد.');return;}
-      const parsed=parseClientJalaliDate(raw);
+      const p=getClientProfile(key);
+      const year=String(document.getElementById('clientBirthdayYear').value||'').trim();
+      const month=String(document.getElementById('clientBirthdayMonth').value||'').trim();
+      const day=String(document.getElementById('clientBirthdayDay').value||'').trim();
+      if(!year&&!month&&!day){p.birthDate='';p.birthdayAlertYear='';cancelClientBirthdayAlarm(key);saveData();renderClientBirthdays();showToast('تاریخ تولد از پرونده حذف شد.');return;}
+      if(!year||!month||!day){showToast('لطفاً هر سه قسمت سال، ماه و روز را کامل کن.');return;}
+      const parsed=parseClientJalaliDate(year+'/'+month+'/'+day);
       if(!parsed){showToast('تاریخ را شمسی و به شکل سال/ماه/روز وارد کن؛ مثل ۱۳۷۰/۰۵/۲۱.');return;}
       const [y,m,d]=parsed.split('-').map(Number),cy=Number(getTodayKey().slice(0,4));
       if(y<1200||y>cy||m<1||m>12||d<1||d>31){showToast('تاریخ تولد معتبر نیست.');return;}
