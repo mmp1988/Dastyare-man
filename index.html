@@ -1754,10 +1754,16 @@
         </div>
       </div>
       <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
-        <div class="section-title" style="margin-bottom:9px;">📅 نوبت اصلی و نوبت بعدی ترمیم مشتری</div>
-        <div id="clientScheduledAppointments" style="margin:0 0 12px;padding:10px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
-          <div style="font-weight:800;font-size:.84rem;margin-bottom:8px;">📅 نوبت‌های ثبت‌شده این مشتری</div>
-          <div id="clientScheduledAppointmentsList"></div>
+        <div class="section-title" style="margin-bottom:9px;">📅 برنامه نوبت‌های مشتری</div>
+        <div id="clientScheduledAppointments" style="display:flex;flex-direction:column;gap:10px;margin:0 0 12px;">
+          <section style="display:block;width:100%;box-sizing:border-box;padding:11px;border:1px solid rgba(59,130,246,.35);border-right:4px solid #3b82f6;border-radius:12px;background:var(--bg-secondary);">
+            <div style="font-weight:900;font-size:.86rem;color:#3b82f6;margin-bottom:7px;">📅 نوبت اصلی</div>
+            <div id="clientPrimaryAppointmentList"></div>
+          </section>
+          <section style="display:block;width:100%;box-sizing:border-box;padding:11px;border:1px solid rgba(217,119,6,.35);border-right:4px solid #d97706;border-radius:12px;background:var(--bg-secondary);">
+            <div style="font-weight:900;font-size:.86rem;color:#d97706;margin-bottom:7px;">🔁 نوبت بعدی ترمیم</div>
+            <div id="clientFollowupAppointmentList"></div>
+          </section>
         </div>
         <div class="form-grid">
           <div class="form-group full client-date-group">
@@ -3882,29 +3888,28 @@
     }
 
     function renderClientScheduledAppointments(key) {
-      const box = document.getElementById('clientScheduledAppointmentsList');
-      if (!box) return;
+      const primaryBox = document.getElementById('clientPrimaryAppointmentList');
+      const followupBox = document.getElementById('clientFollowupAppointmentList');
+      const box = document.getElementById('clientScheduledAppointments');
+      if (!primaryBox || !followupBox || !box) return;
       const appointments = getClientAppointments(key, true);
-      if (!appointments.length) {
-        box.innerHTML = '<div style="font-size:.78rem;color:var(--text-secondary);padding:8px 0;">هنوز نوبتی برای این مشتری ثبت نشده است.</div>';
-        return;
-      }
-      box.innerHTML = appointments.map(a => {
+      const renderGroup = (items, emptyText) => items.length ? items.map(a => {
         const followup = isFollowupAppointment(a);
         const status = a.status === 'done' ? 'انجام‌شده' : a.status === 'canceled' ? 'لغوشده' : 'در انتظار';
         const color = followup ? '#d97706' : '#3b82f6';
-        return `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:9px;margin:6px 0;border:1px solid var(--border-subtle);border-right:3px solid ${color};border-radius:10px;background:var(--bg-input);">
+        return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:9px;margin:6px 0;border:1px solid var(--border-subtle);border-right:3px solid ${color};border-radius:10px;background:var(--bg-input);">
           <div style="min-width:0;flex:1;">
-            <strong style="display:block;font-size:.8rem;color:${color};">${getAppointmentKindLabel(a)}</strong>
-            <span style="font-size:.78rem;">${escapeClientText(formatJalaliFull(a.dateKey))} • 🕒 ${toPersianDigits(a.time || 'ثبت نشده')}</span>
+            <span style="display:block;font-size:.78rem;font-weight:800;">${escapeClientText(formatJalaliFull(a.dateKey))} • 🕒 ${toPersianDigits(a.time || 'ثبت نشده')}</span>
             <small style="display:block;color:var(--text-secondary);">${escapeClientText(a.service || 'خدمت ثبت نشده')} • ${status}</small>
           </div>
           <div style="display:flex;gap:5px;flex-shrink:0;">
-            <button type="button" class="mini-btn" data-client-appt-edit="${escapeClientText(a.id)}">✏️</button>
-            <button type="button" class="mini-btn del" data-client-appt-delete="${escapeClientText(a.id)}">🗑️</button>
+            <button type="button" class="mini-btn" data-client-appt-edit="${escapeClientText(a.id)}" aria-label="ویرایش نوبت">✏️</button>
+            <button type="button" class="mini-btn del" data-client-appt-delete="${escapeClientText(a.id)}" aria-label="حذف نوبت">🗑️</button>
           </div>
         </div>`;
-      }).join('');
+      }).join('') : `<div style="font-size:.78rem;color:var(--text-secondary);padding:7px 0;">${emptyText}</div>`;
+      primaryBox.innerHTML = renderGroup(appointments.filter(a => !isFollowupAppointment(a)), 'هنوز نوبت اصلی ثبت نشده است.');
+      followupBox.innerHTML = renderGroup(appointments.filter(isFollowupAppointment), 'هنوز نوبت بعدی ترمیم ثبت نشده است.');
       box.querySelectorAll('[data-client-appt-edit]').forEach(btn => btn.addEventListener('click', () => {
         const appt = appData.appointments.find(x => x.id === btn.dataset.clientApptEdit);
         if (!appt) return;
