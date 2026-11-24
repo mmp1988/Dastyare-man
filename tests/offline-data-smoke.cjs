@@ -27,36 +27,7 @@ const assert = require('assert');
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
-    // Responsive integration audit: exercise every primary tab and the customer
-    // profile sheet at phone, tablet and desktop widths before testing data flows.
-    const responsiveAudit = await page.evaluate(() => {
-      const widths = [320, 360, 390, 430, 768, 1024, 1366];
-      const tabs = ['calendar', 'notebook', 'clients', 'messages', 'mina', 'settings'];
-      const results = [];
-      for (const width of widths) {
-        document.documentElement.style.width = width + 'px';
-        document.body.style.width = width + 'px';
-        window.innerWidth; // viewport is resized by the harness between iterations below
-        for (const tab of tabs) {
-          const button = document.querySelector('.nav-item[onclick*="' + tab + '"]');
-          switchTab(tab, button);
-          const docWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-          const outside = [...document.querySelectorAll('button, input, select, textarea, .card, .modal-box')]
-            .filter(el => {
-              const style = getComputedStyle(el);
-              if (style.display === 'none' || style.visibility === 'hidden') return false;
-              const rect = el.getBoundingClientRect();
-              return rect.width > 0 && (rect.left < -2 || rect.right > width + 2);
-            }).slice(0, 5).map(el => ({ tag:el.tagName, id:el.id, cls:String(el.className).slice(0,50) }));
-          results.push({ width, tab, docWidth, outside });
-        }
-      }
-      document.documentElement.style.width = '';
-      document.body.style.width = '';
-      return results;
-    });
-    // Viewport widths must be actual browser dimensions; repeat a strict pass with
-    // Playwright resizing so CSS media queries are evaluated exactly as on devices.
+    // Responsive integration audit across phone, tablet and desktop viewports.
     const responsiveFailures = [];
     for (const width of [320, 360, 390, 430, 768, 1024, 1366]) {
       await page.setViewportSize({ width, height: width < 500 ? 800 : 900 });
@@ -73,38 +44,48 @@ const assert = require('assert');
               const style = getComputedStyle(el);
               if (style.display === 'none' || style.visibility === 'hidden') return false;
               const rect = el.getBoundingClientRect();
-              return rect.width > 0 && (rect.left < -2 || rect.right > width + 2);
+              if (!rect.width || !rect.height) return false;
+              // Horizontal filter rows are allowed to scroll when not in compact wrap mode.
+              if (el.closest('.filter-pills') && getComputedStyle(el.closest('.filter-pills')).overflowX === 'auto') return false;
+              return rect.left < -2 || rect.right > width + 2;
             }).slice(0, 4).map(el => ({ tag:el.tagName, id:el.id, cls:String(el.className).slice(0,40) }));
           return { width, docWidth, outside };
         });
         if (layout.docWidth > width + 1 || layout.outside.length) responsiveFailures.push({ width, tab, ...layout });
       }
     }
+
+    // Reopen and measure the customer file at every width; check the sticky actions
+    // stay reachable and the form never exceeds the viewport.
     await page.evaluate(() => {
       appData.clientProfiles = { 'qa-layout-client': { name:'مشتری آزمایشی', phone:'09120000000', records:[] } };
-      openClientRecord('qa-layout-client');
     });
     for (const width of [320, 360, 390, 430, 768, 1366]) {
       await page.setViewportSize({ width, height: width < 500 ? 800 : 900 });
+      await page.evaluate(() => openClientRecord('qa-layout-client'));
+      await page.waitForFunction(() => {
+        const modal = document.querySelector('#clientProfileModal');
+        const box = modal?.querySelector('.modal-box');
+        return modal?.classList.contains('open') && box?.getBoundingClientRect().width > 0;
+      });
       const profileLayout = await page.evaluate(() => {
         const modal = document.querySelector('#clientProfileModal .modal-box');
         const rect = modal.getBoundingClientRect();
         const width = document.documentElement.clientWidth;
-        const footer = document.getElementById('clientShareActions').getBoundingClientRect();
         const footerButtons = [...document.querySelectorAll('#clientShareActions button')].map(b => {
-          const r = b.getBoundingClientRect(); return { text:b.textContent.trim(), left:r.left, right:r.right, height:r.height };
+          const r = b.getBoundingClientRect();
+          return { text:b.textContent.trim(), left:r.left, right:r.right, height:r.height };
         });
         return { width, modalLeft:rect.left, modalRight:rect.right, modalWidth:rect.width,
-          modalScrollWidth:modal.scrollWidth, modalClientWidth:modal.clientWidth,
-          footerTop:footer.top, footerButtons };
+          modalScrollWidth:modal.scrollWidth, modalClientWidth:modal.clientWidth, footerButtons };
       });
       if (profileLayout.modalLeft < -1 || profileLayout.modalRight > width + 1 ||
           profileLayout.modalScrollWidth > profileLayout.modalClientWidth + 2 ||
           profileLayout.footerButtons.some(b => b.left < -1 || b.right > width + 1 || b.height < 38)) {
         responsiveFailures.push({ width, tab:'client-profile', ...profileLayout });
       }
+      await page.evaluate(() => document.getElementById('clientProfileModal').classList.remove('open'));
     }
-    await page.evaluate(() => document.getElementById('clientProfileModal').classList.remove('open'));
     assert.deepStrictEqual(responsiveFailures, [], 'Responsive layout overflow or clipped controls detected: ' + JSON.stringify(responsiveFailures));
     console.log('Responsive layout audit:', JSON.stringify({ widths:[320,360,390,430,768,1024,1366], tabs:6, profile:true, failures:responsiveFailures.length }));
 
