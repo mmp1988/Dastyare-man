@@ -2064,11 +2064,6 @@
       try { if (navigator.storage && typeof navigator.storage.persist === 'function') await navigator.storage.persist(); }
       catch (e) { /* synchronous localStorage remains the primary store */ }
     }
-    window.addEventListener('beforeunload', persistAppDataOnExit);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') persistAppDataOnExit();
-    });
-
     // --- PIN LOCK ---
     let enteredPin = '';
     function checkPinLockOnStartup() {
@@ -4555,7 +4550,7 @@
           : 'تقویمت رو بررسی کردم؛ تداخل زمانی ثبت‌شده‌ای پیدا نکردم عزیزم 💗';
       }
 
-      if (/(?:این هفته|هفت روز آینده).*(?:نوبت|برنامه)|(?:نوبت|برنامه).*(?:این هفته|هفت روز آینده)/.test(normalized)) {
+      if (/(?:این هفته|هفت روز آینده)/.test(normalized) && /(?:نوبت|برنامه|کار|مشتری|من)/.test(normalized)) {
         const end=addDaysToJalaliKey(todayKey,6);
         const week=all.filter(a=>a.dateKey>=todayKey&&a.dateKey<=end)
           .sort((a,b)=>(a.dateKey+(a.time||'')).localeCompare(b.dateKey+(b.time||'')));
@@ -4563,7 +4558,7 @@
           : 'تا هفت روز آینده نوبتی ثبت نشده؛ وقت خوبیه برای برنامه‌ریزی 💗';
       }
 
-      if (/(?:حذف|پاک\\s*کن|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر\\s*(?:ساعت|زمان|تاریخ)|انجام\\s*شد|تکمیل\\s*شد)/u.test(normalized) && /(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized)) {
+      if (/(?:حذف|پاک\s*کن|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر\s*(?:ساعت|زمان|تاریخ)|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized))) {
         return 'عزیزم برای اینکه هیچ نوبتی بدون تصمیم خودت تغییر نکنه، من فقط می‌تونم نوبت جدید ثبت کنم و برنامه رو نشون بدم 💗 برای ویرایش، لغو یا حذف، خودت از بخش تقویم روی دکمه ویرایش یا حذف بزن. همه‌چیز دست خودته 🌷';
       }
       return minaBuildReplyCore(expandedRaw);
