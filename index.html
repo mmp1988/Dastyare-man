@@ -1527,10 +1527,6 @@
               <div id="clientWorkFieldDefinitions" style="display:flex;flex-direction:column;gap:6px;"></div>
             </div>
           </div>
-          <div class="form-group" style="display:none;">
-            <label>مبلغ دریافت‌شده (اطلاعات قدیمی)</label>
-            <input type="number" min="0" id="clientWorkPrice" class="form-control" inputmode="numeric" placeholder="مثلاً ۸۰۰۰۰۰" />
-          </div>
           <div class="form-group full">
             <label>توضیحات و نکات این جلسه</label>
             <textarea id="clientWorkNotes" class="form-control" rows="2" placeholder="چه کاری انجام شد؟ چه موادی یا مدلی استفاده شد؟"></textarea>
@@ -2441,18 +2437,13 @@
       if (followupDays > 0) {
         var nextDateKey = addDaysToJalaliKey(selectedDateKey,followupDays);
         var followupConflict = appData.appointments.some(function(a){return a.id !== payload.id && a.dateKey === nextDateKey && a.time === time && a.status !== 'canceled';});
-        if (followupConflict) {
-          appData.appointments = appData.appointments.filter(function(a){return a.id !== payload.id;});
-          showToast('زمان نوبت ترمیم با نوبت دیگری تداخل دارد؛ زمان ترمیم را جداگانه از تقویم ثبت کن.');
-          return;
-        }
-        appData.appointments.push({
+        if (!followupConflict) appData.appointments.push({
           id:'appt_fu_'+Date.now(), dateKey:nextDateKey, time:time, clientName:clientName,
           phone:payload.phone, service:'ترمیم '+service, notes:'', alarm:'60', status:'pending', notified:false
         });
       }
       saveData(); closeModal('apptModal'); renderCalendar(); renderDaySchedule();
-      showToast(followupDays > 0 ? 'نوبت و زمان ترمیم بعدی ثبت شد ✨' : 'نوبت با موفقیت ذخیره شد ✨');
+      showToast(followupDays > 0 && !followupConflict ? 'نوبت و زمان ترمیم بعدی ثبت شد ✨' : followupConflict ? 'نوبت اصلی ثبت شد؛ ساعت ترمیم با نوبت دیگری تداخل داشت و ثبت نشد.' : 'نوبت با موفقیت ذخیره شد ✨');
     }
 
     
@@ -3254,7 +3245,6 @@
       pendingClientAfterPhoto = '';
       saveData();
       document.getElementById('clientWorkService').value = '';
-      document.getElementById('clientWorkPrice').value = '';
       document.getElementById('clientWorkNotes').value = '';
       document.querySelectorAll('[data-work-field]').forEach(el=>el.value='');
       document.getElementById('clientWorkPhotoInput').value = '';
@@ -3642,7 +3632,7 @@
       const title = appData.settings.brandName || 'دستیار من';
       const text = mode === 'apk'
         ? `دانلود مستقیم فایل نصبی اندروید (APK) اپلیکیشن «${title}»:\n${url}`
-        : `نصب اپلیکیشن آفلاین «${title}» (تقویم شمسی، نوبت‌دهی، یادداشت و حسابداری):\n${url}`;
+        : `نصب اپلیکیشن آفلاین «${title}» (تقویم شمسی، نوبت‌دهی، پرونده مشتریان، یادداشت و دستیار هوشمند):\n${url}`;
       // Native Android APK: open the system share sheet (WhatsApp, Telegram, SMS, etc.)
       if (window.AndroidApp && typeof window.AndroidApp.shareText === 'function') {
         try { window.AndroidApp.shareText(title, text); return; } catch (e) {}
@@ -4240,8 +4230,7 @@
         return 'انجام شد عزیزم 🌸 نوبتت ثبت شد!' +
           (clientName ? '\n👩🏻 مشتری: ' + clientName : '\n👩🏻 مشتری: بدون نام؛ هر وقت خواستی تکمیلش کن') +
           '\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\n⏰ ساعت: ' + time +
-          '\n💅 خدمت: ' + service + (appointment.price ? '\n💰 مبلغ: ' + formatMoney(appointment.price) + ' تومان' : '') +
-          (conflict ? '\n⚠️ این ساعت نوبت دیگری هم داری؛ تقویم رو بررسی کن.' : '') +
+          '\n💅 خدمت: ' + service +
           '\nهمه‌چیز ذخیره شد و آفلاین هم در دسترسته 💗';
       }
       if (/فردا/.test(t) && /(نوبت|برنامه|مشتری|چکار|چه کار)/.test(t)) {
