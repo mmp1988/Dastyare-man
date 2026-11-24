@@ -2663,7 +2663,9 @@
       if (!confirm('این نوبت حذف شود؟')) return;
       appData.appointments = appData.appointments.filter(function(a){return a.id !== id;});
       saveData(); renderCalendar(); renderDaySchedule();
-      showToast('نوبت حذف شد');
+      if (typeof renderClientsTab === 'function') renderClientsTab();
+      if (typeof renderClientBirthdays === 'function') renderClientBirthdays();
+      showToast('فقط نوبت حذف شد؛ پرونده و تاریخ تولد مشتری باقی ماند.');
     }
 
         // ==================== TO-DO & NOTEBOOK ====================
@@ -5277,8 +5279,10 @@
       if (isDelete) {
         appData.appointments = appData.appointments.filter(a => a.id !== appt.id);
         saveData(); renderCalendar(); renderDaySchedule();
+        if (typeof renderClientsTab === 'function') renderClientsTab();
+        if (typeof renderClientBirthdays === 'function') renderClientBirthdays();
         if (typeof updateDashboardStats === 'function') updateDashboardStats();
-        return 'انجام شد عزیزم 🌸 نوبت ' + (appt.clientName || 'بدون نام') + ' از تقویم حذف شد.\\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\\n💅 ' + (appt.service || 'خدمت') + '\\nفقط همان نوبت حذف شد 💗';
+        return 'انجام شد عزیزم 🌸 فقط نوبت ' + (appt.clientName || 'بدون نام') + ' از تقویم حذف شد و پرونده و تاریخ تولد مشتری باقی ماند.\\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\\n💅 ' + (appt.service || 'خدمت') + '\\nاطلاعات تولد و پرونده دست‌نخورده ماند 💗';
       }
       if (isCancel) {
         appt.status = 'canceled';
