@@ -4840,11 +4840,11 @@
       const text = minaCleanText(expanded).toLowerCase();
       if (!/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text)) return null;
 
-      const isDelete = /(?:حذف|پاک\s*کن|پاکش\s*کن|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
-      const isCancel = !isDelete && /(?:لغو|کنسل|کنسلش|بی\s*خیال\s*نوبت|منتفی|دیگه\s*نمیاد)/u.test(text);
+      const isDelete = /(?:حذف|پاک(?:\s*کردن|\s*کن|ش\s*کن)?|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
+      const isCancel = !isDelete && /(?:لغو(?:\s*کردن|\s*کن)?|کنسل(?:\s*کردن|\s*کن|ش)?|بی\s*خیال\s*نوبت|منتفی|دیگه\s*نمیاد)/u.test(text);
       const isDone = /(?:انجام\s*شد|تموم\s*شد|تمام\s*شد|انجامش\s*دادم|مراجعه\s*کرد|کارش\s*انجام)/u.test(text);
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text);
-      const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
+      const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
       const isMove = /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار))/u.test(text);
       if (/(?:لغو|کنسل|حذف|پاک|عوض|تغییر|جابجا|جابه.?جا)\s*(?:نکن|نشه|نشود|نکنه)/u.test(text)) return 'باشه عزیزم؛ هیچ تغییری روی نوبت انجام ندادم 💗';
       const isCreation = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s+بده)/u.test(text);
@@ -4859,6 +4859,7 @@
       // Resolve an explicit customer first, then the last Mina-created booking
       // for phrases such as «نوبت مینا رو تغییر بده».
       const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به|انجام|حذف|پاک|کنسل|لغو|تموم)/u) ||
+        text.match(/(?:کنسل|لغو|حذف|پاک)\s+(?:کردن\s+)?(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})/u) ||
         text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
       let candidates = selectable.slice();
       if (nameMatch) {
@@ -4940,6 +4941,18 @@
         else if (/امروز/u.test(text)) newDate = getTodayKey();
         const numeric = text.match(/\b(14\d{2}|20\d{2})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/u);
         if (numeric) newDate = numeric[1] + '-' + pad2(numeric[2]) + '-' + pad2(numeric[3]);
+        if (!newDate) {
+          const weekdays = [{day:0,re:/شنبه/u},{day:1,re:/یکشنبه/u},{day:2,re:/دوشنبه/u},{day:3,re:/سه.?شنبه/u},{day:4,re:/چهارشنبه/u},{day:5,re:/پنجشنبه/u},{day:6,re:/جمعه/u}];
+          const weekday = weekdays.find(x => x.re.test(text));
+          if (weekday) {
+            const [y,m,d] = getTodayKey().split('-').map(Number);
+            const [gy,gm,gd] = jalaliToGregorian(y,m,d);
+            const todayWeekday = (new Date(gy,gm-1,gd).getDay()+1)%7;
+            let delta = (weekday.day-todayWeekday+7)%7;
+            if (delta === 0 && !/(?:امروز|فردا|پس\s*فردا)/u.test(text)) delta = 7;
+            newDate = addDaysToJalaliKey(getTodayKey(),delta);
+          }
+        }
         if (!newDate) {
           const monthMatch = text.match(/(\d{1,2})\s+(فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)(?:\s+(14\d{2}))?/u);
           if (monthMatch) {
