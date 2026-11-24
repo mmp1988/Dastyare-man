@@ -2271,8 +2271,8 @@
       }
       var tbody = document.getElementById('dayAppointmentsBody');
       var compareAppointmentTime = function(a,b) {
-        var at = String(a.time || '99:99').match(/^(\\d{1,2}):(\\d{2})$/);
-        var bt = String(b.time || '99:99').match(/^(\\d{1,2}):(\\d{2})$/);
+        var at = String(a.time || '99:99').match(/^(\d{1,2}):(\d{2})$/);
+        var bt = String(b.time || '99:99').match(/^(\d{1,2}):(\d{2})$/);
         var am = at ? Number(at[1])*60+Number(at[2]) : 9999;
         var bm = bt ? Number(bt[1])*60+Number(bt[2]) : 9999;
         return am-bm || String(a.clientName||'').localeCompare(String(b.clientName||''),'fa');
