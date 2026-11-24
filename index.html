@@ -2988,6 +2988,7 @@
         });
       });
       if (migratedClientIdentity) saveData();
+      Object.keys(map).forEach(key => migrateLegacyClientAppointmentKinds(key));
       const serviceQuery = (document.getElementById('advancedClientService')?.value || '').trim().toLowerCase();
       const segment = document.getElementById('advancedClientSegment')?.value || 'all';
       const clients = Object.values(map).filter(x => {
@@ -3014,10 +3015,13 @@
         const todayKey = getTodayKey();
         const upcomingAppointments = cl.visits
           .filter(a => a.status !== 'canceled' && a.status !== 'done' && a.dateKey && a.dateKey >= todayKey)
-          .sort((a,b) => (a.dateKey + (a.time || '')).localeCompare(b.dateKey + (b.time || '')));
+          .sort((a,b) => {
+            const kindOrder = Number(isFollowupAppointment(a)) - Number(isFollowupAppointment(b));
+            return kindOrder || (a.dateKey + (a.time || '')).localeCompare(b.dateKey + (b.time || ''));
+          });
         const appointmentLine = upcomingAppointments.length
           ? upcomingAppointments.slice(0,3).map(a =>
-              `<small class="client-next-appointment" style="display:block;margin-top:4px;"><span style="font-weight:800;color:${isFollowupAppointment(a) ? '#d97706' : 'var(--accent)'};">${getAppointmentKindLabel(a)}:</span> <strong>${escapeClientText(formatJalaliFull(a.dateKey))}</strong><span class="client-next-appointment-time"> 🕒 ${toPersianDigits(a.time || 'ساعت ثبت نشده')}</span>${a.service ? `<span class="client-next-appointment-service"> • ${escapeClientText(a.service)}</span>` : ''}</small>`
+              `<small class="client-next-appointment" style="display:block;margin-top:4px;"><span style="font-weight:800;color:${isFollowupAppointment(a) ? '#d97706' : '#3b82f6'};">${getAppointmentKindLabel(a)}:</span> <strong>${escapeClientText(formatJalaliFull(a.dateKey))}</strong><span class="client-next-appointment-time"> 🕒 ${toPersianDigits(a.time || 'ساعت ثبت نشده')}</span>${a.service ? `<span class="client-next-appointment-service"> • ${escapeClientText(a.service)}</span>` : ''}</small>`
             ).join('') + (upcomingAppointments.length > 3 ? `<small style="display:block;color:var(--text-secondary);margin-top:3px;">و ${toPersianDigits(upcomingAppointments.length - 3)} نوبت دیگر</small>` : '')
           : `<small class="client-no-appointment">📅 نوبت آینده ثبت نشده</small>`;
         const photo = p.photo ? `<img src="${p.photo}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : p.photoRef ? `<img data-client-photo-ref="${escapeClientText(p.photoRef)}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:13px;border:1px solid var(--border-color);" />` : `<span style="width:54px;height:54px;border-radius:13px;background:var(--bg-secondary);display:grid;place-items:center;font-size:1.5rem;">👤</span>`;
