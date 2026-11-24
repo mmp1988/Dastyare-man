@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -102,8 +103,21 @@ public class MainActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (uri.getHost() != null && uri.getHost().equals("appassets.androidplatform.net")) return false;
-                if ("https".equals(uri.getScheme())) {
-                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                if ("mailto".equalsIgnoreCase(uri.getScheme())) {
+                    try {
+                        Intent emailIntent = new Intent(Intent.ACTION_SENDTO, uri);
+                        startActivity(emailIntent);
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "برنامه‌ای برای ارسال ایمیل روی گوشی پیدا نشد", Toast.LENGTH_LONG).show();
+                    }
+                    return true;
+                }
+                if ("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "باز کردن لینک انجام نشد", Toast.LENGTH_LONG).show();
+                    }
                     return true;
                 }
                 return true;
@@ -561,6 +575,18 @@ public class MainActivity extends Activity {
                 }
                 startNativeSpeechOnUi(targetInputId, buttonId);
             });
+        }
+
+        @JavascriptInterface public void copyTextToClipboard(String text) {
+            if (text == null || text.isEmpty()) return;
+            try {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard == null) throw new IllegalStateException("Clipboard unavailable");
+                clipboard.setPrimaryClip(ClipData.newPlainText("email", text));
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "ایمیل کپی شد 📋", Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "کپی ایمیل انجام نشد؛ دوباره تلاش کن", Toast.LENGTH_LONG).show());
+            }
         }
 
         @JavascriptInterface public void shareText(String title, String text) {
