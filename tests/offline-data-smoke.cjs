@@ -217,20 +217,19 @@ const assert = require('assert');
         { id:'mina-done-qa', dateKey, time:'10:00', clientName:'مریم', service:'لیفت مژه', status:'pending' },
         { id:'mina-move-qa', dateKey, time:'11:00', clientName:'علی', service:'والیوم', status:'pending' }
       ];
+      const before = JSON.stringify(appData.appointments);
       const cancelReply = minaBuildReply('لغو نوبت سارا');
-      const cancelOk = appData.appointments.find(a => a.id === 'mina-cancel-qa')?.status === 'canceled';
       const doneReply = minaBuildReply('انجام شد مریم');
-      const doneOk = appData.appointments.find(a => a.id === 'mina-done-qa')?.status === 'done';
       const moveReply = minaBuildReply('نوبت علی رو به ساعت ۵ عصر منتقل کن');
-      const moveOk = appData.appointments.find(a => a.id === 'mina-move-qa')?.time === '17:00';
+      const deleteReply = minaBuildReply('نوبت سارا رو حذف کن');
+      const unchanged = before === JSON.stringify(appData.appointments);
       const weekReply = minaBuildReply('برنامه هفت روز آینده');
       const weekOk = weekReply.includes('برنامه هفت روز آینده') && weekReply.includes('علی');
-      return { cancelOk, doneOk, moveOk, weekOk, cancelReply, doneReply, moveReply, weekReply };
+      return { unchanged, weekOk, cancelReply, doneReply, moveReply, deleteReply };
     });
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
-    assert(minaActionsResult.cancelOk && minaActionsResult.doneOk &&
-      minaActionsResult.moveOk && minaActionsResult.weekOk,
-      'Mina cancel/complete/reschedule/weekly schedule command failed');
+    assert(minaActionsResult.unchanged && minaActionsResult.weekOk,
+      'Mina must never modify, cancel, or delete an existing appointment; weekly reading must still work');
 
     const exactTimeRegression = await page.evaluate(() => {
       minaConversationBooking = null;
@@ -254,6 +253,38 @@ const assert = require('assert');
     console.log('Mina exact-time and salon conflict regression:', JSON.stringify(exactTimeRegression));
     assert(exactTimeRegression.exactOk && exactTimeRegression.quarterOk && exactTimeRegression.conflictBlocked,
       'Mina must understand exact minutes, quarter-to times, and reject cross-service time conflicts');
+
+    const messageComposerResult = await page.evaluate(() => {
+      document.getElementById('customerMessageType').value = 'discount';
+      document.getElementById('customerMessageName').value = 'نازنین';
+      document.getElementById('customerMessageDate').value = 'پنجشنبه';
+      document.getElementById('customerMessageService').value = 'کراتین مو';
+      document.getElementById('customerMessageDiscount').value = '۲۰٪';
+      document.getElementById('customerMessageAddress').value = 'شهرک گلستان';
+      renderCustomerMessagePreview();
+      const message = document.getElementById('customerMessagePreview').value;
+      let shared = null;
+      window.AndroidApp = { shareText: (title, text) => { shared = { title, text }; } };
+      sendCustomerMessage();
+      const result = {
+        tabExists: !!document.getElementById('tab-messages'),
+        personalized: message.includes('نازنین') && message.includes('۲۰٪') && message.includes('شهرک گلستان'),
+        noUnfilledTokens: !/\{(?:name|date|time|service|address|discount)\}/.test(message),
+        androidShareChooser: shared?.text === message
+      };
+      delete window.AndroidApp;
+      return result;
+    });
+    assert(messageComposerResult.tabExists && messageComposerResult.personalized &&
+      messageComposerResult.noUnfilledTokens && messageComposerResult.androidShareChooser,
+      'Customer message templates must personalize optional fields and use Android share chooser');
+
+    const noLegacyFinance = await page.evaluate(() => ({
+      noTransactions: !Object.prototype.hasOwnProperty.call(appData, 'transactions'),
+      noFinanceTab: !document.querySelector('[id*="finance"]')
+    }));
+    assert(noLegacyFinance.noTransactions && noLegacyFinance.noFinanceTab,
+      'Accounting/finance features must be removed from the app');
 
     // Static native Android guardrails: validated internet selects Android's normal
     // recognition service; Persian locale and microphone permission remain configured.
