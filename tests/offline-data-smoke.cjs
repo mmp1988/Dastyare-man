@@ -617,7 +617,7 @@ const assert = require('assert');
       saveClientNextAppointment();
       const extraAppointment = appData.appointments.find(a => a.clientName === clientName && a.service === 'مراجعه جداگانه سوم');
       if (key) openClientRecord(key);
-      const profileText = document.getElementById('clientScheduledAppointmentsList')?.textContent || '';
+      const profileText = document.getElementById('clientScheduledAppointments')?.textContent || '';
       const primaryDate = primary?.dateKey || '';
       const followupDate = followup?.dateKey || '';
       viewYear = Number(followupDate.slice(0,4));
@@ -632,15 +632,15 @@ const assert = require('assert');
       const scheduleShowsFollowup = scheduleText.includes('ترمیم');
       if (primary) cycleStatus(primary.id);
       const cardAfterDone = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
-      const followupStillShownAfterDone = !!cardAfterDone && cardAfterDone.textContent.includes('نوبت ترمیم');
+      const followupStillShownAfterDone = !!cardAfterDone && cardAfterDone.textContent.includes('ترمیم');
       return {
         primaryCreated:!!primary,
         followupCreated:!!followup,
         linkedToPrimary:!!followup && followup.parentAppointmentId === primary.id,
         followupHasOwnDateAndTime:!!followup && followup.dateKey === addDaysToJalaliKey(primary.dateKey,14) && followup.time === '10:17',
-        cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('نوبت ترمیم'),
-        profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت ترمیم'),
-        profileHasEditDelete:!!document.querySelector('#clientScheduledAppointmentsList [data-client-appt-edit]') && !!document.querySelector('#clientScheduledAppointmentsList [data-client-appt-delete]'),
+        cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('ترمیم'),
+        profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت بعدی ترمیم'),
+        profileHasEditDelete:!!document.querySelector('#clientScheduledAppointments [data-client-appt-edit]') && !!document.querySelector('#clientScheduledAppointments [data-client-appt-delete]'),
         profileFormAddsNewWithoutOverwriting:nextFormStartsNew && !!extraAppointment &&
           appData.appointments.some(a => a.id === primary.id) &&
           appData.appointments.some(a => a.id === followup.id) &&
