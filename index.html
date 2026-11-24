@@ -4347,7 +4347,33 @@
       reader.onerror = () => showToast('خواندن فایل پشتیبان ناموفق بود.');
       reader.readAsText(file);
     }
-    function copyEmail() { navigator.clipboard?.writeText('minamsvm@gmail.com'); showToast('ایمیل کپی شد 📋'); }
+    async function copyEmail() {
+      const email = 'minamsvm@gmail.com';
+      try {
+        if (window.AndroidApp && typeof window.AndroidApp.copyTextToClipboard === 'function') {
+          window.AndroidApp.copyTextToClipboard(email);
+          return;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(email);
+          showToast('ایمیل کپی شد 📋');
+          return;
+        }
+        const field = document.createElement('textarea');
+        field.value = email;
+        field.setAttribute('readonly', '');
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+        const copied = document.execCommand('copy');
+        field.remove();
+        if (!copied) throw new Error('Clipboard copy failed');
+        showToast('ایمیل کپی شد 📋');
+      } catch (error) {
+        showToast('کپی ایمیل انجام نشد؛ لطفاً دوباره تلاش کن');
+      }
+    }
     function toggleFabMenu() { document.getElementById('fabMenu').classList.toggle('open'); }
     let handlingAppPopState = false;
     let lastRootBackAt = 0;
