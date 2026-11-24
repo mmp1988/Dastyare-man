@@ -4845,9 +4845,11 @@
       const isDone = /(?:انجام\s*شد|تموم\s*شد|تمام\s*شد|انجامش\s*دادم|مراجعه\s*کرد|کارش\s*انجام)/u.test(text);
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text);
       const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
-      const isMove = /(?:تغییر|عوض|بکن|بذار|بزار|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش)/u.test(text);
+      const isMove = /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|نوبت\s+رو\s+بکن)/u.test(text);
       if (/(?:لغو|کنسل|حذف|پاک|عوض|تغییر|جابجا|جابه.?جا)\s*(?:نکن|نشه|نشود|نکنه)/u.test(text)) return 'باشه عزیزم؛ هیچ تغییری روی نوبت انجام ندادم 💗';
-      if (!(isDelete || isCancel || isDone || isMove || asksTime || asksDate)) return null;
+      const isCreation = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s+بده)/u.test(text);
+      if (isCreation && !isMove && !isDelete && !isCancel && !isDone) return null;
+      if (!(isDelete || isCancel || isDone || isMove || ((asksTime || asksDate) && /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز)/u.test(text)))) return null;
 
       const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled' && a.status !== 'done');
       if (!active.length) return 'عزیزم هیچ نوبت فعالی برای تغییر پیدا نکردم 🌷';
