@@ -112,6 +112,23 @@ public class MainActivity extends Activity {
                     }
                     return true;
                 }
+                if ("sms".equalsIgnoreCase(uri.getScheme()) || "smsto".equalsIgnoreCase(uri.getScheme())) {
+                    try {
+                        Uri smsUri = uri.buildUpon().scheme("smsto").build();
+                        startActivity(new Intent(Intent.ACTION_SENDTO, smsUri));
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "برنامه پیامک روی گوشی پیدا نشد", Toast.LENGTH_LONG).show();
+                    }
+                    return true;
+                }
+                if ("tel".equalsIgnoreCase(uri.getScheme())) {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_DIAL, uri));
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "برنامه تماس روی گوشی پیدا نشد", Toast.LENGTH_LONG).show();
+                    }
+                    return true;
+                }
                 if ("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) {
                     try {
                         startActivity(new Intent(Intent.ACTION_VIEW, uri));
