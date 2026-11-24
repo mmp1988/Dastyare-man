@@ -16,7 +16,7 @@ android {
         minSdk 24
         targetSdk 35
         versionCode ciRunNumber.toInteger()
-        versionName "1.0" // Keep the user-visible version label stable; versionCode still increases for Android updates.
+        versionName "1.1" // Keep the user-visible version label stable; versionCode still increases for Android updates.
     }
 
     signingConfigs {
