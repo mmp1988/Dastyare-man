@@ -1357,6 +1357,25 @@
             <input type="file" accept=".json" style="display:none;" onchange="importBackup(event)" />
           </label>
           <button class="btn-secondary" onclick="testAlarmSound()">🔔 تست زنگ هشدار</button>
+          <div style="grid-column:1 / -1; padding:12px; border:1px solid var(--border); border-radius:12px; margin-top:4px;">
+            <div style="font-weight:800; margin-bottom:8px;">🎵 شخصی‌سازی صدای هشدار</div>
+            <label for="settingAlarmSound" style="display:block; font-size:0.82rem; margin-bottom:5px;">انتخاب صدای پیش‌فرض</label>
+            <select id="settingAlarmSound" class="form-control" onchange="saveAlarmSoundChoice()">
+              <option value="classic">زنگ کلاسیک</option>
+              <option value="gentle">ملایم و آرام</option>
+              <option value="digital">دیجیتال</option>
+              <option value="bell">ناقوس</option>
+              <option value="custom">آهنگ دلخواه من</option>
+            </select>
+            <label style="display:block; font-size:0.82rem; margin:10px 0 5px;">یا آهنگ دلخواه خودت را انتخاب کن (MP3 / WAV / M4A، حداکثر ۱ مگابایت)</label>
+            <input id="settingAlarmAudioFile" type="file" accept="audio/*" class="form-control" onchange="handleAlarmAudioUpload(event)" />
+            <div id="alarmCustomAudioStatus" style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">صدای پیش‌فرض فعال است</div>
+            <div style="display:flex; gap:8px; margin-top:9px;">
+              <button type="button" class="btn-secondary" style="flex:1;" onclick="testAlarmSound()">▶️ پخش آزمایشی</button>
+              <button type="button" class="btn-secondary" onclick="removeCustomAlarmAudio()">حذف آهنگ من</button>
+            </div>
+            <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:7px;">انتخاب صدا روی همین گوشی ذخیره می‌شود و بدون اینترنت هم در دسترس است.</div>
+          </div>
           <button class="btn-secondary" onclick="openShareModal()">📤 ارسال اپ / لینک APK</button>
           <button class="btn-secondary" style="grid-column:1 / -1; color:var(--danger); border-color:rgba(239,68,68,0.4);" onclick="clearAllUserEntries()">🗑️ پاک کردن همه موارد نوشته‌شده و اضافه‌شده توسط من</button>
         </div>
@@ -3582,6 +3601,8 @@
       document.getElementById('settingCustomApkUrl').value = s.customApkUrl || '';
       document.getElementById('settingFontScale').value = s.fontScale || '16px';
       const greet = document.getElementById('minaPersonalGreeting'); if (greet) greet.value = s.personalGreeting || '';
+      const alarmChoice = document.getElementById('settingAlarmSound'); if (alarmChoice) alarmChoice.value = s.alarmSoundChoice || (s.customAlarmAudio ? 'custom' : 'classic');
+      const alarmStatus = document.getElementById('alarmCustomAudioStatus'); if (alarmStatus) alarmStatus.textContent = s.customAlarmAudio ? 'آهنگ دلخواه ذخیره شده و آماده پخش است' : 'صدای پیش‌فرض فعال است';
       const themeChoice = document.getElementById('minaThemeChoice'); if (themeChoice) themeChoice.value = s.theme || 'light';
       const customColor = document.getElementById('settingCustomHex'); if (customColor) customColor.value = s.customHex || '#d77fa2';
       const minaWelcome = document.getElementById('minaWelcome'); if (minaWelcome) minaWelcome.textContent = (s.personalGreeting ? 'سلام '+s.personalGreeting+' جان! ' : 'سلام عزیزم! ' )+'من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.';
@@ -3749,6 +3770,72 @@
     // ==================== CLOCK, ALARMS & STATS ====================
     let audioCtx = null, alarmInterval = null;
     function playChime() {
+      const settings = (appData && appData.settings) || {};
+      if (settings.alarmSoundChoice === 'custom' && settings.customAlarmAudio) {
+        try {
+          const audio = new Audio(settings.customAlarmAudio);
+          audio.volume = 1;
+          audio.play().catch(() => playPresetAlarmSound(settings.alarmSoundFallback || 'classic'));
+          return;
+        } catch (e) { playPresetAlarmSound(settings.alarmSoundFallback || 'classic'); return; }
+      }
+      playPresetAlarmSound(settings.alarmSoundChoice || 'classic');
+    }
+    function playPresetAlarmSound(kind) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+        const patterns = {
+          classic: [523.25,659.25,783.99,1046.5],
+          gentle: [440,554.37,659.25],
+          digital: [880,0,880,0,1174.66],
+          bell: [784,659.25,523.25,659.25]
+        };
+        const notes = patterns[kind] || patterns.classic;
+        notes.forEach((freq,i) => {
+          if (!freq) return;
+          const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+          osc.type = kind === 'digital' ? 'square' : 'sine';
+          const start=audioCtx.currentTime+i*(kind==='gentle'?0.24:0.17);
+          osc.frequency.setValueAtTime(freq,start);
+          gain.gain.setValueAtTime(kind==='gentle'?0.11:0.17,start);
+          gain.gain.exponentialRampToValueAtTime(0.001,start+0.42);
+          osc.connect(gain);gain.connect(audioCtx.destination);osc.start(start);osc.stop(start+0.45);
+        });
+      } catch(e) {}
+    }
+    function saveAlarmSoundChoice() {
+      const select=document.getElementById('settingAlarmSound');
+      if(!select)return;
+      appData.settings.alarmSoundChoice=select.value;
+      saveData(); applySettingsUI();
+      showToast('صدای هشدار ذخیره شد 🔔');
+    }
+    function handleAlarmAudioUpload(event) {
+      const file=event.target.files && event.target.files[0];
+      if(!file)return;
+      if(!file.type.startsWith('audio/')) { showToast('لطفاً یک فایل صوتی انتخاب کن.'); event.target.value=''; return; }
+      if(file.size>1024*1024) { showToast('حجم آهنگ باید حداکثر ۱ مگابایت باشد تا فضای ذخیره‌سازی برنامه پر نشود.'); event.target.value=''; return; }
+      const reader=new FileReader();
+      reader.onload=()=>{
+        appData.settings.customAlarmAudio=String(reader.result||'');
+        appData.settings.customAlarmAudioName=file.name;
+        appData.settings.alarmSoundChoice='custom';
+        saveData(); applySettingsUI();
+        showToast('آهنگ دلخواهت ذخیره شد و آفلاین هم قابل پخش است 🎵');
+      };
+      reader.onerror=()=>showToast('خواندن فایل صوتی ناموفق بود.');
+      reader.readAsDataURL(file);
+    }
+    function removeCustomAlarmAudio() {
+      delete appData.settings.customAlarmAudio;
+      delete appData.settings.customAlarmAudioName;
+      appData.settings.alarmSoundChoice='classic';
+      saveData(); applySettingsUI();
+      const file=document.getElementById('settingAlarmAudioFile'); if(file)file.value='';
+      showToast('آهنگ شخصی حذف شد؛ زنگ کلاسیک فعال شد.');
+    }
+
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
