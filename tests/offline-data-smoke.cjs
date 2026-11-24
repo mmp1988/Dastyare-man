@@ -85,6 +85,38 @@ const assert = require('assert');
     assert.deepStrictEqual(responsiveFailures, [], 'Responsive layout overflow or clipped controls detected: ' + JSON.stringify(responsiveFailures));
     console.log('Responsive layout audit:', JSON.stringify({ widths:[320,360,390,430,768,1024,1366], tabs:6, profile:true, failures:responsiveFailures.length }));
 
+    // Customer directory must show each client's nearest upcoming appointment
+    // date and exact time directly on the customer row, without opening the profile.
+    const customerAppointmentSummary = await page.evaluate(() => {
+      const today = getTodayKey();
+      const clientName = 'مینا تست فهرست';
+      const phone = '09129998877';
+      const key = clientKeyFromFields(phone, clientName);
+      appData.clientProfiles = appData.clientProfiles || {};
+      appData.clientProfiles[key] = { name:clientName, phone, records:[] };
+      appData.appointments = [
+        { id:'qa-client-next-later', dateKey:today, time:'18:20', clientName, phone, service:'رنگ مو', status:'pending' },
+        { id:'qa-client-next-first', dateKey:today, time:'16:43', clientName, phone, service:'کوتاهی مو', status:'pending' },
+        { id:'qa-client-canceled', dateKey:today, time:'15:00', clientName, phone, service:'لغوشده', status:'canceled' },
+        { id:'qa-client-done', dateKey:today, time:'14:00', clientName, phone, service:'انجام‌شده', status:'done' }
+      ];
+      renderClientsTab();
+      const card = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
+      return {
+        found:!!card,
+        visibleText:card?.textContent || '',
+        expectedDate:formatJalaliFull(today),
+        expectedTime:toPersianDigits('16:43'),
+        laterTime:toPersianDigits('18:20')
+      };
+    });
+    assert(customerAppointmentSummary.found, 'Customer must appear in the customer directory');
+    assert(customerAppointmentSummary.visibleText.includes(customerAppointmentSummary.expectedDate), 'Customer row must show the appointment date');
+    assert(customerAppointmentSummary.visibleText.includes(customerAppointmentSummary.expectedTime), 'Customer row must show the exact nearest appointment time');
+    assert(customerAppointmentSummary.visibleText.includes('کوتاهی مو'), 'Customer row must show the nearest appointment service');
+    assert(!customerAppointmentSummary.visibleText.includes('لغوشده') && !customerAppointmentSummary.visibleText.includes('انجام‌شده'), 'Canceled and completed appointments must not appear as upcoming');
+    console.log('Customer appointment summary:', JSON.stringify(customerAppointmentSummary));
+
     // Seed local data, then prove the installed Service Worker can reopen the app offline.
     await page.evaluate(() => {
       appData.appointments = [{ id:'qa-offline-seed', dateKey:getTodayKey(), time:'09:00', clientName:'آزمایش آفلاین', phone:'09120000000', service:'تست', price:0, deposit:0, status:'pending' }];
