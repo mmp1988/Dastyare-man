@@ -27,6 +27,87 @@ const assert = require('assert');
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
+    // Responsive integration audit: exercise every primary tab and the customer
+    // profile sheet at phone, tablet and desktop widths before testing data flows.
+    const responsiveAudit = await page.evaluate(() => {
+      const widths = [320, 360, 390, 430, 768, 1024, 1366];
+      const tabs = ['calendar', 'notebook', 'clients', 'messages', 'mina', 'settings'];
+      const results = [];
+      for (const width of widths) {
+        document.documentElement.style.width = width + 'px';
+        document.body.style.width = width + 'px';
+        window.innerWidth; // viewport is resized by the harness between iterations below
+        for (const tab of tabs) {
+          const button = document.querySelector('.nav-item[onclick*="' + tab + '"]');
+          switchTab(tab, button);
+          const docWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+          const outside = [...document.querySelectorAll('button, input, select, textarea, .card, .modal-box')]
+            .filter(el => {
+              const style = getComputedStyle(el);
+              if (style.display === 'none' || style.visibility === 'hidden') return false;
+              const rect = el.getBoundingClientRect();
+              return rect.width > 0 && (rect.left < -2 || rect.right > width + 2);
+            }).slice(0, 5).map(el => ({ tag:el.tagName, id:el.id, cls:String(el.className).slice(0,50) }));
+          results.push({ width, tab, docWidth, outside });
+        }
+      }
+      document.documentElement.style.width = '';
+      document.body.style.width = '';
+      return results;
+    });
+    // Viewport widths must be actual browser dimensions; repeat a strict pass with
+    // Playwright resizing so CSS media queries are evaluated exactly as on devices.
+    const responsiveFailures = [];
+    for (const width of [320, 360, 390, 430, 768, 1024, 1366]) {
+      await page.setViewportSize({ width, height: width < 500 ? 800 : 900 });
+      for (const tab of ['calendar', 'notebook', 'clients', 'messages', 'mina', 'settings']) {
+        await page.evaluate(tabName => {
+          const button = document.querySelector('.nav-item[onclick*="' + tabName + '"]');
+          switchTab(tabName, button);
+        }, tab);
+        const layout = await page.evaluate(() => {
+          const width = document.documentElement.clientWidth;
+          const docWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+          const outside = [...document.querySelectorAll('button, input, select, textarea, .card')]
+            .filter(el => {
+              const style = getComputedStyle(el);
+              if (style.display === 'none' || style.visibility === 'hidden') return false;
+              const rect = el.getBoundingClientRect();
+              return rect.width > 0 && (rect.left < -2 || rect.right > width + 2);
+            }).slice(0, 4).map(el => ({ tag:el.tagName, id:el.id, cls:String(el.className).slice(0,40) }));
+          return { width, docWidth, outside };
+        });
+        if (layout.docWidth > width + 1 || layout.outside.length) responsiveFailures.push({ width, tab, ...layout });
+      }
+    }
+    await page.evaluate(() => {
+      appData.clientProfiles = { 'qa-layout-client': { name:'مشتری آزمایشی', phone:'09120000000', records:[] } };
+      openClientRecord('qa-layout-client');
+    });
+    for (const width of [320, 360, 390, 430, 768, 1366]) {
+      await page.setViewportSize({ width, height: width < 500 ? 800 : 900 });
+      const profileLayout = await page.evaluate(() => {
+        const modal = document.querySelector('#clientProfileModal .modal-box');
+        const rect = modal.getBoundingClientRect();
+        const width = document.documentElement.clientWidth;
+        const footer = document.getElementById('clientShareActions').getBoundingClientRect();
+        const footerButtons = [...document.querySelectorAll('#clientShareActions button')].map(b => {
+          const r = b.getBoundingClientRect(); return { text:b.textContent.trim(), left:r.left, right:r.right, height:r.height };
+        });
+        return { width, modalLeft:rect.left, modalRight:rect.right, modalWidth:rect.width,
+          modalScrollWidth:modal.scrollWidth, modalClientWidth:modal.clientWidth,
+          footerTop:footer.top, footerButtons };
+      });
+      if (profileLayout.modalLeft < -1 || profileLayout.modalRight > width + 1 ||
+          profileLayout.modalScrollWidth > profileLayout.modalClientWidth + 2 ||
+          profileLayout.footerButtons.some(b => b.left < -1 || b.right > width + 1 || b.height < 38)) {
+        responsiveFailures.push({ width, tab:'client-profile', ...profileLayout });
+      }
+    }
+    await page.evaluate(() => document.getElementById('clientProfileModal').classList.remove('open'));
+    assert.deepStrictEqual(responsiveFailures, [], 'Responsive layout overflow or clipped controls detected: ' + JSON.stringify(responsiveFailures));
+    console.log('Responsive layout audit:', JSON.stringify({ widths:[320,360,390,430,768,1024,1366], tabs:6, profile:true, failures:responsiveFailures.length }));
+
     // Seed local data, then prove the installed Service Worker can reopen the app offline.
     await page.evaluate(() => {
       appData.appointments = [{ id:'qa-offline-seed', dateKey:getTodayKey(), time:'09:00', clientName:'آزمایش آفلاین', phone:'09120000000', service:'تست', price:0, deposit:0, status:'pending' }];
