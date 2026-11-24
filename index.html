@@ -1212,7 +1212,7 @@
         <div class="section-title">✨ سریع از مینا بپرس</div>
         <div class="mina-suggestions">
           <button onclick="askMina('مینا امروز چه نوبت‌هایی دارم؟')">📅 برنامه امروز من</button>
-          <button onclick="askMina('مینا این هفته چقدر درآمد داشتم؟')">💗 درآمد این هفته</button>
+          <button onclick="askMina('مینا برنامه نوبت‌های این هفته رو نشون بده')">📅 نوبت‌های این هفته</button>
           <button onclick="askMina('مینا مشتری‌های موعد ترمیم رو بگو')">🔔 موعد ترمیم‌ها</button>
           <button onclick="askMina('مینا یادداشت‌هام رو نشون بده')">📝 یادداشت‌هام</button>
         </div>
@@ -2390,7 +2390,7 @@
     }
 
     function clearAllUserEntries() {
-      if (!confirm('همه نوبت‌ها، یادداشت‌ها، چک‌لیست و تراکنش‌هایی که ثبت کرده‌اید پاک شوند؟')) return;
+      if (!confirm('همه نوبت‌ها، یادداشت‌ها و چک‌لیست پاک شوند؟ اطلاعات پرونده مشتریان و نسخه‌های پشتیبان جداگانه باقی می‌مانند.')) return;
       appData.appointments = [];
       appData.notes = [];
       appData.todos = [];
@@ -4068,11 +4068,8 @@
           clientName: p.clientName,
           phone: p.phone || '',
           service: p.service || 'خدمت ثبت‌نشده',
-          price: Number(p.price) || 0,
-          deposit: 0,
-          commPercent: Number(appData.settings.defaultComm) || 0,
-          payMethod: 'کارت‌به‌کارت',
-          alarm: '15',
+          notes: p.notes || '',
+          alarm: p.alarm || '15',
           status: 'pending',
           notified: false
         };
@@ -4081,12 +4078,11 @@
         if (typeof renderCalendar === 'function') renderCalendar();
         if (typeof renderDaySchedule === 'function') renderDaySchedule();
         
-        const warning = conflict ? '\n⚠️ در این ساعت نوبت دیگری هم داری؛ لطفاً تقویم را بررسی کن.' : '';
         return 'یوهوو! نوبت با موفقیت ثبت شد ' + greeting + ' 🌸\n' +
           '👩🏻 مشتری: ' + p.clientName + '\n📅 تاریخ: ' + formatJalaliFull(p.dateKey) +
           '\n⏰ ساعت: ' + p.time + '\n💅 خدمت: ' + appointment.service +
-          (appointment.price ? '\n💰 مبلغ: ' + formatMoney(appointment.price) + ' تومان' : '') +
-          warning + '\nهمه‌چیز ذخیره شد؛ حتی بدون اینترنت هم در همین گوشی می‌مونه 💗';
+          (appointment.notes ? '\n📝 توضیحات: ' + appointment.notes : '') +
+          '\nهمه‌چیز ذخیره شد؛ حتی بدون اینترنت هم در همین گوشی می‌مونه 💗';
       }
       if (/^(?:نه|لغو|بیخیال|بی خیال|منصرف شدم)$/.test(t) && minaPendingBooking) {
         minaPendingBooking = null;
@@ -4493,8 +4489,9 @@
         if(found.length!==1)return found.length?'چند نوبت با این اسم پیدا کردم؛ لطفاً نام کامل‌تر یا تاریخ رو بگو 🌷':'نوبتی با این اسم پیدا نکردم عزیزم.';
         const appt=found[0], newTime=pad2(hour)+':'+pad2(minute);
         const conflict=all.some(a=>a.id!==appt.id&&a.dateKey===appt.dateKey&&a.time===newTime);
+        if (conflict) return 'این ساعت قبلاً برای مشتری دیگری رزرو شده؛ ساعت دیگری انتخاب کن عزیزم. هیچ تغییری انجام ندادم ⛔';
         appt.time=newTime; refreshAfterMinaChange();
-        return 'انجام شد عزیزم 🌸 ساعت نوبت '+(appt.clientName||'مشتری')+' به '+newTime+' تغییر کرد.'+(conflict?'\n⚠️ در ساعت جدید نوبت دیگری هم ثبت شده؛ تقویم رو بررسی کن.':'');
+        return 'انجام شد عزیزم 🌸 ساعت نوبت '+(appt.clientName||'مشتری')+' به '+newTime+' تغییر کرد.';
       }
 
       // Permanent appointment deletion by date, time, service and/or customer.
