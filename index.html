@@ -1754,7 +1754,11 @@
         </div>
       </div>
       <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
-        <div class="section-title" style="margin-bottom:9px;">📅 نوبت بعدی مشتری</div>
+        <div class="section-title" style="margin-bottom:9px;">📅 نوبت اصلی و نوبت بعدی ترمیم مشتری</div>
+        <div id="clientScheduledAppointments" style="margin:0 0 12px;padding:10px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
+          <div style="font-weight:800;font-size:.84rem;margin-bottom:8px;">📅 نوبت‌های ثبت‌شده این مشتری</div>
+          <div id="clientScheduledAppointmentsList"></div>
+        </div>
         <div class="form-grid">
           <div class="form-group full client-date-group">
             <label>تاریخ شمسی نوبت</label>
@@ -1795,10 +1799,6 @@
           </div>
         </div>
         <div id="clientNextAppointmentInfo" style="font-size:0.8rem;color:var(--accent);line-height:1.8;"></div>
-      <div id="clientScheduledAppointments" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border-subtle);">
-        <div style="font-weight:800;font-size:.84rem;margin-bottom:8px;">📅 نوبت‌های ثبت‌شده این مشتری</div>
-        <div id="clientScheduledAppointmentsList"></div>
-      </div>
       </div>
       <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">🧾 سوابق کارهای انجام‌شده</div>
@@ -2410,7 +2410,7 @@
           <span class="day-num">${toPersianDigits(d)}</span>
           ${shortHoliday ? `<span class="holiday-sub">${shortHoliday}</span>` : ''}
           ${dayAppts.length > 0 ? `<span class="day-badge">${toPersianDigits(dayAppts.length)}</span>` : ''}
-          ${dayAppts.some(a => !isFollowupAppointment(a)) ? `<span style="display:block;font-size:.56rem;line-height:1.2;color:var(--accent);font-weight:900;">● اصلی</span>` : ''}
+          ${dayAppts.some(a => !isFollowupAppointment(a)) ? `<span style="display:block;font-size:.56rem;line-height:1.2;color:#3b82f6;font-weight:900;">● اصلی</span>` : ''}
           ${dayAppts.some(a => isFollowupAppointment(a)) ? `<span style="display:block;font-size:.56rem;line-height:1.2;color:#d97706;font-weight:900;">● ترمیم</span>` : ''}
           ${dayAppts.some(a => minaIsAssistantAppointment(a)) ? `<span style="display:block;font-size:.58rem;line-height:1.3;color:#38bdf8;font-weight:900;">M مینا</span>` : ''}
         `;
@@ -3188,7 +3188,7 @@
       ).sort((a,b) => (String(a.dateKey || '') + String(a.time || '')).localeCompare(String(b.dateKey || '') + String(b.time || '')));
     }
     function getAppointmentKindLabel(a) {
-      return isFollowupAppointment(a) ? '🔁 نوبت ترمیم' : '📅 نوبت اصلی';
+      return isFollowupAppointment(a) ? '🔁 نوبت بعدی ترمیم' : '📅 نوبت اصلی';
     }
     function getClientProfile(key) {
       if (!appData.clientProfiles) appData.clientProfiles = {};
@@ -3404,8 +3404,21 @@
     }
 
     let clientEditingNextAppointmentId = null;
+    function migrateLegacyClientAppointmentKinds(key) {
+      const list = getClientAppointments(key, false);
+      if (list.length !== 2) return;
+      const [primary, possibleFollowup] = list;
+      if (!primary || !possibleFollowup || primary.appointmentType || primary.parentAppointmentId ||
+          possibleFollowup.appointmentType || possibleFollowup.parentAppointmentId) return;
+      if (!/^(?:مراجعه بعدی|ترمیم)(?:\\s|$)/u.test(String(possibleFollowup.service || '').trim())) return;
+      primary.appointmentType = 'primary';
+      possibleFollowup.appointmentType = 'followup';
+      possibleFollowup.parentAppointmentId = primary.id;
+      saveData();
+    }
     function openClientRecord(key) {
-      const appointments = appData.appointments.filter(a => clientMatchesAppointment(key, a));
+      migrateLegacyClientAppointmentKinds(key);
+      const appointments = getClientAppointments(key, true);
       const last = appointments[appointments.length - 1] || {};
       const p = getClientProfile(key);
       p.name = p.name || last.clientName || key;
@@ -3907,16 +3920,24 @@
       const p = getClientProfile(key);
       const dateValue = document.getElementById('clientNextDate').value;
       const time = document.getElementById('clientNextTime').value;
-      const service = document.getElementById('clientNextService').value.trim() || 'مراجعه بعدی';
+      const existingPrimary = getClientAppointments(key, false).find(a => !isFollowupAppointment(a) && a.status !== 'canceled');
+      const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId && a.status !== 'canceled') : null;
+      const appointmentType = editing ? (isFollowupAppointment(editing) ? 'followup' : 'primary') : (existingPrimary ? 'followup' : 'primary');
+      const serviceInput = document.getElementById('clientNextService').value.trim();
+      const service = serviceInput || (appointmentType === 'followup' ? 'ترمیم' : 'مراجعه اصلی');
       const dateKey = parseClientJalaliDate(dateValue);
       if (!dateKey) { showToast('ابتدا تاریخ شمسی نوبت را از تقویم انتخاب کن.'); return; }
       if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time || '')) { showToast('ساعت نوبت را دقیق انتخاب کن.'); return; }
-      const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId && a.status !== 'canceled') : null;
       const conflict = hasAppointmentSlotConflict(dateKey, time, editing && editing.id);
       if (conflict) { showToast('این ساعت قبلاً برای مشتری دیگری رزرو شده است؛ زمان دیگری انتخاب کن. ⛔'); return; }
       const alarmMinutes = Math.max(0,Math.min(43200,Number(document.getElementById('clientNextAlarm')?.value ?? 15)||0));
       const notes = (document.getElementById('clientNextNotes')?.value || '').trim();
-      const data = { dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''), clientId:p.clientId || '', service, notes, alarm:String(alarmMinutes), status:'pending', notified:false };
+      const data = {
+        dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''),
+        clientId:p.clientId || '', service, notes, alarm:String(alarmMinutes), status:'pending', notified:false,
+        appointmentType,
+        parentAppointmentId: appointmentType === 'followup' ? (editing?.parentAppointmentId || existingPrimary?.id || '') : ''
+      };
       if (editing) Object.assign(editing, data);
       else {
         const created = { id:'appt_'+Date.now(), ...data };
