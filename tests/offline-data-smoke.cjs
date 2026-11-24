@@ -295,6 +295,9 @@ const assert = require('assert');
     assert(nativeJava.includes('RecognizerIntent.EXTRA_PARTIAL_RESULTS, true'), 'Android speech should enable partial results');
     assert(nativeJava.includes('startSpeechRecognition(targetInputId, buttonId, false)'), 'Android must start the default recognizer without a strict network validation gate');
     assert(nativeJava.includes('Manifest.permission.RECORD_AUDIO'), 'Android microphone permission handling is missing');
+    assert(nativeJava.includes('Intent.ACTION_SENDTO, smsUri'), 'Android must open the installed SMS app for prepared customer messages');
+    assert(nativeJava.includes('Intent.ACTION_DIAL, uri'), 'Android must route phone links to the dialer');
+    assert(nativeJava.includes('Intent.createChooser(sendIntent, "ارسال با...")'), 'Android must offer installed apps through the share chooser');
 
     // CRUD: create, edit and delete an appointment through the app's own form handlers.
     const appointmentResult = await page.evaluate(() => {
