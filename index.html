@@ -3531,8 +3531,8 @@
       try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==='function')AndroidApp.schedulePersonalReminder(String(id),trigger.getTime(),message);}catch(e){}
       saveData();
     }
-    function deleteClientBirthday(){
-      const key=document.getElementById('clientRecordKey').value;
+    function deleteClientBirthday(keyArg){
+      const key=keyArg || document.getElementById('clientRecordKey').value;
       if(!key)return;
       const p=getClientProfile(key);
       if(!p.birthDate){showToast('برای این مشتری تاریخ تولدی ثبت نشده است.');return;}
