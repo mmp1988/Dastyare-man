@@ -5314,12 +5314,12 @@
       const numberWord = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       const relative = value.match(new RegExp('(' + numberWord + '\\s*دقیقه|یک\\s*ربع|ربع|نیم\\s*ساعت|نیم\\s*ربع)\\s*(به|مونده\\s*به|مانده\\s*به|قبل\\s*از|بعد\\s*از|گذشته\\s*از)\\s*(' + numberWord + ')(?:\\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
       if (relative) {
-        const amountText = relative[1].replace(/\\s*دقیقه\\s*/g, '').trim();
+        const amountText = relative[1].replace(/\s*دقیقه\s*/g, '').trim();
         const amount = /ربع/u.test(amountText) ? (/نیم/u.test(amountText) ? 7 : 15) :
           (/نیم/u.test(amountText) ? 30 : minaPersianNumberValue(amountText));
         const target = minaPersianNumberValue(relative[3]);
         if (!Number.isFinite(amount) || !Number.isFinite(target) || target < 0 || target > 23) return null;
-        const isAfter = /بعد\\s*از|گذشته\\s*از/u.test(relative[2]);
+        const isAfter = /بعد\s*از|گذشته\s*از/u.test(relative[2]);
         let total = target * 60 + (isAfter ? amount : -amount);
         total = ((total % 1440) + 1440) % 1440;
         let h = Math.floor(total / 60), min = total % 60;
@@ -5329,14 +5329,14 @@
         return h <= 23 ? pad2(h) + ':' + pad2(min) : null;
       }
 
-      let m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s*[:٫.]\\s*(\\d{1,2})/u);
-      if (!m) m = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s+و\\s+(\\d{1,2})\\s*دقیقه/u);
+      let m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})/u);
+      if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*دقیقه/u);
       if (!m) m = value.match(new RegExp('(?:ساعت\\\\s*)?(' + numberWord + ')\\\\s+و\\\\s+(' + numberWord + ')\\\\s*دقیقه', 'u'));
       if (!m) m = value.match(new RegExp('(?:ساعت\\\\s*)?(' + numberWord + ')\\\\s*(صبح|ظهر|بعدازظهر|عصر|شب)', 'u'));
       if (!m) return null;
-      let hour = /^\\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
+      let hour = /^\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
       const secondPart = String(m[2] || '');
-      const minute = /^\\d+$/.test(secondPart) ? Number(secondPart) :
+      const minute = /^\d+$/.test(secondPart) ? Number(secondPart) :
         (/دقیقه/u.test(value) ? minaPersianNumberValue(secondPart) : 0);
       const period = (/^(?:صبح|ظهر|بعدازظهر|عصر|شب)$/u.test(secondPart) ? secondPart : m[3]) ||
         (/بعدازظهر|عصر|ظهر|شب/u.test(value) ? 'بعدازظهر' : /صبح/u.test(value) ? 'صبح' : '');
