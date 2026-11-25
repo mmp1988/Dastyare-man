@@ -2764,17 +2764,6 @@
         document.getElementById('apptBirthdayYear').value = editBirthdayParts[0] || '';
         document.getElementById('apptBirthdayMonth').value = editBirthdayParts[1] || '';
         document.getElementById('apptBirthdayDay').value = editBirthdayParts[2] || '';
-        const linkedFollowup = !isFollowupAppointment(appt) && appData.appointments.find(a => a.parentAppointmentId === appt.id && a.status !== 'canceled');
-        if (linkedFollowup) {
-          let followupDays = 0;
-          for (let d = 1; d <= 365; d++) if (addDaysToJalaliKey(appt.dateKey, d) === linkedFollowup.dateKey) { followupDays = d; break; }
-          if ([14,21,28].includes(followupDays)) document.getElementById('apptNextFollowup').value = String(followupDays);
-          else {
-            document.getElementById('apptNextFollowup').value = 'custom';
-            document.getElementById('apptFollowupCustomDays').value = String(followupDays || 10);
-          }
-          updateFollowupUI();
-        }
       } else {
         document.getElementById('apptModalTitle').textContent = 'ثبت نوبت برای ' + formatJalaliFull(selectedDateKey);
         document.getElementById('apptClientName').value = '';
@@ -2983,24 +2972,9 @@
     }
 
     function updateFollowupUI() {
-      const sel = document.getElementById('apptNextFollowup');
-      const box = document.getElementById('followupCustomDaysBox');
-      const prevBox = document.getElementById('followupDatePreviewBox');
-      const prevTxt = document.getElementById('followupDatePreviewText');
-      if (!sel) return;
-      const val = sel.value;
-      const isManualFollowup = document.getElementById('apptType')?.value === 'followup';
-      if (box) box.style.display = !isManualFollowup && val === 'custom' ? 'flex' : 'none';
-      const days = val === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value) || 0) : (Number(val) || 0);
-      if (prevBox && prevTxt) {
-        if (!isManualFollowup && days > 0) {
-          const targetKey = addDaysToJalaliKey(selectedDateKey, days);
-          prevBox.style.display = 'block';
-          prevTxt.textContent = `تاریخ ترمیم محاسبه‌شده: ${formatJalaliFull(targetKey)}`;
-        } else {
-          prevBox.style.display = 'none';
-        }
-      }
+      // Legacy entry point retained for older callers; next appointment now uses
+      // an explicit Jalali calendar date and an independently selected time.
+      return;
     }
 
     function quickClearAppPin() {
