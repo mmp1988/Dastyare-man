@@ -5720,14 +5720,69 @@
       return result;
     }
 
-    function sendMinaMessage() {
+    const MINA_SMART_BRAIN_URL = 'https://mina-smart-brain.mehrdadmohammadi1988.workers.dev/';
+
+    function minaIsClearlyLocalAction(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      return !!(
+        /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|رنگ مو|ناخن|شماره تماس|تلفن)/u.test(text) ||
+        /(?:ثبت|ایجاد|اضافه|افزودن|ویرایش|تغییر|عوض|جابجا|جابه‌جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید|انجام شد|یادآوری)/u.test(text) ||
+        /\d/u.test(text) ||
+        !!minaPendingBooking ||
+        !!minaConversationBooking
+      );
+    }
+
+    async function minaAskSmartBrain(message) {
+      // Only general conversation is sent to the model. Customer, appointment,
+      // phone, date/time and other salon records stay on this device.
+      if (!navigator.onLine || minaIsClearlyLocalAction(message)) return null;
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 18000);
+        let response;
+        try {
+          response = await fetch(MINA_SMART_BRAIN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+            signal: controller.signal,
+            cache: 'no-store'
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data && data.success && typeof data.reply === 'string' && data.reply.trim()
+          ? data.reply.trim()
+          : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function sendMinaMessage() {
       const input = document.getElementById('minaInput');
       if (!input) return;
       const message = input.value.trim();
       if (!message) return;
       addMinaMessage(message, 'user');
       input.value = '';
-      let reply = minaFormatReplyForMode(minaBuildReply(message));
+
+      // Operational requests always stay in the validated offline-first engine.
+      // General conversation uses the real Workers AI model when online.
+      let reply = null;
+      if (!minaIsClearlyLocalAction(message)) {
+        addMinaMessage('دارم به حرفت فکر می‌کنم…', 'assistant');
+        const thinkingNode = document.querySelector('#minaChatMessages .mina-message:last-child');
+        reply = await minaAskSmartBrain(message);
+        if (thinkingNode && thinkingNode.textContent.includes('دارم به حرفت فکر می‌کنم')) {
+          thinkingNode.remove();
+        }
+      }
+      if (!reply) reply = minaBuildReply(message);
+      reply = minaFormatReplyForMode(reply);
       if (getMinaMode()==='friendly' && !/[💗💕💖💞🌸🌷🎀✨🥰😊😉😄]/u.test(reply)) reply += ' 💗🌸✨';
       addMinaMessage(reply, 'assistant');
     }
