@@ -268,7 +268,15 @@ const assert = require('assert');
       setMinaMode('friendly');
       const friendly = appData.settings.minaMode === 'friendly' &&
         document.getElementById('minaModeFriendly').getAttribute('aria-pressed') === 'true';
-      return {filterRemoved,tabsInDayCard,labelsUpdated,quickActionCount:chips,professional,fast,friendly,overviewAvailable:typeof renderClientSmartOverview==='function'};
+      const oldAppointments=appData.appointments,oldProfiles=appData.clientProfiles;
+      const smartKey='qa-smart-overview';
+      appData.clientProfiles={[smartKey]:{name:smartKey,notes:'ترجیح مشتری برای رنگ طبیعی',records:[{id:'qa-history',dateKey:getTodayKey(),service:'رنگ مو'}]}};
+      appData.appointments=[{id:'qa-next',dateKey:addDaysToJalaliKey(getTodayKey(),3),time:'13:27',clientName:smartKey,service:'کوتاهی مو',status:'pending',appointmentType:'followup'}];
+      renderClientSmartOverview(smartKey);
+      const overviewText=document.getElementById('clientSmartOverviewContent').textContent;
+      const overviewContentOk=overviewText.includes('نوبت بعدی')&&overviewText.includes('کوتاهی مو')&&overviewText.includes('رنگ مو')&&overviewText.includes('ترجیح مشتری برای رنگ طبیعی');
+      appData.appointments=oldAppointments;appData.clientProfiles=oldProfiles;
+      return {filterRemoved,tabsInDayCard,labelsUpdated,quickActionCount:chips,professional,fast,friendly,overviewAvailable:typeof renderClientSmartOverview==='function',overviewContentOk};
     });
     assert(minaInteractionUI.filterRemoved, 'The obsolete only-follow-ups filter must be removed');
     assert(minaInteractionUI.tabsInDayCard, 'Primary and next-appointment lists must appear below the selected-day schedule in the same card');
@@ -276,6 +284,7 @@ const assert = require('assert');
     assert(minaInteractionUI.quickActionCount >= 4, 'Mina chat must offer interactive quick-action prompts');
     assert(minaInteractionUI.professional && minaInteractionUI.fast && minaInteractionUI.friendly, 'Mina must support three persistent conversation modes');
     assert(minaInteractionUI.overviewAvailable, 'Customer smart overview must combine next appointment, service history and notes');
+    assert(minaInteractionUI.overviewContentOk, 'Customer smart overview must display the next booking, previous services and customer notes together');
 
     // Mina Persian natural-language booking: clear commands save immediately,
     // with or without a client name; ask only when a required detail is missing.
@@ -907,11 +916,11 @@ const assert = require('assert');
       renderDaySchedule();
       const calendarText = document.getElementById('calendarGrid').textContent || '';
       const scheduleText = document.getElementById('dayAppointmentsBody').textContent || '';
-      const calendarShowsFollowup = calendarText.includes('ترمیم');
-      const scheduleShowsFollowup = scheduleText.includes('ترمیم');
+      const calendarShowsFollowup = calendarText.includes('نوبت بعدی');
+      const scheduleShowsFollowup = scheduleText.includes('نوبت بعدی');
       if (primary) cycleStatus(primary.id);
       const cardAfterDone = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
-      const followupStillShownAfterDone = !!cardAfterDone && cardAfterDone.textContent.includes('ترمیم');
+      const followupStillShownAfterDone = !!cardAfterDone && cardAfterDone.textContent.includes('نوبت بعدی');
       return {
         primaryCreated:!!primary,
         followupCreated:!!followup,
@@ -919,8 +928,8 @@ const assert = require('assert');
         birthdayAppearsInBirthdayList:!!key && (() => { renderClientBirthdays(); return [...document.querySelectorAll('#clientBirthdaysList [data-client-birthday-key]')].some(row => row.dataset.clientBirthdayKey === encodeURIComponent(key)); })(),
         linkedToPrimary:!!followup && followup.parentAppointmentId === primary.id,
         followupHasOwnDateAndTime:!!followup && followup.dateKey === addDaysToJalaliKey(primary.dateKey,14) && followup.time === '10:17',
-        cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('ترمیم'),
-        profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت بعدی ترمیم'),
+        cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('نوبت بعدی'),
+        profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت بعدی'),
         profileHasEditDelete:!!document.querySelector('#clientScheduledAppointments [data-client-appt-edit]') && !!document.querySelector('#clientScheduledAppointments [data-client-appt-delete]'),
         inlineEditWorks,
         compactAppointmentUI,
