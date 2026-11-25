@@ -553,6 +553,7 @@ const assert = require('assert');
       midnight: minaParseReminderClock('دوازده شب'),
       invalidMinute: minaParseReminderClock('ساعت ۱۳:۶۰')
     }));
+    console.log('Mina spoken clock raw results:', JSON.stringify(spokenClockUpgrade));
     assert(spokenClockUpgrade.spokenHourMinute === '15:43', 'Mina must parse Persian number words for exact hour/minute values');
     assert(spokenClockUpgrade.spokenRelativeBefore === '14:40', 'Mina must parse spoken minute offsets before an afternoon hour');
     assert(spokenClockUpgrade.spokenRelativeAfter === '15:07', 'Mina must parse spoken minute offsets after an afternoon hour');
