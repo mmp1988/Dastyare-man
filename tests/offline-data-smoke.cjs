@@ -646,13 +646,14 @@ const assert = require('assert');
 
     const spokenClockUpgrade = await page.evaluate(() => ({
       spokenHourMinute: minaParseReminderClock('ساعت پانزده و چهل و سه دقیقه'),
+      spokenExpansion: minaExpandSpokenTime('پانزده و چهل و سه دقیقه'),
       spokenRelativeBefore: minaParseReminderClock('بیست دقیقه به سه بعدازظهر'),
       spokenRelativeAfter: minaParseReminderClock('هفت دقیقه بعد از سه بعدازظهر'),
       midnight: minaParseReminderClock('دوازده شب'),
       invalidMinute: minaParseReminderClock('ساعت ۱۳:۶۰')
     }));
     console.log('Mina spoken clock raw results:', JSON.stringify(spokenClockUpgrade));
-    assert(spokenClockUpgrade.spokenHourMinute === '15:43', 'Mina must parse Persian number words for exact hour/minute values');
+    assert(spokenClockUpgrade.spokenHourMinute === '15:43' && spokenClockUpgrade.spokenExpansion === '15 و 43 دقیقه', 'Mina must parse and expand compound Persian minute words without splitting the minute');
     assert(spokenClockUpgrade.spokenRelativeBefore === '14:40', 'Mina must parse spoken minute offsets before an afternoon hour');
     assert(spokenClockUpgrade.spokenRelativeAfter === '15:07', 'Mina must parse spoken minute offsets after an afternoon hour');
     assert(spokenClockUpgrade.midnight === '00:00', 'Mina must interpret twelve at night as midnight');
