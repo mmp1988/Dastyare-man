@@ -5519,6 +5519,15 @@
           time: p.time,
           clientName: p.clientName,
           phone: p.phone || '',
+          clientId: (() => {
+            const profiles = appData.clientProfiles || {};
+            const wanted = String(p.clientName || '').trim().toLocaleLowerCase('fa');
+            const match = Object.entries(profiles).find(([key, profile]) =>
+              String(profile?.name || key).trim().toLocaleLowerCase('fa') === wanted ||
+              (Array.isArray(profile?.aliases) && profile.aliases.some(alias => String(alias).trim().toLocaleLowerCase('fa') === wanted))
+            );
+            return match ? getClientProfile(match[0]).clientId : '';
+          })(),
           service: p.service || 'خدمت ثبت‌نشده',
           notes: p.notes || '',
           alarm: p.alarm || '15',
@@ -6378,6 +6387,84 @@
     function minaIsAssistantAppointment(a) {
       return !!a && (a.createdBy === 'mina' || a.source === 'mina' || String(a.id || '').startsWith('appt_mina_'));
     }
+    // Customer profile mutations are local-first and work offline. Cloud AI only rewrites intent;
+    // this executor resolves an existing profile by its current name or saved aliases.
+    function minaTryManageClientFromMessage(raw) {
+      const source = minaNormalizePersianTypos(minaNormalizeDigits(String(raw || ''))).replace(/[يى]/g, 'ی').trim();
+      const text = source.toLocaleLowerCase('fa');
+      const profiles = appData.clientProfiles || {};
+      const entries = Object.entries(profiles);
+      if (!entries.length) return null;
+      const phoneMatch = source.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
+      const normalize = value => String(value || '').replace(/[يى]/g,'ی').replace(/[\u064B-\u065F]/g,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fa');
+      const target = entries
+        .flatMap(([key,p]) => [String(p?.name || key), ...(Array.isArray(p?.aliases) ? p.aliases : [])].map(alias => ({key,profile:p,alias:String(alias||'').trim()})))
+        .filter(x => x.alias.length > 1 && text.includes(normalize(x.alias)))
+        .sort((a,b) => b.alias.length-a.alias.length)[0];
+      if (!target) return null;
+
+      const wantsDelete = /(?:پرونده|مشتری|اطلاعات)\s+.{0,45}(?:حذف|پاک)|(?:حذف|پاک)\s+(?:پرونده|مشتری)/u.test(text) ||
+        /(?:از\s+(?:قسمت\s+)?مشتریان)\s+حذف/u.test(text);
+      if (wantsDelete) {
+        const displayName = target.profile.name || target.alias;
+        if (!confirm('پرونده «' + displayName + '» و سوابق و نوبت‌های مرتبط حذف شوند؟ این کار برگشت‌پذیر نیست.')) {
+          return 'چشم عزیزم؛ پرونده مشتری حذف نشد و همه اطلاعاتش باقی موند 💗';
+        }
+        const key = target.key, profile = target.profile;
+        if (typeof deleteClientPhotoRefs === 'function') Promise.resolve(deleteClientPhotoRefs(profile)).catch(()=>{});
+        delete profiles[key];
+        if (appData.clientNotes) delete appData.clientNotes[key];
+        appData.appointments = (appData.appointments || []).filter(a => !clientMatchesAppointment(key,a) && clientKeyFromFields(a.phone,a.clientName)!==key);
+        if (typeof minaLastReferencedAppointmentId !== 'undefined' && minaLastReferencedAppointmentId) {
+          if (!(appData.appointments || []).some(a=>a.id===minaLastReferencedAppointmentId)) minaLastReferencedAppointmentId=null;
+        }
+        saveData();
+        if (typeof renderClientsTab==='function') renderClientsTab();
+        if (typeof renderCalendar==='function') renderCalendar();
+        if (typeof renderDaySchedule==='function') renderDaySchedule();
+        return 'انجام شد عزیزم 🌸 پرونده «' + displayName + '» و اطلاعات و نوبت‌های مرتبط حذف شد. 💗';
+      }
+
+      if (phoneMatch && /(?:شماره|تلفن)/u.test(text) && /(?:تغییر|عوض|جدید|بکن|بذار|بزار|به)/u.test(text)) {
+        let phone=phoneMatch[0].replace(/\D/g,'');
+        if (phone.startsWith('0098')) phone='0'+phone.slice(4);
+        else if (phone.startsWith('98') && phone.length===12) phone='0'+phone.slice(2);
+        else if (phone.length===10 && phone.startsWith('9')) phone='0'+phone;
+        if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل نیست؛ لطفاً هر ۱۱ رقم رو دوباره بفرست 💗';
+        const oldKey=target.key, profile=getClientProfile(oldKey), oldPhone=profile.phone||'';
+        const duplicate=entries.find(([key,p])=>key!==oldKey && String(p?.phone||'').replace(/\D/g,'')===phone);
+        if (duplicate) return 'این شماره قبلاً برای مشتری دیگری ثبت شده؛ برای جلوگیری از جابه‌جایی اشتباه، تغییری ندادم 💗';
+        profile.phone=phone;
+        (appData.appointments||[]).forEach(a=>{ if(clientMatchesAppointment(oldKey,a)){a.phone=phone; if(profile.clientId)a.clientId=profile.clientId;} });
+        saveData();
+        if (typeof renderClientsTab==='function') renderClientsTab();
+        if (typeof openClientRecord==='function') openClientRecord(oldKey);
+        return 'شماره تماس «'+(profile.name||target.alias)+'» به‌روزرسانی شد ✅\n📞 '+phone+' 💗';
+      }
+
+      const renameMatch = source.match(/(?:اسم|نام)\s+(.+?)\s+(?:رو|را)\s+(?:بکن|بذار|بزار|تغییر\s*بده|عوض\s*کن)\s+(.+?)\s*$/u) ||
+        source.match(/(.+?)\s+(?:رو|را)\s+به\s+(.+?)\s+(?:تغییر\s*بده|عوض\s*کن)\s*$/u);
+      if (renameMatch && /(?:اسم|نام|تغییر|عوض|بکن|بذار|بزار)/u.test(text)) {
+        let newName=renameMatch[2].replace(/[،,:؛.!؟]+$/u,'').trim();
+        newName=newName.replace(/^(?:اسم|نام)\s+/u,'').trim();
+        if (newName.length<2 || newName.length>60 || /(?:شماره|تلفن|نوبت|فردا|امروز|ساعت)/u.test(newName)) return 'اسم جدید رو دقیق متوجه نشدم؛ لطفاً فقط نام جدید رو بگو 💗';
+        const oldKey=target.key, profile=getClientProfile(oldKey), oldName=profile.name||target.alias;
+        const duplicate=entries.find(([key,p])=>key!==oldKey && normalize(p?.name||key)===normalize(newName));
+        if (duplicate) return 'مشتری دیگری با این نام وجود داره؛ لطفاً نام دقیق‌تری انتخاب کن تا پرونده‌ها قاطی نشن 💗';
+        profile.aliases=Array.from(new Set([...(profile.aliases||[]),oldName,newName])).filter(Boolean).slice(-12);
+        const newKey=clientKeyFromFields(profile.phone,newName);
+        profile.name=newName;
+        if(newKey!==oldKey){profiles[newKey]=profile;delete profiles[oldKey];
+          if(appData.clientNotes && Object.prototype.hasOwnProperty.call(appData.clientNotes,oldKey)){appData.clientNotes[newKey]=appData.clientNotes[oldKey];delete appData.clientNotes[oldKey];}}
+        (appData.appointments||[]).forEach(a=>{if((profile.clientId && a.clientId===profile.clientId)||clientMatchesAppointment(oldKey,a)){a.clientName=newName;if(profile.phone)a.phone=profile.phone;if(profile.clientId)a.clientId=profile.clientId;}});
+        saveData();
+        if(typeof renderClientsTab==='function')renderClientsTab();
+        if(typeof openClientRecord==='function')openClientRecord(newKey);
+        return 'انجام شد عزیزم 🌸 نام مشتری از «'+oldName+'» به «'+newName+'» تغییر کرد و نوبت‌ها و سوابقش هم به همان پرونده وصل موندند 💗';
+      }
+      return null;
+    }
+
     minaBuildReply = function(raw) {
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
@@ -6394,6 +6481,12 @@
         minaConversationBooking = null;
         return minaBuildReplyCore(continuation);
       }
+
+      // Resolve explicit customer profile changes before appointment routing.
+      const clientMutationReply = minaTryManageClientFromMessage(expandedRaw);
+      if (clientMutationReply) return clientMutationReply;
+      const directClientReply = minaTryAddClientFromMessage(expandedRaw);
+      if (directClientReply) return directClientReply;
 
       // Appointment edits and calendar status must be resolved against local records first.
       const appointmentMutationReply = minaTryManageAppointment(expandedRaw);
