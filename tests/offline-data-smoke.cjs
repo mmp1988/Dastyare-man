@@ -110,6 +110,43 @@ const assert = require('assert');
       'Mina routing must mask private data, use cloud AI as the primary online interpreter for both simple and complex requests, and not suppress new requests because of an old quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
     console.log('Mina hybrid AI routing:', JSON.stringify(minaHybridRoutingQA));
 
+    // Regression: a single message with two sequential personal plans must
+    // create two distinct reminders and must not create salon appointments.
+    const minaMultiplePersonalReminderQA = await page.evaluate(() => {
+      const previousReminders = appData.reminders;
+      const previousAppointments = appData.appointments;
+      try {
+        appData.reminders = [];
+        appData.appointments = [];
+        const request = 'فردا برای ساعت ۷ بعد از ظهر می‌خوام برم دکتر هشدارشو الان ثبت کن بعدش ساعت ۹ می‌خوام برم آرایشگاه دو تا نوبتو برام هشدارشو ثبت کن';
+        const reply = minaTrySetPersonalReminder(request);
+        const expectedJalali = addDaysToJalaliKey(getTodayKey(), 1);
+        const reminders = appData.reminders.slice();
+        const toJalali = date => {
+          const [y,m,d] = String(date || '').split('-').map(Number);
+          const j = gregorianToJalali(y,m,d);
+          return j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
+        };
+        return {
+          exactlyTwo: reminders.length === 2,
+          separateTitles: reminders.some(r => /دکتر/u.test(r.message)) &&
+            reminders.some(r => /آرایشگاه/u.test(r.message)),
+          noCustomerAppointment: appData.appointments.length === 0,
+          bothTomorrow: reminders.length === 2 && reminders.every(r => toJalali(r.date) === expectedJalali),
+          eveningTimes: reminders.map(r => r.time).sort().join(',') === '19:00,21:00',
+          successReply: typeof reply === 'string' && /دکتر/u.test(reply) && /آرایشگاه/u.test(reply)
+        };
+      } finally {
+        appData.reminders = previousReminders;
+        appData.appointments = previousAppointments;
+        saveData();
+        renderPersonalReminders();
+      }
+    });
+    assert(Object.values(minaMultiplePersonalReminderQA).every(Boolean),
+      'Two sequential personal plans must create two separately titled tomorrow reminders at 19:00 and 21:00, without creating customer appointments: ' + JSON.stringify(minaMultiplePersonalReminderQA));
+    console.log('Mina multiple personal reminders:', JSON.stringify(minaMultiplePersonalReminderQA));
+
     // Regression: update the exact appointment and accept a standalone minute-level follow-up.
     const appointmentRescheduleQA = await page.evaluate(() => {
       const previousAppointments = appData.appointments;
