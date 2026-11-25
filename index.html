@@ -5819,6 +5819,8 @@
       if(button){button.disabled=true;button.textContent='⏳ بررسی...';}
       const isAndroid=!!(window.AndroidApp&&(typeof window.AndroidApp.checkForUpdates==='function'||typeof window.AndroidApp.updateApp==='function'));
       try{
+        // Flush all current edits before a native refresh can reload the WebView.
+        try{persistAppDataOnExit();}catch(e){}
         if(isAndroid){
           if(typeof window.AndroidApp.checkForUpdates==='function')window.AndroidApp.checkForUpdates();
           else checkNativeContentUpdate(true);
