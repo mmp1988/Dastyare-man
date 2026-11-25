@@ -811,7 +811,7 @@ public class MainActivity extends Activity {
                 apkInstallDialogVisible = true;
                 new AlertDialog.Builder(this)
                         .setTitle("به‌روزرسانی دستیار من")
-                        .setMessage("نسخه جدید برنامه آماده است. با تأیید تو، نسخه فعلی روی همین برنامه به‌روزرسانی می‌شود و اطلاعات ذخیره‌شده‌ات باقی می‌ماند. برنامه حذف نخواهد شد.")
+                        .setMessage("نسخه نصب‌شده قدیمی است. برای رفع اشکال‌ها و استفاده از نسخه جدید دستیار من، بروزرسانی را انجام بده. با تأیید تو، همین برنامه به نسخه جدید ارتقا پیدا می‌کند؛ اطلاعات ذخیره‌شده باقی می‌مانند و برنامه حذف نمی‌شود.")
                         .setPositiveButton("بروزرسانی و نصب", (dialog, which) -> {
                             apkInstallDialogVisible = false;
                             prefs.edit().putLong("install_consent_version", pendingVersion).apply();
