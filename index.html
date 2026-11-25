@@ -3124,7 +3124,7 @@
       const days = rawDays === null || rawDays === undefined || rawDays === '' ? null : Number(rawDays);
       const override = appointment.repairReminderOverride && typeof appointment.repairReminderOverride === 'object'
         ? appointment.repairReminderOverride : null;
-      const effectiveDays = Number.isInteger(Number(override?.daysAfter)) ? Number(override.daysAfter) : days;
+      const effectiveDays = override?.daysAfter !== undefined && override?.daysAfter !== null && Number.isInteger(Number(override.daysAfter)) ? Number(override.daysAfter) : days;
       const hasPerAppointmentSchedule = Number.isInteger(Number(override?.daysAfter));
       const time = override?.time || settings.repairReminderTime || '10:00';
       if (appointment.repairReminderDisabled === true || (!hasPerAppointmentSchedule && settings.repairReminderEnabled === false) ||
@@ -7402,6 +7402,10 @@
       const text=minaCleanText(minaNormalizeDigits(String(raw||''))).toLocaleLowerCase('fa');
       const reminderIntent=/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری|یاداور|هشدار|آلارم|الارم|زنگ\s*هشدار|خبرم\s*کن|(?:بهم\s*)?خبر\s*(?:بده|بدی|بدین)|به\s*من\s*اطلاع\s*بده)/u.test(text);
       if(!reminderIntent && !minaPendingPersonalReminder)return null;
+      // A short follow-up such as «۱۸ روز بعدش خبر بده» belongs to the last appointment,
+      // not to a new personal reminder measured from today.
+      if(typeof minaLastReferencedAppointmentId !== 'undefined' && minaLastReferencedAppointmentId &&
+          /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\s*روز\s*بعدش/u.test(text)) return null;
       if(/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text))return null;
       const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
       const combinedText=minaCleanText(minaNormalizeDigits(combined)).toLocaleLowerCase('fa');
