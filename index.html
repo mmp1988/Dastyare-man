@@ -5272,7 +5272,7 @@
         'یادداشت','یادآوری','ویرایش','تقویم','برنامه','انجام','تمام','منتقل','ببر','اضافه'
       ];
       const customServiceWords = (typeof appData !== 'undefined' && Array.isArray(appData.services) ? appData.services : [])
-        .flatMap(service => String(service && service.name || '').split(/[\\s\\u200c]+/))
+        .flatMap(service => String(service && service.name || '').split(/[\s\u200c]+/))
         .map(word => word.trim()).filter(word => word.length >= 4);
       const vocabulary = Array.from(new Set(commandWords.concat(customServiceWords)));
       const normalized=String(value||'').replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
