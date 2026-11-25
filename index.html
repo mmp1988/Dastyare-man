@@ -5979,8 +5979,15 @@
 
       let changed = [];
       if (asksTime) {
-        const newTime = minaParseReminderClock(expanded);
+        let newTime = minaParseReminderClock(expanded);
         if (!newTime) return 'ساعت رو دقیق متوجه نشدم؛ می‌تونی هر ساعت و دقیقه رو مثل «۱۵:۰۷»، «۳ و ۷ دقیقه بعدازظهر» یا «یک ربع به ۳» بگی 💗';
+        // For a short contextual correction such as «ساعتش ۴:۲۰ باشه»,
+        // preserve the existing AM/PM period when the user omits it.
+        const explicitPeriod = /(?:صبح|ظهر|بعدازظهر|بعد\\s*از\\s*ظهر|عصر|شب)/u.test(text);
+        const oldHour = Number(String(appt.time || '').slice(0,2));
+        const parsedHour = Number(newTime.slice(0,2));
+        if (!explicitPeriod && oldHour >= 12 && parsedHour < 12) newTime = pad2(parsedHour + 12) + newTime.slice(2);
+        if (!explicitPeriod && oldHour < 12 && parsedHour >= 12) newTime = pad2(parsedHour - 12) + newTime.slice(2);
         if (hasAppointmentSlotConflict(appt.dateKey,newTime,appt.id)) return 'این ساعت در ' + formatJalaliFull(appt.dateKey) + ' قبلاً رزرو شده؛ نوبت قبلی رو تغییر ندادم. یک زمان دیگه بگو 💗';
         if (normalizeAppointmentSlotTime(appt.time) !== newTime) {
           changed.push('ساعت از ' + (appt.time || 'ثبت‌نشده') + ' به ' + newTime);
