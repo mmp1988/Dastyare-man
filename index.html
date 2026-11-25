@@ -5950,7 +5950,7 @@
             const j = gregorianToJalali(y,m,d); dateKey = j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
           } else return 'سال رو متوجه نشدم عزیزم؛ سال شمسی یا میلادی رو کامل بگو 💗';
         } else {
-          const monthMatch = t.match(/(\d{1,2})\s+(فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|ابان|اذر|آذر|دی|بهمن|اسفند)(?:\s+(\d{4}))?/);
+          const monthMatch = t.match(/(\d{1,2})\s+(فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|ابان|اذر|آذر|دی|بهمن|اسفند)(?:\s*ماه)?(?:\s+(\d{4}))?/);
           if (monthMatch) {
             const d=Number(monthMatch[1]), m=monthAliases[monthMatch[2]], y=Number(monthMatch[3] || todayKey.split('-')[0]);
             if (d<1 || d>jalaliMonthDays(y,m)) return 'این روز در ماهی که گفتی وجود نداره عزیزم؛ تاریخ رو بررسی کن 💗';
