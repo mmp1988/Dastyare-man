@@ -698,6 +698,10 @@ const assert = require('assert');
       const relativeDayReply=minaTrySetPersonalReminder('یادم بنداز دو روز دیگه');
       const relativeDaySaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!beforeRelativeDayIds.has(x.id));
       const relativeDayActualAt=relativeDaySaved?iranDateTimeToEpoch(relativeDaySaved.date,relativeDaySaved.time):NaN;
+      const spokenReminderCreatedAfter=Date.now();
+      const spokenReminderReply=minaTrySetPersonalReminder('ساعت ۷ عصر بهم خبر بده کار دارم');
+      const spokenReminderSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=spokenReminderCreatedAfter);
+      const spokenReminderIsCorrect=!!spokenReminderSaved&&spokenReminderSaved.time==='19:00'&&spokenReminderSaved.message.includes('کار دارم')&&spokenReminderSaved.timezone==='Asia/Tehran';
       const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
       const actualEpoch=saved?iranDateTimeToEpoch(saved.date,saved.time):NaN;
@@ -722,6 +726,8 @@ const assert = require('assert');
         relativeHourReply,
         relativeDaySaved:!!relativeDaySaved && Math.abs(relativeDayActualAt-relativeDayExpectedAt)<=60000,
         relativeDayReply,
+        spokenReminderIsCorrect,
+        spokenReminderReply,
         reply
       };
     });
@@ -738,6 +744,8 @@ const assert = require('assert');
       'Mina must schedule colloquial relative requests such as «۵۰ دقیقه دیگه» locally at the correct Iran-time instant');
     assert(minaReminderAndIranTimeQA.minuteWordParsing && minaReminderAndIranTimeQA.relative59Saved,
       'Mina must understand Persian minute values from zero through fifty-nine, including compound values and relative reminders');
+    assert(minaReminderAndIranTimeQA.spokenReminderIsCorrect,
+      'Mina must understand «ساعت ۷ عصر بهم خبر بده کار دارم» as a 19:00 personal reminder, using today if future or tomorrow if already passed');
     assert(minaReminderAndIranTimeQA.relativeHourSaved && minaReminderAndIranTimeQA.relativeDaySaved,
       'Mina must schedule colloquial hour-plus-minute and relative-day reminders correctly in Iran time');
 
