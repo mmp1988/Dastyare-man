@@ -6165,8 +6165,8 @@
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
       const continuationHasClock = !!minaParseReminderClock(expandedRaw) ||
-        /(?:ساعت\\s*)?\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}/u.test(normalized) ||
-        /(?:ساعت\\s*)?\\d{1,2}\\s*(?:و\\s*)\\d{1,2}\\s*دقیقه/u.test(normalized);
+        /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/u.test(normalized) ||
+        /(?:ساعت\s*)?\d{1,2}\s*(?:و\s*)\d{1,2}\s*دقیقه/u.test(normalized);
       // A reply containing only the requested time completes the pending booking before
       // appointment lookup/edit handlers can misclassify it as a request about an old record.
       if (minaConversationBooking && continuationHasClock &&
