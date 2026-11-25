@@ -1259,8 +1259,7 @@
       </div>
       <div class="header-actions">
         <button class="icon-btn share-header-btn" onclick="checkAllAppUpdates()" title="بررسی و دریافت آخرین نسخه">🔄 بروزرسانی</button>
-        <button class="icon-btn share-header-btn" onclick="openShareModal()" title="ارسال اپلیکیشن و لینک APK">📤 ارسال اپ</button>
-        <button class="icon-btn" onclick="toggleTheme()" id="themeToggleBtn" title="تغییر تم شب و روز">☀️</button>
+          <button class="icon-btn" onclick="toggleTheme()" id="themeToggleBtn" title="تغییر تم شب و روز">☀️</button>
       </div>
     </div>
     <div class="clock-bar">
@@ -1680,7 +1679,6 @@
             </div>
             <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:7px;">انتخاب صدا روی همین گوشی ذخیره می‌شود و بدون اینترنت هم در دسترس است.</div>
           </div>
-          <button class="btn-secondary" onclick="openShareModal()">📤 ارسال اپ / لینک APK</button>
           <button class="btn-secondary" style="grid-column:1 / -1; color:var(--danger); border-color:rgba(239,68,68,0.4);" onclick="clearAllUserEntries()">🗑️ پاک کردن همه موارد نوشته‌شده و اضافه‌شده توسط من</button>
         </div>
       </div>
@@ -1809,7 +1807,7 @@
         <div class="form-grid client-appointment-form">
           <div class="form-group full">
             <label for="clientNextAppointmentType">نوع نوبت</label>
-            <select id="clientNextAppointmentType" class="form-control" aria-label="نوع نوبت">
+            <select id="clientNextAppointmentType" class="form-control" aria-label="نوع نوبت" onchange="handleClientAppointmentTypeChange()">
               <option value="primary">📅 نوبت اصلی</option>
               <option value="followup">🔁 نوبت بعدی ترمیم</option>
             </select>
@@ -3536,6 +3534,15 @@
       return g[0] + '-' + pad2(g[1]) + '-' + pad2(g[2]);
     }
     let clientPickerYear = 0, clientPickerMonth = 0;
+    function handleClientAppointmentTypeChange() {
+      const type = document.getElementById('clientNextAppointmentType')?.value || 'primary';
+      const dateLabel = document.querySelector('#clientNextDate')?.closest('.form-group')?.querySelector('label');
+      const service = document.getElementById('clientNextService');
+      if (dateLabel) dateLabel.textContent = type === 'followup' ? 'تاریخ شمسی ترمیم' : 'تاریخ شمسی نوبت';
+      if (service && !service.value.trim()) service.placeholder = type === 'followup' ? 'مثلاً ترمیم مژه یا ترمیم ناخن...' : 'مثلاً ترمیم، رنگ ریشه، کاشت ناخن...';
+      const panel = document.getElementById('clientJalaliPicker');
+      if (type === 'followup' && panel && panel.style.display === 'none') toggleClientJalaliPicker();
+    }
     function toggleClientJalaliPicker() {
       const panel = document.getElementById('clientJalaliPicker');
       const opening = panel.style.display === 'none';
