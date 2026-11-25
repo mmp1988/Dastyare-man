@@ -6597,7 +6597,7 @@
       const timeText=toPersianDigits(clock);
       if(scheduleStatus==='exact')return 'انجام شد عزیزم 💗 یادآوری واقعاً ذخیره و آلارم دقیق گوشی هم زمان‌بندی شد.\n📅 '+formatJalaliFull(dateKey)+'\n⏰ ساعت '+timeText+' به وقت ایران\n🔔 '+message;
       if(scheduleStatus==='approximate')return 'یادآوری ذخیره شد عزیزم 💗 اعلان گوشی هم زمان‌بندی شد، اما به‌دلیل محدودیت مجوز آلارم دقیق ممکنه چند دقیقه تأخیر داشته باشه.\n📅 '+formatJalaliFull(dateKey)+'\n⏰ ساعت '+timeText+' به وقت ایران\n🔔 '+message;
-      if(scheduleStatus==='failed')return 'یادآوری در فهرست برنامه ذخیره شد، اما سیستم گوشی زمان‌بندی آلارم را تأیید نکرد؛ پس نمی‌گم زنگ حتماً تنظیم شده. مجوز اعلان و هشدار دقیق گوشی رو بررسی کن عزیزم.\n📅 '+formatJalaliFull(dateKey)+'، ساعت '+timeText+' به وقت ایران';
+      if(scheduleStatus==='failed'||scheduleStatus==='notifications_denied')return 'یادآوری در فهرست برنامه ذخیره شد، اما سیستم گوشی زمان‌بندی آلارم را تأیید نکرد؛ پس نمی‌گم زنگ حتماً تنظیم شده. مجوز اعلان برنامه رو فعال کن و دوباره درخواست بده عزیزم.\n📅 '+formatJalaliFull(dateKey)+'، ساعت '+timeText+' به وقت ایران';
       return 'یادآوری داخل برنامه ذخیره شد عزیزم 💗\n📅 '+formatJalaliFull(dateKey)+'\n⏰ ساعت '+timeText+' به وقت ایران\nبرای زنگ مستقل حتی وقتی سایت بسته است، باید از اپ اندروید استفاده کنی.';
     }
 
