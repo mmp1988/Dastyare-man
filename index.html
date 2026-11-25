@@ -5951,7 +5951,7 @@
 
     async function minaAskSmartBrain(message, mode = 'reply') {
       // Cloud is reserved for salon reasoning/content; local records and execution never leave this device.
-      if (!navigator.onLine || minaCloudQuotaCooldownActive()) return null;
+      if (!navigator.onLine) return null;
       const safe = minaBuildCloudSafeCommand(message);
       try {
         const controller = new AbortController();
