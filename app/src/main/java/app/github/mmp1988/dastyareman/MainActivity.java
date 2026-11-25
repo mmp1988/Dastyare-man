@@ -592,6 +592,7 @@ public class MainActivity extends Activity {
                     }
                 }
 
+                // Only throttle future checks after the new content is safely installed.
                 prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
                 final boolean contentUnchanged = unchanged;
                 if (manual) {
