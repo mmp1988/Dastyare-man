@@ -1343,12 +1343,17 @@
         </summary>
         <div style="margin-top:12px;">
           <div class="appointment-hub-stats" id="appointmentHubStats"></div>
+          <div class="appointment-type-switch" role="group" aria-label="انتخاب فهرست نوبت‌ها" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0;">
+            <button type="button" class="btn-secondary appointment-type-tab active" id="appointmentPrimaryTab" aria-pressed="true" onclick="setAppointmentHubType('primary')">📌 نوبت‌های اصلی</button>
+            <button type="button" class="btn-secondary appointment-type-tab" id="appointmentFollowupTab" aria-pressed="false" onclick="setAppointmentHubType('followup')">🔁 نوبت‌های ترمیم</button>
+          </div>
           <div class="appointment-hub-toolbar">
-            <input id="appointmentHubSearch" class="form-control" type="search" placeholder="جستجوی نام مشتری یا نوع خدمت…" oninput="renderAppointmentsHub()" />
-            <select id="appointmentHubFilter" class="form-control" onchange="renderAppointmentsHub()" aria-label="فیلتر نوبت‌ها">
+            <input id="appointmentHubSearch" class="form-control" type="search" placeholder="جستجوی نام مشتری، شماره یا خدمت…" oninput="renderAppointmentsHub()" />
+            <select id="appointmentHubFilter" class="form-control" onchange="renderAppointmentsHub()" aria-label="فیلتر وضعیت نوبت‌ها">
               <option value="upcoming">نوبت‌های پیش‌رو</option><option value="today">امروز</option><option value="all">همه نوبت‌ها</option><option value="done">انجام‌شده</option><option value="canceled">لغوشده</option>
             </select>
           </div>
+          <div id="appointmentHubTypeSummary" class="appointment-hub-tip" aria-live="polite">فهرست نوبت‌های اصلی؛ برای ویرایش یا حذف هر نوبت از دکمه‌های همان مورد استفاده کن.</div>
           <div id="appointmentHubList" class="appointment-hub-list" aria-live="polite"></div>
           <div class="appointment-hub-tip">برای دیدن جزئیات و سوابق هر مراجعه، روی پرونده مشتری بزن. نوبت انجام‌شده پس از حذف از برنامه، در تاریخچه مشتری باقی می‌ماند. 💕</div>
         </div>
@@ -6286,18 +6291,30 @@
 (function(){
  'use strict';
  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let appointmentHubType='primary';
+ window.setAppointmentHubType=function(type){
+  appointmentHubType=type==='followup'?'followup':'primary';
+  ['primary','followup'].forEach(kind=>{
+   const button=document.getElementById(kind==='primary'?'appointmentPrimaryTab':'appointmentFollowupTab');
+   if(button){const active=kind===appointmentHubType;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));}
+  });
+  const summary=document.getElementById('appointmentHubTypeSummary');
+  if(summary)summary.textContent=appointmentHubType==='primary'?'فهرست نوبت‌های اصلی؛ همه نوبت‌های ثبت‌شده، حتی انجام‌شده و لغوشده، قابل ویرایش یا حذف هستند.':'فهرست نوبت‌های ترمیم؛ همه نوبت‌های ثبت‌شده، حتی انجام‌شده و لغوشده، قابل ویرایش یا حذف هستند.';
+  window.renderAppointmentsHub();
+ };
  window.renderAppointmentsHub=function(){
   const root=document.getElementById('appointmentHubList');if(!root||typeof appData==='undefined')return;
   const q=(document.getElementById('appointmentHubSearch')?.value||'').trim().toLocaleLowerCase('fa');
   const filter=document.getElementById('appointmentHubFilter')?.value||'upcoming',today=typeof getTodayKey==='function'?getTodayKey():'';
   const all=(appData.appointments||[]).filter(a=>a&&a.status!=='deleted');
-  const active=all.filter(a=>a.status!=='canceled'&&a.status!=='done');
+  const typed=all.filter(a=>(typeof isFollowupAppointment==='function'&&isFollowupAppointment(a))===(appointmentHubType==='followup'));
+  const active=typed.filter(a=>a.status!=='canceled'&&a.status!=='done');
   const todayCount=active.filter(a=>a.dateKey===today).length;
   const futureCount=active.filter(a=>String(a.dateKey||'')>=today).length;
-  const doneCount=all.filter(a=>a.status==='done').length;
+  const doneCount=typed.filter(a=>a.status==='done').length;
   const stats=document.getElementById('appointmentHubStats');
-  if(stats)stats.innerHTML='<div class="appointment-hub-stat"><strong>'+toPersianDigits(todayCount)+'</strong><span>نوبت امروز</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(futureCount)+'</strong><span>نوبت پیش‌رو</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(doneCount)+'</strong><span>انجام‌شده</span></div>';
-  let rows=all.filter(a=>{
+  if(stats)stats.innerHTML='<div class="appointment-hub-stat"><strong>'+toPersianDigits(typed.length)+'</strong><span>مجموع '+(appointmentHubType==='followup'?'ترمیم‌ها':'نوبت‌های اصلی')+'</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(todayCount)+'</strong><span>نوبت امروز</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(futureCount)+'</strong><span>پیش‌رو</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(doneCount)+'</strong><span>انجام‌شده</span></div>';
+  let rows=typed.filter(a=>{
    if(filter==='upcoming'&&(a.status==='done'||a.status==='canceled'||String(a.dateKey||'')<today))return false;
    if(filter==='today'&&a.dateKey!==today)return false;
    if(filter==='done'&&a.status!=='done')return false;
@@ -6305,14 +6322,13 @@
    const hay=(String(a.clientName||'')+' '+String(a.phone||'')+' '+String(a.service||'')).toLocaleLowerCase('fa');
    return !q||hay.includes(q);
   }).sort((a,b)=>(String(a.dateKey||'')+(a.time||'')).localeCompare(String(b.dateKey||'')+(b.time||'')));
-  if(filter==='upcoming')rows=rows;
-  if(!rows.length){root.innerHTML='<div style="text-align:center;padding:28px 10px;color:var(--text-secondary);font-size:.8rem">🌸 موردی برای نمایش پیدا نشد.</div>';return;}
+  if(!rows.length){root.innerHTML='<div style="text-align:center;padding:28px 10px;color:var(--text-secondary);font-size:.8rem">🌸 در فهرست '+(appointmentHubType==='followup'?'نوبت‌های ترمیم':'نوبت‌های اصلی')+' موردی مطابق این فیلتر پیدا نشد.</div>';return;}
   root.innerHTML=rows.map(a=>{
    const status=a.status==='done'?'انجام‌شده':a.status==='canceled'?'لغوشده':a.status==='confirmed'?'تأییدشده':'در انتظار';
-   const kind=typeof isFollowupAppointment==='function'&&isFollowupAppointment(a)?'نوبت ترمیم':'نوبت اصلی';
+   const kind=appointmentHubType==='followup'?'نوبت ترمیم':'نوبت اصلی';
    const date=typeof formatJalaliFull==='function'?formatJalaliFull(a.dateKey):a.dateKey||'';
    const key=typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'';
-   return '<article class="appointment-hub-item"><div class="appointment-hub-item-top"><div><strong>'+esc(a.clientName||'مشتری بدون نام')+'</strong><small>'+esc(a.service||'خدمت ثبت نشده')+'</small></div><span class="appointment-hub-time">'+esc(toPersianDigits(a.time||''))+'</span></div><div class="appointment-hub-tags"><span class="appointment-hub-tag">📅 '+esc(date)+'</span><span class="appointment-hub-tag">'+kind+'</span><span class="appointment-hub-tag">'+status+'</span></div><div class="appointment-hub-actions">'+(key?'<button class="mini-btn" onclick="openClientRecord(\''+esc(key).replace(/'/g,'&#39;')+'\')">پرونده مشتری</button>':'')+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="openApptModal(\''+esc(a.id)+'\')">ویرایش</button>':'')+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="markAppointmentDone(\''+esc(a.id)+'\')">ثبت انجام‌شدن</button>':'')+'<button class="mini-btn del" onclick="deleteAppointment(\''+esc(a.id)+'\')">'+(a.status==='done'?'حذف از تاریخچه':'حذف نوبت')+'</button></div></article>';
+   return '<article class="appointment-hub-item" data-appointment-id="'+esc(a.id)+'"><div class="appointment-hub-item-top"><div><strong>'+esc(a.clientName||'مشتری بدون نام')+'</strong><small>'+esc(a.service||'خدمت ثبت نشده')+'</small></div><span class="appointment-hub-time">'+esc(toPersianDigits(a.time||''))+'</span></div><div class="appointment-hub-tags"><span class="appointment-hub-tag">📅 '+esc(date)+'</span><span class="appointment-hub-tag">'+kind+'</span><span class="appointment-hub-tag">'+status+'</span></div><div class="appointment-hub-actions">'+(key?'<button class="mini-btn" onclick="openClientRecord(\''+esc(key).replace(/'/g,'&#39;')+'\')">پرونده مشتری</button>':'')+'<button class="mini-btn" onclick="openApptModal(\''+esc(a.id)+'\')">✏️ ویرایش</button>'+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="markAppointmentDone(\''+esc(a.id)+'\')">ثبت انجام‌شدن</button>':'')+'<button class="mini-btn del" onclick="deleteAppointment(\''+esc(a.id)+'\')">🗑️ حذف نوبت</button></div></article>';
   }).join('');
  };
  window.markAppointmentDone=function(id){
