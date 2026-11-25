@@ -1,4 +1,4 @@
-name: Offline and Data Safety QA
+name: Offline and Data Safety QA - conversational AI
 
 on:
   push:
