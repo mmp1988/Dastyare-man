@@ -22,8 +22,8 @@ public class PersonalReminderReceiver extends BroadcastReceiver {
     private static final String ACTION_REMINDER = "app.github.mmp1988.dastyareman.PERSONAL_REMINDER";
     private static final String CHANNEL = "dastyare_personal_reminders_v1";
 
-    public static void schedule(Context context, String id, long atMillis, String message) {
-        if (id == null || id.trim().isEmpty() || atMillis <= System.currentTimeMillis()) return;
+    public static String schedule(Context context, String id, long atMillis, String message) {
+        if (id == null || id.trim().isEmpty() || atMillis <= System.currentTimeMillis()) return "failed";
         try {
             JSONArray old = readItems(context);
             JSONArray next = new JSONArray();
@@ -40,8 +40,8 @@ public class PersonalReminderReceiver extends BroadcastReceiver {
             java.util.Set<String> fired = new java.util.HashSet<>(prefs.getStringSet("fired", new java.util.HashSet<>()));
             fired.remove(id);
             prefs.edit().putString(ITEMS, next.toString()).putStringSet("fired", fired).apply();
-            scheduleSystemAlarm(context, id, atMillis, message);
-        } catch (Exception ignored) { }
+            return scheduleSystemAlarm(context, id, atMillis, message);
+        } catch (Exception ignored) { return "failed"; }
     }
 
     public static void cancel(Context context, String id) {
@@ -80,23 +80,29 @@ public class PersonalReminderReceiver extends BroadcastReceiver {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private static void scheduleSystemAlarm(Context context, String id, long atMillis, String message) {
+    private static String scheduleSystemAlarm(Context context, String id, long atMillis, String message) {
         try {
             AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (manager == null) return;
+            if (manager == null) return "failed";
             PendingIntent pending = pendingIntent(context, id, message);
             if (Build.VERSION.SDK_INT >= 23) {
                 try {
                     manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending);
+                    return "exact";
                 } catch (SecurityException exactNotAllowed) {
+                    // Android may deny exact alarms unless the user grants special access.
+                    // Keep a real system reminder rather than silently dropping the request.
                     manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending);
+                    return "approximate";
                 }
             } else if (Build.VERSION.SDK_INT >= 19) {
                 manager.setExact(AlarmManager.RTC_WAKEUP, atMillis, pending);
+                return "exact";
             } else {
                 manager.set(AlarmManager.RTC_WAKEUP, atMillis, pending);
+                return "approximate";
             }
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) { return "failed"; }
     }
 
     private static void cancelSystemAlarm(Context context, String id) {
