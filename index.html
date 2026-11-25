@@ -7676,7 +7676,7 @@
         .replace(/\\[nr]|[\r\n]+/gu,' ')
         .replace(/[A-Za-z][A-Za-z0-9_-]*/gu,' ')
         .replace(/[{}\[\]"]/gu,' ')
-        .replace(/\s+/gu,' ').trim();
+        .replace(/(?:صبح|ظهر|بعدازظهر|عصر|شب)/gu,' ').replace(/ارایشگاه/gu,'آرایشگاه').replace(/\s+/gu,' ').trim();
       if(!message||/^(?:امروز|فردا|ساعت|برام|من)$/u.test(message))message='یادآوری شخصی';
       const id='mina_rem_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
       const reminder={id,date:gregorianDate,time:clock,message,notified:false,enabled:true,createdAt:Date.now(),timezone:'Asia/Tehran',source:'mina'};
