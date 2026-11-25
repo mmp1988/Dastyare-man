@@ -4341,8 +4341,18 @@
 
     function renderClientHistory(key) {
       const p = getClientProfile(key);
+      let archivedNow = false;
+      (appData.appointments || []).filter(a => a && a.status === 'done' && clientMatchesAppointment(key, a)).forEach(a => {
+        const archiveId = 'done_' + String(a.id);
+        if (!(p.records || []).some(record => record.id === archiveId) && typeof window.archiveCompletedAppointment === 'function') {
+          window.archiveCompletedAppointment(a);
+          archivedNow = true;
+        }
+      });
+      if (archivedNow) saveData();
       const workFieldLabels=Object.fromEntries(getClientWorkFieldDefinitions().map(f=>[f.id,f.label]));
-      const appts = appData.appointments.filter(a => clientMatchesAppointment(key, a) && a.status === 'done')
+      const appts = appData.appointments.filter(a => clientMatchesAppointment(key, a) && a.status === 'done' &&
+        !(p.records || []).some(record => record.id === 'done_' + String(a.id)))
         .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:a.notes || '', photo:'', appointmentType:a.appointmentType || (isFollowupAppointment(a)?'followup':'primary'), source:'appointment' }));
       const records = (p.records || []).map(r => ({...r, source:'record'}));
       const items = appts.concat(records).sort((a,b) => (b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
@@ -5696,6 +5706,14 @@
           notes: '',
           alarm: '15', status: 'pending', notified: false
         };
+        const appointmentProfileKey = findClientProfileKeyForAppointment(appointment) ||
+          (appointment.clientName && !appointment.clientNameMissing ? clientKeyFromFields(appointment.phone, appointment.clientName) : '');
+        if (appointmentProfileKey) {
+          const appointmentProfile = getClientProfile(appointmentProfileKey);
+          appointment.clientId = appointmentProfile.clientId;
+          if (!appointmentProfile.name) appointmentProfile.name = appointment.clientName;
+          if (!appointmentProfile.phone && appointment.phone) appointmentProfile.phone = appointment.phone;
+        }
         appData.appointments.push(appointment);
         minaPendingBooking = null;
         saveData();
@@ -6125,13 +6143,14 @@
 
     let minaPendingCustomerPhone = '';
     function minaTryAddClientFromMessage(raw) {
-      const original = String(raw || '').trim();
-      const normalized = minaNormalizePersianTypos(minaNormalizeDigits(original)).replace(/[يى]/g, 'ی');
+      const normalized = minaNormalizePersianTypos(minaNormalizeDigits(String(raw || ''))).replace(/[يى]/g, 'ی').trim();
       const text = normalized.toLocaleLowerCase('fa');
       const addIntent = /(?:اضافه|افزودن|ثبت|وارد\s*کن|بساز|ایجاد|ذخیره)/u.test(text);
       const customerIntent = /(?:مشتری|مشتریان|پرونده)/u.test(text);
       const phoneMatch = normalized.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
-      const onlyPhone = phoneMatch && !addIntent && !customerIntent &&
+      const phoneAssignmentIntent = !!phoneMatch && /(?:شماره|تلفن)/u.test(text) &&
+        /(?:هست|است|مال|متعلق|برای|اضافه|ثبت|ذخیره|برو)/u.test(text);
+      const onlyPhone = phoneMatch && !addIntent && !customerIntent && !phoneAssignmentIntent &&
         normalized.replace(phoneMatch[0], '').replace(/(?:شماره|تلفن|این|مال|برای)/gu, '').replace(/[\s،,:؛-]/gu, '') === '';
       if (onlyPhone) {
         let captured = phoneMatch[0].replace(/\D/g, '');
@@ -6140,82 +6159,59 @@
         else if (captured.length === 10 && captured.startsWith('9')) captured = '0' + captured;
         if (!/^09\d{9}$/.test(captured)) return 'شماره کامل و معتبر نیست؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
         minaPendingCustomerPhone = captured;
-        return 'شماره رو گرفتم عزیزم 📞 حالا اسم صاحب شماره رو بگو و بگو در بخش مشتریان اضافه‌اش کنم؛ تاریخ نوبت لازم نیست. 💗';
+        return 'شماره رو گرفتم عزیزم 📞 حالا اسم و فامیل یا نامی که مشتری رو باهاش می‌شناسی بگو؛ پرونده رو بدون تاریخ نوبت ثبت می‌کنم. 💗';
       }
-      if (!addIntent || !customerIntent) return null;
-
-      let phone = '';
+      if (!addIntent && !customerIntent && !phoneAssignmentIntent && !minaPendingCustomerPhone) return null;
+      let phone = minaPendingCustomerPhone || '';
       if (phoneMatch) {
         phone = phoneMatch[0].replace(/\D/g, '');
         if (phone.startsWith('0098')) phone = '0' + phone.slice(4);
         else if (phone.startsWith('98') && phone.length === 12) phone = '0' + phone.slice(2);
         else if (phone.length === 10 && phone.startsWith('9')) phone = '0' + phone;
-        if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل و معتبر نیست عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
-      } else if (minaPendingCustomerPhone) {
-        phone = minaPendingCustomerPhone;
-      } else if (/\d/u.test(normalized)) {
-        return 'شماره تلفن رو کامل متوجه نشدم عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
+        if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل و معتبر نیست؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
       }
-
-      const before = phoneMatch ? normalized.slice(0, phoneMatch.index).trim() : normalized;
-      let after = phoneMatch ? normalized.slice(phoneMatch.index + phoneMatch[0].length) : ''
-        .replace(/^[\s،,:؛-]+/u, '')
-        .replace(/^(?:مال|متعلق\s+به|برای|به\s+نام|به\s+اسم|اسمش|نامش)\s*/u, '')
-        .trim();
-      const stop = /^(?:هست|است|میباشد|می\s*باشد|ـه|توی|تو|در|قسمت|بخش|مشتریان|مشتری|اضافه|افزودن|ثبت|کن|کنش|برو|لطفا|لطفاً|رو|را|به|یه|یک|جدید)$/u;
+      let nameSource = normalized;
+      if (phoneMatch) nameSource = normalized.slice(0, phoneMatch.index) + ' ' + normalized.slice(phoneMatch.index + phoneMatch[0].length);
+      const patterns = [
+        /(?:مشتری(?:\s+جدید)?|پرونده(?:\s+جدید)?)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|مشتریان|ثبت|اضافه|افزودن|وارد|بساز|ایجاد|کن|کنش|برو)|$)/u,
+        /(?:به\s+نام|به\s+اسم|اسمش|نامش)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|ثبت|اضافه|افزودن|کن|کنش)|$)/u,
+        /(?:این\s+)?شماره(?:\s+تلفن)?\s+(.+?)(?=\s+(?:هست|است|ـه|مال|متعلق|توی|در|قسمت|بخش)|$)/u,
+        /(?:برای|واسه)\s+(.+?)(?=\s+(?:توی|تو|در|قسمت|بخش|ثبت|اضافه|کن|کنش)|$)/u
+      ];
       let name = '';
-      const afterWords = after.split(/\s+/u).filter(Boolean);
-      const chosen = [];
-      for (const word of afterWords) {
-        const clean = word.replace(/[،,:؛.!؟]+$/u, '').replace(/(?:هست|است|میباشد)$/u, '');
-        if (!clean || stop.test(clean) || !/^[آ-یءئؤإأ‌\-]{2,30}$/u.test(clean)) break;
-        chosen.push(clean);
-        if (chosen.length === 3) break;
+      for (const pattern of patterns) {
+        const match = nameSource.match(pattern);
+        if (match && match[1]) { name = match[1].trim(); break; }
       }
-      if (chosen.length) name = chosen.join(' ');
-
-      if (!name) {
-        const ownerMatch = before.match(/(?:این\s+)?شماره\s+([آ-یءئؤإأ‌\-]{2,30})(?=\s+(?:هست|است|ـه|مال|متعلق|رو|را|توی|در|به))/u);
-        if (ownerMatch) name = ownerMatch[1].trim();
+      if (!name && minaPendingCustomerPhone && !phoneMatch) {
+        name = nameSource.replace(/^(?:این\s+)?شماره(?:\s+تلفن)?\s*/u, '')
+          .replace(/\s*(?:هست|است|ـه|مال\s+من|متعلق\s+به).*$/u, '').trim();
       }
-      if (!name) {
-        const nameMatch = before.match(/(?:به\s+نام|به\s+اسم|اسمش|نامش|برای|مشتری(?:\s+جدید)?\s+به\s+نام|مشتری(?:\s+جدید)?\s+به\s+اسم)\s*([آ-یءئؤإأ‌\-]{2,30}(?:\s+[آ-یءئؤإأ‌\-]{2,30}){0,2})/u);
-        if (nameMatch) {
-          const nameParts = [];
-          for (const word of nameMatch[1].trim().split(/\s+/u)) {
-            if (stop.test(word)) break;
-            nameParts.push(word);
-          }
-          name = nameParts.join(' ');
-        }
+      name = name.replace(/^(?:مشتری(?:\s+جدید)?|پرونده(?:\s+جدید)?|به\s+نام|به\s+اسم)\s*/u, '')
+        .replace(/\s*(?:توی|تو|در|داخل)\s+(?:قسمت|بخش).*$/u, '')
+        .replace(/\s*(?:ثبت|اضافه|افزودن|وارد|بساز|ایجاد)\s*(?:کن|کنش)?\s*$/u, '')
+        .replace(/[،,:؛.!؟]+$/u, '').replace(/\s+/gu, ' ').trim();
+      if (!name || /^(?:مشتری|مشتریان|پرونده|جدید|اسم|نام|شماره|تلفن)$/u.test(name)) {
+        if (phone) return 'شماره رو گرفتم عزیزم؛ اسم و فامیل یا نامی که مشتری رو باهاش می‌شناسی بگو تا به پرونده درست وصلش کنم. 💗';
+        return addIntent && customerIntent ? 'حتماً عزیزم؛ اسم و فامیل مشتری رو بگو تا پرونده‌اش رو بسازم. تاریخ نوبت لازم نیست. 💗' : null;
       }
-      if (!name) {
-        const prefixWords = before.replace(/(?:این\s+)?شماره(?:\s+تلفن)?/gu, ' ')
-          .replace(/(?:مشتری(?:\s+جدید)?|پرونده|اضافه|افزودن|ثبت|کن|کنش|برو|توی|تو|قسمت|بخش|مشتریان|مشتری|مال|برای|به|اسم|نام)/gu, ' ')
-          .trim().split(/\s+/u).filter(word => /^[آ-یءئؤإأ‌\-]{2,30}$/u.test(word) && !stop.test(word));
-        if (prefixWords.length) name = prefixWords.slice(-2).join(' ');
-      }
-      if (!name || stop.test(name)) return 'شماره رو گرفتم عزیزم؛ اسم مشتری رو هم بگو تا پرونده‌اش رو بدون نیاز به تاریخ بسازم. 💗';
-
-      const cleanName = name.trim().replace(/\s+/gu, ' ');
+      if (name.length > 60 || /(?:امروز|فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|ساعت\s*\d)/u.test(name)) return null;
+      const cleanName = name;
       const normalizeDigits = value => String(value || '').replace(/[۰-۹]/g, ch => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(ch))).replace(/[٠-٩]/g, ch => String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch))).replace(/\D/g, '');
       const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fa');
       const profiles = appData.clientProfiles || (appData.clientProfiles = {});
       let existing = phone ? Object.entries(profiles).find(([key, profile]) =>
         normalizeDigits((profile && profile.phone) || (/^[0-9۰-۹٠-٩+() -]+$/u.test(key) ? key : '')) === phone
       ) : null;
-      if (!existing) {
-        existing = Object.entries(profiles).find(([key, profile]) =>
-          normalizeName((profile && profile.name) || key) === normalizeName(cleanName)
-        );
-      }
-
+      if (!existing) existing = Object.entries(profiles).find(([key, profile]) =>
+        normalizeName((profile && profile.name) || key) === normalizeName(cleanName)
+      );
       let key;
       let updated = false;
       if (existing) {
         key = existing[0];
         const profile = getClientProfile(key);
-        if (profile.name !== cleanName || (phone && normalizeDigits(profile.phone || '') !== phone)) updated = true;
+        updated = profile.name !== cleanName || (!!phone && normalizeDigits(profile.phone || '') !== phone);
         profile.name = cleanName;
         if (phone) profile.phone = phone;
       } else {
@@ -6229,8 +6225,13 @@
       if (typeof renderClientsTab === 'function') renderClientsTab();
       if (typeof switchTab === 'function') switchTab('clients');
       if (typeof openClientRecord === 'function') openClientRecord(key);
-      return (existing ? (updated ? 'پرونده قبلی مشتری رو با شماره جدید تکمیل و به‌روزرسانی کردم' : 'این مشتری از قبل ثبت شده بود و پرونده تکراری نساختم') : 'پرونده مشتری جدید رو با موفقیت در بخش مشتریان ساختم') +
-        ' ✅\n👤 نام: ' + cleanName + (phone ? '\n📞 شماره: ' + phone : '\n📞 شماره تماس: ثبت نشده') + '\n📅 هیچ تاریخ یا نوبتی ثبت نکردم؛ هر وقت خواستی جداگانه نوبت می‌ذاریم. 💗';
+      const actionText = phoneAssignmentIntent && !addIntent && !customerIntent
+        ? 'شماره تلفن رو به پرونده مشتری وصل کردم'
+        : existing ? (updated ? 'پرونده قبلی مشتری رو به‌روزرسانی کردم' : 'این مشتری از قبل ثبت شده بود و پرونده تکراری نساختم')
+        : 'پرونده مشتری جدید رو با موفقیت در بخش مشتریان ساختم';
+      return actionText + ' ✅\n👤 نام: ' + cleanName +
+        (phone ? '\n📞 شماره: ' + phone : '\n📞 شماره تماس: ثبت نشده') +
+        '\n📅 هیچ تاریخ یا نوبتی ثبت نکردم؛ هر وقت خواستی جداگانه نوبت می‌ذاریم. 💗';
     }
 
     async function sendMinaMessage() {
@@ -7099,6 +7100,10 @@
     }
     const minaBuildReplyBeforeReschedule = minaBuildReply;
     minaBuildReply = function(raw) {
+      const historyDeleteText = minaCleanText(minaNormalizeDigits(String(raw || ''))).toLocaleLowerCase('fa');
+      if (/(?:حذف|پاک|بردار).*(?:تاریخچه|سابقه|سوابق)|(?:تاریخچه|سابقه|سوابق).*(?:حذف|پاک|بردار)/u.test(historyDeleteText)) {
+        return 'تاریخچه خدمات مشتری‌ها رو من حذف نمی‌کنم عزیزم 💗 فقط خودت می‌تونی از داخل پرونده مشتری، سابقه موردنظرت رو با دکمه حذف پاک کنی؛ سوابق بقیه مشتری‌ها دست‌نخورده می‌مونه.';
+      }
       const lookupReply = minaTryLookupAppointment(raw);
       if (lookupReply) return lookupReply;
       const manageReply = minaTryManageAppointment(raw);
