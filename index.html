@@ -6880,18 +6880,45 @@
       } catch (e) { if (manual) showToast('بررسی آپدیت نیازمند اینترنت است 🌐'); }
     }
 
+    let nativeContentUpdateResult=null;
+    let nativeApkUpdateResult=null;
+    function finishNativeUpdateCheckIfReady(){
+      if(nativeContentUpdateResult===null||nativeApkUpdateResult===null)return;
+      const button=document.querySelector('.header-actions button[title="بررسی و دریافت آخرین نسخه"]');
+      if(button){button.disabled=false;button.textContent='🔄 بروزرسانی';}
+      if(nativeContentUpdateResult==='error'||nativeApkUpdateResult==='error'){
+        showToast('بخشی از بررسی بروزرسانی ناموفق بود؛ وضعیت کامل نسخه قابل تأیید نیست.');
+      }else if(nativeApkUpdateResult==='available'){
+        showToast('بروزرسانی داخلی بررسی شد؛ نسخه جدید APK هم دانلود و آماده نصب است.');
+      }else if(nativeContentUpdateResult==='updated'){
+        showToast('بروزرسانی داخلی با موفقیت دریافت و اعمال شد؛ نسخه APK هم بررسی شد ✅');
+      }else{
+        showToast('بررسی آنلاین کامل شد؛ محتوای داخلی و نسخه نصب اپ به‌روز هستند ✅');
+      }
+    }
+    window.onNativeContentCheckResult=function(result){
+      nativeContentUpdateResult=result;
+      finishNativeUpdateCheckIfReady();
+    };
+    window.onNativeUpdateCheckResult=function(result){
+      nativeApkUpdateResult=result;
+      finishNativeUpdateCheckIfReady();
+    };
     async function checkAllAppUpdates(){
       const button=document.querySelector('.header-actions button[title="بررسی و دریافت آخرین نسخه"]');
       if(button){button.disabled=true;button.textContent='⏳ بررسی آنلاین...';}
       const isAndroid=!!(window.AndroidApp&&(typeof window.AndroidApp.checkForUpdates==='function'||typeof window.AndroidApp.updateApp==='function'));
       try{
-        // Flush all current edits before a native refresh can reload the WebView.
         try{persistAppDataOnExit();}catch(e){}
         if(isAndroid){
+          nativeContentUpdateResult=null;
+          nativeApkUpdateResult=null;
           if(typeof window.AndroidApp.checkForUpdates==='function')window.AndroidApp.checkForUpdates();
-          else checkNativeContentUpdate(true);
-          showToast('درخواست بررسی آنلاین ارسال شد؛ تا دریافت نتیجه صبر کن.');
-          // The native bridge restores the button only after GitHub has been checked.
+          else{
+            nativeContentUpdateResult='error';
+            checkNativeContentUpdate(true);
+          }
+          showToast('محتوای داخلی و نسخه نصب اپ در حال بررسی آنلاین هستند…');
           return;
         }else{
           await checkForAppUpdate(true);
@@ -6902,14 +6929,6 @@
         if(!isAndroid && button){button.disabled=false;button.textContent='🔄 بروزرسانی';}
       }
     }
-    window.onNativeUpdateCheckResult=function(result){
-      const button=document.querySelector('.header-actions button[title="بررسی و دریافت آخرین نسخه"]');
-      if(button){button.disabled=false;button.textContent='🔄 بروزرسانی';}
-      if(result==='latest')showToast('بررسی آنلاین کامل شد؛ اپ روی آخرین نسخه است ✅');
-      else if(result==='available')showToast('نسخه جدید پیدا و دانلود شد؛ تأیید نصب را انجام بده.');
-      else showToast('نتیجه بررسی قابل تأیید نیست؛ دوباره تلاش کن.');
-    };
-
     function checkNativeContentUpdate(manual = false) {
       // Android APK content update; manual checks bypass the startup throttle.
       try {
