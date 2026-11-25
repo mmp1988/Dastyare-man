@@ -5829,15 +5829,16 @@
 
     function minaIsClearlyLocalAction(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      const hasSalonRecord = /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|رنگ مو|شماره تماس|تلفن)/u.test(text);
-      const hasMutation = /(?:ثبت|رزرو کن|ایجاد|اضافه|افزودن|وارد کن|ذخیره|ویرایش|تغییر|عوض|جابجا|جابه‌جا|جابه\s*جا|جا\s*به\s*جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید|انجام شد|یادآوری|یادم بنداز|نوبت\s+بده)/u.test(text) || /(?:نوبتشو|نوبت\s*ش\s*رو|نوبتش\s*رو|نوبت\s*رو)\s*(?:بکن|بسه|بذار|بزار)|(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:(?:رو|را)\s*)?(?:بکن|بسه|بذار|بزار|بده)/u.test(text);
+      const hasSalonRecord = /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|رنگ مو|شماره تماس|تلفن|یادآوری|یاداور|هشدار|آلارم|زنگ\s*هشدار)/u.test(text);
+      const hasMutation = /(?:ثبت|رزرو کن|ایجاد|اضافه|افزودن|وارد کن|ذخیره|ویرایش|تغییر|عوض|جابجا|جابه‌جا|جابه\s*جا|جا\s*به\s*جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید|انجام شد|یادآوری|یادم بنداز|آلارم|هشدار|زنگ\s*هشدار|بذار|بزار|نوبت\s+بده)/u.test(text) || /(?:نوبتشو|نوبت\s*ش\s*رو|نوبتش\s*رو|نوبت\s*رو)\s*(?:بکن|بسه|بذار|بزار)|(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:(?:رو|را)\s*)?(?:بکن|بسه|بذار|بزار|بده)/u.test(text);
       const hasLookup = /(?:نمایش بده|نشون بده|لیست کن|فهرست|برنامه.*بگو|چند تا|چندتا|چه کسانی|کدوم مشتری|آخرین نوبت|نوبت بعدی|سوابق|پرونده.*باز کن)/u.test(text);
       const implicitCompleteBooking = /(?:فردا|امروز|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text) &&
         /\d|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|عصر|شب)?/u.test(text) &&
         /(?:برای|واسه)/u.test(text) && /(?:مژه|ابرو|ناخن|مو|لیفت|کاشت|ترمیم|فیشیال|پاکسازی|شینیون|کراتین)/u.test(text);
       // A pending local workflow accepts only a short, relevant answer.
       return (hasSalonRecord && (hasMutation || hasLookup || implicitCompleteBooking)) ||
-        minaIsPendingSalonFollowUp(message);
+        minaIsPendingSalonFollowUp(message) ||
+        (typeof minaPendingPersonalReminder !== 'undefined' && !!minaPendingPersonalReminder);
     }
 
     async function minaUnderstandLocalCommand(message) {
@@ -5985,7 +5986,7 @@
 
     function minaHasSalonDomainAnchor(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa').replace(/[يى]/g, 'ی');
-      return /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|سایت|اپلیکیشن|امکانات|قابلیت|راهنما|تنظیمات|شخصی.?سازی|ظاهر|فونت|گزارش|آمار|پشتیبان|بکاپ|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
+      return /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|سایت|اپلیکیشن|امکانات|قابلیت|راهنما|تنظیمات|شخصی.?سازی|ظاهر|فونت|گزارش|آمار|پشتیبان|بکاپ|یادآوری|یاداور|یادم بنداز|هشدار|آلارم|زنگ\s*هشدار|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
     }
 
     function minaIsPendingSalonFollowUp(message) {
@@ -6022,7 +6023,7 @@
 
     function minaIsSalonScopeRequest(message) {
       // Date/time questions are useful built-in assistant abilities, answered from the device clock.
-      return minaIsDateTimeQuestion(message) || minaHasSalonDomainAnchor(message) || minaIsPendingSalonFollowUp(message);
+      return minaIsDateTimeQuestion(message) || minaHasSalonDomainAnchor(message) || minaIsPendingSalonFollowUp(message) || (typeof minaPendingPersonalReminder !== 'undefined' && !!minaPendingPersonalReminder);
     }
 
     function minaExtractSalonOnlyMessage(message) {
