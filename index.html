@@ -7581,8 +7581,17 @@
         const parts = source.split(/\s+بعدش\s+(?=(?:ساعت\s*)?(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)(?=\s|[:٫.]|$))/u).map(x => x.trim()).filter(Boolean);
         if (parts.length > 1 && parts.every(part => !!minaParsePersonalReminderClock(part))) {
           const dateHint = source.match(/پس\s*فردا|پسفردا|فردا|امروز|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه|(?:1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2})|(?:\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند))/u)?.[0] || '';
-          const results = parts.map(part => {
-            const clause = (dateHint && !/(?:فردا|امروز|پس\s*فردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه|1[2345]\d{2}[\/.-]|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند))/u.test(part) ? dateHint + ' ' : '') + part + ' یادآوری کن';
+          const results = parts.map((part, index) => {
+            let timedPart = part;
+            const previousClock = index > 0 ? minaParsePersonalReminderClock(parts[index - 1]) : null;
+            const currentClock = minaParsePersonalReminderClock(part);
+            const hasExplicitPeriod = /صبح|ظهر|بعدازظهر|عصر|شب/u.test(part);
+            // If a later stop follows an explicitly evening time, infer evening for
+            // an unqualified 1–11 o'clock time (e.g. 7 PM, then 9).
+            if (previousClock && currentClock && !hasExplicitPeriod &&
+                Number(previousClock.slice(0, 2)) >= 12 && Number(currentClock.slice(0, 2)) >= 1 &&
+                Number(currentClock.slice(0, 2)) <= 11) timedPart += ' شب';
+            const clause = (dateHint && !/(?:فردا|امروز|پس\s*فردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه|1[2345]\d{2}[\/.-]|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند))/u.test(timedPart) ? dateHint + ' ' : '') + timedPart + ' یادآوری کن';
             return minaTrySetPersonalReminder(clause, true);
           });
           if (results.every(Boolean)) return results.join('\n\n');
