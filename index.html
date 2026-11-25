@@ -5959,6 +5959,13 @@
             ? safe.restore(data.command.trim())
             : null;
         }
+        if (mode === 'route' && data.route && typeof data.route === 'object') {
+          return {
+            type: data.route.type === 'action' ? 'action' : 'reply',
+            command: safe.restore(String(data.route.command || '')),
+            reply: safe.restore(String(data.route.reply || ''))
+          };
+        }
         return typeof data.reply === 'string' && data.reply.trim() ? safe.restore(data.reply.trim()) : null;
       } catch (error) {
         if (navigator.onLine) {
