@@ -4043,6 +4043,7 @@
       saveData();
     }
     function openClientRecord(key) {
+      minaConversationContextClientKey = key;
       migrateLegacyClientAppointmentKinds(key);
       const appointments = getClientAppointments(key, true);
       const last = appointments[appointments.length - 1] || {};
@@ -6717,7 +6718,10 @@
           return role + ': ' + (bubble ? bubble.textContent : '');
         }).join('\n') : '';
         const customerMemory = minaBuildCustomerMemoryContext(message);
-        const cloudContext = ((recent || message) + (customerMemory ? '\n\n' + customerMemory : '')).slice(-9000);
+        // The Worker accepts up to 4,000 characters per message; keep both recent turns and
+        // the selected customer's local memory inside that limit.
+        const cloudContext = (String(recent || message).slice(-1700) +
+          (customerMemory ? '\n\n' + customerMemory.slice(-1700) : '')).slice(-3600);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
         if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
