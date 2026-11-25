@@ -6738,6 +6738,8 @@
         } else if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
+          // A cloud clarification/rejection for an operation must never fall through to a local mutation.
+          if (minaIsClearlyLocalAction(message)) cloudOperationBlocked = true;
           reply = cloudResult.reply;
         }
       }
