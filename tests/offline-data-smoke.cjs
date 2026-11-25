@@ -35,7 +35,7 @@ const assert = require('assert');
     const minaHybridRoutingQA = await page.evaluate(async () => {
       const previousProfiles = appData.clientProfiles;
       appData.clientProfiles = { 'qa-client': { name:'سارا محمدی', phone:'09123456789', records:[] } };
-      const safe = minaBuildCloudSafeCommand('برای سارا محمدی فردا ساعت ۱۵:۴۳ نوبت کاشت ناخن ثبت کن');
+      const safe = minaBuildCloudSafeCommand('برای سارا محمدی فردا ساعت ۱۵:۴۳ نوبت کاشت ناخن ثبت کن، شماره تماس 09123456789');
       const privateDataHidden = !safe.message.includes('سارا') && !safe.message.includes('09123456789') &&
         safe.message.includes('[CLIENT_1]') && safe.message.includes('[PHONE_1]');
       const restored = safe.restore(safe.message);
