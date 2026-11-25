@@ -7144,7 +7144,7 @@
             baseKey=year+'-'+pad2(month)+'-'+pad2(day);
             // A month/day without a year in a clearly past-visit sentence belongs to
             // the previous Jalali year when that date has not happened yet this year.
-            if (!explicit[3] && /(?:قبلی|گذشته|مراجعه\s*کرده|اومده|آمده|بوده)/u.test(text) && baseKey>today) {
+            if (!explicit[3] && /(?:قبلی|گذشته|مراجعه\s*کرده|اومده|آمده|بوده|کار\s*انجام\s*دادم|خدمت\s*انجام\s*دادم|براش\s*کار\s*کردم)/u.test(text) && baseKey>today) {
               year--; if(day<=jalaliMonthDays(year,month)) baseKey=year+'-'+pad2(month)+'-'+pad2(day);
             }
           }
