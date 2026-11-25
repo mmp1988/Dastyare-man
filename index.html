@@ -6479,6 +6479,11 @@
         return;
       }
 
+      const customerHistoryReply = minaAnswerCustomerHistory(message);
+      if (customerHistoryReply) {
+        addMinaMessage(minaFormatReplyForMode(customerHistoryReply), 'assistant');
+        return;
+      }
       // Customer visit-date arithmetic is deterministic and reads only saved local history.
       const customerDateCalculationReply = minaTryCalculateCustomerDate(message);
       if (customerDateCalculationReply) {
@@ -7114,6 +7119,62 @@
       presentAppointmentAlarm(appt,'یادآوری مینا 💗');
     }
     let minaPendingPersonalReminder = null;
+    function minaAnswerCustomerHistory(raw) {
+      const t=minaCleanText(minaNormalizePersianTypos(minaNormalizeDigits(String(raw||''))))
+        .replace(/[يى]/g,'ی').toLocaleLowerCase('fa');
+      const asksHistory=/(?:آخرین\s*بار|آخرین\s*مراجعه|کی\s*اومد|کی\s*آمد|چند\s*روز.*(?:گذشته|شده)|چقدر.*(?:گذشته|شده)|موعد\s*ترمیم|ترمیمش\s*کی|کی.*ترمیم)/u.test(t);
+      if(!asksHistory) return null;
+      const profiles=appData.clientProfiles||{};
+      const candidates=[];
+      Object.entries(profiles).forEach(([key,p])=>{
+        const name=String(p&&p.name||key).trim();
+        if(name.length>1)candidates.push({key,name,aliases:Array.isArray(p&&p.aliases)?p.aliases:[]});
+      });
+      (appData.appointments||[]).forEach(a=>{
+        const name=String(a&&a.clientName||'').trim();
+        if(name.length>1&&!candidates.some(x=>x.name.toLocaleLowerCase('fa')===name.toLocaleLowerCase('fa')))
+          candidates.push({key:'',name,aliases:[]});
+      });
+      const matched=candidates.filter(x=>[x.name,...x.aliases].some(n=>n&&t.includes(String(n).toLocaleLowerCase('fa'))))
+        .sort((a,b)=>b.name.length-a.name.length);
+      if(!matched.length) return null;
+      if(matched.length>1&&matched[0].name.length===matched[1].name.length&&matched[0].name!==matched[1].name)
+        return 'چند مشتری با این اسم یا توضیح پیدا کردم؛ لطفاً اسم کامل سارا رو بگو تا پرونده اشتباهی رو بررسی نکنم 💗';
+      const client=matched[0], items=[];
+      if(client.key){
+        const p=profiles[client.key]||{};
+        (p.records||[]).forEach(r=>{if(r&&r.dateKey)items.push({dateKey:r.dateKey,time:r.time||'',service:r.service||'خدمت ثبت‌شده',type:r.appointmentType||'',id:r.id||''});});
+        (appData.appointments||[]).filter(a=>clientMatchesAppointment(client.key,a)&&a.status==='done'&&a.dateKey)
+          .forEach(a=>items.push({dateKey:a.dateKey,time:a.time||'',service:a.service||'خدمت ثبت‌شده',type:a.appointmentType||'',id:'done_'+a.id}));
+      } else {
+        (appData.appointments||[]).filter(a=>a&&a.status==='done'&&a.dateKey&&String(a.clientName||'').toLocaleLowerCase('fa')===client.name.toLocaleLowerCase('fa'))
+          .forEach(a=>items.push({dateKey:a.dateKey,time:a.time||'',service:a.service||'خدمت ثبت‌شده',type:a.appointmentType||'',id:a.id||''}));
+      }
+      const today=getTodayKey();
+      const valid=items.filter(x=>/^1[2345]\d{2}-\d{2}-\d{2}$/.test(x.dateKey)&&x.dateKey<=today)
+        .sort((a,b)=>(b.dateKey+b.time).localeCompare(a.dateKey+a.time));
+      const unique=valid.filter((x,i)=>valid.findIndex(y=>y.dateKey===x.dateKey&&y.time===x.time&&y.service===x.service)===i);
+      if(!unique.length) return 'پرونده '+client.name+' پیدا شد، اما هنوز مراجعه تکمیل‌شده‌ای با تاریخ معتبر در تاریخچه‌اش ثبت نشده؛ اول تاریخ مراجعه انجام‌شده رو در پرونده ثبت کن تا دقیق حساب کنم 💗';
+      const latest=unique[0];
+      const [ty,tm,td]=today.split('-').map(Number),[vy,vm,vd]=latest.dateKey.split('-').map(Number);
+      const [tgy,tgm,tgd]=jalaliToGregorian(ty,tm,td),[vgy,vgm,vgd]=jalaliToGregorian(vy,vm,vd);
+      const elapsed=Math.round((Date.UTC(tgy,tgm-1,tgd)-Date.UTC(vgy,vgm-1,vgd))/86400000);
+      let answer='📁 سوابق مشتری '+client.name+' 🌸\nآخرین مراجعه ثبت‌شده: '+formatJalaliFull(latest.dateKey)+
+        '\nخدمت: '+latest.service+'\n'+(elapsed===0?'مراجعه امروز انجام شده.':' '+toPersianDigits(String(elapsed))+' روز از آخرین مراجعه گذشته است.');
+      if(/(?:موعد\s*ترمیم|ترمیمش\s*کی|کی.*ترمیم)/u.test(t)){
+        const configured=Number(appData.settings&&appData.settings.repairReminderDays);
+        if(Number.isInteger(configured)&&configured>0&&appData.settings.repairReminderEnabled!==false){
+          const due=addDaysToJalaliKey(latest.dateKey,configured);
+          answer+='\nموعد محاسبه‌شده بر اساس فاصله '+toPersianDigits(String(configured))+' روزه تنظیم‌شده در یادآوری برنامه: '+formatJalaliFull(due)+
+            '\nتوجه: این فاصله، تنظیم هشدار برنامه است و لزوماً چرخه تخصصی ترمیم این خدمت نیست.';
+        } else {
+          answer+='\nبرای اعلام موعد ترمیم، فاصله ترمیم مشخصی در تنظیمات برنامه ثبت نشده؛ نمی‌خوام زمانش رو حدس بزنم. چند روز بعد از این خدمت باید برای ترمیم پیگیری کنی؟';
+        }
+      }
+      answer+='\nاین پاسخ فقط از تاریخچه ثبت‌شده پرونده استفاده می‌کند؛ هیچ نوبت یا یادآوری‌ای ایجاد یا تغییر نکرده است 💗';
+      return answer;
+    }
+
     function minaTryCalculateCustomerDate(raw) {
       const text = minaCleanText(minaNormalizePersianTypos(minaNormalizeDigits(String(raw || ''))))
         .replace(/[يى]/g, 'ی').toLocaleLowerCase('fa');
