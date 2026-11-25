@@ -5237,32 +5237,44 @@
       return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
     }
     function minaTransliterateFinglish(value) {
-      // Offline, conservative Finglish word map. Unknown words (especially names) stay untouched.
+      // Offline Finglish + common chat abbreviations. Ambiguous short forms are deliberately not guessed.
       const words = {
-        salam:'سلام', slm:'سلام', dorood:'درود', khobi:'خوبی', khoobi:'خوبی', mina:'مینا',
-        chetori:'چطوری', chetory:'چطوری', merci:'مرسی', mamnoon:'ممنون', mamnun:'ممنون',
-        baraye:'برای', bara:'برای', vase:'برای', vas:'برای', farda:'فردا', emrooz:'امروز',
-        emruz:'امروز', diruz:'دیروز', pasfarda:'پس فردا', pasfard:'پس فردا',
-        saat:'ساعت', daghighe:'دقیقه', daghigheh:'دقیقه', daghighee:'دقیقه',
+        salam:'سلام', slm:'سلام', sllm:'سلام', dorood:'درود',
+        khobi:'خوبی', khoobi:'خوبی', khbi:'خوبی', khoby:'خوبی',
+        chetori:'چطوری', chetory:'چطوری', chtori:'چطوری', chtory:'چطوری',
+        merci:'مرسی', mamnoon:'ممنون', mamnun:'ممنون', mrc:'مرسی',
+        baraye:'برای', bara:'برای', bray:'برای', vase:'برای', vas:'برای',
+        farda:'فردا', fda:'فردا', emrooz:'امروز', emruz:'امروز', emrz:'امروز',
+        diruz:'دیروز', pasfarda:'پس فردا', pasfard:'پس فردا',
+        saat:'ساعت', sa'at:'ساعت', s3at:'ساعت', saatam:'ساعتم',
+        daghighe:'دقیقه', daghigheh:'دقیقه', daghighee:'دقیقه',
         sobh:'صبح', zohr:'ظهر', badazzohr:'بعدازظهر', asr:'عصر', shab:'شب',
-        nobat:'نوبت', nobate:'نوبت', nobatam:'نوبتم', rezerv:'رزرو', reserve:'رزرو',
-        sabt:'ثبت', bezar:'بذار', bezare:'بذار', bezarin:'بذار', bezarid:'بذار',
-        bezaram:'بذارم', kon:'کن', kone:'کنه', konid:'کنید', bede:'بده',
-        bedesh:'بدهش', begir:'بگیر', avaz:'عوض', taghir:'تغییر', taghyir:'تغییر',
-        hazf:'حذف', pak:'پاک', cancel:'لغو', cansel:'لغو', laghv:'لغو',
-        jabeja:'جابه‌جا', enteghal:'انتقال', moshtari:'مشتری', moshtarie:'مشتری',
+        nobat:'نوبت', nobate:'نوبت', nobatam:'نوبتم', nobt:'نوبت', nbt:'نوبت',
+        rezerv:'رزرو', reserve:'رزرو', sabt:'ثبت', sbt:'ثبت',
+        bezar:'بذار', bezare:'بذار', bezarin:'بذار', bezarid:'بذار',
+        bzar:'بذار', bzarid:'بذار', bezaram:'بذارم',
+        kon:'کن', kone:'کنه', konid:'کنید', kn:'کن', bede:'بده',
+        bedesh:'بدهش', begir:'بگیر', avaz:'عوض', avz:'عوض',
+        taghir:'تغییر', taghyir:'تغییر', tghir:'تغییر',
+        hazf:'حذف', hzf:'حذف', pak:'پاک', pk:'پاک',
+        cancel:'لغو', cansel:'لغو', cnsl:'لغو', laghv:'لغو', lghv:'لغو',
+        jabeja:'جابه‌جا', jabejaei:'جابه‌جایی', enteghal:'انتقال',
+        moshtari:'مشتری', moshtarie:'مشتری', moshteri:'مشتری',
         klient:'مشتری', client:'مشتری', khadamat:'خدمات', khedmat:'خدمت',
-        salon:'سالن', arayesh:'آرایش', mozh:'مژه', mozhe:'مژه', abroo:'ابرو',
-        abru:'ابرو', nakhon:'ناخن', lift:'لیفت', kasht:'کاشت', tarim:'ترمیم',
-        classic:'کلاسیک', matn:'متن', matne:'متن', payam:'پیام', payame:'پیام',
-        tabrik:'تبریک', takhfif:'تخفیف', tabligh:'تبلیغ', caption:'کپشن',
-        story:'استوری', benevis:'بنویس', benevisid:'بنویسید', ide:'ایده',
-        rahnama:'راهنما', baram:'برام', lotfan:'لطفاً', mishe:'میشه',
-        misheh:'میشه', mikham:'می‌خوام', mikhaham:'می‌خواهم',
+        salon:'سالن', arayesh:'آرایش', mozh:'مژه', mozhe:'مژه',
+        abroo:'ابرو', abru:'ابرو', nakhon:'ناخن', lift:'لیفت',
+        kasht:'کاشت', tarim:'ترمیم', classic:'کلاسیک',
+        matn:'متن', mtn:'متن', matne:'متن', payam:'پیام', pym:'پیام',
+        tabrik:'تبریک', tbrik:'تبریک', takhfif:'تخفیف', tkhfif:'تخفیف',
+        tabligh:'تبلیغ', tbligh:'تبلیغ', caption:'کپشن', story:'استوری',
+        benevis:'بنویس', benevisid:'بنویسید', benevisam:'بنویسم',
+        ide:'ایده', rahnama:'راهنما', baram:'برام', lotfan:'لطفاً',
+        mishe:'میشه', misheh:'میشه', mikham:'می‌خوام', mikhaham:'می‌خواهم',
         ro:'رو', ra:'را', va:'و', ye:'یک', yek:'یک', age:'اگه',
-        alan:'الان', che:'چه', chi:'چی', hast:'هست', hastam:'هستم'
+        alan:'الان', che:'چه', chi:'چی', hast:'هست', hastam:'هستم',
+        man:'من', to:'تو', ham:'هم', rooz:'روز', saatash:'ساعتش'
       };
-      return String(value || '').replace(/[A-Za-z]+/g, token => words[token.toLowerCase()] || token);
+      return String(value || '').replace(/[A-Za-z][A-Za-z0-9']*/g, token => words[token.toLowerCase()] || token);
     }
 
     function minaNormalizePersianTypos(value) {
@@ -5839,8 +5851,10 @@
       input.value = '';
 
       // Friendly greetings are handled locally and do not consume AI quota.
-      const normalizedForGreeting = minaNormalizePersianTypos(message).toLocaleLowerCase('fa');
-      if (/^(?:خوبی|چطوری|سلام خوبی|سلام چطوری|درود|صبح بخیر|عصر بخیر|سلام)$/u.test(normalizedForGreeting)) {
+      const greetingSource = minaTransliterateFinglish(message);
+      const normalizedForGreeting = minaNormalizePersianTypos(greetingSource).toLocaleLowerCase('fa');
+      const greetingRaw = String(greetingSource).replace(/[؟?!،,.]/g, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fa');
+      if (/^(?:خوبی|چطوری|سلام خوبی|سلام چطوری|درود|صبح بخیر|عصر بخیر|سلام)$/u.test(normalizedForGreeting) || /^(?:سلام|درود|صبح بخیر|عصر بخیر)$/u.test(greetingRaw)) {
         addMinaMessage('سلام عزیزم 🌸 من مینا هستم؛ برای نوبت‌ها، مشتری‌ها و کارهای سالن در خدمتم. بگو چه کاری برات انجام بدم؟', 'assistant');
         return;
       }
