@@ -5821,7 +5821,7 @@
             if (candidate && candidate.length <= 80) service = candidate;
           }
         }
-        const nameMatches = Array.from(t.matchAll(/(?:برای|واسه)\s+(.+?)(?=\s+(?:برای|ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت|فیکس|نگه|جورش|اوکی|هماهنگ|اختصاص|تعیین|ردیف|بچین|کوتاهی|اصلاح|رنگ|مش|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین|بوتاکس|پروتئین|احیا|شینیون|براشینگ|سشوار|بافت|اکستنشن|فر|صافی|کاشت|لیفت|لمینت|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|ژلیش|مانیکور|پدیکور|طراحی|فیشیال|پاکسازی|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|میکاپ|گریم|کلاسیک|والیوم|ترمیم)|$)/g));
+        const nameMatches = Array.from(t.matchAll(/(?:برای|واسه|به)\s+(.+?)(?=\s+(?:برای|ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت|بده|فیکس|نگه|جورش|اوکی|هماهنگ|اختصاص|تعیین|ردیف|بچین|کوتاهی|اصلاح|رنگ|مش|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین|بوتاکس|پروتئین|احیا|شینیون|براشینگ|سشوار|بافت|اکستنشن|فر|صافی|کاشت|لیفت|لمینت|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|ژلیش|مانیکور|پدیکور|طراحی|فیشیال|پاکسازی|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|میکاپ|گریم|کلاسیک|والیوم|ترمیم)|$)/g));
         const clientCandidates = nameMatches.map(m => m[1].trim()).filter(name =>
           name && !/^(?:امروز|فردا|پس|پس\s*فردا|صبح|ظهر|بعدازظهر|عصر|شب|ساعت|ساعتش|نوبت|رزرو|وقت)$/u.test(name) &&
           !/(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|ساعت|بعدازظهر|بعد\s*از\s*ظهر|صبح|ظهر|عصر|شب)/u.test(name) &&
@@ -6502,7 +6502,20 @@
         return;
       }
 
-      // Cloud AI routes every other natural-language message exactly once: conversation vs. a real app operation.
+      // Explicit complete appointment bookings are executed locally before cloud chat routing.
+      // A cloud conversational reply must never override a concrete booking command or claim that Mina
+      // lacks access to the calendar. The local executor validates the slot and persists the record.
+      const directBookingIntent = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
+        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
+        /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
+        /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
+      if (directBookingIntent) {
+        const bookingReply = minaBuildReply(message);
+        addMinaMessage(minaFormatReplyForMode(bookingReply), 'assistant');
+        return;
+      }
+
+      // Cloud AI routes other natural-language messages: conversation vs. a real app operation.
       // The model sees recent turns for references like «همونو»، «براش» and «مثل قبلی».
       let reply = null;
       let routedCommand = null;
