@@ -3075,6 +3075,7 @@
 
     function clearAllUserEntries() {
       if (!confirm('همه نوبت‌ها، یادداشت‌ها و چک‌لیست پاک شوند؟ اطلاعات پرونده مشتریان و نسخه‌های پشتیبان جداگانه باقی می‌مانند.')) return;
+      (appData.appointments || []).forEach(a => cancelAutomaticRepairReminder(a.id));
       appData.appointments = [];
       appData.notes = [];
       appData.todos = [];
@@ -6601,7 +6602,7 @@
         entries.forEach(([,profile]) => {
           if (typeof deleteClientPhotoRefs === 'function') Promise.resolve(deleteClientPhotoRefs(profile)).catch(()=>{});
         });
-        (appData.appointments || []).filter(a => (a?.clientId && clientIds.has(String(a.clientId))) || keys.has(String(clientKeyFromFields(a?.phone,a?.clientName)||'')) || names.has(normalize(a?.clientName)) || (String(a?.phone||'').replace(/\\D/g,'') && phones.has(String(a?.phone||'').replace(/\\D/g,'')))).forEach(a => cancelAutomaticRepairReminder(a.id));
+        (appData.appointments || []).filter(a => (a?.clientId && clientIds.has(String(a.clientId))) || keys.has(String(clientKeyFromFields(a?.phone,a?.clientName)||'')) || names.has(normalize(a?.clientName)) || (String(a?.phone||'').replace(/\D/g,'') && phones.has(String(a?.phone||'').replace(/\D/g,'')))).forEach(a => cancelAutomaticRepairReminder(a.id));
         appData.appointments = (appData.appointments || []).filter(a => {
           if (a?.clientId && clientIds.has(String(a.clientId))) return false;
           const apptKey = String(clientKeyFromFields(a?.phone, a?.clientName) || '');
@@ -6640,6 +6641,8 @@
         if (typeof deleteClientPhotoRefs === 'function') Promise.resolve(deleteClientPhotoRefs(profile)).catch(()=>{});
         delete profiles[key];
         if (appData.clientNotes) delete appData.clientNotes[key];
+        const removedAppointments = (appData.appointments || []).filter(a => clientMatchesAppointment(key,a) || clientKeyFromFields(a.phone,a.clientName)===key);
+        removedAppointments.forEach(a => cancelAutomaticRepairReminder(a.id));
         appData.appointments = (appData.appointments || []).filter(a => !clientMatchesAppointment(key,a) && clientKeyFromFields(a.phone,a.clientName)!==key);
         if (typeof minaLastReferencedAppointmentId !== 'undefined' && minaLastReferencedAppointmentId) {
           if (!(appData.appointments || []).some(a=>a.id===minaLastReferencedAppointmentId)) minaLastReferencedAppointmentId=null;
