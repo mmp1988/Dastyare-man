@@ -1649,16 +1649,6 @@
             <button type="button" class="btn-primary" style="width:100%;margin-top:8px;" onclick="saveClientBirthday()">💾 ذخیره تاریخ تولد</button>
             <button type="button" class="btn-secondary" style="width:100%;margin-top:7px;" onclick="deleteClientBirthday()">🗑️ حذف تاریخ تولد</button>
           </div>
-          <div class="client-profile-card" style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
-            <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">📨 ارسال یادآوری به مشتری</div>
-            <div id="clientReminderAppointmentInfo" style="font-size:.72rem;color:var(--text-secondary);margin-bottom:7px;">متن پیام را بررسی و در صورت نیاز ویرایش کن.</div>
-            <textarea id="clientReminderPreview" class="form-control" rows="4" placeholder="متن پیام برای مشتری..." style="min-height:100px;"></textarea>
-            <div style="display:flex;gap:7px;margin-top:8px;">
-              <button type="button" class="btn-primary" style="flex:1;" onclick="sendClientReminder('whatsapp')">💬 واتساپ</button>
-              <button type="button" class="btn-secondary" style="flex:1;" onclick="sendClientReminder('sms')">✉️ پیامک</button>
-            </div>
-            <small style="display:block;color:var(--text-muted);font-size:.68rem;margin-top:7px;">پیام در برنامه انتخابی باز می‌شود؛ ارسال نهایی را خودت تأیید می‌کنی.</small>
-          </div>
           <div class="client-profile-photo-actions" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">
             <label class="btn-secondary" for="clientProfileCameraInput" style="cursor:pointer;">📷 عکس با دوربین</label>
             <label class="btn-secondary" for="clientProfilePhotoInput" style="cursor:pointer;">🖼️ انتخاب از گالری</label>
@@ -1667,27 +1657,8 @@
           <input id="clientProfilePhotoInput" type="file" accept="image/*" style="display:none;" onchange="handleClientPhoto(event,'profile')" />
         </div>
       </div>
-      <div id="clientProfileFullPhotoPanel" style="display:none;margin:8px 0 12px;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
-        <div style="font-weight:800;font-size:.78rem;margin-bottom:7px;">نمای کامل عکس مشتری</div>
-        <div style="overflow:auto;max-height:340px;text-align:center;"><img id="clientProfileFullPhoto" alt="عکس کامل مشتری" style="width:100%;height:auto;max-height:320px;object-fit:contain;transform:scale(1);transform-origin:center center;" /></div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:.75rem;margin-top:8px;">بزرگ‌نمایی عکس <input id="clientProfilePhotoZoom" type="range" min="80" max="180" value="100" style="flex:1;" oninput="setClientProfilePhotoZoom(this.value)" onchange="saveClientProfilePhotoZoom(this.value)" /></label>
-      </div>
-      <div class="form-group">
-        <label>نکات مهم و یادداشت همیشگی مشتری (اختیاری)</label>
-        <textarea id="clientProfileNotes" class="form-control" rows="3" placeholder="مثلاً حساسیت، مدل مورد علاقه، رنگ، نکات مهم برای مراجعه بعدی..." onchange="saveClientProfileNotes()"></textarea>
-        <small id="clientProfileNotesTimestamp" style="display:block;color:var(--text-secondary);margin-top:5px;"></small>
-      </div>
-      <div class="client-profile-card client-custom-fields" style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;margin:10px 0;">
-        <div style="font-weight:800;font-size:.82rem;margin-bottom:8px;">➕ اطلاعات دلخواه مشتری</div>
-        <div class="form-grid">
-          <div class="form-group"><label>عنوان فیلد</label><input id="clientCustomFieldLabel" class="form-control" placeholder="مثلاً رنگ مورد علاقه" /></div>
-          <div class="form-group"><label>مقدار</label><input id="clientCustomFieldValue" class="form-control" placeholder="مثلاً قهوه‌ای" /></div>
-          <div class="form-group full"><button type="button" class="btn-secondary" style="width:100%;" onclick="addClientCustomField()">افزودن این اطلاعات</button></div>
-        </div>
-        <div id="clientCustomFieldsList" style="display:flex;flex-direction:column;gap:6px;"></div>
-      </div>
       <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
-        <div class="section-title" style="margin-bottom:9px;">📅 برنامه نوبت‌های مشتری</div>
+        <div class="section-title" style="margin-bottom:9px;">📅 نوبت‌دهی مشتری</div>
         <div id="clientScheduledAppointments" style="display:flex;flex-direction:column;gap:10px;margin:0 0 12px;">
           <section style="display:block;width:100%;box-sizing:border-box;padding:11px;border:1px solid rgba(59,130,246,.35);border-right:4px solid #3b82f6;border-radius:12px;background:var(--bg-secondary);">
             <div style="font-weight:900;font-size:.86rem;color:#3b82f6;margin-bottom:7px;">📅 نوبت اصلی</div>
@@ -1739,6 +1710,42 @@
         </div>
         <div id="clientNextAppointmentInfo" style="font-size:0.8rem;color:var(--accent);line-height:1.8;"></div>
       </div>
+      <details class="client-profile-extra" style="margin:12px 0;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);padding:10px;">
+        <summary style="cursor:pointer;font-weight:800;font-size:.84rem;">⚙️ سایر مشخصات، یادداشت‌ها و یادآوری‌ها</summary>
+        <div style="padding-top:10px;">
+          <div class="client-profile-card" style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
+            <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">📨 ارسال یادآوری به مشتری</div>
+            <div id="clientReminderAppointmentInfo" style="font-size:.72rem;color:var(--text-secondary);margin-bottom:7px;">متن پیام را بررسی و در صورت نیاز ویرایش کن.</div>
+            <textarea id="clientReminderPreview" class="form-control" rows="4" placeholder="متن پیام برای مشتری..." style="min-height:100px;"></textarea>
+            <div style="display:flex;gap:7px;margin-top:8px;">
+              <button type="button" class="btn-primary" style="flex:1;" onclick="sendClientReminder('whatsapp')">💬 واتساپ</button>
+              <button type="button" class="btn-secondary" style="flex:1;" onclick="sendClientReminder('sms')">✉️ پیامک</button>
+            </div>
+            <small style="display:block;color:var(--text-muted);font-size:.68rem;margin-top:7px;">پیام در برنامه انتخابی باز می‌شود؛ ارسال نهایی را خودت تأیید می‌کنی.</small>
+          </div>
+
+      <div id="clientProfileFullPhotoPanel" style="display:none;margin:8px 0 12px;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);">
+        <div style="font-weight:800;font-size:.78rem;margin-bottom:7px;">نمای کامل عکس مشتری</div>
+        <div style="overflow:auto;max-height:340px;text-align:center;"><img id="clientProfileFullPhoto" alt="عکس کامل مشتری" style="width:100%;height:auto;max-height:320px;object-fit:contain;transform:scale(1);transform-origin:center center;" /></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.75rem;margin-top:8px;">بزرگ‌نمایی عکس <input id="clientProfilePhotoZoom" type="range" min="80" max="180" value="100" style="flex:1;" oninput="setClientProfilePhotoZoom(this.value)" onchange="saveClientProfilePhotoZoom(this.value)" /></label>
+      </div>
+      <div class="form-group">
+        <label>نکات مهم و یادداشت همیشگی مشتری (اختیاری)</label>
+        <textarea id="clientProfileNotes" class="form-control" rows="3" placeholder="مثلاً حساسیت، مدل مورد علاقه، رنگ، نکات مهم برای مراجعه بعدی..." onchange="saveClientProfileNotes()"></textarea>
+        <small id="clientProfileNotesTimestamp" style="display:block;color:var(--text-secondary);margin-top:5px;"></small>
+      </div>
+      <div class="client-profile-card client-custom-fields" style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;margin:10px 0;">
+        <div style="font-weight:800;font-size:.82rem;margin-bottom:8px;">➕ اطلاعات دلخواه مشتری</div>
+        <div class="form-grid">
+          <div class="form-group"><label>عنوان فیلد</label><input id="clientCustomFieldLabel" class="form-control" placeholder="مثلاً رنگ مورد علاقه" /></div>
+          <div class="form-group"><label>مقدار</label><input id="clientCustomFieldValue" class="form-control" placeholder="مثلاً قهوه‌ای" /></div>
+          <div class="form-group full"><button type="button" class="btn-secondary" style="width:100%;" onclick="addClientCustomField()">افزودن این اطلاعات</button></div>
+        </div>
+        <div id="clientCustomFieldsList" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+        </div>
+      </details>
       <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">➕ ثبت کار انجام‌شده</div>
         <div class="form-grid">
@@ -1810,6 +1817,8 @@
         <div class="section-title" style="margin-bottom:9px;">🧾 سوابق کارهای انجام‌شده</div>
         <div id="clientHistoryList" style="display:flex;flex-direction:column;gap:9px;"></div>
       </div>
+      <details class="client-profile-extra client-share-extra" style="margin:12px 0;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);padding:10px;">
+        <summary style="cursor:pointer;font-weight:800;font-size:.84rem;">📤 تنظیمات ارسال پرونده برای مشتری</summary>
       <div class="client-profile-section client-share-section" style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:12px;">
         <div style="font-weight:800;font-size:.82rem;margin-bottom:8px;">📤 انتخاب مواردی که برای مشتری ارسال شود</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.78rem;">
@@ -1831,6 +1840,8 @@
         </div>
         <small style="display:block;color:var(--text-secondary);margin-top:7px;">فقط گزینه‌های فعال و اطلاعاتی که واقعاً ثبت کرده‌ای ارسال می‌شوند؛ موارد خالی حذف می‌شوند.</small>
       </div>
+
+      </details>
       <div id="clientShareActions" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:sticky;bottom:0;z-index:5;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--border-subtle);">
         <button type="button" class="btn-primary" style="flex:1 1 100%;" onclick="saveClientWorkAndNextAppointment()">💾 ثبت کار</button>
         <button type="button" class="btn-secondary" style="flex:1;" onclick="shareClientRecord()">📤 ارسال اطلاعات</button>
