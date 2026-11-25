@@ -6163,7 +6163,10 @@
         minaPendingCustomerPhone = captured;
         return 'شماره رو گرفتم عزیزم 📞 حالا اسم و فامیل یا نامی که مشتری رو باهاش می‌شناسی بگو؛ پرونده رو بدون تاریخ نوبت ثبت می‌کنم. 💗';
       }
-      if (!addIntent && !customerIntent && !phoneAssignmentIntent && !minaPendingCustomerPhone) return null;
+      // A generic verb such as «ثبت کن» must never turn an appointment request into a fake customer.
+      // Profile creation requires an explicit customer/profile context; phone-only follow-ups
+      // are accepted only while Mina is already waiting for the customer's name.
+      if (!customerIntent && !phoneAssignmentIntent && !minaPendingCustomerPhone) return null;
       let phone = minaPendingCustomerPhone || '';
       if (phoneMatch) {
         phone = phoneMatch[0].replace(/\D/g, '');
@@ -6296,13 +6299,6 @@
         return;
       }
 
-      // Customer creation is a direct local record operation: a phone and name are enough; no appointment date is required.
-      const directClientReply = minaTryAddClientFromMessage(message);
-      if (directClientReply) {
-        addMinaMessage(minaFormatReplyForMode(directClientReply), 'assistant');
-        return;
-      }
-
       // Cloud AI routes every natural-language message: conversation vs. a real app operation.
       // The model sees recent turns for references like «همونو»، «براش» and «مثل قبلی».
       let reply = null;
@@ -6327,10 +6323,18 @@
       if (routedCommand) {
         reply = minaBuildReply(routedCommand);
       } else if (!reply) {
-        // If cloud is unavailable, preserve supported local workflows without pretending AI responded.
-        reply = minaIsClearlyLocalAction(message)
-          ? minaBuildReply(message)
-          : minaOutOfScopeReply(message);
+        // Customer creation is a local, offline-capable record operation.
+        // Run it only after cloud routing has had the first chance to interpret natural language,
+        // and only its guarded customer-specific parser may claim the message.
+        const directClientReply = minaTryAddClientFromMessage(message);
+        if (directClientReply) {
+          reply = directClientReply;
+        } else {
+          // If cloud is unavailable, preserve supported local workflows without pretending AI responded.
+          reply = minaIsClearlyLocalAction(message)
+            ? minaBuildReply(message)
+            : minaOutOfScopeReply(message);
+        }
       }
       reply = minaFormatReplyForMode(reply);
       if (getMinaMode()==='friendly' && !/[💗💕💖💞🌸🌷🎀✨🥰😊😉😄]/u.test(reply)) reply += ' 💗🌸✨';
