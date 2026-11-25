@@ -5925,6 +5925,10 @@
       // heuristics do not recognize every colloquial mutation verb in the sentence.
       const multiAction = /(?:و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)|همزمان|هم\s*این)/u.test(normalized);
       if (multiAction) return true;
+      // Personal reminders are executable local actions, never a cloud-only conversational reply.
+      if (typeof minaPendingPersonalReminder !== 'undefined' && minaPendingPersonalReminder) return false;
+      if (/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری|یاداور|هشدار|آلارم|زنگ\s*هشدار)/u.test(rawMessage) &&
+          !/(?:نوبت|رزرو|وقت|مراجعه)/u.test(rawMessage)) return false;
       if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
       // Complete natural-language booking: date + exact time + service + booking verb.
       const hasDate = /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized);
