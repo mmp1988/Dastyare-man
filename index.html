@@ -1924,6 +1924,16 @@
         <textarea id="clientProfileNotes" class="form-control" rows="3" placeholder="مثلاً حساسیت، مدل مورد علاقه، رنگ، نکات مهم برای مراجعه بعدی..." onchange="saveClientProfileNotes()"></textarea>
         <small id="clientProfileNotesTimestamp" style="display:block;color:var(--text-secondary);margin-top:5px;"></small>
       </div>
+      <div class="client-profile-card" style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;margin:10px 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;">
+          <strong style="font-size:.82rem;">💬 مکالمه‌های مرتبط با این مشتری</strong>
+          <small id="clientConversationCount" style="color:var(--text-secondary);"></small>
+        </div>
+        <div id="clientConversationHistory" style="display:flex;flex-direction:column;gap:7px;max-height:300px;overflow:auto;">
+          <div style="font-size:.75rem;color:var(--text-secondary);">هنوز مکالمه‌ای به این پرونده متصل نشده است.</div>
+        </div>
+        <small style="display:block;color:var(--text-secondary);font-size:.67rem;line-height:1.6;margin-top:8px;">مینا فقط پیام‌هایی را اینجا نگه می‌دارد که بتواند با اطمینان به همین مشتری وصل کند.</small>
+      </div>
       <div class="client-profile-card client-custom-fields" style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;margin:10px 0;">
         <div style="font-weight:800;font-size:.82rem;margin-bottom:8px;">➕ اطلاعات دلخواه مشتری</div>
         <div class="form-grid">
@@ -4094,6 +4104,7 @@
       document.getElementById('clientNextAppointmentInfo').textContent = future
         ? 'نوبت آینده فعلی: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '')+'. برای افزودن نوبت جداگانه، تاریخ و ساعت جدید را وارد کن.'
         : 'هنوز نوبت آینده‌ای ثبت نشده است.';
+      renderClientConversationHistory(key);
       renderClientHistory(key);
       renderClientScheduledAppointments(key);
       renderClientSmartOverview(key);
@@ -5485,7 +5496,79 @@
       appData.settings.theme = theme === 'dark' ? 'dark' : 'light';
       saveData(); applySettingsUI();
     }
+    let minaConversationContextClientKey = null;
+    function minaNormalizeConversationText(value) {
+      return String(value || '').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[\s\u200c]+/g,' ').trim().toLocaleLowerCase('fa');
+    }
+    function minaResolveConversationClientKey(message) {
+      const normalized = minaNormalizeConversationText(message);
+      const profiles = appData.clientProfiles || {};
+      const matches = [];
+      Object.entries(profiles).forEach(([key, profile]) => {
+        const labels = [profile?.name, key, ...(Array.isArray(profile?.aliases) ? profile.aliases : [])]
+          .map(minaNormalizeConversationText).filter(label => label.length >= 2);
+        if (labels.some(label => normalized.includes(label))) matches.push(key);
+      });
+      const unique = [...new Set(matches)];
+      if (unique.length === 1) return unique[0];
+      if (unique.length > 1) return null;
+      const appointment = typeof minaFindReferencedAppointment === 'function' ? minaFindReferencedAppointment(message) : null;
+      if (appointment) {
+        const key = findClientProfileKeyForAppointment(appointment);
+        if (key) return key;
+      }
+      const pronounFollowup = /(?:براش|برای\s*اون|شماره\s*شو|شماره\s*اش|اسمش|پرونده\s*اش|همون\s*مشتری|همون\s*نوبت|سوابقش|سابقه\s*اش|عکسش|یادداشتش|اون\s*مشتری)/u.test(normalized);
+      if (pronounFollowup && minaConversationContextClientKey && profiles[minaConversationContextClientKey]) return minaConversationContextClientKey;
+      const openedKey = String(document.getElementById('clientRecordKey')?.value || '');
+      const modal = document.getElementById('clientProfileModal');
+      if (openedKey && profiles[openedKey] && modal?.classList.contains('open')) return openedKey;
+      return null;
+    }
+    function minaStoreClientConversationMessage(message, who) {
+      const content = String(message || '').trim();
+      if (!content || !['user','assistant'].includes(who)) return;
+      if (who === 'user') {
+        const resolved = minaResolveConversationClientKey(content);
+        if (resolved) minaConversationContextClientKey = resolved;
+        else if (!/(?:براش|برای\s*اون|شماره\s*شو|اسمش|همون\s*مشتری|سوابقش|سابقه\s*اش)/u.test(minaNormalizeConversationText(content))) {
+          // Do not attach an unrelated new topic to the previously mentioned customer.
+          minaConversationContextClientKey = null;
+        }
+      }
+      const key = who === 'user' ? (minaResolveConversationClientKey(content) || minaConversationContextClientKey) : minaConversationContextClientKey;
+      if (!key || !appData.clientProfiles?.[key]) return;
+      const profile = getClientProfile(key);
+      if (!Array.isArray(profile.conversations)) profile.conversations = [];
+      const last = profile.conversations[profile.conversations.length - 1];
+      if (last && last.role === who && last.text === content && Date.now() - Number(last.timestamp || 0) < 3000) return;
+      profile.conversations.push({ role: who, text: content.slice(0, 3000), timestamp: Date.now() });
+      if (profile.conversations.length > 200) profile.conversations.splice(0, profile.conversations.length - 200);
+      profile.conversationsUpdatedAt = Date.now();
+      saveData();
+      const openedKey = String(document.getElementById('clientRecordKey')?.value || '');
+      if (openedKey === key) renderClientConversationHistory(key);
+    }
+    function renderClientConversationHistory(key) {
+      const profile = getClientProfile(key);
+      const root = document.getElementById('clientConversationHistory');
+      const count = document.getElementById('clientConversationCount');
+      if (!root) return;
+      const messages = Array.isArray(profile.conversations) ? profile.conversations : [];
+      if (count) count.textContent = messages.length ? toPersianDigits(messages.length) + ' پیام' : 'بدون پیام';
+      if (!messages.length) {
+        root.innerHTML = '<div style="font-size:.75rem;color:var(--text-secondary);">هنوز مکالمه‌ای به این پرونده متصل نشده است.</div>';
+        return;
+      }
+      root.innerHTML = messages.slice(-40).map(item => {
+        const isUser = item.role === 'user';
+        return '<div style="align-self:'+(isUser?'flex-start':'flex-end')+';max-width:94%;padding:8px 10px;border-radius:10px;background:'+(isUser?'var(--bg-input)':'var(--bg-card)')+';border:1px solid var(--border-subtle);font-size:.74rem;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;">'+
+          '<div style="font-size:.64rem;color:var(--text-secondary);margin-bottom:3px;">'+(isUser?'درخواست':'پاسخ مینا')+' • '+escapeClientText(formatClientTimestamp(item.timestamp))+'</div>'+
+          escapeClientText(item.text)+'</div>';
+      }).join('');
+      root.scrollTop = root.scrollHeight;
+    }
     function addMinaMessage(text, who) {
+      minaStoreClientConversationMessage(text, who);
       const root = document.getElementById('minaChatMessages');
       if (!root) return;
       const row = document.createElement('div');
@@ -5546,6 +5629,7 @@
       root.scrollTop = root.scrollHeight;
     }
     function clearMinaChat() {
+      minaConversationContextClientKey = null;
       const root = document.getElementById('minaChatMessages');
       if (root) root.innerHTML = '';
       addMinaMessage('گفتگوی تازه‌ای شروع کنیم عزیزم؟ 💗', 'assistant');
