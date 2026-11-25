@@ -79,7 +79,8 @@ const assert = require('assert');
         const followupReply = minaTryManageAppointment('۱۸:۱۷');
         const followupTime = testAppointment.time;
         minaLastReferencedAppointmentId = null;
-        const shortFormRoutedLocally = minaIsClearlyLocalAction('نوبت مینا بکن ۳ ظهر') && !minaNeedsCloudUnderstanding('نوبت مینا بکن ۳ ظهر');
+        const shortFormRoutedLocally = minaIsClearlyLocalAction('نوبتشو بکن ۶ عصر') && !minaNeedsCloudUnderstanding('نوبتشو بکن ۶ عصر') &&
+          minaIsClearlyLocalAction('نوبت سارا بسه ۶ عصر') && !minaNeedsCloudUnderstanding('نوبت سارا بسه ۶ عصر');
         const shortFormReply = minaBuildReply('نوبتشو بکن ۶ عصر');
         const shortFormTime = shortFormAppointment.time;
         minaLastReferencedAppointmentId = null;
