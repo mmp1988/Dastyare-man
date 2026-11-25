@@ -2,6 +2,7 @@ package app.github.mmp1988.dastyareman;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -25,6 +26,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.os.Bundle;
 import android.os.Environment;
 import android.webkit.JavascriptInterface;
@@ -1009,7 +1011,25 @@ public class MainActivity extends Activity {
                     && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 return "notifications_denied";
             }
-            return PersonalReminderReceiver.schedule(MainActivity.this, reminderId, triggerAtMillis, message);
+            String status = PersonalReminderReceiver.schedule(MainActivity.this, reminderId, triggerAtMillis, message);
+            // Keep the reminder scheduled with Android's inexact fallback, then offer exact-alarm access once.
+            if ("approximate".equals(status) && Build.VERSION.SDK_INT >= 31) {
+                AlarmManager alarms = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (alarms != null && !alarms.canScheduleExactAlarms()) {
+                    android.content.SharedPreferences prefs = getSharedPreferences("personal_reminder_alarms", MODE_PRIVATE);
+                    if (!prefs.getBoolean("exact_alarm_access_prompted", false)) {
+                        prefs.edit().putBoolean("exact_alarm_access_prompted", true).apply();
+                        runOnUiThread(() -> {
+                            try {
+                                Intent settings = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                        Uri.parse("package:" + getPackageName()));
+                                startActivity(settings);
+                            } catch (Exception ignored) { }
+                        });
+                    }
+                }
+            }
+            return status;
         }
         @JavascriptInterface public void cancelPersonalReminder(String reminderId) {
             PersonalReminderReceiver.cancel(MainActivity.this, reminderId);
