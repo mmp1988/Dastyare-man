@@ -5893,6 +5893,9 @@
       // the model interprets intent while the local engine alone executes and stores records.
       if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
       if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
+      // A short follow-up is resolved against the appointment already selected locally.
+      // Do not send context-free fragments like «۶ عصر» to a stateless cloud endpoint.
+      if (minaIsPendingSalonFollowUp(message)) return false;
       return true;
     }
 
