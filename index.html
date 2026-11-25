@@ -1115,6 +1115,22 @@
     #apptModal .form-group { margin-bottom:3px; min-width:0; }
     #apptModal .form-control { min-height:41px; }
     #apptModal textarea.form-control { min-height:76px; }
+\n    .home-stat-button { appearance:none; font:inherit; color:var(--text-primary); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-height:92px; transition:transform .15s,border-color .15s; }
+    .home-stat-button:active { transform:scale(.98); }
+    .home-stat-button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+    .home-stat-hint { display:block; margin-top:5px; font-size:.62rem; color:var(--accent); font-weight:800; }
+    .home-appointment-details { border-color:var(--accent); scroll-margin-top:12px; }
+    .home-appointment-details-list { display:flex; flex-direction:column; gap:8px; }
+    .home-appt-row { display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:9px; align-items:center; padding:10px; border:1px solid var(--border-subtle); border-radius:12px; background:var(--bg-input); min-width:0; }
+    .home-appt-time { font-weight:900; color:var(--accent); direction:ltr; text-align:center; font-size:.92rem; }
+    .home-appt-main { min-width:0; }
+    .home-appt-main strong { display:block; overflow-wrap:anywhere; font-size:.8rem; }
+    .home-appt-main small { display:block; color:var(--text-secondary); font-size:.69rem; line-height:1.7; overflow-wrap:anywhere; }
+    .home-appt-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:4px; }
+    .home-appt-tag { border-radius:7px; padding:2px 6px; font-size:.62rem; font-weight:800; background:var(--bg-card); color:var(--text-secondary); }
+    .home-appt-actions { display:flex; flex-direction:column; gap:5px; }
+    .home-appt-date-heading { padding:7px 3px 2px; color:var(--accent); font-size:.77rem; font-weight:900; }
+    @media(max-width:420px) { .home-appt-row { grid-template-columns:53px minmax(0,1fr); } .home-appt-actions { grid-column:2; flex-direction:row; } .home-stat-button { min-height:88px; } }
 \n</style>
 </head>
 <body>
@@ -1181,16 +1197,23 @@
 
     <!-- ==================== TAB 1: CALENDAR & APPOINTMENTS ==================== -->
     <section id="tab-calendar" class="tab-section active">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-val" id="statTodayCount">۰</div>
-          <div class="stat-lbl">نوبت‌های امروز</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val" id="statMonthCount">۰</div>
-          <div class="stat-lbl">نوبت‌های این ماه</div>
-        </div>
+      <div class="stats-grid home-appointment-stats">
+        <button type="button" class="stat-card home-stat-button" onclick="openHomeAppointmentList('today')" aria-controls="homeAppointmentDetails">
+          <span class="stat-val" id="statTodayCount">۰</span>
+          <span class="stat-lbl">نوبت‌های امروز</span><span class="home-stat-hint">مشاهده برنامه امروز ←</span>
+        </button>
+        <button type="button" class="stat-card home-stat-button" onclick="openHomeAppointmentList('month')" aria-controls="homeAppointmentDetails">
+          <span class="stat-val" id="statMonthCount">۰</span>
+          <span class="stat-lbl">نوبت‌های این ماه</span><span class="home-stat-hint">مشاهده تقویم ماه ←</span>
+        </button>
       </div>
+      <section class="card home-appointment-details" id="homeAppointmentDetails" hidden aria-live="polite">
+        <div class="section-head">
+          <div><div class="section-title" id="homeAppointmentDetailsTitle">برنامه نوبت‌ها</div><small id="homeAppointmentDetailsSummary" style="color:var(--text-secondary);"></small></div>
+          <button type="button" class="btn-secondary" onclick="closeHomeAppointmentList()">بستن ✕</button>
+        </div>
+        <div id="homeAppointmentDetailsList" class="home-appointment-details-list"></div>
+      </section>
 
       <div class="card">
         <div class="cal-header">
@@ -4626,14 +4649,54 @@
     }
 
 
+    function openHomeAppointmentList(mode) {
+      const panel=document.getElementById('homeAppointmentDetails');
+      if(!panel)return;
+      panel.dataset.mode=mode;
+      panel.hidden=false;
+      renderHomeAppointmentList();
+      panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
+    function closeHomeAppointmentList() {
+      const panel=document.getElementById('homeAppointmentDetails');
+      if(panel)panel.hidden=true;
+    }
+    function renderHomeAppointmentList() {
+      const panel=document.getElementById('homeAppointmentDetails');
+      const root=document.getElementById('homeAppointmentDetailsList');
+      if(!panel||!root||panel.hidden)return;
+      const mode=panel.dataset.mode||'today', today=getTodayKey(), monthPrefix=today.slice(0,7)+'-';
+      const timeSort=(a,b)=>String(a.time||'99:99').localeCompare(String(b.time||'99:99'))||String(a.clientName||'').localeCompare(String(b.clientName||''),'fa');
+      const list=(appData.appointments||[]).filter(a=>a&&a.status!=='canceled'&&(mode==='today'?a.dateKey===today:String(a.dateKey||'').startsWith(monthPrefix))).sort((a,b)=>mode==='today'?timeSort(a,b):(String(a.dateKey).localeCompare(String(b.dateKey))||timeSort(a,b)));
+      const title=document.getElementById('homeAppointmentDetailsTitle');
+      const summary=document.getElementById('homeAppointmentDetailsSummary');
+      if(title)title.textContent=mode==='today'?'📅 برنامه کامل امروز':'🗓️ تمام نوبت‌های این ماه';
+      if(summary)summary.textContent=mode==='today'?formatJalaliFull(today)+' • '+toPersianDigits(list.length)+' نوبت':'ماه جاری • '+toPersianDigits(list.length)+' نوبت • به ترتیب تاریخ و ساعت';
+      if(!list.length){root.innerHTML='<div style="text-align:center;padding:18px 10px;color:var(--text-secondary);font-size:.8rem;">'+(mode==='today'?'برای امروز نوبتی ثبت نشده است.':'در ماه جاری نوبتی ثبت نشده است.')+'</div>';return;}
+      let lastDate='';
+      root.innerHTML=list.map(a=>{
+        const dateHeading=mode==='month'&&a.dateKey!==lastDate?'<div class="home-appt-date-heading">'+formatJalaliFull(a.dateKey)+'</div>':'';
+        lastDate=a.dateKey;
+        const type=isFollowupAppointment(a)?'🔁 نوبت ترمیم':'📌 نوبت اصلی';
+        const status=a.status==='done'?'انجام شد':'در انتظار مراجعه';
+        const phone=String(a.phone||'').replace(/[^0-9]/g,'');
+        return dateHeading+'<article class="home-appt-row"><div class="home-appt-time">'+toPersianDigits(a.time||'—')+'</div><div class="home-appt-main"><strong>'+escapeClientText(a.clientName||'مشتری')+'</strong><small>'+escapeClientText(a.service||'نوع خدمت ثبت نشده')+(phone?' • '+escapeClientText(toPersianDigits(phone)):'')+'</small><div class="home-appt-tags"><span class="home-appt-tag">'+type+'</span><span class="home-appt-tag">'+status+'</span></div></div><div class="home-appt-actions"><button type="button" class="mini-btn" data-home-edit="'+escapeClientText(a.id)+'">✏️ ویرایش</button><button type="button" class="mini-btn" data-home-open="'+escapeClientText(a.dateKey)+'">تقویم</button></div></article>';
+      }).join('');
+      root.querySelectorAll('[data-home-edit]').forEach(btn=>btn.addEventListener('click',()=>openApptModal(btn.dataset.homeEdit)));
+      root.querySelectorAll('[data-home-open]').forEach(btn=>btn.addEventListener('click',()=>{
+        const key=btn.dataset.homeOpen;selectedDateKey=key;viewYear=Number(key.slice(0,4));viewMonth=Number(key.slice(5,7));renderCalendar();renderDaySchedule();document.getElementById('homeAppointmentDetails').hidden=true;document.getElementById('selectedDateLabel').scrollIntoView({behavior:'smooth',block:'center'});
+      }));
+    }
+
     function updateDashboardStats() {
       const todayKey = getTodayKey();
-      const monthPrefix = viewYear + '-' + pad2(viewMonth) + '-';
+      const todayMonthPrefix = todayKey.slice(0,7) + '-';
       const todayCount = appData.appointments.filter(a => a.dateKey === todayKey && a.status !== 'canceled').length;
-      const monthCount = appData.appointments.filter(a => a.dateKey.startsWith(monthPrefix) && a.status !== 'canceled').length;
+      const monthCount = appData.appointments.filter(a => String(a.dateKey||'').startsWith(todayMonthPrefix) && a.status !== 'canceled').length;
       document.getElementById('statTodayCount').textContent = toPersianDigits(todayCount);
       document.getElementById('statMonthCount').textContent = toPersianDigits(monthCount);
       if (typeof renderSmartDashboard === 'function') renderSmartDashboard();
+      if (typeof renderHomeAppointmentList === 'function' && document.getElementById('homeAppointmentDetails') && !document.getElementById('homeAppointmentDetails').hidden) renderHomeAppointmentList();
     }
 
         // ==================== BACKUP & NAVIGATION ==================
