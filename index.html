@@ -5746,10 +5746,26 @@
       } catch (error) { return null; }
     }
 
+    function minaIsSalonContentRequest(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      return /(?:متن|پیام|تبریک|تخفیف|تبلیغ|تبلیغاتی|کپشن|استوری|پست|کمپین|بازاریابی|مناسبت|جشن|ایده|شعار|معرفی|پاسخ|جواب|دعوت|اطلاع.?رسانی|سناریو|طرح|پیشنهاد|راهنما|آموزش|روش|چطور|چگونه|تنظیمات|شخصی.?سازی|ظاهر|رنگ|فونت|سایت|اپلیکیشن|برنامه|گزارش|آمار|خروجی|پشتیبان|بکاپ|امکانات|قابلیت|کارکرد|راهنمایی)/iu.test(text);
+    }
+
+    function minaPrepareSalonAIMessage(message) {
+      let safeMessage = String(message || '');
+      // Saved customer names and phone numbers are redacted before cloud requests.
+      for (const profile of Object.values(appData.clientProfiles || {})) {
+        const name = profile && String(profile.name || '').trim();
+        if (name && name.length > 1) safeMessage = safeMessage.split(name).join('مشتری');
+      }
+      safeMessage = safeMessage.replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, '[شماره تماس حذف شد]');
+      return safeMessage;
+    }
+
     async function minaAskSmartBrain(message) {
-      // Only general conversation is sent to the model. Customer, appointment,
-      // phone, date/time and other salon records stay on this device.
-      if (!navigator.onLine || minaIsClearlyLocalAction(message)) return null;
+      // Only salon-domain content is sent to AI; local records remain on-device.
+      const contentRequest = minaIsSalonContentRequest(message);
+      if (!navigator.onLine || (minaIsClearlyLocalAction(message) && !contentRequest)) return null;
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 18000);
@@ -5758,7 +5774,7 @@
           response = await fetch(MINA_SMART_BRAIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message }),
+            body: JSON.stringify({ message: minaPrepareSalonAIMessage(message) }),
             signal: controller.signal,
             cache: 'no-store'
           });
@@ -5777,7 +5793,7 @@
 
     function minaIsSalonScopeRequest(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
+      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|متن|پیام|تبریک|تخفیف|تبلیغ|کپشن|استوری|پست|کمپین|بازاریابی|مناسبت|جشن|ایده|شعار|معرفی|دعوت|اطلاع.?رسانی|راهنما|آموزش|تنظیمات|شخصی.?سازی|ظاهر|رنگ|فونت|سایت|اپلیکیشن|برنامه|گزارش|آمار|خروجی|پشتیبان|بکاپ|امکانات|قابلیت|کارکرد|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
         !!minaPendingBooking || !!minaConversationBooking;
     }
 
@@ -5799,9 +5815,9 @@
         return;
       }
 
-      // Salon operations remain offline-first; only in-scope, non-operational questions may use AI.
+      // Local data operations stay on-device; salon copywriting and feature guidance may use AI.
       let reply = null;
-      if (!minaIsClearlyLocalAction(message)) {
+      if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) {
         addMinaMessage('دارم به حرفت فکر می‌کنم…', 'assistant');
         const thinkingNode = document.querySelector('#minaChatMessages .mina-message:last-child');
         reply = await minaAskSmartBrain(message);
