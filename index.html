@@ -6662,6 +6662,23 @@
         }
       }
 
+      // Safety net for explicit operations: the cloud decides the intent first, but it cannot
+      // veto a well-formed operation that the trusted local executor can actually complete.
+      // Every executor is guarded and must return a result before its reply replaces the AI answer.
+      if (!routedCommand && reply && minaIsClearlyLocalAction(message)) {
+        const personalReminderAction = minaTrySetPersonalReminder(message);
+        const customerMutationAction = personalReminderAction || minaTryManageClientFromMessage(message);
+        const customerCreateAction = customerMutationAction || minaTryAddClientFromMessage(message);
+        const appointmentMutationAction = customerCreateAction || minaTryManageAppointment(message);
+        const bookingAction = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
+          /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
+          /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
+          /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
+        const directBookingAction = appointmentMutationAction || (bookingAction ? minaBuildReply(message) : null);
+        const localActionResult = personalReminderAction || customerMutationAction || customerCreateAction || appointmentMutationAction || directBookingAction;
+        if (localActionResult) reply = localActionResult;
+      }
+
       // Offline fallback: deterministic data queries and guarded local workflows remain available.
       // No online operation is claimed complete unless its local executor confirms the result.
       if (routedCommand) {
