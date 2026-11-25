@@ -673,8 +673,9 @@ const assert = require('assert');
       const reply=minaTrySetPersonalReminder('یادم بنداز فردا ساعت ۱۵:۴۳ دارو بخورم');
       const saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.message.includes('دارو'));
       const relativeExpectedAt=Date.now()+50*60000;
+      const beforeRelativeIds=new Set((appData.reminders||[]).map(x=>x.id));
       const relativeReply=minaTrySetPersonalReminder('برای ۵۰ دقیقه دیگه آلارم تنظیم کن');
-      const relativeSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.id!==saved?.id&&x.createdAt>=relativeExpectedAt-60000);
+      const relativeSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!beforeRelativeIds.has(x.id));
       const relativeActualAt=relativeSaved?iranDateTimeToEpoch(relativeSaved.date,relativeSaved.time):NaN;
       const minuteWordParsing =
         minaPersianNumberValue('صفر')===0 &&
