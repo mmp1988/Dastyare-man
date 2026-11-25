@@ -6030,7 +6030,8 @@
       const safe = minaBuildCloudSafeCommand(message);
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000);
+        // Bound online waiting time; if the model is slow, fall back to the local executor.
+        const timeout = setTimeout(() => controller.abort(), 25000);
         let response;
         let data;
         try {
@@ -6268,7 +6269,30 @@
         '\n📅 هیچ تاریخ یا نوبتی ثبت نکردم؛ هر وقت خواستی جداگانه نوبت می‌ذاریم. 💗';
     }
 
+    let minaMessageInFlight = false;
     async function sendMinaMessage() {
+      if (minaMessageInFlight) return;
+      minaMessageInFlight = true;
+      const sendButton = document.querySelector('.mina-send-btn');
+      const originalSendLabel = sendButton ? sendButton.innerHTML : '';
+      if (sendButton) {
+        sendButton.disabled = true;
+        sendButton.innerHTML = 'در حال انجام…';
+        sendButton.setAttribute('aria-busy', 'true');
+      }
+      try {
+        await sendMinaMessageCore();
+      } finally {
+        minaMessageInFlight = false;
+        if (sendButton) {
+          sendButton.disabled = false;
+          sendButton.innerHTML = originalSendLabel || 'ارسال <span>➤</span>';
+          sendButton.removeAttribute('aria-busy');
+        }
+      }
+    }
+
+    async function sendMinaMessageCore() {
       const input = document.getElementById('minaInput');
       if (!input) return;
       const message = input.value.trim();
@@ -6312,23 +6336,17 @@
         return;
       }
 
-      // Let cloud AI interpret natural-language reminders whenever internet and AI quota are available.
-      // The cloud only clarifies the user's wording; actual scheduling remains local and offline-capable.
-      // If cloud AI is unavailable or quota is exhausted, the local parser handles the original message.
-      let reminderCommand = message;
-      if (navigator.onLine) {
-        const cloudReminderCommand = await minaAskSmartBrain(message, 'understand');
-        if (cloudReminderCommand) reminderCommand = cloudReminderCommand;
-      }
-      const directPersonalReminderReply =
-        minaTrySetPersonalReminder(reminderCommand) ||
-        (reminderCommand !== message ? minaTrySetPersonalReminder(message) : null);
-      if (directPersonalReminderReply) {
-        addMinaMessage(minaFormatReplyForMode(directPersonalReminderReply), 'assistant');
-        return;
+      // Offline reminder fallback is local. Online requests go through one unified cloud
+      // routing call below, avoiding a second sequential model request and unnecessary delay.
+      if (!navigator.onLine) {
+        const directPersonalReminderReply = minaTrySetPersonalReminder(message);
+        if (directPersonalReminderReply) {
+          addMinaMessage(minaFormatReplyForMode(directPersonalReminderReply), 'assistant');
+          return;
+        }
       }
 
-      // Cloud AI routes every natural-language message: conversation vs. a real app operation.
+      // Cloud AI routes every natural-language message exactly once: conversation vs. a real app operation.
       // The model sees recent turns for references like «همونو»، «براش» and «مثل قبلی».
       let reply = null;
       let routedCommand = null;
@@ -6350,6 +6368,8 @@
 
       // The cloud only interprets intent. Local code remains the sole executor and offline fallback.
       if (routedCommand) {
+        // The routed action is executed immediately by the local feature handlers.
+        // Personal alarms are included here too, without a separate cloud round-trip.
         reply = minaBuildReply(routedCommand);
       } else if (!reply) {
         // Customer creation is a local, offline-capable record operation.
