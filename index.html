@@ -6709,7 +6709,11 @@
           (trustedFacts ? '\n\n' + trustedFacts.slice(-900) : '')
         ).slice(-3900);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
-        if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
+        if (cloudResult && cloudResult.type === 'personal_reminder') {
+          // Semantic personal-alarm classification must never enter appointment booking.
+          reply = minaTrySetPersonalReminder(message) ||
+            'برای تنظیم یادآوری شخصی، لطفاً تاریخ و ساعت دقیق را بگو عزیزم.';
+        } else if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
           reply = cloudResult.reply;
