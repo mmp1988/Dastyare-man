@@ -6413,6 +6413,13 @@
           try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 30 * 60 * 1000)); } catch (error) {}
           return null;
         }
+        if (data?.code === 'AI_REVIEW_UNAVAILABLE') {
+          return {
+            type: 'review_unavailable',
+            command: '',
+            reply: safe.restore(String(data.error || 'بازبینی مستقل انجام نشد؛ برای جلوگیری از اشتباه، درخواست اجرا نشد.'))
+          };
+        }
         if (!response.ok || !data?.success) {
           if (response.status >= 500) {
             try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 2 * 60 * 1000)); } catch (error) {}
@@ -6428,7 +6435,10 @@
           return {
             type: data.route.type === 'personal_reminder' ? 'personal_reminder' : data.route.type === 'action' ? 'action' : 'reply',
             command: safe.restore(String(data.route.command || '')),
-            reply: safe.restore(String(data.route.reply || ''))
+            reply: safe.restore(String(data.route.reply || '')),
+            review: data.route.review && typeof data.route.review === 'object'
+              ? { decision: String(data.route.review.decision || ''), reviewed: data.route.review.reviewed === true }
+              : null
           };
         }
         return typeof data.reply === 'string' && data.reply.trim() ? safe.restore(data.reply.trim()) : null;
@@ -6695,6 +6705,7 @@
       let reply = minaTrySetPersonalReminder(message);
       let personalReminderHandled = !!reply;
       let routedCommand = null;
+      let cloudOperationBlocked = false;
       if (!reply && navigator.onLine) {
         const root = document.getElementById('minaChatMessages');
         const recent = root ? Array.from(root.querySelectorAll('.mina-message')).slice(-12).map(row => {
@@ -6713,6 +6724,10 @@
           (trustedFacts ? '\n\n' + trustedFacts.slice(-900) : '')
         ).slice(-3900);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
+        if (cloudResult?.type === 'review_unavailable' ||
+            (cloudResult?.review?.reviewed && cloudResult.review.decision !== 'approve')) {
+          cloudOperationBlocked = true;
+        }
         if (cloudResult && cloudResult.type === 'personal_reminder') {
           // Semantic personal-alarm classification must never enter appointment booking.
           reply = minaTrySetPersonalReminder(message) ||
@@ -6728,7 +6743,7 @@
       // Safety net for explicit operations: the cloud decides the intent first, but it cannot
       // veto a well-formed operation that the trusted local executor can actually complete.
       // Every executor is guarded and must return a result before its reply replaces the AI answer.
-      if (!personalReminderHandled && !routedCommand && reply && minaIsClearlyLocalAction(message)) {
+      if (!personalReminderHandled && !routedCommand && !cloudOperationBlocked && reply && minaIsClearlyLocalAction(message)) {
         const personalReminderAction = minaTrySetPersonalReminder(message);
         const customerMutationAction = personalReminderAction || minaTryManageClientFromMessage(message);
         const customerCreateAction = customerMutationAction || minaTryAddClientFromMessage(message);
