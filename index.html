@@ -1275,7 +1275,6 @@
     <section id="tab-calendar" class="tab-section active">
       <div class="home-dashboard-heading" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 1px 12px;">
         <div><div style="font-size:1.05rem;font-weight:900;color:var(--text-primary);">خانه و برنامه سالن</div><div style="font-size:.75rem;color:var(--text-secondary);margin-top:3px;">نمای کلی امروز و دسترسی سریع به برنامه</div></div>
-        <button type="button" class="btn-primary" onclick="openApptModal()" style="white-space:nowrap;padding:9px 12px;">＋ نوبت جدید</button>
       </div>
       <div class="stats-grid home-appointment-stats">
         <button type="button" class="stat-card home-stat-button" onclick="openHomeAppointmentList('today')" data-home-mode="today" aria-expanded="false" aria-controls="homeAppointmentDetails">
@@ -1379,7 +1378,7 @@
 
         <div id="notesListContainer" style="display:flex; flex-direction:column; gap:9px;"></div>
       </div>
-    </section>
+    
 
       <!-- Daily Quick To-Do Checklist -->
       <div class="card">
@@ -1397,6 +1396,8 @@
 
       <div class="card" id="personalRemindersCard"><div class="section-head"><div class="section-title">🔔 هشدارهای شخصی من</div><span style="font-size:.72rem;color:var(--text-secondary);">مستقل از نوبت مشتری</span></div><div class="form-grid"><div class="form-group"><label>تاریخ هشدار</label><input type="date" id="personalReminderDate" class="form-control"></div><div class="form-group"><label>ساعت دقیق هشدار</label><input type="time" id="personalReminderTime" class="form-control" step="60"></div><div class="form-group full"><label>متن یادآوری</label><textarea id="personalReminderText" class="form-control" rows="2" placeholder="مثلاً: ساعت ۲ باید برم سالن"></textarea></div><div class="form-group full" style="display:flex;flex-direction:row;gap:8px"><button class="btn-primary" id="savePersonalReminderBtn" style="flex:1" onclick="savePersonalReminder()">🔔 ثبت هشدار</button><button class="btn-secondary" id="cancelPersonalReminderEditBtn" style="display:none" onclick="resetPersonalReminderForm()">انصراف از ویرایش</button></div></div><div style="font-size:.73rem;color:var(--text-secondary);line-height:1.7;margin:2px 0 10px">برای اعلان، اجازه اعلان برنامه را فعال کن. هشدارها پس از بستن و باز کردن برنامه باقی می‌مانند.</div><div id="personalReminderList" style="display:flex;flex-direction:column;gap:8px"></div></div>
       
+
+    </section>
 
     <!-- ==================== TAB 4: CLIENTS & CUSTOM SERVICES ==================== -->
     <section id="tab-clients" class="tab-section">
