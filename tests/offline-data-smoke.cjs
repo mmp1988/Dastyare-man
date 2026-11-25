@@ -687,6 +687,16 @@ const assert = require('assert');
       const relative59Reply=minaTrySetPersonalReminder('برای پنجاه و نه دقیقه دیگه آلارم تنظیم کن');
       const relative59Saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=relative59CreatedAfter&&x.id!==saved?.id&&x.id!==relativeSaved?.id);
       const relative59ActualAt=relative59Saved?iranDateTimeToEpoch(relative59Saved.date,relative59Saved.time):NaN;
+      const relativeHourExpectedAt=Math.ceil((Date.now()+81*60000)/60000)*60000;
+      const relativeHourCreatedAfter=Date.now();
+      const relativeHourReply=minaTrySetPersonalReminder('یادم بنداز یک ساعت و بیست و یک دقیقه دیگه پیگیری کنم');
+      const relativeHourSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=relativeHourCreatedAfter);
+      const relativeHourActualAt=relativeHourSaved?iranDateTimeToEpoch(relativeHourSaved.date,relativeHourSaved.time):NaN;
+      const relativeDayExpectedAt=Math.ceil((Date.now()+2*86400000)/60000)*60000;
+      const relativeDayCreatedAfter=Date.now();
+      const relativeDayReply=minaTrySetPersonalReminder('یادم بنداز دو روز دیگه');
+      const relativeDaySaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=relativeDayCreatedAfter);
+      const relativeDayActualAt=relativeDaySaved?iranDateTimeToEpoch(relativeDaySaved.date,relativeDaySaved.time):NaN;
       const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
       const actualEpoch=saved?iranDateTimeToEpoch(saved.date,saved.time):NaN;
@@ -707,6 +717,10 @@ const assert = require('assert');
         minuteWordParsing,
         relative59Saved:!!relative59Saved && Math.abs(relative59ActualAt-relative59ExpectedAt)<=60000,
         relative59Reply,
+        relativeHourSaved:!!relativeHourSaved && Math.abs(relativeHourActualAt-relativeHourExpectedAt)<=60000,
+        relativeHourReply,
+        relativeDaySaved:!!relativeDaySaved && Math.abs(relativeDayActualAt-relativeDayExpectedAt)<=60000,
+        relativeDayReply,
         reply
       };
     });
@@ -723,6 +737,8 @@ const assert = require('assert');
       'Mina must schedule colloquial relative requests such as «۵۰ دقیقه دیگه» locally at the correct Iran-time instant');
     assert(minaReminderAndIranTimeQA.minuteWordParsing && minaReminderAndIranTimeQA.relative59Saved,
       'Mina must understand Persian minute values from zero through fifty-nine, including compound values and relative reminders');
+    assert(minaReminderAndIranTimeQA.relativeHourSaved && minaReminderAndIranTimeQA.relativeDaySaved,
+      'Mina must schedule colloquial hour-plus-minute and relative-day reminders correctly in Iran time');
 
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
     assert(minaActionsResult.cancelOk && minaActionsResult.doneOk && minaActionsResult.deleteOk && minaActionsResult.cancelVerbOk && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.exactMinuteOk && minaActionsResult.minuteMoveOk && minaActionsResult.relativeMoveOk && minaActionsResult.dateMoveOk && minaActionsResult.weekOk,
