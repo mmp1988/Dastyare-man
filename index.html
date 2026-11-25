@@ -3124,13 +3124,16 @@
       const days = rawDays === null || rawDays === undefined || rawDays === '' ? null : Number(rawDays);
       const override = appointment.repairReminderOverride && typeof appointment.repairReminderOverride === 'object'
         ? appointment.repairReminderOverride : null;
+      const effectiveDays = Number.isInteger(Number(override?.daysAfter)) ? Number(override.daysAfter) : days;
+      const hasPerAppointmentSchedule = Number.isInteger(Number(override?.daysAfter));
       const time = override?.time || settings.repairReminderTime || '10:00';
-      if (appointment.repairReminderDisabled === true || settings.repairReminderEnabled === false || days === null || !Number.isInteger(days) || days < 1 || days > 365 ||
+      if (appointment.repairReminderDisabled === true || (!hasPerAppointmentSchedule && settings.repairReminderEnabled === false) ||
+          effectiveDays === null || !Number.isInteger(effectiveDays) || effectiveDays < 1 || effectiveDays > 365 ||
           appointment.status === 'canceled' || !appointment.dateKey) {
         cancelAutomaticRepairReminder(appointment.id);
         return;
       }
-      const reminderJalaliDate = addDaysToJalaliKey(appointment.dateKey, days);
+      const reminderJalaliDate = addDaysToJalaliKey(appointment.dateKey, effectiveDays);
       const gregorianDate = override?.date || jalaliKeyToGregorianDate(reminderJalaliDate);
       if (!gregorianDate) return;
       const message = override?.message || ('📞 زمان تماس برای نوبت ترمیم مشتری\\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
@@ -3142,7 +3145,7 @@
       const item = { id, date: gregorianDate, time, message, notified: false, enabled: true, cancelled: false,
         createdAt: old?.createdAt || Date.now(), timezone: 'Asia/Tehran', kind: 'automatic-repair',
         appointmentId: appointment.id, clientName: appointment.clientName || '', phone: appointment.phone || '',
-        appointmentDateKey: appointment.dateKey, daysAfter: days };
+        appointmentDateKey: appointment.dateKey, daysAfter: effectiveDays };
       if (old) Object.assign(old, item); else appData.reminders.push(item);
       try {
         if (window.AndroidApp?.schedulePersonalReminder && Number.isFinite(targetAt) && targetAt > Date.now()) {
@@ -7138,13 +7141,53 @@
     }
     function minaTrySetAppointmentReminder(raw) {
       const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
-      if (!/(?:یادم\s*بمونه|یادم\s*نره|یادم\s*بنداز|یادآوری|هشدار|خبرم\s*کن|یادم\s*بیار)/u.test(text)) return null;
+      const reminderIntent = /(?:یادم\s*بمونه|یادم\s*نره|یادم\s*بنداز|یادآوری|هشدار|خبرم\s*کن|خبر\s*بده|یادم\s*بیار)/u.test(text);
+      if (!reminderIntent) return null;
+      const daysMatch = text.match(/(\d{1,3}|صفر|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\s*روز\s*(?:بعد(?:ش)?|دیگه|دیگر)/u);
+      const hasAppointmentContext = /(?:نوبت|رزرو|وقت|مراجعه|این\s+نوبت|همین\s+نوبت|بعدش)/u.test(text) || !!minaLastReferencedAppointmentId;
+      if (!hasAppointmentContext) return null;
+      const appointment = minaFindReferencedAppointment(raw) ||
+        ((typeof minaLastReferencedAppointmentId !== 'undefined' && minaLastReferencedAppointmentId)
+          ? (appData.appointments || []).find(a => a && a.id === minaLastReferencedAppointmentId && a.status !== 'canceled')
+          : null);
+      if (!appointment) return 'حتماً عزیزم 💗 برای اینکه یادآوری اشتباهی نسازم، بگو این پیگیری مربوط به کدام مشتری یا کدام نوبته.';
+      if (!appointment.dateKey) return 'نوبت رو پیدا کردم، اما تاریخش مشخص نیست؛ اول تاریخ مراجعه رو کامل کنیم.';
+      if (daysMatch) {
+        const daysAfter = minaPersianNumberValue(daysMatch[1]);
+        if (!Number.isInteger(daysAfter) || daysAfter < 1 || daysAfter > 365) return 'تعداد روز باید بین ۱ تا ۳۶۵ باشه عزیزم.';
+        const reminderKey = addDaysToJalaliKey(appointment.dateKey, daysAfter);
+        const time = minaParseReminderClock(raw) || appData.settings?.repairReminderTime || '10:00';
+        const gregorianDate = jalaliKeyToGregorianDate(reminderKey);
+        const targetAt = iranDateTimeToEpoch(gregorianDate, time);
+        if (!Number.isFinite(targetAt) || targetAt <= Date.now()) {
+          return '۱۸ روز بعد از تاریخ این مراجعه به زمان گذشته یا همین الان رسیده؛ برای اینکه آلارم از دست نره، ساعت آینده‌ای برای همان تاریخ یا تعداد روز دیگری مشخص کن.';
+        }
+        appointment.repairReminderDisabled = false;
+        appointment.repairReminderOverride = {
+          ...(appointment.repairReminderOverride || {}),
+          daysAfter,
+          date: gregorianDate,
+          time,
+          message: '📞 زمان پیگیری ترمیم مشتری\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
+            (appointment.phone ? '\n📱 تلفن: ' + appointment.phone : '') +
+            '\n💅 خدمت قبلی: ' + (appointment.service || 'ثبت نشده') +
+            '\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
+            '\n🔔 پیگیری: ' + formatJalaliFull(reminderKey) + ' (' + toPersianDigits(daysAfter) + ' روز بعد از مراجعه)'
+        };
+        syncAutomaticRepairReminder(appointment);
+        saveData();
+        renderPersonalReminders();
+        if (typeof renderCalendar === 'function') renderCalendar();
+        if (typeof renderDaySchedule === 'function') renderDaySchedule();
+        return 'حتماً عزیزم 💗 یادآوری به تاریخ همان مراجعه وصل شد و از امروز محاسبه نشد.\n👩🏻 مشتری: ' +
+          (appointment.clientName || 'مشتری') + '\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
+          '\n🔔 تاریخ پیگیری: ' + formatJalaliFull(reminderKey) + '\n⏰ ساعت: ' + time +
+          '\n💅 خدمت: ' + (appointment.service || 'خدمت') +
+          '\nیادآوری اختصاصی این نوبت ذخیره شد.';
+      }
       if (!/(?:نوبت|رزرو|وقت|مراجعه|این\s+نوبت)/u.test(text)) return null;
       const reminderTime = minaParseReminderClock(raw);
       if (!reminderTime) return 'حتماً عزیزم 💗 ساعت هشدار رو دقیق‌تر بگو؛ مثلاً «۱۴:۰۰» یا «دو و ربع بعدازظهر».';
-      const appointment = minaFindReferencedAppointment(raw);
-      if (!appointment) return 'حتماً عزیزم 💗 هنوز نوبتی برای اتصال این یادآوری پیدا نکردم. اول نوبت رو ثبت کن یا بگو یادآوری برای کدوم مشتریه.';
-      if (!appointment.dateKey) return 'نوبت رو پیدا کردم، اما تاریخش مشخص نیست؛ تاریخ همون نوبت رو کامل کن تا هشدار رو ذخیره کنم.';
       appointment.reminderTime = reminderTime;
       appointment.reminderNotified = false;
       appointment.reminderEnabled = true;
