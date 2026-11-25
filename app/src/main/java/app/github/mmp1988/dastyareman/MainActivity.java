@@ -651,7 +651,11 @@ public class MainActivity extends Activity {
             return;
         }
         apkUpdateCheckRunning = true;
-        if (manual) runOnUiThread(() -> Toast.makeText(this, "در حال بررسی نسخه جدید و آماده‌سازی دانلود…", Toast.LENGTH_SHORT).show());
+        if (manual) {
+            // A deliberate manual check may show a version the user previously deferred.
+            getSharedPreferences("apk_updates", MODE_PRIVATE).edit().remove("deferred_version").apply();
+            runOnUiThread(() -> Toast.makeText(this, "در حال بررسی نسخه جدید و آماده‌سازی دانلود…", Toast.LENGTH_SHORT).show());
+        }
         io.execute(() -> {
             HttpURLConnection connection = null;
             try {
@@ -805,6 +809,10 @@ public class MainActivity extends Activity {
                 return;
             }
 
+            // Do not repeatedly prompt for the same APK after the user chooses "later".
+            // A newer version or an explicit manual check can surface it again.
+            if (prefs.getLong("deferred_version", -1L) == pendingVersion) return;
+
             // Ask before installing. Android's package installer updates the existing
             // package in place (same applicationId/signing key), preserving app data.
             long consentedVersion = prefs.getLong("install_consent_version", -1L);
@@ -819,9 +827,13 @@ public class MainActivity extends Activity {
                             prefs.edit().putLong("install_consent_version", pendingVersion).apply();
                             installPendingApkIfAllowed();
                         })
-                        .setNegativeButton("فعلاً نه", (dialog, which) -> apkInstallDialogVisible = false)
+                        .setNegativeButton("فعلاً نه", (dialog, which) -> {
+                            apkInstallDialogVisible = false;
+                            prefs.edit().putLong("deferred_version", pendingVersion).apply();
+                        })
                         .setNeutralButton("بررسی مجدد نسخه‌ها", (dialog, which) -> {
                             apkInstallDialogVisible = false;
+                            prefs.edit().remove("deferred_version").apply();
                             checkForApkUpdate(true);
                         })
                         .setOnCancelListener(dialog -> apkInstallDialogVisible = false)
