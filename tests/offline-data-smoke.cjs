@@ -851,15 +851,16 @@ const assert = require('assert');
         todayExpanded,
         monthRows:monthRows.length,
         monthIncludesFutureDate:monthNames.includes('مشتری فردا'),
-        upcomingExcludesToday:document.getElementById('smartUpcoming').textContent==='۱' && !upcomingText.includes('مشتری اول') && upcomingText.includes('مشتری فردا')
+        upcomingExcludesToday:!upcomingText.includes('مشتری اول') && upcomingText.includes('مشتری فردا'),
+        duplicateCountersRemoved:!document.getElementById('smartUpcoming') && !!document.querySelector('#smartDashboard .smart-dashboard-intro')
       };
     });
     assert(homeDashboardQA.todayRows===2 && homeDashboardQA.todaySorted &&
       homeDashboardQA.todaySummaryAccurate && homeDashboardQA.todayExpanded,
       'Home today summary must show active appointments sorted by exact time and accurate statuses');
     assert(homeDashboardQA.monthRows===3 && homeDashboardQA.monthIncludesFutureDate &&
-      homeDashboardQA.upcomingExcludesToday,
-      'Home month summary and upcoming panel must distinguish this month from the next seven days');
+      homeDashboardQA.upcomingExcludesToday && homeDashboardQA.duplicateCountersRemoved,
+      'Home month summary and upcoming panel must distinguish this month from the next seven days without duplicate dashboard counters');
     console.log('Home dashboard:', JSON.stringify(homeDashboardQA));
 
 
