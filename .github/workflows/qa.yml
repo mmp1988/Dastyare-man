@@ -68,6 +68,8 @@ jobs:
             const healthData = await health.json();
             assert.equal(healthData.success, true, 'Live Worker health response must report success');
             assert.equal(healthData.status, 'ready', 'Live Worker must report ready');
+            assert.equal(healthData.version, 'mina-ai-response-v2',
+              'The updated Worker response parser must be deployed, not just committed to GitHub');
 
             const preflight = await fetch(base, {
               method: 'OPTIONS',
