@@ -56,8 +56,8 @@ const assert = require('assert');
         safe.message.includes('[CLIENT_1]') && safe.message.includes('[PHONE_1]');
       const restored = safe.restore(safe.message);
       const restoreWorks = restored.includes('سارا محمدی') && restored.includes('09123456789');
-      const simpleBookingLocal = minaIsClearlyLocalAction('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن') &&
-        !minaNeedsCloudUnderstanding('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن');
+      const simpleBookingCloudFirst = minaIsClearlyLocalAction('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن') &&
+        minaNeedsCloudUnderstanding('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن');
       const compoundMessage = 'نوبت قبلی سارا رو به فردا ساعت ۱۵:۴۳ جابه‌جا کن و یادآوری هم براش فعال کن';
       const complexCloud = minaNeedsCloudUnderstanding(compoundMessage);
       const compoundDiagnostics = {
@@ -67,13 +67,14 @@ const assert = require('assert');
         multiAction:/و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)/u.test(minaCleanText(minaExpandSpokenTime(compoundMessage)).toLocaleLowerCase('fa'))
       };
       localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 60000));
-      const quotaCooldown = minaCloudQuotaCooldownActive();
+      const quotaCooldownFlagDetected = minaCloudQuotaCooldownActive();
+      const quotaCooldownDoesNotGateCloud = !minaAskSmartBrain.toString().includes('minaCloudQuotaCooldownActive');
       localStorage.removeItem('mina_cloud_quota_retry_at');
       appData.clientProfiles = previousProfiles;
-      return { privateDataHidden, restoreWorks, simpleBookingLocal, complexCloud, compoundDiagnostics, quotaCooldown };
+      return { privateDataHidden, restoreWorks, simpleBookingCloudFirst, complexCloud, compoundDiagnostics, quotaCooldownFlagDetected, quotaCooldownDoesNotGateCloud };
     });
     assert(Object.values(minaHybridRoutingQA).every(Boolean),
-      'Mina hybrid AI routing must mask private data, preserve private data, keep complete appointment booking local/offline and route multi-step reasoning to cloud, and respect quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
+      'Mina routing must mask private data, use cloud AI as the primary online interpreter for both simple and complex requests, and not suppress new requests because of an old quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
     console.log('Mina hybrid AI routing:', JSON.stringify(minaHybridRoutingQA));
 
     // Regression: update the exact appointment and accept a standalone minute-level follow-up.
@@ -101,8 +102,8 @@ const assert = require('assert');
         const followupReply = minaTryManageAppointment('۱۸:۱۷');
         const followupTime = testAppointment.time;
         minaLastReferencedAppointmentId = shortFormAppointment.id;
-        const shortFormRoutedLocally = minaIsClearlyLocalAction('نوبتشو بکن ۶ عصر') && !minaNeedsCloudUnderstanding('نوبتشو بکن ۶ عصر') &&
-          minaIsClearlyLocalAction('نوبت سارا بسه ۶ عصر') && !minaNeedsCloudUnderstanding('نوبت سارا بسه ۶ عصر');
+        const shortFormCloudInterpreted = minaIsClearlyLocalAction('نوبتشو بکن ۶ عصر') && minaNeedsCloudUnderstanding('نوبتشو بکن ۶ عصر') &&
+          minaIsClearlyLocalAction('نوبت سارا بسه ۶ عصر') && minaNeedsCloudUnderstanding('نوبت سارا بسه ۶ عصر');
         const shortFormReply = minaBuildReply('نوبتشو بکن ۶ عصر');
         const shortFormTime = shortFormAppointment.time;
         minaLastReferencedAppointmentId = null;
@@ -120,7 +121,7 @@ const assert = require('assert');
         return {
           firstChangedToSixPM:firstTime === '18:00',
           standaloneMinuteChanged:followupTime === '18:17',
-          shortFormRoutedLocally,
+          shortFormCloudInterpreted,
           shortFormChangedToSixPM:shortFormTime === '18:00',
           colloquialChangedToSixPM:colloquialTime === '18:00',
           naturalRescheduleDateCorrect:naturalRescheduleDate === addDaysToJalaliKey(getTodayKey(),1),
@@ -139,7 +140,7 @@ const assert = require('assert');
       }
     });
     assert(appointmentRescheduleQA.firstChangedToSixPM && appointmentRescheduleQA.standaloneMinuteChanged &&
-      appointmentRescheduleQA.shortFormRoutedLocally && appointmentRescheduleQA.shortFormChangedToSixPM &&
+      appointmentRescheduleQA.shortFormCloudInterpreted && appointmentRescheduleQA.shortFormChangedToSixPM &&
       appointmentRescheduleQA.colloquialChangedToSixPM && appointmentRescheduleQA.naturalRescheduleDateCorrect &&
       appointmentRescheduleQA.naturalRescheduleTimeCorrect && appointmentRescheduleQA.calendarStatusVerified &&
       appointmentRescheduleQA.calendarNavigatedToAppointment,
@@ -707,7 +708,7 @@ const assert = require('assert');
       const actualEpoch=saved?iranDateTimeToEpoch(saved.date,saved.time):NaN;
       const routed=minaIsSalonScopeRequest('ساعت ۳ ظهر امروز آلارم بذار برام') &&
         minaIsClearlyLocalAction('ساعت ۳ ظهر امروز آلارم بذار برام') &&
-        !minaNeedsCloudUnderstanding('ساعت ۳ ظهر امروز آلارم بذار برام');
+        minaNeedsCloudUnderstanding('ساعت ۳ ظهر امروز آلارم بذار برام');
       appData.reminders=previousReminders;
       minaPendingPersonalReminder=null;
       return {
