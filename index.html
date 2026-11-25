@@ -5969,7 +5969,7 @@
 
     function minaHasSalonDomainAnchor(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa').replace(/[يى]/g, 'ی');
-      return /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
+      return /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|سایت|اپلیکیشن|امکانات|قابلیت|راهنما|تنظیمات|شخصی.?سازی|ظاهر|فونت|گزارش|آمار|پشتیبان|بکاپ|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
     }
 
     function minaIsPendingSalonFollowUp(message) {
@@ -5984,9 +5984,29 @@
       return !!(minaPendingBooking && !minaPendingBooking.clientName && text.length > 1 && text.length <= 60 && !/[؟?!]/u.test(text));
     }
 
+    function minaIsDateTimeQuestion(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      return /(?:الان\s*ساعت\s*چنده|ساعت\s*چنده|ساعت\s*الان|چه\s*ساعتیه|ساعت\s*چند\s*است|امروز\s*چند\s*شنبه|امروز\s*چه\s*روزیه|امروز\s*چه\s*روزی\s*است|تاریخ\s*(?:امروز|فردا|دیروز)|امروز\s*چندمه|فردا\s*چندمه|امروز\s*چنده|فردا\s*چه\s*تاریخیه|فردا\s*چه\s*تاریخی\s*می.?شه|امروز\s*چه\s*تاریخی\s*است)/u.test(text);
+    }
+
+    function minaTryAnswerDateTimeQuestion(message) {
+      if (!minaIsDateTimeQuestion(message)) return null;
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      const now = getIranNow();
+      const time = toPersianDigits(pad2(now.getHours()) + ':' + pad2(now.getMinutes()));
+      if (/(?:ساعت|چه\s*ساعتی)/u.test(text)) return 'الان ساعت ' + time + ' به وقت محلی دستگاهته عزیزم ⏰';
+      let delta = /(?:فردا)/u.test(text) ? 1 : /(?:دیروز)/u.test(text) ? -1 : 0;
+      const key = delta ? addDaysToJalaliKey(getTodayKey(), delta) : getTodayKey();
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + delta);
+      const weekday = WEEKDAY_NAMES[date.getDay()];
+      const formatted = formatJalaliFull(key);
+      if (/(?:چند\s*شنبه|چه\s*روزی)/u.test(text)) return (delta === 1 ? 'فردا' : delta === -1 ? 'دیروز' : 'امروز') + ' ' + weekday + ' است؛ ' + formatted + ' 🌸';
+      return (delta === 1 ? 'فردا' : delta === -1 ? 'دیروز' : 'امروز') + ' ' + formatted + ' است عزیزم 🌷';
+    }
+
     function minaIsSalonScopeRequest(message) {
-      // Generic words such as "time", "text", "question" or "hello" never grant salon scope by themselves.
-      return minaHasSalonDomainAnchor(message) || minaIsPendingSalonFollowUp(message);
+      // Date/time questions are useful built-in assistant abilities, answered from the device clock.
+      return minaIsDateTimeQuestion(message) || minaHasSalonDomainAnchor(message) || minaIsPendingSalonFollowUp(message);
     }
 
     function minaExtractSalonOnlyMessage(message) {
@@ -6062,6 +6082,13 @@
         return;
       }
 
+      // Device date and time are answered deterministically, with no cloud dependency.
+      const dateTimeReply = minaTryAnswerDateTimeQuestion(message);
+      if (dateTimeReply) {
+        addMinaMessage(dateTimeReply, 'assistant');
+        return;
+      }
+
       // Strict scope gate: unrelated chat is answered locally and never sent to AI.
       if (!minaIsSalonScopeRequest(message)) {
         addMinaMessage(minaOutOfScopeReply(message), 'assistant');
@@ -6130,6 +6157,19 @@
     minaBuildReply = function(raw) {
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
+      const continuationHasClock = !!minaParseReminderClock(expandedRaw) ||
+        /(?:ساعت\\s*)?\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}/u.test(normalized) ||
+        /(?:ساعت\\s*)?\\d{1,2}\\s*(?:و\\s*)\\d{1,2}\\s*دقیقه/u.test(normalized);
+      // A reply containing only the requested time completes the pending booking before
+      // appointment lookup/edit handlers can misclassify it as a request about an old record.
+      if (minaConversationBooking && continuationHasClock &&
+          !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/u.test(normalized)) {
+        const continuationTime = minaParseReminderClock(expandedRaw);
+        const continuation = minaConversationBooking.original + ' ' +
+          (continuationTime ? 'ساعت ' + continuationTime : expandedRaw);
+        minaConversationBooking = null;
+        return minaBuildReplyCore(continuation);
+      }
 
       // Appointment edits and calendar status must be resolved against local records first.
       const appointmentMutationReply = minaTryManageAppointment(expandedRaw);
