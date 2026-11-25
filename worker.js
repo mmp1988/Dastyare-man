@@ -90,8 +90,13 @@ export default {
         return json({ success: true, reply }, 200, headers);
       }
 
+      // Salon-only boundary: all salon features, promotions and app help are in scope.
+      const scopeText = message.normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ");
+      // Only clear salon-domain anchors grant access. Generic words and prompt-injection claims do not.
+      const salonDomainMessage = /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(scopeText);
+
       // Keep Mina's public identity consistent and never disclose implementation details.
-      // Curiosity about the underlying connection is redirected to the public Instagram shown on the site.
+      // Salon scope is checked first so this gate cannot reference an uninitialized variable.
       const identityQuestion = /(?:تو\s*(?:کی|چی)\s*هستی|اسمت\s*چیه|نامت\s*چیه|خودت\s*رو\s*معرفی\s*کن|who\s+are\s+you|what\s+is\s+your\s+name)/i.test(message);
       const connectionQuestion = /(?:به\s*(?:چی|چه\s*(?:چیزی|هوش|مدل|سرویسی|جایی))\s*(?:وصل|متصل)\s*(?:هستی|ی|شدی)?|به\s*کجا\s*(?:وصلی|متصلی|وصل\s*هستی)|از\s*چه\s*(?:هوش|مدل|سرویس|شرکت|پلتفرم)\s*(?:استفاده\s*می\s*کنی|استفاده\s*میکنی)|چه\s*هوش\s*مصنوعی\s*ای\s*هستی|چه\s*مدلی\s*هستی|سازنده\s*ات\s*کیه|کجا\s*اجرا\s*می\s*شی|what\s+are\s+you\s+connected\s+to|which\s+model\s+are\s+you\s+using|what\s+ai\s+are\s+you)/i.test(message);
       if ((identityQuestion || connectionQuestion) && !salonDomainMessage) {
@@ -99,10 +104,6 @@ export default {
         return json({ success: true, reply }, 200, headers);
       }
 
-      // Salon-only boundary: all salon features, promotions and app help are in scope.
-      const scopeText = message.normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ");
-      // Only clear salon-domain anchors grant access. Generic words and prompt-injection claims do not.
-      const salonDomainMessage = /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(scopeText);
       if (!salonDomainMessage) {
         const reply = "من مینا هستم؛ دستیار تخصصی امور سالن زیبایی. فقط در زمینه نوبت‌ها، مشتریان، خدمات و مدیریت سالن کمک می‌کنم و برای گفت‌وگوی عمومی طراحی نشده‌ام. برای اطلاعات و ارتباط بیشتر، صفحه اینستاگرام را ببینید: @lash_by_mina.m\nhttps://www.instagram.com/lash_by_mina.m/";
         return json({ success: true, reply }, 200, headers);
