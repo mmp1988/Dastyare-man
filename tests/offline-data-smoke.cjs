@@ -676,6 +676,16 @@ const assert = require('assert');
       const relativeReply=minaTrySetPersonalReminder('برای ۵۰ دقیقه دیگه آلارم تنظیم کن');
       const relativeSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.id!==saved?.id&&x.createdAt>=relativeExpectedAt-60000);
       const relativeActualAt=relativeSaved?iranDateTimeToEpoch(relativeSaved.date,relativeSaved.time):NaN;
+      const minuteWordParsing =
+        minaPersianNumberValue('صفر')===0 &&
+        minaPersianNumberValue('بیست و یک')===21 &&
+        minaPersianNumberValue('پنجاه و نه')===59 &&
+        minaParseReminderClock('ساعت سه و صفر دقیقه')==='03:00' &&
+        minaParseReminderClock('ساعت سه و پنجاه و نه دقیقه')==='03:59';
+      const relative59ExpectedAt=Math.ceil((Date.now()+59*60000)/60000)*60000;
+      const relative59Reply=minaTrySetPersonalReminder('برای پنجاه و نه دقیقه دیگه آلارم تنظیم کن');
+      const relative59Saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.id!==saved?.id&&x.id!==relativeSaved?.id);
+      const relative59ActualAt=relative59Saved?iranDateTimeToEpoch(relative59Saved.date,relative59Saved.time):NaN;
       const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
       const actualEpoch=saved?iranDateTimeToEpoch(saved.date,saved.time):NaN;
@@ -693,6 +703,9 @@ const assert = require('assert');
         relativeReminderSaved:!!relativeSaved && Math.abs(relativeActualAt-relativeExpectedAt)<=60000,
         relativeReminderTextClean:!!relativeSaved && !/۵۰\\s*دقیقه/u.test(relativeSaved.message),
         relativeReminderReply:relativeReply,
+        minuteWordParsing,
+        relative59Saved:!!relative59Saved && Math.abs(relative59ActualAt-relative59ExpectedAt)<=60000,
+        relative59Reply,
         reply
       };
     });
@@ -707,6 +720,8 @@ const assert = require('assert');
       'Personal alarm requests must be handled as a local executable action, not sent to cloud as plain chat');
     assert(minaReminderAndIranTimeQA.relativeReminderSaved && minaReminderAndIranTimeQA.relativeReminderTextClean,
       'Mina must schedule colloquial relative requests such as «۵۰ دقیقه دیگه» locally at the correct Iran-time instant');
+    assert(minaReminderAndIranTimeQA.minuteWordParsing && minaReminderAndIranTimeQA.relative59Saved,
+      'Mina must understand Persian minute values from zero through fifty-nine, including compound values and relative reminders');
 
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
     assert(minaActionsResult.cancelOk && minaActionsResult.doneOk && minaActionsResult.deleteOk && minaActionsResult.cancelVerbOk && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.exactMinuteOk && minaActionsResult.minuteMoveOk && minaActionsResult.relativeMoveOk && minaActionsResult.dateMoveOk && minaActionsResult.weekOk,
