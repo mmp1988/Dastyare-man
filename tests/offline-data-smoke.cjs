@@ -568,8 +568,9 @@ const assert = require('assert');
       nativeJava.includes('lowerHtml.contains("</html>")') &&
       nativeJava.includes('lowerHtml.contains("</script>")'),
       'Android content updater must reject truncated or invalid HTML before replacing the offline page');
-    assert(nativeJava.includes('Only throttle future checks after the new content is safely installed'),
-      'Android updater must retry after failed content installation');
+    assert(nativeJava.includes('final boolean contentUnchanged = unchanged') &&
+      nativeJava.includes('prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply()'),
+      'Android updater must save its success timestamp only after the new content is safely installed');
     assert(nativeJava.includes('Intent.ACTION_SENDTO, smsUri'), 'Android must open the installed SMS app for prepared customer messages');
     assert(nativeJava.includes('Intent.ACTION_DIAL, uri'), 'Android must route phone links to the dialer');
     assert(nativeJava.includes('Intent.createChooser(sendIntent, "ارسال با...")'), 'Android must offer installed apps through the share chooser');
