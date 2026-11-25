@@ -5509,6 +5509,7 @@
         if (!clock) return 'حتماً عزیزم 💗 ساعت رو به هر شکلی که راحتی بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر».';
         let hour = Number(clock[1]), minute = Number(clock[2] || 0);
         const period = clock[3] || (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(t) ? 'بعدازظهر' : /صبح/.test(t) ? 'صبح' : '');
+        try { window.__minaClockDebug = { t, clock, sharedClock, hour, minute, period }; } catch (error) {}
         if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
         if ((/صبح/.test(period) || /شب/.test(period)) && hour === 12) hour = 0;
         if (hour > 23 || minute > 59) return 'ساعت رو درست متوجه نشدم گلم؛ یک بار دیگه می‌گی؟ 💗';
