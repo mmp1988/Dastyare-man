@@ -6577,11 +6577,11 @@
       const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
       const combinedText=minaCleanText(minaNormalizeDigits(combined)).toLocaleLowerCase('fa');
       // Relative durations are resolved locally from the real clock; they never need cloud AI.
-      const durationMatch=combinedText.match(/(?:در\\s*)?(\\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\\s*دقیقه\\s*(?:دیگه|دیگر|بعد(?:تر)?)/u);
+      const durationMatch=combinedText.match(/(?:در\s*)?(\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\s*دقیقه\s*(?:دیگه|دیگر|بعد(?:تر)?)/u);
       let relativeTargetAt=null;
       if(durationMatch){
         const minutes=/^\\d+$/u.test(durationMatch[1])?Number(durationMatch[1]):minaPersianNumberValue(durationMatch[1]);
-        if(Number.isFinite(minutes)&&minutes>=1&&minutes<=10080)relativeTargetAt=Date.now()+minutes*60000;
+        if(Number.isFinite(minutes)&&minutes>=1&&minutes<=10080)relativeTargetAt=Math.ceil((Date.now()+minutes*60000)/60000)*60000;
       }
       let clock=relativeTargetAt?null:minaParseReminderClock(combined);
       let dateKey=relativeTargetAt?null:minaReminderDateKey(combined);
@@ -6610,7 +6610,7 @@
         .replace(/(?:امروز|فردا|پس\s*فردا|پسفردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه)/gu,' ')
         .replace(/(?:تاریخ\s*)?(?:1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)(?:\s*1[2345]\d{2})?)/gu,' ')
         .replace(/(?:ساعت\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s*و\s*\d{1,2}\s*دقیقه|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی|چهل|پنجاه|شصت|\d{1,2})(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|\d{1,2}))?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/gu,' ')
-        .replace(/(?:در\\s*)?(?:\\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\\s*دقیقه\\s*(?:دیگه|دیگر|بعد(?:تر)?)/gu,' ')
+        .replace(/(?:در\s*)?(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\s*دقیقه\s*(?:دیگه|دیگر|بعد(?:تر)?)/gu,' ')
         .replace(/(?:برام|برای من|لطفا|لطفاً|بزاری|بذار|بزار|بذارم|بزارم|بگذاری|تنظیم کن|تنظیمش کن|کن|بکن)/gu,' ').replace(/\s+/g,' ').trim();
       if(!message||/^(?:امروز|فردا|ساعت|برام|من)$/u.test(message))message='یادآوری شخصی';
       const id='mina_rem_'+Date.now();
