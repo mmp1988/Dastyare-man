@@ -180,8 +180,8 @@ const assert = require('assert');
       'Mina must route short and colloquial Persian appointment edits, parse spoken hour/minute with afternoon correctly, move the exact named appointment, and navigate the calendar to its saved date: ' + JSON.stringify(appointmentRescheduleQA));
     console.log('Mina appointment reschedule:', JSON.stringify(appointmentRescheduleQA));
 
-    // Historical booking regression: past Jalali dates must create a new completed
-    // appointment, never enter the edit/lookup path or mutate an existing visit.
+    // Historical booking regression across named Jalali months, including the
+    // colloquial «ماه» suffix and an omitted year that defaults to the current year.
     const historicalBookingQA = await page.evaluate(() => {
       const oldAppointments = appData.appointments;
       const oldProfiles = appData.clientProfiles;
@@ -193,23 +193,26 @@ const assert = require('assert');
         appData.appointments = [];
         appData.clientProfiles = {};
         minaLastReferencedAppointmentId = null;
-        const reply = minaBuildReply('برای مینا موسوی مطلق ۱۸ آبان ۱۴۰۵ نوبت کاشت مژه ثبت کن');
-        const created = appData.appointments.filter(a => a.clientName === 'مینا موسوی مطلق');
-        const appointment = created[0];
-        const noLookupError = !/هیچ نوبتی برای این کار پیدا نکردم/u.test(reply);
-        const exactDate = appointment?.dateKey === '1405-08-18';
-        const exactService = appointment?.service === 'کاشت مژه';
-        const completed = appointment?.status === 'done';
-        const profileLinked = !!appointment?.clientId &&
-          Object.values(appData.clientProfiles).some(p => p.clientId === appointment.clientId);
+        const replyAban = minaBuildReply('برای مینا موسوی مطلق ۱۸ آبان ۱۴۰۵ نوبت کاشت مژه ثبت کن');
+        const replyMehr = minaBuildReply('برای سارا ۲۰ مهر ماه نوبت لیفت مژه ثبت کن');
+        const aban = appData.appointments.find(a => a.clientName === 'مینا موسوی مطلق');
+        const mehr = appData.appointments.find(a => a.clientName === 'سارا');
+        const noLookupError = !/هیچ نوبتی برای این کار پیدا نکردم/u.test(replyAban + replyMehr);
+        const exactDates = aban?.dateKey === '1405-08-18' && mehr?.dateKey === '1405-07-20';
+        const exactServices = aban?.service === 'کاشت مژه' && mehr?.service === 'لیفت مژه';
+        const completed = aban?.status === 'done' && mehr?.status === 'done';
+        const profilesLinked = [aban, mehr].every(a => !!a?.clientId &&
+          Object.values(appData.clientProfiles).some(p => p.clientId === a.clientId));
         return {
-          createdExactlyOne: created.length === 1,
+          createdExactlyTwo: appData.appointments.length === 2,
           noLookupError,
-          exactDate,
-          exactService,
+          exactDates,
+          exactServices,
           completed,
-          profileLinked,
-          reply
+          profilesLinked,
+          todayKey: getTodayKey(),
+          replyAban,
+          replyMehr
         };
       } finally {
         appData.appointments = oldAppointments;
@@ -224,10 +227,10 @@ const assert = require('assert');
         renderClientsTab();
       }
     });
-    assert(historicalBookingQA.createdExactlyOne && historicalBookingQA.noLookupError &&
-      historicalBookingQA.exactDate && historicalBookingQA.exactService &&
-      historicalBookingQA.completed && historicalBookingQA.profileLinked,
-      'A past Jalali date must create exactly one completed appointment linked to the named customer, without trying to find an existing appointment: ' + JSON.stringify(historicalBookingQA));
+    assert(historicalBookingQA.createdExactlyTwo && historicalBookingQA.noLookupError &&
+      historicalBookingQA.exactDates && historicalBookingQA.exactServices &&
+      historicalBookingQA.completed && historicalBookingQA.profilesLinked,
+      'Past Jalali dates in different months must create completed appointments linked to the correct customers: ' + JSON.stringify(historicalBookingQA));
     console.log('Historical Jalali booking regression:', JSON.stringify(historicalBookingQA));
 
     // The redesigned appointment form must expose and persist an editable Jalali visit date.
