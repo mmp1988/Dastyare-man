@@ -4878,7 +4878,7 @@
       const time = document.getElementById('settingRepairReminderTime')?.value || '10:00';
       const days = rawDays === '' ? null : Number(rawDays);
       if (days !== null && (!Number.isInteger(days) || days < 1 || days > 365)) { showToast('تعداد روز باید خالی یا عددی بین ۱ تا ۳۶۵ باشد.'); applySettingsUI(); return; }
-      if (!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(time)) { showToast('ساعت هشدار معتبر نیست.'); applySettingsUI(); return; }
+      if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) { showToast('ساعت هشدار معتبر نیست.'); applySettingsUI(); return; }
       if (!appData.settings) appData.settings = {};
       appData.settings.repairReminderDays = days;
       appData.settings.repairReminderTime = time;
