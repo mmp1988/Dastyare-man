@@ -30,6 +30,30 @@ const assert = require('assert');
     await page.waitForTimeout(1500);
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
+    // The redesigned appointment form must expose and persist an editable Jalali visit date.
+    const appointmentDateFormQA = await page.evaluate(() => {
+      selectedDateKey = getTodayKey();
+      openApptModal();
+      const field = document.getElementById('apptDate');
+      const initialDate = field?.value || '';
+      const target = addDaysToJalaliKey(getTodayKey(), 3);
+      field.value = toPersianDigits(target.replace(/-/g, '/'));
+      const accepted = updateAppointmentDate(true);
+      const updatedDate = selectedDateKey;
+      field.value = '۱۴۰۵/۱۳/۴۰';
+      const invalidRejected = !updateAppointmentDate(false);
+      closeModal('apptModal');
+      return {
+        visible: !!field && !!document.querySelector('label[for="apptDate"]'),
+        initialDateMatchesSelectedDay: initialDate === toPersianDigits(getTodayKey().replace(/-/g, '/')),
+        validDateAccepted: accepted && updatedDate === target,
+        invalidDateRejected
+      };
+    });
+    assert(appointmentDateFormQA.visible && appointmentDateFormQA.initialDateMatchesSelectedDay &&
+      appointmentDateFormQA.validDateAccepted && appointmentDateFormQA.invalidDateRejected,
+      'Appointment form must show its default Jalali date, accept a changed date, and reject invalid dates');
+
     // Birthday deletion removes only the birthday date and its own reminder;
     // the customer profile and appointments must remain untouched.
     page.once('dialog', dialog => dialog.accept());
@@ -579,11 +603,13 @@ const assert = require('assert');
     const appointmentResult = await page.evaluate(() => {
       const set = (id, value) => { document.getElementById(id).value = value; };
       selectedDateKey = getTodayKey();
+      document.getElementById('apptDate').value = toPersianDigits(selectedDateKey.replace(/-/g, '/'));
       set('editApptId', '');
       set('apptClientName', 'مشتری تست');
       set('apptPhone', '09121112233');
       set('apptTime', '11:30');
       set('apptService', 'کلاسیک');
+      set('apptDate', toPersianDigits(selectedDateKey.replace(/-/g, '/')));
       set('apptNotes', 'یادداشت تست نوبت');
       set('apptAlarm', '15');
       set('apptStatus', 'pending');
@@ -608,6 +634,7 @@ const assert = require('assert');
       const set = (id, value) => { document.getElementById(id).value = value; };
       appData.appointments = [];
       selectedDateKey = getTodayKey();
+      document.getElementById('apptDate').value = toPersianDigits(selectedDateKey.replace(/-/g, '/'));
       const fill = (name, phone, service) => {
         set('editApptId', '');
         set('apptClientName', name);
@@ -655,6 +682,7 @@ const assert = require('assert');
       appData.clientProfiles = {};
       appData.appointments = [];
       selectedDateKey = getTodayKey();
+      document.getElementById('apptDate').value = toPersianDigits(selectedDateKey.replace(/-/g, '/'));
       const set = (id, value) => { document.getElementById(id).value = value; };
       set('editApptId', '');
       set('apptClientName', 'مشتری بدون شماره');
@@ -696,6 +724,7 @@ const assert = require('assert');
       appData.clientProfiles = {};
       const clientName = 'مشتری نوبت اصلی و ترمیم';
       selectedDateKey = getTodayKey();
+      document.getElementById('apptDate').value = toPersianDigits(selectedDateKey.replace(/-/g, '/'));
       const set = (id, value) => { document.getElementById(id).value = value; };
       set('editApptId', '');
       set('apptClientName', clientName);
