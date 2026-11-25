@@ -630,10 +630,16 @@ const assert = require('assert');
 
     assert(appointmentResult.created && appointmentResult.editOk && appointmentResult.notesSaved && appointmentResult.deleted, 'Appointment create/edit/delete/notes failed');
 
-    // The new dedicated appointments hub and completed-work archive must survive removal of a finished appointment.
+    // All-appointments search/filter now lives inside Home; no duplicate appointments page remains.
     const completedArchiveQA = await page.evaluate(() => {
-      const hasHub = !!document.getElementById('tab-appointments') && !!document.getElementById('appointmentHubList');
-      switchTab('appointments', document.querySelector('.nav-item[onclick*="appointments"]'));
+      const panel = document.getElementById('allAppointmentsPanel');
+      const home = document.getElementById('tab-calendar');
+      const hasHub = !!panel && !!document.getElementById('appointmentHubList') &&
+        !document.getElementById('tab-appointments') && !!home && home.contains(panel);
+      switchTab('appointments', null);
+      const legacyRouteMapsHome = home?.classList.contains('active') === true;
+      if (panel) panel.open = true;
+      if (typeof renderAppointmentsHub === 'function') renderAppointmentsHub();
       const hubRendered = !!document.querySelector('#appointmentHubStats .appointment-hub-stat');
       const item = { id:'qa-completed-archive', dateKey:getTodayKey(), time:'15:27', clientName:'مشتری تاریخچه', phone:'09127778899', service:'لیفت مژه', notes:'سابقه ثابت', status:'done', completedAt:Date.now() };
       appData.appointments.push(item);
@@ -646,9 +652,9 @@ const assert = require('assert');
       const archivedImmutable = archived?.immutable === true && archived?.service === 'لیفت مژه' && archived?.notes === 'سابقه ثابت';
       if (archived) deleteClientHistoryItem(encodeURIComponent(key), encodeURIComponent(archived.id), 'record');
       const explicitHistoryDelete = !(appData.clientProfiles[key]?.records || []).some(r => r.id === 'done_'+item.id);
-      return { hasHub, hubRendered, appointmentRemoved, archivedImmutable, explicitHistoryDelete };
+      return { hasHub, hubRendered, legacyRouteMapsHome, appointmentRemoved, archivedImmutable, explicitHistoryDelete };
     });
-    assert(completedArchiveQA.hasHub && completedArchiveQA.hubRendered, 'Dedicated appointments hub must render');
+    assert(completedArchiveQA.hasHub && completedArchiveQA.hubRendered && completedArchiveQA.legacyRouteMapsHome, 'All-appointments hub must render inside Home and old appointments routes must redirect to Home');
     assert(completedArchiveQA.appointmentRemoved && completedArchiveQA.archivedImmutable, 'Deleting a completed appointment must archive an immutable history record');
     assert(completedArchiveQA.explicitHistoryDelete, 'History records must be deletable only through the explicit history action');
     console.log('Completed appointment archive:', JSON.stringify(completedArchiveQA));
