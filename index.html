@@ -5905,7 +5905,7 @@
       const hasBookingVerb = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s*بده|انجام\s*بده)/u.test(normalized);
       if (hasDate && hasTime && hasService && hasBookingVerb) return false;
       // A request combining an appointment change with a second action needs cloud reasoning.
-      const multiAction = /(?:و\\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)|همزمان|هم\\s*این)/u.test(normalized);
+      const multiAction = /(?:و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)|همزمان|هم\s*این)/u.test(normalized);
       if (multiAction) return true;
       // One clear, named appointment edit is deterministic too; multi-action requests still use AI.
       const hasOneEdit = /(?:نوبت|رزرو|وقت)/u.test(normalized) &&
@@ -6332,7 +6332,7 @@
       if (/(?:12|دوازده)\s*شب/u.test(rawValue) || /(?:12|دوازده)\s*شب/u.test(value)) return '00:00';
       const numberWord = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       const relative = value.match(new RegExp('(' + numberWord + '\\s*دقیقه|یک\\s*ربع|ربع|نیم\\s*ساعت|نیم\\s*ربع)\\s*(به|مونده\\s*به|مانده\\s*به|قبل\\s*از|بعد\\s*از|گذشته\\s*از)\\s*(' + numberWord + ')(?:\\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
-      const spokenExactParts = rawValue.replace(/^ساعت\\s*/u, '').match(/^(.+?)\\s+و\\s+(.+?)\\s*دقیقه$/u);
+      const spokenExactParts = rawValue.replace(/^ساعت\s*/u, '').match(/^(.+?)\s+و\s+(.+?)\s*دقیقه$/u);
       if (spokenExactParts) {
         let exactHour = minaPersianNumberValue(spokenExactParts[1]);
         const exactMinute = minaPersianNumberValue(spokenExactParts[2]);
@@ -6343,7 +6343,7 @@
           return pad2(exactHour) + ':' + pad2(exactMinute);
         }
       }
-      const expandedExactMinutes = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s+و\\s+(\\d{1,2})\\s*دقیقه/u);
+      const expandedExactMinutes = value.match(/(?:ساعت\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*دقیقه/u);
       if (expandedExactMinutes) {
         let exactHour = Number(expandedExactMinutes[1]);
         const exactMinute = Number(expandedExactMinutes[2]);
