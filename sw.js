@@ -27,8 +27,10 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
     return;
   }
-  if (event.data && event.data.type === 'GET_VERSION' && event.source) {
-    event.source.postMessage({ type: 'APP_VERSION', version: CACHE_NAME });
+  if (event.data && event.data.type === 'GET_VERSION') {
+    const payload = { type: 'APP_VERSION', version: CACHE_NAME };
+    if (event.ports && event.ports[0]) event.ports[0].postMessage(payload);
+    else if (event.source) event.source.postMessage(payload);
   }
 });
 
