@@ -5807,13 +5807,15 @@
 
     function minaIsClearlyLocalAction(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      return !!(
-        /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|رنگ مو|ناخن|شماره تماس|تلفن)/u.test(text) ||
-        /(?:ثبت|ایجاد|اضافه|افزودن|ویرایش|تغییر|عوض|جابجا|جابه‌جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید|انجام شد|یادآوری)/u.test(text) ||
-        /\d/u.test(text) ||
-        !!minaPendingBooking ||
-        !!minaConversationBooking
-      );
+      const hasSalonRecord = /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|رنگ مو|شماره تماس|تلفن)/u.test(text);
+      const hasMutation = /(?:ثبت|رزرو کن|ایجاد|اضافه|افزودن|وارد کن|ذخیره|ویرایش|تغییر|عوض|جابجا|جابه‌جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید|انجام شد|یادآوری|یادم بنداز)/u.test(text);
+      const hasLookup = /(?:نمایش بده|نشون بده|لیست کن|فهرست|برنامه.*بگو|چند تا|چندتا|چه کسانی|کدوم مشتری|آخرین نوبت|نوبت بعدی|سوابق|پرونده.*باز کن)/u.test(text);
+      const implicitCompleteBooking = /(?:فردا|امروز|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text) &&
+        /\d|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|عصر|شب)?/u.test(text) &&
+        /(?:برای|واسه)/u.test(text) && /(?:مژه|ابرو|ناخن|مو|لیفت|کاشت|ترمیم|فیشیال|شینیون|کراتین)/u.test(text);
+      // A pending local workflow accepts only a short, relevant answer.
+      return (hasSalonRecord && (hasMutation || hasLookup || implicitCompleteBooking)) ||
+        minaIsPendingSalonFollowUp(message);
     }
 
     async function minaUnderstandLocalCommand(message) {
@@ -5898,9 +5900,7 @@
     async function minaAskSmartBrain(message, mode = 'reply') {
       // Cloud is reserved for salon reasoning/content; local records and execution never leave this device.
       if (!navigator.onLine || minaCloudQuotaCooldownActive()) return null;
-      const safe = mode === 'understand'
-        ? minaBuildCloudSafeCommand(message)
-        : { message: minaPrepareSalonAIMessage(message), restore: value => value };
+      const safe = minaBuildCloudSafeCommand(message);
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 18000);
@@ -5922,14 +5922,22 @@
           try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 30 * 60 * 1000)); } catch (error) {}
           return null;
         }
-        if (!response.ok || !data?.success) return null;
+        if (!response.ok || !data?.success) {
+          if (response.status >= 500) {
+            try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 2 * 60 * 1000)); } catch (error) {}
+          }
+          return null;
+        }
         if (mode === 'understand') {
           return typeof data.command === 'string' && data.command.trim()
             ? safe.restore(data.command.trim())
             : null;
         }
-        return typeof data.reply === 'string' && data.reply.trim() ? data.reply.trim() : null;
+        return typeof data.reply === 'string' && data.reply.trim() ? safe.restore(data.reply.trim()) : null;
       } catch (error) {
+        if (navigator.onLine) {
+          try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 60 * 1000)); } catch (storageError) {}
+        }
         return null;
       }
     }
@@ -6050,7 +6058,7 @@
         // The cloud may clarify the wording, but only the local engine can read or change app data.
         if (cloudResult) reply = cloudMode === 'understand' ? minaBuildReply(cloudResult) : cloudResult;
       }
-      if (!reply) reply = minaBuildReply(message);
+      if (!reply) reply = minaBuildReply(minaExtractSalonOnlyMessage(message));
       reply = minaFormatReplyForMode(reply);
       if (getMinaMode()==='friendly' && !/[💗💕💖💞🌸🌷🎀✨🥰😊😉😄]/u.test(reply)) reply += ' 💗🌸✨';
       addMinaMessage(reply, 'assistant');
