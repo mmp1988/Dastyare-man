@@ -5237,37 +5237,32 @@
       return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
     }
     function minaTransliterateFinglish(value) {
+      // Offline, conservative Finglish word map. Unknown words (especially names) stay untouched.
       const words = {
-        salam:'سلام', sal am:'سلام', slm:'سلام', dorood:'درود', khobi:'خوبی', khoobi:'خوبی',
-        chetori:'چطوری', chetori:'چطوری', merci:'مرسی', mamnoon:'ممنون', mamnun:'ممنون',
+        salam:'سلام', slm:'سلام', dorood:'درود', khobi:'خوبی', khoobi:'خوبی',
+        chetori:'چطوری', chetory:'چطوری', merci:'مرسی', mamnoon:'ممنون', mamnun:'ممنون',
         baraye:'برای', bara:'برای', vase:'برای', vas:'برای', farda:'فردا', emrooz:'امروز',
         emruz:'امروز', diruz:'دیروز', pasfarda:'پس فردا', pasfard:'پس فردا',
-        saat:'ساعت', sa'at:'ساعت', daghighe:'دقیقه', daghigheh:'دقیقه', daghighee:'دقیقه',
+        saat:'ساعت', daghighe:'دقیقه', daghigheh:'دقیقه', daghighee:'دقیقه',
         sobh:'صبح', zohr:'ظهر', badazzohr:'بعدازظهر', asr:'عصر', shab:'شب',
         nobat:'نوبت', nobate:'نوبت', nobatam:'نوبتم', rezerv:'رزرو', reserve:'رزرو',
-        sabt:'ثبت', sabt kon:'ثبت کن', bezar:'بذار', bezare:'بذار', bezarin:'بذار',
-        bezarid:'بذار', bezaram:'بذارم', kon:'کن', kone:'کنه', konid:'کنید',
-        bede:'بده', bedesh:'بدهش', begir:'بگیر', avaz:'عوض', avaz kon:'عوض کن',
-        taghir:'تغییر', taghir bede:'تغییر بده', hazf:'حذف', hazf kon:'حذف کن',
-        pak:'پاک', pak kon:'پاک کن', cancel:'لغو', cancel kon:'لغو کن',
-        cansel:'لغو', cansel kon:'لغو کن', laghv:'لغو', laghv kon:'لغو کن',
-        jabeja:'جابه‌جا', jabeja kon:'جابه‌جا کن', enteghal:'انتقال',
-        moshtari:'مشتری', moshtarie:'مشتری', klient:'مشتری', client:'مشتری',
-        khadamat:'خدمات', khedmat:'خدمت', salon:'سالن', arayesh:'آرایش',
-        mozh:'مژه', mozhe:'مژه', abroo:'ابرو', abru:'ابرو', nakhon:'ناخن',
-        lift:'لیفت', kasht:'کاشت', tarim:'ترمیم', classic:'کلاسیک',
-        matn:'متن', payam:'پیام', tabrik:'تبریک', takhfif:'تخفیف',
-        tabligh:'تبلیغ', caption:'کپشن', story:'استوری', benevis:'بنویس',
-        benevis:'بنویس', benevisid:'بنویسید', ide:'ایده', rahnama:'راهنما',
-        baram:'برام', lotfan:'لطفاً', mishe:'میشه', misheh:'میشه',
-        mikham:'می‌خوام', mikhaham:'می‌خواهم', mikham:'می‌خوام',
+        sabt:'ثبت', bezar:'بذار', bezare:'بذار', bezarin:'بذار', bezarid:'بذار',
+        bezaram:'بذارم', kon:'کن', kone:'کنه', konid:'کنید', bede:'بده',
+        bedesh:'بدهش', begir:'بگیر', avaz:'عوض', taghir:'تغییر', taghyir:'تغییر',
+        hazf:'حذف', pak:'پاک', cancel:'لغو', cansel:'لغو', laghv:'لغو',
+        jabeja:'جابه‌جا', enteghal:'انتقال', moshtari:'مشتری', moshtarie:'مشتری',
+        klient:'مشتری', client:'مشتری', khadamat:'خدمات', khedmat:'خدمت',
+        salon:'سالن', arayesh:'آرایش', mozh:'مژه', mozhe:'مژه', abroo:'ابرو',
+        abru:'ابرو', nakhon:'ناخن', lift:'لیفت', kasht:'کاشت', tarim:'ترمیم',
+        classic:'کلاسیک', matn:'متن', matne:'متن', payam:'پیام', payame:'پیام',
+        tabrik:'تبریک', takhfif:'تخفیف', tabligh:'تبلیغ', caption:'کپشن',
+        story:'استوری', benevis:'بنویس', benevisid:'بنویسید', ide:'ایده',
+        rahnama:'راهنما', baram:'برام', lotfan:'لطفاً', mishe:'میشه',
+        misheh:'میشه', mikham:'می‌خوام', mikhaham:'می‌خواهم',
         ro:'رو', ra:'را', va:'و', ye:'یک', yek:'یک', age:'اگه',
         alan:'الان', che:'چه', chi:'چی', hast:'هست', hastam:'هستم'
       };
-      return String(value || '').replace(/[A-Za-z]+(?:'[A-Za-z]+)?/g, token => {
-        const key = token.toLowerCase();
-        return words[key] || token;
-      });
+      return String(value || '').replace(/[A-Za-z]+/g, token => words[token.toLowerCase()] || token);
     }
 
     function minaNormalizePersianTypos(value) {
