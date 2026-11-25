@@ -1205,11 +1205,11 @@
     <!-- ==================== TAB 1: CALENDAR & APPOINTMENTS ==================== -->
     <section id="tab-calendar" class="tab-section active">
       <div class="stats-grid home-appointment-stats">
-        <button type="button" class="stat-card home-stat-button" onclick="openHomeAppointmentList('today')" aria-controls="homeAppointmentDetails">
+        <button type="button" class="stat-card home-stat-button" onclick="openHomeAppointmentList('today')" data-home-mode="today" aria-expanded="false" aria-controls="homeAppointmentDetails">
           <span class="stat-val" id="statTodayCount">۰</span>
           <span class="stat-lbl">نوبت‌های امروز</span><span class="home-stat-hint">مشاهده برنامه امروز ←</span>
         </button>
-        <button type="button" class="stat-card home-stat-button" onclick="openHomeAppointmentList('month')" aria-controls="homeAppointmentDetails">
+        <button type="button" class="stat-card home-stat-button" onclick="openHomeAppointmentList('month')" data-home-mode="month" aria-expanded="false" aria-controls="homeAppointmentDetails">
           <span class="stat-val" id="statMonthCount">۰</span>
           <span class="stat-lbl">نوبت‌های این ماه</span><span class="home-stat-hint">مشاهده تقویم ماه ←</span>
         </button>
@@ -4661,7 +4661,7 @@
       if(!panel)return;
       panel.dataset.mode=mode==='month'?'month':'today';
       panel.hidden=false;
-      document.querySelectorAll('.home-stat-button').forEach(btn=>btn.setAttribute('aria-expanded',String(btn.getAttribute('aria-controls')==='homeAppointmentDetails' && btn.onclick?.toString().includes("'"+panel.dataset.mode+"'"))));
+      document.querySelectorAll('.home-stat-button').forEach(btn=>btn.setAttribute('aria-expanded',String(btn.dataset.homeMode===panel.dataset.mode)));
       renderHomeAppointmentList();
       panel.scrollIntoView({behavior:'smooth',block:'nearest'});
     }
