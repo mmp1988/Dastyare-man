@@ -7496,7 +7496,7 @@
       const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
       const combinedText=minaCleanText(minaNormalizeDigits(combined)).toLocaleLowerCase('fa');
       // Relative durations are resolved locally (offline-first), including colloquial hours and days.
-      const spokenNumber='(?:\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
+      const spokenNumber='(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       let relativeTargetAt=null;
       let durationMs=0;
       let durationMatch=combinedText.match(new RegExp('(?:در\\s*)?('+spokenNumber+')\\s*ساعت(?:\\s*و\\s*('+spokenNumber+')\\s*دقیقه)?\\s*(?:دیگه|دیگر|بعد(?:تر)?)','u'));
