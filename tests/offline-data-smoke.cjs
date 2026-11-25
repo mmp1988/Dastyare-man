@@ -1118,6 +1118,50 @@ const assert = require('assert');
     assert(minaCreateAndPhoneQA.created, 'Mina did not create a customer profile from a natural Persian sentence');
     assert(minaCreateAndPhoneQA.phoneAttached, 'A separate phone-number message did not attach to the correct customer profile');
     assert(minaCreateAndPhoneQA.noDuplicate, 'Adding a phone number created a duplicate customer profile');
+    
+    // Preserve the exact customer name from the original request, keep the directory
+    // visible after creation, and interpret an explicit all-customer deletion as deletion.
+    const minaExactCustomerAndBulkDeleteQA = await page.evaluate(() => {
+      appData.clientProfiles = {};
+      appData.clientNotes = {};
+      appData.appointments = [];
+      const modal = document.getElementById('clientProfileModal');
+      if (modal) modal.classList.remove('open');
+      const createReply = minaTryAddClientFromMessage('مینا برای مامان مینا تو قسمت مشتریان یه دونه پرونده باز کن');
+      const created = Object.values(appData.clientProfiles).find(p => p.name === 'مامان مینا');
+      const profileModalStayedClosed = !modal || !modal.classList.contains('open');
+
+      const keyA = clientKeyFromFields('09120000031', 'مامان مینا');
+      const keyB = clientKeyFromFields('', 'مشتری آزمایشی دوم');
+      appData.clientProfiles[keyA] = { name:'مامان مینا', phone:'09120000031', clientId:'qa-bulk-client-a' };
+      appData.clientProfiles[keyB] = { name:'مشتری آزمایشی دوم', phone:'', clientId:'qa-bulk-client-b' };
+      appData.clientNotes[keyA] = 'یادداشت آزمایشی';
+      appData.appointments = [
+        { id:'qa-bulk-appt-a', clientId:'qa-bulk-client-a', clientName:'مامان مینا', phone:'09120000031', dateKey:getTodayKey(), time:'12:00' },
+        { id:'qa-bulk-appt-b', clientId:'qa-bulk-client-b', clientName:'مشتری آزمایشی دوم', dateKey:getTodayKey(), time:'13:00' }
+      ];
+      window.confirm = () => true;
+      const bulkReply = minaTryManageClientFromMessage('هرچی پرونده تو قسمت مشتریان هستو حذف کن');
+      return {
+        exactName:!!created && created.name === 'مامان مینا',
+        profileModalStayedClosed,
+        allProfilesDeleted:Object.keys(appData.clientProfiles).length === 0,
+        customerNotesDeleted:Object.keys(appData.clientNotes).length === 0,
+        linkedAppointmentsDeleted:!appData.appointments.some(a => /^qa-bulk-appt-/.test(a.id)),
+        noPhantomProfile:Object.values(appData.clientProfiles).every(p => p.name !== 'های موجود'),
+        replies:[createReply,bulkReply]
+      };
+    });
+    assert(minaExactCustomerAndBulkDeleteQA.exactName,
+      'Mina did not preserve the exact «مامان مینا» name from the natural Persian create request');
+    assert(minaExactCustomerAndBulkDeleteQA.profileModalStayedClosed,
+      'Mina automatically opened the long customer profile after creating a record');
+    assert(minaExactCustomerAndBulkDeleteQA.allProfilesDeleted &&
+      minaExactCustomerAndBulkDeleteQA.customerNotesDeleted &&
+      minaExactCustomerAndBulkDeleteQA.linkedAppointmentsDeleted &&
+      minaExactCustomerAndBulkDeleteQA.noPhantomProfile,
+      'Bulk customer deletion did not safely remove all linked profiles, notes and appointments');
+
 
 
 
