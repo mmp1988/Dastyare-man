@@ -6427,7 +6427,15 @@
       if (contextualFollowup && minaLastReferencedAppointmentId) {
         const remembered = selectable.find(a => a.id === minaLastReferencedAppointmentId);
         if (remembered) candidates = [remembered];
-        else return 'نوبتی که درباره‌اش صحبت می‌کردیم دیگر در فهرست فعال نیست؛ اسم مشتری یا تاریخ نوبت رو دوباره بگو عزیزم 💗';
+        else if (minaConversationBooking || minaPendingBooking) {
+          // A stale appointment pointer must not hijack a new multi-turn booking.
+          // Let the active booking conversation consume its date/time answer.
+          minaLastReferencedAppointmentId = null;
+          return null;
+        } else {
+          minaLastReferencedAppointmentId = null;
+          return 'نوبتی که درباره‌اش صحبت می‌کردیم دیگر در فهرست فعال نیست؛ اسم مشتری یا تاریخ نوبت رو دوباره بگو عزیزم 💗';
+        }
       }
       // Prefer the complete saved customer name found anywhere in the utterance.
       // This supports multi-word names such as «مینا موسوی» without relying on a
@@ -6499,6 +6507,7 @@
         return 'حتماً عزیزم 💗 نوبت «' + (appt.clientName || 'بدون نام') + '» رو پیدا کردم. به چه تاریخ یا ساعتی منتقلش کنم؟ هر دقیقه‌ای خواستی بگو؛ مثلاً «۱۶:۰۷» یا «یک ربع به ۳ بعدازظهر».';
       }
       if (isDelete) {
+        if (minaLastReferencedAppointmentId === appt.id) minaLastReferencedAppointmentId = null;
         appData.appointments = appData.appointments.filter(a => a.id !== appt.id);
         saveData(); renderCalendar(); renderDaySchedule();
         if (typeof renderClientsTab === 'function') renderClientsTab();
@@ -6507,6 +6516,7 @@
         return 'انجام شد عزیزم 🌸 فقط نوبت ' + (appt.clientName || 'بدون نام') + ' از تقویم حذف شد و پرونده و تاریخ تولد مشتری باقی ماند.\\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\\n💅 ' + (appt.service || 'خدمت') + '\\nاطلاعات تولد و پرونده دست‌نخورده ماند 💗';
       }
       if (isCancel) {
+        if (minaLastReferencedAppointmentId === appt.id) minaLastReferencedAppointmentId = null;
         appt.status = 'canceled';
         appt.notified = true;
         appt.reminderEnabled = false;
