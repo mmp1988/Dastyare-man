@@ -6131,46 +6131,46 @@
       const customerIntent = /(?:مشتری|مشتریان|پرونده)/u.test(text);
       if (!addIntent || !customerIntent) return null;
 
-      const phoneMatch = normalized.match(/(?:0098|\\+?98)?[\\s().-]*0?9(?:[\\s().-]*\\d){9}/u);
+      const phoneMatch = normalized.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
       if (!phoneMatch) return 'شماره تلفن مشتری رو کامل متوجه نشدم عزیزم؛ لطفاً شماره رو یک‌بار دیگه بگو. 💗';
-      let phone = phoneMatch[0].replace(/\\D/g, '');
+      let phone = phoneMatch[0].replace(/\D/g, '');
       if (phone.startsWith('0098')) phone = '0' + phone.slice(4);
       else if (phone.startsWith('98') && phone.length === 12) phone = '0' + phone.slice(2);
       else if (phone.length === 10 && phone.startsWith('9')) phone = '0' + phone;
-      if (!/^09\\d{9}$/.test(phone)) return 'شماره تلفن کامل و معتبر نیست عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
+      if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل و معتبر نیست عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
 
       const before = normalized.slice(0, phoneMatch.index).trim();
       let after = normalized.slice(phoneMatch.index + phoneMatch[0].length)
-        .replace(/^[\\s،,:؛-]+/u, '')
-        .replace(/^(?:مال|متعلق\\s+به|برای|به\\s+نام|به\\s+اسم|اسمش|نامش)\\s*/u, '')
+        .replace(/^[\s،,:؛-]+/u, '')
+        .replace(/^(?:مال|متعلق\s+به|برای|به\s+نام|به\s+اسم|اسمش|نامش)\s*/u, '')
         .trim();
-      const stop = /^(?:هست|است|میباشد|می\\s*باشد|ـه|توی|تو|در|قسمت|بخش|مشتریان|مشتری|اضافه|افزودن|ثبت|کن|کنش|برو|لطفا|لطفاً|رو|را|به)$/u;
+      const stop = /^(?:هست|است|میباشد|می\s*باشد|ـه|توی|تو|در|قسمت|بخش|مشتریان|مشتری|اضافه|افزودن|ثبت|کن|کنش|برو|لطفا|لطفاً|رو|را|به)$/u;
       let name = '';
-      const afterWords = after.split(/\\s+/u).filter(Boolean);
+      const afterWords = after.split(/\s+/u).filter(Boolean);
       const chosen = [];
       for (const word of afterWords) {
         const clean = word.replace(/[،,:؛.!؟]+$/u, '').replace(/(?:هست|است|میباشد)$/u, '');
-        if (!clean || stop.test(clean) || !/^[آ-یءئؤإأ‌\\-]{2,30}$/u.test(clean)) break;
+        if (!clean || stop.test(clean) || !/^[آ-یءئؤإأ‌\-]{2,30}$/u.test(clean)) break;
         chosen.push(clean);
         if (chosen.length === 3) break;
       }
       if (chosen.length) name = chosen.join(' ');
 
       if (!name) {
-        const nameMatch = before.match(/(?:به\\s+نام|به\\s+اسم|اسمش|نامش|برای|مشتری(?:\\s+جدید)?\\s+به\\s+نام|مشتری(?:\\s+جدید)?\\s+به\\s+اسم)\\s*([آ-یءئؤإأ‌\\-]{2,30}(?:\\s+[آ-یءئؤإأ‌\\-]{2,30}){0,2})/u);
+        const nameMatch = before.match(/(?:به\s+نام|به\s+اسم|اسمش|نامش|برای|مشتری(?:\s+جدید)?\s+به\s+نام|مشتری(?:\s+جدید)?\s+به\s+اسم)\s*([آ-یءئؤإأ‌\-]{2,30}(?:\s+[آ-یءئؤإأ‌\-]{2,30}){0,2})/u);
         if (nameMatch) name = nameMatch[1].trim();
       }
       if (!name) {
-        const prefixWords = before.replace(/(?:این\\s+)?شماره(?:\\s+تلفن)?/gu, ' ')
-          .replace(/(?:مشتری(?:\\s+جدید)?|پرونده|اضافه|افزودن|ثبت|کن|کنش|برو|توی|تو|قسمت|بخش|مشتریان|مشتری|مال|برای|به|اسم|نام)/gu, ' ')
-          .trim().split(/\\s+/u).filter(word => /^[آ-یءئؤإأ‌\\-]{2,30}$/u.test(word));
+        const prefixWords = before.replace(/(?:این\s+)?شماره(?:\s+تلفن)?/gu, ' ')
+          .replace(/(?:مشتری(?:\s+جدید)?|پرونده|اضافه|افزودن|ثبت|کن|کنش|برو|توی|تو|قسمت|بخش|مشتریان|مشتری|مال|برای|به|اسم|نام)/gu, ' ')
+          .trim().split(/\s+/u).filter(word => /^[آ-یءئؤإأ‌\-]{2,30}$/u.test(word));
         if (prefixWords.length) name = prefixWords.slice(-2).join(' ');
       }
       if (!name || stop.test(name)) return 'شماره رو گرفتم عزیزم؛ اسم مشتری رو هم بگو تا پرونده‌اش رو بدون نیاز به تاریخ بسازم. 💗';
 
-      const cleanName = name.trim().replace(/\\s+/gu, ' ');
-      const normalizeDigits = value => String(value || '').replace(/[۰-۹]/g, ch => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(ch))).replace(/[٠-٩]/g, ch => String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch))).replace(/\\D/g, '');
-      const normalizeName = value => String(value || '').trim().replace(/\\s+/g, ' ').toLocaleLowerCase('fa');
+      const cleanName = name.trim().replace(/\s+/gu, ' ');
+      const normalizeDigits = value => String(value || '').replace(/[۰-۹]/g, ch => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(ch))).replace(/[٠-٩]/g, ch => String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch))).replace(/\D/g, '');
+      const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fa');
       const profiles = appData.clientProfiles || (appData.clientProfiles = {});
       let existing = Object.entries(profiles).find(([key, profile]) =>
         normalizeDigits((profile && profile.phone) || (/^[0-9۰-۹٠-٩+() -]+$/u.test(key) ? key : '')) === phone
@@ -6200,7 +6200,7 @@
       if (typeof switchTab === 'function') switchTab('clients');
       if (typeof openClientRecord === 'function') openClientRecord(key);
       return (existing ? (updated ? 'پرونده قبلی مشتری رو با شماره جدید تکمیل و به‌روزرسانی کردم' : 'این مشتری از قبل ثبت شده بود و پرونده تکراری نساختم') : 'پرونده مشتری جدید رو با موفقیت در بخش مشتریان ساختم') +
-        ' ✅\\n👤 نام: ' + cleanName + '\\n📞 شماره: ' + phone + '\\n📅 هیچ تاریخ یا نوبتی ثبت نکردم؛ هر وقت خواستی جداگانه نوبت می‌ذاریم. 💗';
+        ' ✅\n👤 نام: ' + cleanName + '\n📞 شماره: ' + phone + '\n📅 هیچ تاریخ یا نوبتی ثبت نکردم؛ هر وقت خواستی جداگانه نوبت می‌ذاریم. 💗';
     }
 
     async function sendMinaMessage() {
