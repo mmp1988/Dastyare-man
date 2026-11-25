@@ -5233,38 +5233,47 @@
       return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
     }
     function minaNormalizePersianTypos(value) {
-      // Normalize common salon-floor typing and speech-to-text mistakes before intent parsing.
+      // Persian conversational normalization: spelling, colloquial verbs, ASR variants.
+      // Keep this deterministic and local so core booking commands also work offline.
       const aliases = {
-        'بزای':'برای','بزاری':'برای','واسه':'برای','فزدا':'فردا','فرداا':'فردا',
-        'فرد':'فردا','پسفردا':'پس فردا','امروذ':'امروز','امروزز':'امروز',
-        'نوبط':'نوبت','نوپت':'نوبت','رزروو':'رزرو','دفیقه':'دقیقه','دقیفه':'دقیقه',
-        'دقیگقه':'دقیقه','میناا':'مینا','میخام':'می‌خوام','میخوام':'می‌خوام',
-        'ثبتشکن':'ثبتش کن','بزار':'بذار','کنسل':'لغو'
+        'بزای':'برای','بزاری':'برای','واسه':'برای','واسه‌ی':'برای','فزدا':'فردا','فرداا':'فردا',
+        'فرد':'فردا','پسفردا':'پس فردا','پسفردای':'پس فردا','امروذ':'امروز','امروزز':'امروز',
+        'نوبط':'نوبت','نوپت':'نوبت','نوبتت':'نوبت','رزروو':'رزرو','رزرف':'رزرو',
+        'دفیقه':'دقیقه','دقیفه':'دقیقه','دقیگقه':'دقیقه','دقیغقه':'دقیقه',
+        'میناا':'مینا','میخام':'می‌خوام','میخوام':'می‌خوام','میخاستم':'می‌خواستم',
+        'ثبتشکن':'ثبتش کن','ثبتکن':'ثبت کن','بزار':'بذار','بذارم':'بذار',
+        'کنسل':'لغو','کنسلش':'لغوش','لغوشکن':'لغوش کن','پاکشکن':'پاکش کن',
+        'حذفشکن':'حذفش کن','عوضشکن':'عوضش کن','تغییرش بده':'تغییرش بده',
+        'جابجا':'جابه‌جا','جابجاش':'جابه‌جاش','جابهجایی':'جابه‌جایی',
+        'یه':'یک','ی': 'یک','ساعتو':'ساعت','ساعته':'ساعت'
       };
       const distance = (a, b) => {
-        const row = Array.from({length:b.length + 1}, (_,i) => i);
-        for (let i=1;i<=a.length;i++) {
-          let diagonal=row[0]; row[0]=i;
-          for (let j=1;j<=b.length;j++) {
-            const above=row[j];
-            row[j]=Math.min(row[j]+1,row[j-1]+1,diagonal+(a[i-1]===b[j-1]?0:1));
-            diagonal=above;
+        if (Math.abs(a.length-b.length)>2) return 99;
+        let prev=Array.from({length:b.length+1},(_,i)=>i);
+        for(let i=1;i<=a.length;i++){
+          const row=[i]; let min=i;
+          for(let j=1;j<=b.length;j++){
+            row[j]=Math.min(row[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+            min=Math.min(min,row[j]);
           }
+          if(min>2)return 99;
+          prev=row;
         }
-        return row[b.length];
+        return prev[b.length];
       };
-      const intentWords = ['برای','فردا','امروز','نوبت','رزرو','ساعت','دقیقه','ثبت','بذار','بده','بگیر','لغو','حذف','تغییر','عوض','جابجا','جابه‌جا','کنسل','وقت','پس'];
-      return String(value || '').replace(/[\u064B-\u065F\u0670\u0640]/g,'')
+      const intentWords = ['برای','فردا','امروز','نوبت','رزرو','ساعت','دقیقه','ثبت','بذار','بده','بگیر','لغو','حذف','تغییر','عوض','جابجا','جابه‌جا','کنسل','وقت','پس','مشتری','تأیید','تایید','یادداشت','یادآوری'];
+      const normalized=String(value||'').replace(/[\u064B-\u065F\u0670\u0640]/g,'')
         .replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[أإآ]/g,'ا').replace(/ۀ/g,'ه')
-        .split(/\s+/).map(word => {
-          if (aliases[word]) return aliases[word];
-          if (word.length < 4 || /^[0-9:/.٫-]+$/.test(word)) return word;
-          const candidate=intentWords.find(target => Math.abs(target.length-word.length)<=1 &&
-            distance(word,target)<=1);
-          return candidate || word;
-        }).join(' ')
-        .replace(/^\s*(?:سلام|درود|صبح بخیر|عصر بخیر)\s*/,'')
-        .replace(/\s+/g,' ').trim();
+        .replace(/[،؛؟?!,.]/g,' ').replace(/\s+/g,' ').trim();
+      return normalized.split(/\s+/).map(word=>{
+        if(aliases[word])return aliases[word];
+        if(word.length<4||/^[0-9:/.٫-]+$/.test(word))return word;
+        const candidates=intentWords.map(target=>({target,d:distance(word,target)}))
+          .filter(x=>x.d<=((word.length>=7)?2:1))
+          .sort((a,b)=>a.d-b.d);
+        // Require a clear best match; do not rewrite ambiguous customer names.
+        return candidates.length && (!candidates[1]||candidates[1].d>candidates[0].d) ? candidates[0].target : word;
+      }).join(' ').replace(/^\s*(?:سلام|درود|صبح بخیر|عصر بخیر)\s*/,'').replace(/\s+/g,' ').trim();
     }
     function minaBuildReply(raw) {
       const original = String(raw || '').trim();
