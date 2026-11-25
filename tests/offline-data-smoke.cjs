@@ -1024,6 +1024,21 @@ const assert = require('assert');
       const spokenReminderReply=minaTrySetPersonalReminder('ساعت ۷ عصر بهم خبر بده کار دارم');
       const spokenReminderSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!spokenReminderBeforeIds.has(x.id));
       const spokenReminderIsCorrect=!!spokenReminderSaved&&spokenReminderSaved.time==='19:00'&&spokenReminderSaved.message.includes('کار دارم')&&spokenReminderSaved.timezone==='Asia/Tehran';
+      const editDate=jalaliKeyToGregorianDate(tomorrowKey);
+      appData.reminders=[{id:'qa-personal-edit',date:editDate,time:'19:00',message:'نوبت دکتر',notified:false,enabled:true,source:'mina',timezone:'Asia/Tehran'}];
+      const editReply=minaTryEditPersonalReminder('نوبت دکترم که ساعت ۷ شب بود، بکنش ساعت ۵:۳۰ بعد از ظهر');
+      const editedReminder=appData.reminders.find(x=>x.id==='qa-personal-edit');
+      const sameReminderEdited=appData.reminders.length===1 && !!editedReminder &&
+        editedReminder.time==='17:30' && editedReminder.date===editDate &&
+        editedReminder.message==='نوبت دکتر' && editedReminder.enabled===true;
+      appData.reminders=[
+        {id:'qa-ambiguous-1',date:editDate,time:'19:00',message:'دکتر',enabled:true,source:'mina'},
+        {id:'qa-ambiguous-2',date:editDate,time:'19:00',message:'قرار',enabled:true,source:'mina'}
+      ];
+      const ambiguousReply=minaTryEditPersonalReminder('یادآوری ساعت ۷ شب رو بکنش ساعت ۵:۳۰ عصر');
+      const ambiguousEditSafe=appData.reminders.length===2 &&
+        appData.reminders.every(x=>x.time==='19:00') &&
+        /مشخص|چند یادآوری/u.test(ambiguousReply||'');
       const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
       const actualEpoch=saved?iranDateTimeToEpoch(saved.date,saved.time):NaN;
@@ -1052,6 +1067,10 @@ const assert = require('assert');
         spokenReminderMessage:spokenReminderSaved?.message||null,
         spokenReminderTime:spokenReminderSaved?.time||null,
         spokenReminderReply,
+        sameReminderEdited,
+        editReply,
+        ambiguousEditSafe,
+        ambiguousReply,
         reply
       };
     });
@@ -1070,6 +1089,10 @@ const assert = require('assert');
       'Mina must understand Persian minute values from zero through fifty-nine, including compound values and relative reminders');
     assert(minaReminderAndIranTimeQA.spokenReminderIsCorrect,
       'Mina must understand «ساعت ۷ عصر بهم خبر بده کار دارم» as a 19:00 personal reminder, using today if future or tomorrow if already passed');
+    assert(minaReminderAndIranTimeQA.sameReminderEdited,
+      'Mina must edit the referenced personal reminder in place, preserving its ID, date, and original message while changing only the requested time');
+    assert(minaReminderAndIranTimeQA.ambiguousEditSafe,
+      'Mina must ask before editing when multiple personal reminders match, and must not mutate either reminder');
     assert(minaReminderAndIranTimeQA.relativeHourSaved && minaReminderAndIranTimeQA.relativeDaySaved,
       'Mina must schedule colloquial hour-plus-minute and relative-day reminders correctly in Iran time');
 

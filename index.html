@@ -6340,7 +6340,8 @@
     }
 
     function minaBuildCloudSafeCommand(message) {
-      let safeMessage = minaExtractSalonOnlyMessage(minaNormalizePersianTypos(String(message || '')));
+      // Preserve the full recent dialogue: short follow-ups and ordinary conversational turns may carry the referent for the latest request. Known client names and phone numbers are masked below before cloud transmission.
+      let safeMessage = minaNormalizePersianTypos(String(message || '')).trim();
       const replacements = [];
       const mask = (value, type) => {
         const token = '[' + type + '_' + (replacements.filter(item => item.type === type).length + 1) + ']';
@@ -6400,7 +6401,7 @@
           response = await fetch(MINA_SMART_BRAIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...(mode !== 'reply' ? { mode } : {}), message: safe.message }),
+            body: JSON.stringify({ ...(mode !== 'reply' ? { mode } : {}), ...(mode === 'route' ? { enableReview: true } : {}), message: safe.message }),
             signal: controller.signal,
             cache: 'no-store'
           });
@@ -6411,6 +6412,13 @@
         if (response.status === 429 || data?.code === 'AI_QUOTA_EXHAUSTED') {
           try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 30 * 60 * 1000)); } catch (error) {}
           return null;
+        }
+        if (data?.code === 'AI_REVIEW_UNAVAILABLE') {
+          return {
+            type: 'review_unavailable',
+            command: '',
+            reply: safe.restore(String(data.error || 'بازبینی مستقل انجام نشد؛ برای جلوگیری از اشتباه، درخواست اجرا نشد.'))
+          };
         }
         if (!response.ok || !data?.success) {
           if (response.status >= 500) {
@@ -6427,7 +6435,10 @@
           return {
             type: data.route.type === 'personal_reminder' ? 'personal_reminder' : data.route.type === 'action' ? 'action' : 'reply',
             command: safe.restore(String(data.route.command || '')),
-            reply: safe.restore(String(data.route.reply || ''))
+            reply: safe.restore(String(data.route.reply || '')),
+            review: data.route.review && typeof data.route.review === 'object'
+              ? { decision: String(data.route.review.decision || ''), reviewed: data.route.review.reviewed === true }
+              : null
           };
         }
         return typeof data.reply === 'string' && data.reply.trim() ? safe.restore(data.reply.trim()) : null;
@@ -6694,6 +6705,7 @@
       let reply = minaTrySetPersonalReminder(message);
       let personalReminderHandled = !!reply;
       let routedCommand = null;
+      let cloudOperationBlocked = false;
       if (!reply && navigator.onLine) {
         const root = document.getElementById('minaChatMessages');
         const recent = root ? Array.from(root.querySelectorAll('.mina-message')).slice(-12).map(row => {
@@ -6712,6 +6724,12 @@
           (trustedFacts ? '\n\n' + trustedFacts.slice(-900) : '')
         ).slice(-3900);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
+        if (cloudResult?.type === 'review_unavailable') {
+          cloudOperationBlocked = true;
+          reply = cloudResult.reply || 'بازبینی مستقل انجام نشد؛ برای جلوگیری از اشتباه، درخواست اجرا نشد.';
+        } else if (cloudResult?.review?.reviewed && cloudResult.review.decision !== 'approve') {
+          cloudOperationBlocked = true;
+        }
         if (cloudResult && cloudResult.type === 'personal_reminder') {
           // Semantic personal-alarm classification must never enter appointment booking.
           reply = minaTrySetPersonalReminder(message) ||
@@ -6720,6 +6738,8 @@
         } else if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
+          // A cloud clarification/rejection for an operation must never fall through to a local mutation.
+          if (minaIsClearlyLocalAction(message)) cloudOperationBlocked = true;
           reply = cloudResult.reply;
         }
       }
@@ -6727,7 +6747,7 @@
       // Safety net for explicit operations: the cloud decides the intent first, but it cannot
       // veto a well-formed operation that the trusted local executor can actually complete.
       // Every executor is guarded and must return a result before its reply replaces the AI answer.
-      if (!personalReminderHandled && !routedCommand && reply && minaIsClearlyLocalAction(message)) {
+      if (!personalReminderHandled && !routedCommand && !cloudOperationBlocked && reply && minaIsClearlyLocalAction(message)) {
         const personalReminderAction = minaTrySetPersonalReminder(message);
         const customerMutationAction = personalReminderAction || minaTryManageClientFromMessage(message);
         const customerCreateAction = customerMutationAction || minaTryAddClientFromMessage(message);
@@ -7577,7 +7597,94 @@
       }
       try { return minaParseReminderClock(raw); } catch (error) { return null; }
     }
+    function minaTryEditPersonalReminder(raw) {
+      const source = minaNormalizePersianTypos(minaNormalizeDigits(String(raw || '')))
+        .replace(/بعد\s*از\s*ظهر/gu, 'بعدازظهر').trim();
+      const text = source.toLocaleLowerCase('fa');
+      const editIntent = /(?:بکنش|تغییر(?:ش)?\s*بده|عوض(?:ش)?\s*کن|جابجا(?:ش)?\s*کن|جابه.?جا(?:ش)?\s*کن|ببرش|منتقل(?:ش)?\s*کن|به\s*جاش)/u.test(text);
+      if (!editIntent || /(?:حذف|پاک|لغو|کنسل)\s*(?:کن|ش)?/u.test(text)) return null;
+
+      const active = (appData.reminders || []).filter(item =>
+        item && item.enabled !== false && !item.cancelled &&
+        item.kind !== 'automatic-repair' && item.source !== 'automatic-repair'
+      );
+      if (!active.length) return null;
+
+      const clockPattern = /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)?|(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/gu;
+      const clockParts = source.match(clockPattern) || [];
+      const clocks = clockParts.map(part => minaParsePersonalReminderClock(part)).filter(Boolean);
+      const hasDate = /(?:امروز|فردا|پس\s*فردا|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2})/u.test(text);
+      const targetClock = clocks.length ? clocks[clocks.length - 1] : null;
+      if (!targetClock) return 'ساعت جدید رو متوجه نشدم عزیزم؛ ساعت دقیق رو بگو تا همون یادآوری قبلی رو تغییر بدم.';
+
+      let candidates = active.slice();
+      if (clocks.length >= 2) {
+        const oldClock = clocks[0];
+        candidates = candidates.filter(item => String(item.time || '') === oldClock);
+      } else if (hasDate) {
+        const wantedKey = minaReminderDateKey(source);
+        if (wantedKey) candidates = candidates.filter(item => {
+          const p = String(item.date || '').split('-').map(Number);
+          if (p.length !== 3 || !p.every(Number.isFinite)) return false;
+          const j = gregorianToJalali(p[0], p[1], p[2]);
+          return j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]) === wantedKey;
+        });
+      }
+
+      if (candidates.length !== 1) {
+        if (!candidates.length) return 'یادآوری قبلی با این ساعت یا تاریخ پیدا نشد؛ چیزی رو تغییر ندادم. ساعت و تاریخ یادآوری قبلی رو بگو تا اشتباهی دست نزنم.';
+        return 'چند یادآوری فعال داری و نمی‌خوام مورد اشتباهی رو تغییر بدم؛ ساعت یا موضوع یادآوری قبلی رو مشخص می‌کنی؟';
+      }
+
+      const item = candidates[0];
+      let date = String(item.date || '');
+      if (hasDate) {
+        const key = minaReminderDateKey(source);
+        if (key) date = jalaliKeyToGregorianDate(key);
+      }
+      const targetAt = iranDateTimeToEpoch(date, targetClock);
+      if (!date || !Number.isFinite(targetAt) || targetAt <= Date.now()) {
+        return 'زمان جدید به وقت ایران در گذشته است یا تاریخش معتبر نیست؛ هنوز هیچ تغییری ندادم.';
+      }
+
+      const oldId = String(item.id);
+      const preservedMessage = normalizeReminderMessage(item.message);
+      Object.assign(item, {
+        date,
+        time: targetClock,
+        message: preservedMessage,
+        notified: false,
+        enabled: true,
+        cancelled: false,
+        timezone: 'Asia/Tehran',
+        updatedAt: Date.now()
+      });
+      saveData();
+      let nativeStatus = 'web';
+      try {
+        if (window.AndroidApp?.cancelPersonalReminder) AndroidApp.cancelPersonalReminder(oldId);
+        if (window.AndroidApp?.schedulePersonalReminder) {
+          nativeStatus = String(AndroidApp.schedulePersonalReminder(oldId, targetAt, preservedMessage) || 'failed');
+        }
+      } catch (error) { nativeStatus = 'failed'; }
+      item.nativeStatus = nativeStatus;
+      saveData();
+      renderPersonalReminders();
+      const j = gregorianToJalali(...date.split('-').map(Number));
+      const dateKey = j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
+      const result = 'همون یادآوری قبلی تغییر کرد؛ مورد جدیدی نساختم. 💗\n📅 ' + formatJalaliFull(dateKey) +
+        '\n⏰ ساعت ' + toPersianDigits(targetClock) + '\n🔔 ' + preservedMessage;
+      if (nativeStatus === 'failed' || nativeStatus === 'notifications_denied') {
+        return result + '\nیادآوری داخل برنامه ذخیره شد، اما زمان‌بندی زنگ گوشی تأیید نشد.';
+      }
+      return result + (nativeStatus === 'exact' ? '\nآلارم گوشی هم دوباره زمان‌بندی شد. 🔔' :
+        nativeStatus === 'approximate' ? '\nاعلان گوشی زمان‌بندی شد؛ ممکنه چند دقیقه تأخیر داشته باشه.' :
+        '\nتغییر داخل برنامه ذخیره شد؛ اجرای زنگ در حالت بسته به پشتیبانی اپ بستگی داره.');
+    }
+
     function minaTrySetPersonalReminder(raw, batchChild = false) {
+      const editedReminder = minaTryEditPersonalReminder(raw);
+      if (editedReminder) return editedReminder;
       // A single natural-language message may contain several personal plans.
       // Split only explicit sequential clauses with their own clock times.
       if (!batchChild) {
