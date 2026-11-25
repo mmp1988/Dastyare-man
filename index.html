@@ -5560,7 +5560,7 @@
       const conversations = (profile.conversations || []).slice(-5);
       const lines = ['سابقه مرتبط پرونده مشتری:'];
       // Keep identity labels first so context truncation cannot discard the primary name or aliases.
-      lines.push('نام پرونده: ' + String(profile.name || key));
+      lines.push('نام پرونده مشتری: ' + String(profile.name || key));
       if (Array.isArray(profile.aliases) && profile.aliases.length) {
         lines.push('نام‌های مستعار همین مشتری: ' + profile.aliases.join('، '));
       }
