@@ -1706,7 +1706,7 @@
           <div style="grid-column:1 / -1; padding:12px; border:1px solid var(--border); border-radius:12px; margin-top:4px;">
             <div style="font-weight:800; margin-bottom:8px;">🎵 شخصی‌سازی صدای هشدار</div>
             <label for="settingAlarmSound" style="display:block; font-size:0.82rem; margin-bottom:5px;">انتخاب صدای پیش‌فرض</label>
-            <select id="settingAlarmSound" class="form-control" onchange="saveAlarmSoundChoice()">
+            <select id="settingAlarmSound" class="form-control" onchange="previewAlarmSoundChoice()">
               <option value="classic">زنگ کلاسیک</option>
               <option value="gentle">ملایم و آرام</option>
               <option value="digital">دیجیتال</option>
@@ -1718,10 +1718,12 @@
             <label style="display:block; font-size:0.82rem; margin:10px 0 5px;">یا آهنگ دلخواه خودت را انتخاب کن (MP3 / WAV / M4A، حداکثر ۱ مگابایت)</label>
             <input id="settingAlarmAudioFile" type="file" accept="audio/*" class="form-control" onchange="handleAlarmAudioUpload(event)" />
             <div id="alarmCustomAudioStatus" style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">صدای پیش‌فرض فعال است</div>
-            <div style="display:flex; gap:8px; margin-top:9px;">
-              <button type="button" class="btn-secondary" style="flex:1;" onclick="testAlarmSound()">▶️ پخش آزمایشی</button>
-              <button type="button" class="btn-secondary" onclick="removeCustomAlarmAudio()">حذف آهنگ من</button>
+            <div style="display:flex; gap:8px; margin-top:9px; flex-wrap:wrap;">
+              <button type="button" class="btn-secondary" style="flex:1 1 42%;" onclick="previewAlarmSoundChoice()">▶️ پخش دوباره</button>
+              <button type="button" class="btn-primary" style="flex:1 1 42%;" onclick="saveAlarmSoundChoice()">✓ انتخاب و ذخیره</button>
+              <button type="button" class="btn-secondary" style="flex:1 1 100%;" onclick="removeCustomAlarmAudio()">حذف آهنگ من</button>
             </div>
+            <div id="alarmSoundPreviewStatus" aria-live="polite" style="font-size:0.72rem;color:var(--text-secondary);margin-top:6px;">با انتخاب هر صدا، نمونه آن فوراً پخش می‌شود؛ برای ثبت نهایی «انتخاب و ذخیره» را بزن.</div>
             <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:7px;">انتخاب صدا روی همین گوشی ذخیره می‌شود و بدون اینترنت هم در دسترس است.</div>
           </div>
           <button class="btn-secondary" style="grid-column:1 / -1; color:var(--danger); border-color:rgba(239,68,68,0.4);" onclick="clearAllUserEntries()">🗑️ پاک کردن همه موارد نوشته‌شده و اضافه‌شده توسط من</button>
@@ -5138,11 +5140,32 @@
         });
       } catch(e) {}
     }
+    function previewAlarmSoundChoice() {
+      const select=document.getElementById('settingAlarmSound');
+      if(!select)return;
+      const kind=select.value || 'classic';
+      const status=document.getElementById('alarmSoundPreviewStatus');
+      if(kind==='custom' && appData.settings.customAlarmAudio) {
+        try {
+          const preview=new Audio(appData.settings.customAlarmAudio);
+          preview.volume=1;
+          preview.play().catch(()=>{ playPresetAlarmSound(appData.settings.alarmSoundFallback || 'classic'); });
+        } catch(e) { playPresetAlarmSound(appData.settings.alarmSoundFallback || 'classic'); }
+      } else {
+        playPresetAlarmSound(kind==='custom'?'classic':kind);
+      }
+      if(status) status.textContent='در حال پخش نمونه: '+(select.options[select.selectedIndex]?.text || 'صدای انتخاب‌شده');
+    }
     function saveAlarmSoundChoice() {
       const select=document.getElementById('settingAlarmSound');
       if(!select)return;
+      if(select.value==='custom' && !appData.settings.customAlarmAudio) {
+        showToast('اول فایل آهنگ دلخواهت را انتخاب کن.'); return;
+      }
       appData.settings.alarmSoundChoice=select.value;
       saveData(); applySettingsUI();
+      const status=document.getElementById('alarmSoundPreviewStatus');
+      if(status) status.textContent='صدای انتخاب‌شده ذخیره شد و برای هشدارها استفاده می‌شود.';
       showToast('صدای هشدار ذخیره شد 🔔');
     }
     function handleAlarmAudioUpload(event) {
@@ -5932,7 +5955,7 @@
         const hasExplicitDate = /\d{1,4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,4}/.test(t) ||
           jalaliMonthNames.some(m => t.includes(m)) ||
           /(?:ژانویه|فوریه|مارس|آوریل|مه|می|ژوئن|جولای|اوت|آگوست|سپتامبر|اکتبر|نوامبر|دسامبر)/.test(t);
-        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(t) && !hasExplicitDate) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
+        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|دیروز|پریروز|پارسال|سال\s*(?:قبل|گذشته)|\d+\s*(?:روز|هفته|ماه)\s*(?:پیش|قبل|گذشته))/u.test(t) && !hasExplicitDate) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
         let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
         // Parse Jalali dates (1405/09/03 or 3 آذر 1405), and Gregorian numeric dates.
