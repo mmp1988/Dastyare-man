@@ -63,7 +63,7 @@ public class MainActivity extends Activity {
     private static final int REQUEST_EXPORT_BACKUP = 704;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private static final String UPDATE_URL = "https://raw.githubusercontent.com/mmp1988/Dastyare-man/main/index.html";
-    private static final String LATEST_RELEASE_API = "https://api.github.com/repos/mmp1988/Dastyare-man/releases/tags/latest";
+    private static final String LATEST_RELEASE_API = "https://api.github.com/repos/mmp1988/Dastyare-man/releases/latest";
     private static final String EXPECTED_PACKAGE = "app.github.mmp1988.dastyareman";
     private volatile boolean apkUpdateCheckRunning = false;
     private volatile boolean apkUpdateManualRequested = false;
@@ -723,7 +723,10 @@ public class MainActivity extends Activity {
                     currentPrefs.edit().remove("pending_apk").remove("pending_version")
                             .remove("install_consent_version")
                             .putLong("last_check_ms", System.currentTimeMillis()).apply();
-                    if (manual) runOnUiThread(() -> Toast.makeText(this, "اپلیکیشن روی آخرین نسخه است؛ پیام بروزرسانی قبلی پاک شد ✅", Toast.LENGTH_LONG).show());
+                    if (manual) runOnUiThread(() -> {
+                        Toast.makeText(this, "بررسی آنلاین کامل شد؛ نسخه نصب‌شده آخرین نسخه منتشرشده است ✅", Toast.LENGTH_LONG).show();
+                        notifyWebUpdateCheckResult("latest");
+                    });
                     return;
                 }
                 if (apkFile.exists()) apkFile.delete();
@@ -733,11 +736,15 @@ public class MainActivity extends Activity {
                         .putLong("pending_version", candidateVersion)
                         .putLong("last_check_ms", System.currentTimeMillis()).apply();
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "نسخه جدید اپ آماده نصب است؛ برای تکمیل به‌روزرسانی تأیید کن.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "بررسی آنلاین کامل شد؛ نسخه جدید دانلود شد و آماده نصب است.", Toast.LENGTH_LONG).show();
+                    notifyWebUpdateCheckResult("available");
                     installPendingApkIfAllowed();
                 });
             } catch (Exception e) {
-                if (manual) runOnUiThread(() -> Toast.makeText(this, "بررسی نسخه جدید انجام نشد؛ بعداً دوباره تلاش کن.", Toast.LENGTH_LONG).show());
+                if (manual) runOnUiThread(() -> {
+                    Toast.makeText(this, "نتیجه بررسی مشخص نشد؛ اتصال یا انتشار GitHub در دسترس نیست. نمی‌توان گفت برنامه به‌روز است.", Toast.LENGTH_LONG).show();
+                    notifyWebUpdateCheckResult("error");
+                });
             } finally {
                 if (connection != null) connection.disconnect();
                 apkUpdateCheckRunning = false;
@@ -746,6 +753,16 @@ public class MainActivity extends Activity {
                     checkForApkUpdate(true);
                 }
             }
+        });
+    }
+
+    private void notifyWebUpdateCheckResult(String result) {
+        WebView current = webView;
+        if (current == null) return;
+        current.post(() -> {
+            WebView active = webView;
+            if (active == null || isFinishing() || isDestroyed()) return;
+            active.evaluateJavascript("if(typeof window.onNativeUpdateCheckResult==='function'){window.onNativeUpdateCheckResult('" + result + "');}", null);
         });
     }
 
