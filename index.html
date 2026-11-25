@@ -6173,7 +6173,7 @@
     minaBuildReply = function(raw) {
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
-      const continuationHasClock = !!minaParseReminderClock(expandedRaw) ||
+      const continuationHasClock = !!minaParseReminderClock(raw) ||
         /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/u.test(normalized) ||
         /(?:ساعت\s*)?\d{1,2}\s*(?:و\s*)\d{1,2}\s*دقیقه/u.test(normalized);
       // A reply containing only the requested time completes the pending booking before
@@ -6294,7 +6294,7 @@
       }
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
-        const continuationTime = minaParseReminderClock(expandedRaw);
+        const continuationTime = minaParseReminderClock(raw);
         const continuation = minaConversationBooking.original + ' ' +
           (continuationTime ? 'ساعت ' + continuationTime : expandedRaw);
         minaConversationBooking = null;
