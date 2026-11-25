@@ -539,6 +539,34 @@ const assert = require('assert');
     assert(minaBookingResult.contextualEditOk, 'Mina must interpret a short time correction as an edit to the appointment just created, without creating a duplicate');
     assert(minaBookingResult.calendarSourceLabelOk, 'Calendar day schedule must visibly label Mina-created appointments');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
+    // End-to-end guard: a complete explicit booking must execute locally before cloud chat routing.
+    const minaDirectBookingFlow = await page.evaluate(async () => {
+      appData.appointments = [];
+      minaPendingBooking = null;
+      minaConversationBooking = null;
+      const originalFetch = window.fetch;
+      let cloudCalls = 0;
+      window.fetch = async (...args) => { cloudCalls++; return originalFetch(...args); };
+      const input = document.getElementById('minaInput');
+      input.value = 'برای فردا ساعت ۱۸:۴۵ دقیقه نوبت کاشت مژه را به مینا موسوی مطلق بده';
+      try { await sendMinaMessageCore(); }
+      finally { window.fetch = originalFetch; }
+      const appointment = appData.appointments[0];
+      const transcript = document.getElementById('minaChatMessages')?.innerText || '';
+      return {
+        cloudCalls,
+        appointmentSaved: !!appointment && appointment.clientName === 'مینا موسوی مطلق' &&
+          appointment.time === '18:45' && appointment.service.includes('کاشت مژه') &&
+          appointment.dateKey > getTodayKey(),
+        replyConfirmsSaved: /نوبتت ثبت شد|نوبت با موفقیت ثبت شد/.test(transcript),
+        noFalseAccessDenial: !/دسترسی به سیستم ثبت نوبت|دسترسی ندارم/.test(transcript)
+      };
+    });
+    console.log('Mina direct booking flow:', JSON.stringify(minaDirectBookingFlow));
+    assert(minaDirectBookingFlow.cloudCalls === 0 && minaDirectBookingFlow.appointmentSaved &&
+      minaDirectBookingFlow.replyConfirmsSaved && minaDirectBookingFlow.noFalseAccessDenial,
+      'Complete appointment commands must be saved locally and must not be overridden by a cloud denial');
+
 
     // Simulate app exit: pagehide flushes in-memory data and reopening restores it.
     await page.evaluate(() => {
