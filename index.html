@@ -5235,9 +5235,11 @@
     function minaNormalizePersianTypos(value) {
       // Normalize common salon-floor typing and speech-to-text mistakes before intent parsing.
       const aliases = {
-        'بزای':'برای','بزاری':'برای','فزدا':'فردا','فرداا':'فردا','پسفردا':'پس فردا',
-        'امروذ':'امروز','امروزز':'امروز','نوبط':'نوبت','نوپت':'نوبت','رزروو':'رزرو',
-        'دفیقه':'دقیقه','دقیفه':'دقیقه','میناا':'مینا','میخام':'می‌خوام'
+        'بزای':'برای','بزاری':'برای','واسه':'برای','فزدا':'فردا','فرداا':'فردا',
+        'فرد':'فردا','پسفردا':'پس فردا','امروذ':'امروز','امروزز':'امروز',
+        'نوبط':'نوبت','نوپت':'نوبت','رزروو':'رزرو','دفیقه':'دقیقه','دقیفه':'دقیقه',
+        'دقیگقه':'دقیقه','میناا':'مینا','میخام':'می‌خوام','میخوام':'می‌خوام',
+        'ثبتشکن':'ثبتش کن','بزار':'بذار','کنسل':'لغو'
       };
       return String(value || '').replace(/[\u064B-\u065F\u0670\u0640]/g,'')
         .replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[أإآ]/g,'ا').replace(/ۀ/g,'ه')
@@ -5268,20 +5270,6 @@
             '\n📅 تاریخ: ' + formatJalaliFull(minaPendingBooking.dateKey) +
             '\n⏰ ساعت: ' + minaPendingBooking.time +
             '\n💅 نوع خدمت: ' + (minaPendingBooking.service || 'خدمت ثبت‌نشده') +
-            '\n\nاگر درسته «تأیید» رو بفرست تا ذخیره‌اش کنم 💗';
-        }
-      }
-      if (minaPendingBooking && minaPendingBooking.clientName && !minaPendingBooking.service &&
-          !/^(?:نه|لغو|بیخیال|بی خیال|منصرف شدم)$/.test(t)) {
-        const suppliedService = q.replace(/^(?:نوع خدمت|خدمت|برای)\s*/i,'')
-          .replace(/\s*(?:ثبت کن|نوبت ثبت کن)$/i,'').trim();
-        if (suppliedService && suppliedService.length <= 80 &&
-            !/(?:فردا|امروز|پس فردا|ساعت|نوبت|رزرو|ثبت کن)/.test(suppliedService)) {
-          minaPendingBooking.service = suppliedService;
-          return 'عالیه عزیزم 🌸 مشخصات نوبت رو چک کنیم؟\n👩🏻 مشتری: ' + minaPendingBooking.clientName +
-            '\n📅 تاریخ: ' + formatJalaliFull(minaPendingBooking.dateKey) +
-            '\n⏰ ساعت: ' + minaPendingBooking.time +
-            '\n💅 نوع خدمت: ' + suppliedService +
             '\n\nاگر درسته «تأیید» رو بفرست تا ذخیره‌اش کنم 💗';
         }
       }
@@ -5455,12 +5443,7 @@
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
           const time = pad2(hour) + ':' + pad2(minute);
-        if (!service) {
-          if (!clientName) return 'حتماً عزیزم 💗 تاریخ و ساعت رو متوجه شدم؛ اسم مشتری رو هم بگو تا نوبت رو کامل کنم.';
-          minaPendingBooking = { dateKey, time, clientName, phone: phoneMatch ? phoneMatch[0] : '', service: '', notes: '', alarm: '15' };
-          return 'حتماً عزیزم 💗 نوبت ' + clientName + ' برای ' + formatJalaliFull(dateKey) +
-            ' ساعت ' + time + ' رو در نظر گرفتم. چه خدمتی براش انجام بدم؟';
-        }
+        if (!service) service = '';
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === time && a.status !== 'canceled' &&
           (clientName ? String(a.clientName || '').trim() === clientName :
@@ -5486,7 +5469,7 @@
         return 'انجام شد عزیزم 🌸 نوبتت ثبت شد!' +
           (clientName ? '\n👩🏻 مشتری: ' + clientName : '\n👩🏻 مشتری: بدون نام؛ هر وقت خواستی تکمیلش کن') +
           '\n📅 تاریخ: ' + formatJalaliFull(dateKey) + '\n⏰ ساعت: ' + time +
-          '\n💅 خدمت: ' + service +
+          (service ? '\n💅 خدمت: ' + service : '\n💅 خدمت: در درخواست مشخص نشده') +
           '\nهمه‌چیز ذخیره شد و آفلاین هم در دسترسته 💗';
       }
       if (/فردا/.test(t) && /(نوبت|برنامه|مشتری|چکار|چه کار)/.test(t)) {
