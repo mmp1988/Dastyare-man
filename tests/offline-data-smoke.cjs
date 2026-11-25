@@ -157,7 +157,7 @@ const assert = require('assert');
     // on each page must appear before secondary tools, with no duplicate tab.
     const sixPageHierarchyQA = await page.evaluate(() => {
       const ids = [...document.querySelectorAll('main > .tab-section')].map(el => el.id.replace('tab-',''));
-      const nav = [...document.querySelectorAll('.bottom-nav .nav-item')].map(el => el.textContent.trim());
+      const nav = [...document.querySelectorAll('.bottom-nav .nav-item')].map(el => el.querySelectorAll('span')[1]?.textContent.trim() || '');
       const position = (root, selector) => {
         const node = root.querySelector(selector);
         return node ? [...root.querySelectorAll('*')].indexOf(node) : -1;
