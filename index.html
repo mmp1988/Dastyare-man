@@ -7586,7 +7586,7 @@
             const previousClock = index > 0 ? minaParsePersonalReminderClock(parts[index - 1]) : null;
             // A later clause may say only «ساعت ۹»; inherit the evening period
             // from the preceding explicit evening time instead of rejecting the batch.
-            const bareHour = part.match(/ساعت\\s*(\\d{1,2})(?![\\d:])/u);
+            const bareHour = part.match(/ساعت\s*(\d{1,2})(?![\d:])/u);
             const currentClock = minaParsePersonalReminderClock(part) ||
               (bareHour && Number(bareHour[1]) >= 1 && Number(bareHour[1]) <= 12
                 ? pad2(Number(bareHour[1])) + ':00' : null);
@@ -7676,7 +7676,10 @@
         .replace(/\\[nr]|[\r\n]+/gu,' ')
         .replace(/[A-Za-z][A-Za-z0-9_-]*/gu,' ')
         .replace(/[{}\[\]"]/gu,' ')
-        .replace(/(?:صبح|ظهر|بعدازظهر|عصر|شب)/gu,' ').replace(/ارایشگاه/gu,'آرایشگاه').replace(/\s+/gu,' ').trim();
+        .replace(/(?:بعدازظهر|صبح|ظهر|عصر|شب)/gu,' ').replace(/ارایشگاه/gu,'آرایشگاه').replace(/\s+/gu,' ').trim();
+      // Defensive final cleanup: period words must not leak into the reminder title.
+      message = message.replace(/^(?:بعدازظهر|بعداز|صبح|ظهر|عصر|شب)\s*/u,'')
+        .replace(/ارایشگاه/gu,'آرایشگاه').trim();
       if(!message||/^(?:امروز|فردا|ساعت|برام|من)$/u.test(message))message='یادآوری شخصی';
       const id='mina_rem_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
       const reminder={id,date:gregorianDate,time:clock,message,notified:false,enabled:true,createdAt:Date.now(),timezone:'Asia/Tehran',source:'mina'};
