@@ -660,6 +660,44 @@ const assert = require('assert');
     assert.strictEqual(spokenClockUpgrade.invalidMinute, null, 'Mina must reject invalid minute values without changing appointments');
     console.log('Mina spoken clock upgrade:', JSON.stringify(spokenClockUpgrade));
 
+    const minaReminderAndIranTimeQA = await page.evaluate(() => {
+      const now=getIranNow();
+      const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+      const field=key=>parts.find(x=>x.type===key)?.value;
+      const iranClockMatches=now.getFullYear()===Number(field('year')) &&
+        now.getMonth()+1===Number(field('month')) && now.getDate()===Number(field('day')) &&
+        now.getHours()===Number(field('hour')) && now.getMinutes()===Number(field('minute'));
+      const previousReminders=appData.reminders;
+      minaPendingPersonalReminder=null;
+      const tomorrowKey=addDaysToJalaliKey(getTodayKey(),1);
+      const reply=minaTrySetPersonalReminder('یادم بنداز فردا ساعت ۱۵:۴۳ دارو بخورم');
+      const saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.message.includes('دارو'));
+      const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
+      const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
+      const actualEpoch=saved?iranDateTimeToEpoch(saved.date,saved.time):NaN;
+      const routed=minaIsSalonScopeRequest('ساعت ۳ ظهر امروز آلارم بذار برام') &&
+        minaIsClearlyLocalAction('ساعت ۳ ظهر امروز آلارم بذار برام');
+      appData.reminders=previousReminders;
+      minaPendingPersonalReminder=null;
+      return {
+        iranClockMatches,
+        reminderSaved:!!saved && saved.date===expectedDate && saved.time==='15:43',
+        reminderMessagePreserved:!!saved && /دارو/.test(saved.message),
+        iranEpochCorrect:actualEpoch===expectedEpoch,
+        reminderRoutedLocally:routed,
+        reply
+      };
+    });
+    console.log('Mina Iran time and personal alarm:', JSON.stringify(minaReminderAndIranTimeQA));
+    assert(minaReminderAndIranTimeQA.iranClockMatches,
+      'Mina date and clock must always use Asia/Tehran regardless of device timezone');
+    assert(minaReminderAndIranTimeQA.reminderSaved && minaReminderAndIranTimeQA.reminderMessagePreserved,
+      'Mina must create a persisted personal reminder from a natural Persian request');
+    assert(minaReminderAndIranTimeQA.iranEpochCorrect,
+      'A personal alarm must be scheduled at the correct UTC instant for Iran local date and time');
+    assert(minaReminderAndIranTimeQA.reminderRoutedLocally,
+      'Personal alarm requests must be handled as a local executable action, not sent to cloud as plain chat');
+
     console.log('Mina action regression details:', JSON.stringify(minaActionsResult));
     assert(minaActionsResult.cancelOk && minaActionsResult.doneOk && minaActionsResult.deleteOk && minaActionsResult.cancelVerbOk && minaActionsResult.moveOk && minaActionsResult.unnamedMoveOk && minaActionsResult.exactMinuteOk && minaActionsResult.minuteMoveOk && minaActionsResult.relativeMoveOk && minaActionsResult.dateMoveOk && minaActionsResult.weekOk,
       'Mina must edit exact minutes and dates, cancel/delete/complete only the selected appointment, and preserve weekly reading');
