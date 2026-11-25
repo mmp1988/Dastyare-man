@@ -6127,6 +6127,11 @@
         candidates = candidates.filter(a => a.dateKey === key);
         if (!candidates.length) return 'برای این مشتری در تاریخی که گفتی نوبتی پیدا نکردم؛ هیچ تغییری انجام ندادم 💗';
       }
+      if (candidates.length > 1 && /نوبت\s+اصلی/u.test(text)) {
+        candidates = candidates.filter(a => !isFollowupAppointment(a));
+      } else if (candidates.length > 1 && /نوبت\s+بعدی/u.test(text)) {
+        candidates = candidates.filter(a => isFollowupAppointment(a));
+      }
       if (candidates.length > 1 && nameMatch) {
         const exact = candidates.filter(a => minaCleanText(a.clientName || '').toLowerCase() === minaCleanText(nameMatch[1]).toLowerCase());
         if (exact.length === 1) candidates = exact;
@@ -6265,6 +6270,7 @@
           ' — ' + (a.service || 'خدمت ثبت‌نشده') + ' (' + kind + '، ' + status + ')';
       });
       if (!matches.length) return 'برای این مشتری نوبتی با خدمت موردنظرت پیدا نکردم؛ نوبت‌های دیگرش تغییری نکردند 💗';
+      minaLastReferencedAppointmentId = matches.length === 1 ? matches[0].id : null;
       return matches[0].clientName + ' عزیزم ' +
         (mentionedService ? 'برای «' + mentionedService + '» ' : '') +
         'این نوبت‌ها رو داره:\n' + display.join('\n') +
