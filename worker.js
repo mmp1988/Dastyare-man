@@ -1,6 +1,7 @@
 // Cloudflare Workers entry point; this comment also verifies Git-connected deployment.
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
 const MODEL = "@cf/zai-org/glm-4.7-flash";
+const WORKER_VERSION = "mina-ai-response-v2";
 
 function normalizeScopeText(value) {
   return String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ").trim();
@@ -42,7 +43,7 @@ export default {
     const origin = request.headers.get("Origin") || "";
 
     if (request.method === "GET") {
-      return json({ success: true, status: "ready" });
+      return json({ success: true, status: "ready", version: WORKER_VERSION });
     }
 
     if (!ALLOWED_ORIGINS.has(origin)) {
