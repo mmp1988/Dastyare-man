@@ -5736,6 +5736,8 @@
     async function minaUnderstandLocalCommand(message) {
       if (!navigator.onLine || !minaIsClearlyLocalAction(message)) return null;
       if (/[0-9]/.test(minaNormalizeDigits(String(message || '')))) return null;
+      for (const profile of Object.values(appData.clientProfiles || {})) { if (profile && profile.name && String(message).includes(String(profile.name))) return null; }
+      if (String(message).includes('مشتری ') || String(message).includes('اسمش') || String(message).includes('برای ')) return null;
       try {
         const response = await fetch(MINA_SMART_BRAIN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'understand', message }), cache: 'no-store' });
         if (!response.ok) return null;
