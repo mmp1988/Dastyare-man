@@ -6674,10 +6674,12 @@
         const customerMutationAction = personalReminderAction || minaTryManageClientFromMessage(message);
         const customerCreateAction = customerMutationAction || minaTryAddClientFromMessage(message);
         const appointmentMutationAction = customerCreateAction || minaTryManageAppointment(message);
-        const bookingAction = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
-          /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
-          /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
-          /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
+        const bookingText = minaNormalizePersianTypos(message);
+        const bookingAction = /(?:نوبت|رزرو|وقت)/u.test(bookingText) &&
+          /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(bookingText) &&
+          /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ|فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) &&
+          (/(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(bookingText) ||
+           /\\d{1,2}\\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText));
         const directBookingAction = appointmentMutationAction || (bookingAction ? minaBuildReply(message) : null);
         const localActionResult = personalReminderAction || customerMutationAction || customerCreateAction || appointmentMutationAction || directBookingAction;
         if (localActionResult) reply = localActionResult;
@@ -7624,7 +7626,7 @@
           /(?:\d|ساعت|دقیقه|ربع|صبح|ظهر|بعدازظهر|عصر|شب|امروز|فردا|پس\s*فردا)/u.test(requestedService))) requestedService = '';
       if (/(?:لغو|کنسل|حذف|پاک|عوض|تغییر|جابجا|جابه.?جا)\s*(?:نکن|نشه|نشود|نکنه)/u.test(text)) return 'باشه عزیزم؛ هیچ تغییری روی نوبت انجام ندادم 💗';
       const isCreation = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s+بده)/u.test(text);
-      if (isCreation && !isMove && !isDelete && !isCancel && !isDone) return null;
+      if (isCreation && !isDelete && !isCancel && !isDone) return null;
       if (!(isDelete || isCancel || isDone || isMove || ((asksTime || asksDate) && /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز)/u.test(text)))) return null;
 
       const allAppointments = (appData.appointments || []).filter(a => a);
