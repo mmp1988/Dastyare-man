@@ -40,19 +40,52 @@ const assert = require('assert');
         safe.message.includes('[CLIENT_1]') && safe.message.includes('[PHONE_1]');
       const restored = safe.restore(safe.message);
       const restoreWorks = restored.includes('سارا محمدی') && restored.includes('09123456789');
-      const simpleLocal = minaIsClearlyLocalAction('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن') &&
-        !minaNeedsCloudUnderstanding('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن');
+      const simpleCloud = minaIsClearlyLocalAction('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن') &&
+        minaNeedsCloudUnderstanding('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن');
       const complexCloud = minaIsClearlyLocalAction('نوبت قبلی سارا رو به فردا ساعت ۱۵:۴۳ جابه‌جا کن و یادآوری هم براش فعال کن') &&
         minaNeedsCloudUnderstanding('نوبت قبلی سارا رو به فردا ساعت ۱۵:۴۳ جابه‌جا کن و یادآوری هم براش فعال کن');
       localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 60000));
       const quotaCooldown = minaCloudQuotaCooldownActive();
       localStorage.removeItem('mina_cloud_quota_retry_at');
       appData.clientProfiles = previousProfiles;
-      return { privateDataHidden, restoreWorks, simpleLocal, complexCloud, quotaCooldown };
+      return { privateDataHidden, restoreWorks, simpleCloud, complexCloud, quotaCooldown };
     });
     assert(Object.values(minaHybridRoutingQA).every(Boolean),
-      'Mina hybrid AI routing must mask private data, preserve local execution, use cloud for complex salon commands, and respect quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
+      'Mina hybrid AI routing must mask private data, preserve private data, route online salon commands to cloud, and respect quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
     console.log('Mina hybrid AI routing:', JSON.stringify(minaHybridRoutingQA));
+
+    // Regression: update the exact appointment and accept a standalone minute-level follow-up.
+    const appointmentRescheduleQA = await page.evaluate(() => {
+      const previousAppointments = appData.appointments;
+      const previousLastId = minaLastReferencedAppointmentId;
+      const testAppointment = {
+        id:'qa-mina-reschedule-minute', dateKey:addDaysToJalaliKey(getTodayKey(), 90),
+        time:'15:00', clientName:'شیما', service:'اصلاح مو', status:'pending'
+      };
+      try {
+        appData.appointments = [testAppointment];
+        minaLastReferencedAppointmentId = null;
+        const firstReply = minaTryManageAppointment('نوبت شیما رو بکن ۶ عصر');
+        const firstTime = testAppointment.time;
+        minaLastReferencedAppointmentId = testAppointment.id;
+        const followupReply = minaTryManageAppointment('۱۸:۱۷');
+        const followupTime = testAppointment.time;
+        return {
+          firstChangedToSixPM:firstTime === '18:00',
+          standaloneMinuteChanged:followupTime === '18:17',
+          firstReply, followupReply
+        };
+      } finally {
+        appData.appointments = previousAppointments;
+        minaLastReferencedAppointmentId = previousLastId;
+        saveData();
+        renderCalendar();
+        renderDaySchedule();
+      }
+    });
+    assert(appointmentRescheduleQA.firstChangedToSixPM && appointmentRescheduleQA.standaloneMinuteChanged,
+      'Mina must reschedule the named appointment and then accept a standalone exact minute: ' + JSON.stringify(appointmentRescheduleQA));
+    console.log('Mina appointment reschedule:', JSON.stringify(appointmentRescheduleQA));
 
     // The redesigned appointment form must expose and persist an editable Jalali visit date.
     const appointmentDateFormQA = await page.evaluate(() => {
