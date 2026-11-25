@@ -593,10 +593,11 @@ public class MainActivity extends Activity {
                 }
 
                 prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
+                final boolean contentUnchanged = unchanged;
                 if (manual) {
                     runOnUiThread(() -> {
                         Toast.makeText(MainActivity.this,
-                                unchanged ? "برنامه به‌روز است؛ صفحه با نسخه ذخیره‌شده دوباره بارگذاری می‌شود." : "نسخه جدید دریافت شد؛ در حال اعمال تغییرات…",
+                                contentUnchanged ? "برنامه به‌روز است؛ صفحه با نسخه ذخیره‌شده دوباره بارگذاری می‌شود." : "نسخه جدید دریافت شد؛ در حال اعمال تغییرات…",
                                 Toast.LENGTH_LONG).show();
                         reloadContentPage();
                     });
