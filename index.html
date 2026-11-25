@@ -1485,7 +1485,7 @@
 
       
 
-      <div class="card" id="personalRemindersCard"><div class="section-head"><div class="section-title">🔔 هشدارهای شخصی من</div><span style="font-size:.72rem;color:var(--text-secondary);">مستقل از نوبت مشتری</span></div><div class="form-grid"><div class="form-group"><label>تاریخ هشدار</label><input type="date" id="personalReminderDate" class="form-control"></div><div class="form-group"><label>ساعت دقیق هشدار</label><input type="time" id="personalReminderTime" class="form-control" step="60"></div><div class="form-group full"><label>متن یادآوری</label><textarea id="personalReminderText" class="form-control" rows="2" placeholder="مثلاً: ساعت ۲ باید برم سالن"></textarea></div><div class="form-group full" style="display:flex;flex-direction:row;gap:8px"><button class="btn-primary" id="savePersonalReminderBtn" style="flex:1" onclick="savePersonalReminder()">🔔 ثبت هشدار</button><button class="btn-secondary" id="cancelPersonalReminderEditBtn" style="display:none" onclick="resetPersonalReminderForm()">انصراف از ویرایش</button></div></div><div style="font-size:.73rem;color:var(--text-secondary);line-height:1.7;margin:2px 0 10px">برای اعلان، اجازه اعلان برنامه را فعال کن. هشدارها پس از بستن و باز کردن برنامه باقی می‌مانند.</div><div id="personalReminderList" style="display:flex;flex-direction:column;gap:8px"></div></div>
+      <div class="card" id="personalRemindersCard"><div class="section-head"><div class="section-title">🔔 هشدارهای شخصی من</div><span style="font-size:.72rem;color:var(--text-secondary);">مستقل از نوبت مشتری</span></div><div class="form-grid"><div class="form-group"><label>تاریخ هشدار</label><input type="hidden" id="personalReminderDate"><button type="button" id="personalReminderDateDisplay" class="form-control" style="text-align:right;cursor:pointer" onclick="openJalaliDatePicker('personalReminderDate','personalReminderDateDisplay','gregorian')">انتخاب تاریخ شمسی</button></div><div class="form-group"><label>ساعت دقیق هشدار</label><input type="time" id="personalReminderTime" class="form-control" step="60"></div><div class="form-group full"><label>متن یادآوری</label><textarea id="personalReminderText" class="form-control" rows="2" placeholder="مثلاً: ساعت ۲ باید برم سالن"></textarea></div><div class="form-group full" style="display:flex;flex-direction:row;gap:8px"><button class="btn-primary" id="savePersonalReminderBtn" style="flex:1" onclick="savePersonalReminder()">🔔 ثبت هشدار</button><button class="btn-secondary" id="cancelPersonalReminderEditBtn" style="display:none" onclick="resetPersonalReminderForm()">انصراف از ویرایش</button></div></div><div style="font-size:.73rem;color:var(--text-secondary);line-height:1.7;margin:2px 0 10px">برای اعلان، اجازه اعلان برنامه را فعال کن. هشدارها پس از بستن و باز کردن برنامه باقی می‌مانند.</div><div id="personalReminderList" style="display:flex;flex-direction:column;gap:8px"></div></div>
       
 
     </section>
@@ -2102,6 +2102,7 @@
         <button class="icon-btn" onclick="closeModal('noteModal')">✕</button>
       </div>
       <input type="hidden" id="editNoteId" />
+      <div class="form-group"><label>تاریخ یادداشت</label><input type="hidden" id="noteDateKey"><button type="button" id="noteDateDisplay" class="form-control" style="text-align:right;cursor:pointer" onclick="openJalaliDatePicker('noteDateKey','noteDateDisplay','jalali')">انتخاب تاریخ شمسی</button></div>
       <div class="form-group">
         <label>عنوان یادداشت *</label>
         <div class="voice-wrap">
@@ -2274,6 +2275,66 @@
       const now = getIranNow();
       const j = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
       return `${j[0]}-${pad2(j[1])}-${pad2(j[2])}`;
+    }
+
+
+    // Shared Persian-date picker for notes and personal reminders.
+    let sharedJalaliPickerYear = 0, sharedJalaliPickerMonth = 0;
+    let sharedJalaliPickerTarget = null, sharedJalaliPickerDisplay = null, sharedJalaliPickerMode = 'jalali';
+    function openJalaliDatePicker(targetId, displayId, mode) {
+      sharedJalaliPickerTarget = document.getElementById(targetId);
+      sharedJalaliPickerDisplay = document.getElementById(displayId);
+      sharedJalaliPickerMode = mode || 'jalali';
+      if (!sharedJalaliPickerTarget || !sharedJalaliPickerDisplay) return;
+      let key = '';
+      if (sharedJalaliPickerMode === 'gregorian' && sharedJalaliPickerTarget.value) {
+        const p = sharedJalaliPickerTarget.value.split('-').map(Number);
+        if (p.length === 3 && p.every(Number.isFinite)) { const j = gregorianToJalali(p[0],p[1],p[2]); key = j[0]+'-'+pad2(j[1])+'-'+pad2(j[2]); }
+      } else key = sharedJalaliPickerTarget.value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) key = getTodayKey();
+      [sharedJalaliPickerYear,sharedJalaliPickerMonth] = key.split('-').map(Number);
+      let overlay = document.getElementById('sharedJalaliDateOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div'); overlay.id='sharedJalaliDateOverlay';
+        overlay.style.cssText='position:fixed;inset:0;z-index:25000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:14px;direction:rtl';
+        overlay.innerHTML='<div style="width:min(420px,100%);max-height:85dvh;overflow:auto;background:var(--bg-card-solid);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:20px;padding:14px;box-shadow:0 20px 60px #0006"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><button type="button" class="btn-secondary" id="sharedJalaliPrev">ماه قبل</button><strong id="sharedJalaliTitle"></strong><button type="button" class="btn-secondary" id="sharedJalaliNext">ماه بعد</button></div><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:14px;text-align:center;font-size:.72rem;font-weight:800"><span>شنبه</span><span>یکشنبه</span><span>دوشنبه</span><span>سه‌شنبه</span><span>چهارشنبه</span><span>پنجشنبه</span><span>جمعه</span></div><div id="sharedJalaliGrid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px"></div><button type="button" class="btn-secondary" id="sharedJalaliCancel" style="width:100%;margin-top:12px">انصراف</button></div>';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.style.display='none';});
+        document.getElementById('sharedJalaliPrev').onclick=()=>changeSharedJalaliMonth(-1);
+        document.getElementById('sharedJalaliNext').onclick=()=>changeSharedJalaliMonth(1);
+        document.getElementById('sharedJalaliCancel').onclick=()=>overlay.style.display='none';
+      }
+      overlay.style.display='flex'; renderSharedJalaliPicker();
+    }
+    function changeSharedJalaliMonth(delta) {
+      sharedJalaliPickerMonth += delta;
+      if(sharedJalaliPickerMonth>12){sharedJalaliPickerMonth=1;sharedJalaliPickerYear++;}
+      if(sharedJalaliPickerMonth<1){sharedJalaliPickerMonth=12;sharedJalaliPickerYear--;}
+      renderSharedJalaliPicker();
+    }
+    function renderSharedJalaliPicker() {
+      const title=document.getElementById('sharedJalaliTitle'), grid=document.getElementById('sharedJalaliGrid');
+      if(!title||!grid)return;
+      title.textContent=JALALI_MONTHS[sharedJalaliPickerMonth-1]+' '+toPersianDigits(sharedJalaliPickerYear);
+      grid.innerHTML='';
+      const [gy,gm,gd]=jalaliToGregorian(sharedJalaliPickerYear,sharedJalaliPickerMonth,1);
+      const offset=(new Date(gy,gm-1,gd).getDay()+1)%7;
+      for(let i=0;i<offset;i++){const blank=document.createElement('span');grid.appendChild(blank);}
+      for(let d=1;d<=jalaliMonthDays(sharedJalaliPickerYear,sharedJalaliPickerMonth);d++){
+        const key=sharedJalaliPickerYear+'-'+pad2(sharedJalaliPickerMonth)+'-'+pad2(d);
+        const day=document.createElement('button');day.type='button';day.textContent=toPersianDigits(d);
+        day.className='day-cell';day.style.cssText='min-width:0;min-height:44px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--bg-input);color:var(--text-primary);font-weight:800';
+        if(key===getTodayKey())day.style.borderColor='var(--accent)';
+        day.onclick=()=>{
+          if(sharedJalaliPickerMode==='gregorian'){
+            const g=jalaliToGregorian(sharedJalaliPickerYear,sharedJalaliPickerMonth,d);
+            sharedJalaliPickerTarget.value=g[0]+'-'+pad2(g[1])+'-'+pad2(g[2]);
+          }else sharedJalaliPickerTarget.value=key;
+          sharedJalaliPickerDisplay.textContent=formatJalaliFull(key);
+          document.getElementById('sharedJalaliDateOverlay').style.display='none';
+        };
+        grid.appendChild(day);
+      }
     }
 
     // --- PALETTES ---
@@ -3203,12 +3264,16 @@
         document.getElementById('noteCatInput').value = n.category;
         document.getElementById('notePinInput').value = n.pinned ? 'yes' : 'no';
         document.getElementById('noteBodyInput').value = n.body;
+        document.getElementById('noteDateKey').value = n.dateKey || getTodayKey();
+        document.getElementById('noteDateDisplay').textContent = formatJalaliFull(document.getElementById('noteDateKey').value);
       } else {
         document.getElementById('noteModalTitle').textContent = 'یادداشت جدید';
         document.getElementById('noteTitleInput').value = '';
         document.getElementById('noteCatInput').value = 'کاری و مشتریان';
         document.getElementById('notePinInput').value = 'no';
         document.getElementById('noteBodyInput').value = '';
+        document.getElementById('noteDateKey').value = getTodayKey();
+        document.getElementById('noteDateDisplay').textContent = formatJalaliFull(getTodayKey());
       }
       document.getElementById('noteModal').classList.add('open');
     }
@@ -3223,7 +3288,7 @@
         category: document.getElementById('noteCatInput').value,
         pinned: document.getElementById('notePinInput').value === 'yes',
         body,
-        dateKey: getTodayKey()
+        dateKey: document.getElementById('noteDateKey').value || getTodayKey()
       };
       if (editId) {
         const idx = appData.notes.findIndex(n => n.id === editId);
@@ -6533,10 +6598,10 @@
     let editingPersonalReminderId = null;
     function localReminderDate(d){const source=d instanceof Date?d:getIranNow();return source.getFullYear()+"-"+pad2(source.getMonth()+1)+"-"+pad2(source.getDate());}
     function jalaliKeyToGregorianDate(dateKey){const parts=String(dateKey||'').split('-').map(Number);if(parts.length!==3)return '';const g=jalaliToGregorian(parts[0],parts[1],parts[2]);return g[0]+'-'+pad2(g[1])+'-'+pad2(g[2]);}
-    function resetPersonalReminderForm(){editingPersonalReminderId=null;const d=getIranNow();d.setDate(d.getDate()+1);document.getElementById("personalReminderDate").value=localReminderDate(d);document.getElementById("personalReminderTime").value="13:00";document.getElementById("personalReminderText").value="";document.getElementById("savePersonalReminderBtn").textContent="🔔 ثبت هشدار";document.getElementById("cancelPersonalReminderEditBtn").style.display="none";}
+    function resetPersonalReminderForm(){editingPersonalReminderId=null;const d=getIranNow();d.setDate(d.getDate()+1);document.getElementById("personalReminderDate").value=localReminderDate(d);{const p=document.getElementById("personalReminderDate").value.split("-").map(Number);const j=gregorianToJalali(p[0],p[1],p[2]);document.getElementById("personalReminderDateDisplay").textContent=formatJalaliFull(j[0]+"-"+pad2(j[1])+"-"+pad2(j[2]));}document.getElementById("personalReminderTime").value="13:00";document.getElementById("personalReminderText").value="";document.getElementById("savePersonalReminderBtn").textContent="🔔 ثبت هشدار";document.getElementById("cancelPersonalReminderEditBtn").style.display="none";}
     function renderPersonalReminders(){const root=document.getElementById("personalReminderList");if(!root)return;const items=(appData.reminders||[]).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||""));root.innerHTML="";if(!items.length){root.textContent="هنوز هشدار شخصی ثبت نشده است.";return;}items.forEach(x=>{const card=document.createElement("div");card.style.cssText="padding:10px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-input)";const p=(x.date||"").split("-").map(Number);const j=p.length===3?gregorianToJalali(p[0],p[1],p[2]):null;const key=j?j[0]+"-"+pad2(j[1])+"-"+pad2(j[2]):"";const head=document.createElement("strong");head.textContent="⏰ "+toPersianDigits(x.time||"")+" • "+(key?formatJalaliFull(key):"");const msg=document.createElement("div");msg.style.cssText="white-space:pre-wrap;line-height:1.7;margin:6px 0";msg.textContent=x.message||"";const actions=document.createElement("div");actions.style.cssText="display:flex;gap:6px";const edit=document.createElement("button");edit.className="mini-btn";edit.textContent="✏️ ویرایش";edit.onclick=()=>editPersonalReminder(x.id);const del=document.createElement("button");del.className="mini-btn del";del.textContent="حذف";del.onclick=()=>deletePersonalReminder(x.id);const status=document.createElement("small");status.textContent=x.notified?"اعلان داده شده":"فعال";actions.append(edit,del,status);card.append(head,msg,actions);root.appendChild(card);});}
     async function savePersonalReminder(){const date=document.getElementById("personalReminderDate").value;const time=document.getElementById("personalReminderTime").value;const message=document.getElementById("personalReminderText").value.trim();if(!date||!time||!message){showToast("تاریخ، ساعت و متن یادآوری را کامل کن.");return;}const targetAt=iranDateTimeToEpoch(date,time);if(!Number.isFinite(targetAt)||targetAt<=Date.now()){showToast("زمان هشدار باید در آینده به وقت ایران باشد.");return;}if("Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission();}catch(e){}}if(!Array.isArray(appData.reminders))appData.reminders=[];const reminderId=editingPersonalReminderId||"rem_"+Date.now();if(editingPersonalReminderId){const old=appData.reminders.find(x=>x.id===editingPersonalReminderId);if(old)Object.assign(old,{date,time,message,notified:false,enabled:true,timezone:"Asia/Tehran"});}else{appData.reminders.push({id:reminderId,date,time,message,notified:false,enabled:true,createdAt:Date.now(),timezone:"Asia/Tehran"});}saveData();let nativeStatus="web";try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==="function")nativeStatus=String(AndroidApp.schedulePersonalReminder(String(reminderId),targetAt,message)||"failed");}catch(e){nativeStatus="failed";}renderPersonalReminders();resetPersonalReminderForm();showToast(nativeStatus==="exact"?"هشدار دقیق با ساعت ایران در گوشی زمان‌بندی شد 🔔":nativeStatus==="approximate"?"هشدار گوشی زمان‌بندی شد؛ ممکن است به‌دلیل محدودیت سیستم چند دقیقه تأخیر داشته باشد.":nativeStatus==="web"?"یادآوری ذخیره شد؛ برای زنگ مستقل از اپ اندروید استفاده کن.":"یادآوری ذخیره شد، اما زمان‌بندی اعلان گوشی تأیید نشد؛ مجوز اعلان را بررسی کن.");}
-    function editPersonalReminder(id){const x=(appData.reminders||[]).find(a=>a.id===id);if(!x)return;editingPersonalReminderId=id;document.getElementById("personalReminderDate").value=x.date||"";document.getElementById("personalReminderTime").value=x.time||"";document.getElementById("personalReminderText").value=x.message||"";document.getElementById("savePersonalReminderBtn").textContent="💾 ذخیره تغییرات";document.getElementById("cancelPersonalReminderEditBtn").style.display="inline-flex";document.getElementById("personalRemindersCard").scrollIntoView({behavior:"smooth",block:"start"});}
+    function editPersonalReminder(id){const x=(appData.reminders||[]).find(a=>a.id===id);if(!x)return;editingPersonalReminderId=id;document.getElementById("personalReminderDate").value=x.date||"";{const p=(x.date||"").split("-").map(Number);if(p.length===3&&p.every(Number.isFinite)){const j=gregorianToJalali(p[0],p[1],p[2]);document.getElementById("personalReminderDateDisplay").textContent=formatJalaliFull(j[0]+"-"+pad2(j[1])+"-"+pad2(j[2]));}}document.getElementById("personalReminderTime").value=x.time||"";document.getElementById("personalReminderText").value=x.message||"";document.getElementById("savePersonalReminderBtn").textContent="💾 ذخیره تغییرات";document.getElementById("cancelPersonalReminderEditBtn").style.display="inline-flex";document.getElementById("personalRemindersCard").scrollIntoView({behavior:"smooth",block:"start"});}
     function deletePersonalReminder(id){if(!confirm("این هشدار حذف شود؟"))return;appData.reminders=(appData.reminders||[]).filter(x=>x.id!==id);try{if(window.AndroidApp&&typeof AndroidApp.cancelPersonalReminder==="function")AndroidApp.cancelPersonalReminder(String(id));}catch(e){}saveData();renderPersonalReminders();if(editingPersonalReminderId===id)resetPersonalReminderForm();showToast("هشدار حذف شد.");}
     function checkPersonalReminders(){if(activeAlarmId)return;try{if(window.AndroidApp&&typeof AndroidApp.isPersonalReminderFired==="function"){const fired=(appData.reminders||[]).find(a=>a&&!a.notified&&AndroidApp.isPersonalReminderFired(String(a.id)));if(fired){fired.notified=true;saveData();renderPersonalReminders();return;}}}catch(e){}const now=getIranNow();const today=localReminderDate(now);const current=pad2(now.getHours())+":"+pad2(now.getMinutes());const x=(appData.reminders||[]).filter(a=>a&&a.enabled!==false&&!a.notified&&a.date===today&&a.time&&current>=a.time).sort((a,b)=>(a.time||"").localeCompare(b.time||""))[0];if(!x)return;x.notified=true;saveData();renderPersonalReminders();activeAlarmId=x.id;const msg=x.message||"زمان انجام یادآوری رسیده است.";const node=document.getElementById("alarmRingingText");const modal=document.getElementById("alarmRingingModal");const title=modal&&modal.querySelector(".modal-title");if(title)title.textContent="یادآوری شخصی شما";if(node&&modal){node.textContent=msg;modal.classList.add("open");}try{if(window.AndroidApp&&typeof AndroidApp.showAppointmentNotification==="function"){AndroidApp.showAppointmentNotification(String(x.id),msg);}else if("Notification" in window&&Notification.permission==="granted"){new Notification("یادآوری شخصی",{body:msg,tag:"personal-"+x.id});}}catch(e){}playChime();if(alarmInterval)clearInterval(alarmInterval);alarmInterval=setInterval(()=>{if(activeAlarmId)playChime();},3500);}
     function checkMinaCustomReminders() {
