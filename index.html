@@ -5244,7 +5244,7 @@
         'دفیقه':'دقیقه','دقیفه':'دقیقه','دقیگقه':'دقیقه','دقیغقه':'دقیقه','دقیه':'دقیقه','دققیقه':'دقیقه',
         'میناا':'مینا','میخام':'می‌خوام','میخوام':'می‌خوام','میخاستم':'می‌خواستم','میخاست':'می‌خواست',
         'ثبتشکن':'ثبتش کن','ثبتکن':'ثبت کن','ثبت کنن':'ثبت کن','ثبث':'ثبت','سبت':'ثبت','ثببت':'ثبت',
-        'بزار':'بذار','بذارم':'بذار','بذارین':'بذار','بزارین':'بذار','بزارش':'بذارش',
+        'بزار':'بذار','بذارین':'بذار','بزارین':'بذار','بزارش':'بذارش',
         'کنسل':'لغو','کنسلی':'لغو','کنسلش':'لغوش','لغوشکن':'لغوش کن','لغوکن':'لغو کن',
         'پاکشکن':'پاکش کن','حذفشکن':'حذفش کن','عوضشکن':'عوضش کن','جابجا':'جابه‌جا','جابجاش':'جابه‌جاش',
         'جابهجایی':'جابه‌جایی','مشتریی':'مشتری','ساعتو':'ساعت',
@@ -5271,6 +5271,10 @@
         'لغو','حذف','تغییر','عوض','جابجا','جابه‌جا','کنسل','وقت','پس','مشتری','تأیید',
         'یادداشت','یادآوری','ویرایش','تقویم','برنامه','انجام','تمام','منتقل','ببر','اضافه'
       ];
+      const customServiceWords = (typeof appData !== 'undefined' && Array.isArray(appData.services) ? appData.services : [])
+        .flatMap(service => String(service && service.name || '').split(/[\\s\\u200c]+/))
+        .map(word => word.trim()).filter(word => word.length >= 4);
+      const vocabulary = Array.from(new Set(commandWords.concat(customServiceWords)));
       const normalized=String(value||'').replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
         .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
         .replace(/[\u064B-\u065F\u0670\u0640]/g,'')
@@ -5281,11 +5285,11 @@
         if(aliases[word])return aliases[word];
         // Collapse accidental key repeats, e.g. "فردداا" -> "فردا".
         const collapsed=word.replace(/(.)\1/g,'$1');
-        const compact=commandWords.includes(collapsed) ? collapsed : word;
+        const compact=vocabulary.includes(collapsed) ? collapsed : word;
         if(aliases[compact])return aliases[compact];
         if(compact.length<4||/^[0-9:/.٫-]+$/.test(compact))return compact;
         const limit=compact.length>=8?2:1;
-        const ranked=commandWords.map(target=>({target,d:distance(compact,target)}))
+        const ranked=vocabulary.map(target=>({target,d:distance(compact,target)}))
           .filter(x=>x.d<=limit).sort((x,y)=>x.d-y.d);
         // Correct only a unique closest command word; don't "correct" client names.
         return ranked.length && (!ranked[1]||ranked[1].d>ranked[0].d) ? ranked[0].target : compact;
