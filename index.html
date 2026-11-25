@@ -6506,9 +6506,9 @@
       // A cloud conversational reply must never override a concrete booking command or claim that Mina
       // lacks access to the calendar. The local executor validates the slot and persists the record.
       const directBookingIntent = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
+        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\s*بده|بده|اختصاص\s*بده|هماهنگ\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
+        /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
+        /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
       if (directBookingIntent) {
         const bookingReply = minaBuildReply(message);
         addMinaMessage(minaFormatReplyForMode(bookingReply), 'assistant');
