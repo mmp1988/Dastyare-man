@@ -68,7 +68,7 @@ jobs:
             const healthData = await health.json();
             assert.equal(healthData.success, true, 'Live Worker health response must report success');
             assert.equal(healthData.status, 'ready', 'Live Worker must report ready');
-            assert.equal(healthData.version, 'mina-ai-response-v11',
+            assert.equal(healthData.version, 'mina-ai-response-v12',
               'The updated Worker response parser must be deployed, not just committed to GitHub');
 
             const preflight = await fetch(base, {
@@ -125,6 +125,8 @@ jobs:
             assert.equal(routeData.success, true, 'Conversational routing must succeed: ' + JSON.stringify(routeData));
             assert.equal(routeData.route?.type, 'reply',
               'Casual non-command speech must be routed to conversation, not rejected by a keyword gate');
+            assert.equal(routeData.route?.review?.reviewed, false,
+              'Ordinary conversation must not pay for an unnecessary second-model review');
             assert.ok(typeof routeData.route?.reply === 'string' && routeData.route.reply.trim().length > 0,
               'Mina must return a natural conversational answer');
 
@@ -145,6 +147,10 @@ jobs:
               'Personal reminder routing must succeed: ' + JSON.stringify(personalReminderData));
             assert.equal(personalReminderData.route?.type, 'personal_reminder',
               'A personal alarm must be routed to the personal reminder scheduler, never appointment booking');
+            assert.equal(personalReminderData.route?.review?.reviewed, true,
+              'Personal reminder operations must pass the independent model reviewer');
+            assert.equal(personalReminderData.route?.review?.decision, 'approve',
+              'A clear personal reminder must be approved by the independent reviewer');
             assert.ok(typeof personalReminderData.route?.command === 'string' &&
               /خبر|یاد|آلارم|هشدار/u.test(personalReminderData.route.command),
               'AI must preserve the reminder meaning in a Persian command');
@@ -165,6 +171,10 @@ jobs:
             assert.equal(actionData.success, true, 'Natural salon action routing must succeed');
             assert.equal(actionData.route?.type, 'action',
               'Salon operation must be routed to local execution');
+            assert.equal(actionData.route?.review?.reviewed, true,
+              'Salon mutations must pass the independent model reviewer');
+            assert.equal(actionData.route?.review?.decision, 'approve',
+              'A clear appointment edit must be approved by the independent reviewer');
             assert.ok(typeof actionData.route?.command === 'string' && /[آ-ی]/u.test(actionData.route.command),
               'AI must return a natural Persian command for local execution');
 
@@ -183,6 +193,8 @@ jobs:
               'Alias-based multi-turn booking route must return HTTP 200: ' + JSON.stringify(aliasFlowData));
             assert.equal(aliasFlowData.route?.type, 'action',
               'Cloud AI must resolve «همون مشتری» from the supplied conversation context as an operation');
+            assert.equal(aliasFlowData.route?.review?.reviewed, true,
+              'Alias-based multi-turn operations must be independently reviewed');
             assert.ok(/نوبت|رزرو|ثبت/u.test(aliasFlowData.route?.command || '') &&
               /۱۷:۳۰|17:30|پنج و نیم|پنج‌ونیم/u.test(aliasFlowData.route?.command || ''),
               'Cloud AI must preserve the appointment intent and exact time in a natural Persian command');
@@ -202,6 +214,8 @@ jobs:
               'Pronoun appointment-edit route must return HTTP 200: ' + JSON.stringify(pronounFlowData));
             assert.equal(pronounFlowData.route?.type, 'action',
               'Cloud AI must understand «همونو تغییر بده» as an edit to the referenced appointment');
+            assert.equal(pronounFlowData.route?.review?.reviewed, true,
+              'Pronoun-linked appointment edits must be independently reviewed');
             assert.ok(/تغییر|عوض|ویرایش|جابه.?جا/u.test(pronounFlowData.route?.command || '') &&
               /۱۸:۲۰|18:20/u.test(pronounFlowData.route?.command || ''),
               'Cloud AI must preserve the pronoun-linked edit and exact new time');
