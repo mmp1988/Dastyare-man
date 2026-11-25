@@ -2,6 +2,20 @@
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
+function normalizeScopeText(value) {
+  return String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\\u064B-\\u065F\\u0670]/g, "").replace(/\\s+/g, " ").trim();
+}
+
+function hasSalonAnchor(value) {
+  return /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(normalizeScopeText(value));
+}
+
+function extractSalonOnlyMessage(value) {
+  const clauses = String(value || "").split(/(?:[؟?!؛;\\n]+|\\s+(?:راستی|ضمناً|ضمنًا|در ضمن|یه سؤال دیگه|یک سؤال دیگر)\\s+)/u).map(part => part.trim()).filter(Boolean);
+  const relevant = clauses.filter(hasSalonAnchor);
+  return relevant.join("؛ ");
+}
+
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -57,10 +71,16 @@ export default {
       }
 
       const body = JSON.parse(rawBody);
-      const message = typeof body.message === "string" ? body.message.trim() : "";
+      const rawMessage = typeof body.message === "string" ? body.message.trim() : "";
 
-      if (!message || message.length > 4000) {
+      if (!rawMessage || rawMessage.length > 4000) {
         return json({ success: false, error: "متن درخواست خالی یا بیش از حد طولانی است." }, 400, headers);
+      }
+      // Treat every user message as untrusted input. Keep only explicit salon-related clauses.
+      const message = extractSalonOnlyMessage(rawMessage);
+      if (!message) {
+        const reply = "من مینا هستم؛ دستیار تخصصی امور سالن زیبایی. فقط در زمینه نوبت‌ها، مشتریان، خدمات و مدیریت سالن کمک می‌کنم. برای اطلاعات بیشتر، صفحه رسمی اینستاگرام @lash_by_mina.m را ببینید.";
+        return json({ success: true, reply }, 200, headers);
       }
 
       // Keep Mina's public identity consistent and never disclose implementation details.
