@@ -5870,6 +5870,13 @@
       return minaAppendInstagram('من مینا هستم، دستیار هوشمند و تخصصی سالن زیبایی؛ برای مدیریت نوبت‌ها، مشتریان، خدمات، تبلیغات و امور سالن در خدمتم.');
     }
 
+    function minaIsCriticismMessage(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa').replace(/[يى]/g, 'ی');
+      const addressesMina = /(?:مینا|دستیار|هوش مصنوعی|برنامه)/u.test(text);
+      const negativeFeedback = /(?:احمق|بی\s*مصرف|بدردنخور|به\s*درد\s*نمی.?خوری|چیزی\s*حالت\s*نمی.?شه|چیزی\s*حالیت\s*نیست|نمی.?فهمی|متوجه\s*نمی.?شی|کلافه|اعصابم\s*رو\s*خرد|اشتباه\s*کردی|درست\s*کار\s*نمی.?کنی|به\s*درد\s*نمی.?خوری|ضعیف|ناامیدم\s*کردی)/u.test(text);
+      return negativeFeedback && (addressesMina || /(?:کلافه|اعصابم\s*رو\s*خرد|اشتباه\s*کردی|درست\s*کار\s*نمی.?کنی)/u.test(text));
+    }
+
     function minaIsAbusiveMessage(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
       return /(?:^|[\s،,.!?؟])(?:احمق|بی\s*شعور|بی\s*ادب|خفه\s*شو|گمشو|گم\s*شو|کثافت|حرومزاده|لعنتی|مادرجنده|جنده|فحش|توهین)(?=$|[\s،,.!?؟])/u.test(text);
@@ -5883,7 +5890,13 @@
       addMinaMessage(message, 'user');
       input.value = '';
 
-      // Abusive language is handled locally; never spend cloud AI quota arguing.
+      // User frustration or criticism directed at Mina is acknowledged first, without Instagram or cloud quota.
+      if (minaIsCriticismMessage(message)) {
+        addMinaMessage('حق داری کلافه شده باشی؛ احتمالاً چند بار چیزی رو که خواستی درست متوجه نشدم. بابتش معذرت می‌خوام. 🌸\n\nنمی‌خوام باهات بحث کنم یا از خودم دفاع کنم. بگو کجای کار رو اشتباه فهمیدم تا همون رو اصلاح کنم و این بار دقیق انجامش بدم.', 'assistant');
+        return;
+      }
+
+      // Actual abusive language is handled locally; never spend cloud AI quota arguing.
       if (minaIsAbusiveMessage(message)) {
         addMinaMessage(minaAppendInstagram('با این لحن نمی‌تونم گفتگوی مفیدی داشته باشم. هر وقت برای انجام کارهای سالن آماده بودی، در خدمتم.'), 'assistant');
         return;
