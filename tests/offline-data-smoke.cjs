@@ -250,6 +250,33 @@ const assert = require('assert');
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid'));
 
+    const minaInteractionUI = await page.evaluate(() => {
+      const tabs = document.querySelector('.appointment-type-switch');
+      const dayCard = document.getElementById('dayAppointmentsBody')?.closest('.card');
+      const filterRemoved = !document.getElementById('toggleFollowupFilterBtn');
+      const tabsInDayCard = !!tabs && !!dayCard && tabs.closest('.card') === dayCard;
+      const labelsUpdated = !document.body.innerText.includes('فقط ترمیم‌ها') &&
+        !document.body.innerText.includes('نوبت‌های ترمیم') &&
+        document.body.innerText.includes('نوبت‌های بعدی');
+      const chips = document.querySelectorAll('.mina-quick-actions button').length;
+      setMinaMode('professional');
+      const professional = appData.settings.minaMode === 'professional' &&
+        document.getElementById('minaModeProfessional').getAttribute('aria-pressed') === 'true';
+      setMinaMode('fast');
+      const fast = appData.settings.minaMode === 'fast' &&
+        document.getElementById('minaModeFast').getAttribute('aria-pressed') === 'true';
+      setMinaMode('friendly');
+      const friendly = appData.settings.minaMode === 'friendly' &&
+        document.getElementById('minaModeFriendly').getAttribute('aria-pressed') === 'true';
+      return {filterRemoved,tabsInDayCard,labelsUpdated,quickActionCount:chips,professional,fast,friendly,overviewAvailable:typeof renderClientSmartOverview==='function'};
+    });
+    assert(minaInteractionUI.filterRemoved, 'The obsolete only-follow-ups filter must be removed');
+    assert(minaInteractionUI.tabsInDayCard, 'Primary and next-appointment lists must appear below the selected-day schedule in the same card');
+    assert(minaInteractionUI.labelsUpdated, 'All user-facing appointment-type labels must use next appointment, not repair');
+    assert(minaInteractionUI.quickActionCount >= 4, 'Mina chat must offer interactive quick-action prompts');
+    assert(minaInteractionUI.professional && minaInteractionUI.fast && minaInteractionUI.friendly, 'Mina must support three persistent conversation modes');
+    assert(minaInteractionUI.overviewAvailable, 'Customer smart overview must combine next appointment, service history and notes');
+
     // Mina Persian natural-language booking: clear commands save immediately,
     // with or without a client name; ask only when a required detail is missing.
     const minaBookingResult = await page.evaluate(() => {
