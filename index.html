@@ -1145,6 +1145,28 @@
     .home-appt-date-heading { padding:7px 3px 2px; color:var(--accent); font-size:.77rem; font-weight:900; }
     @media(max-width:420px) { .home-appt-row { grid-template-columns:53px minmax(0,1fr); } .home-appt-actions { grid-column:2; flex-direction:row; } .home-stat-button { min-height:88px; } }
 
+    /* Appointment form redesign: explicit Jalali date, separated birthday and mobile-friendly sections. */
+    #apptModal .modal-box { max-width: 620px; width: min(620px, calc(100vw - 16px)); }
+    #apptModal .modal-head { position: sticky; top: -17px; z-index: 8; padding: 4px 0 11px; margin-bottom: 10px; background: var(--bg-card-solid); border-bottom: 1px solid var(--border-subtle); }
+    #apptModal .appointment-form-section { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 12px; margin: 10px 0; }
+    #apptModal .appointment-form-section-title { color: var(--accent); font-size: .84rem; font-weight: 900; margin-bottom: 10px; }
+    #apptModal .form-group { min-width: 0; }
+    #apptModal .form-group label { line-height: 1.65; }
+    #apptModal .form-control { min-height: 44px; border-radius: 11px; }
+    #apptModal .appointment-date-input { direction: ltr; text-align: center; font-weight: 800; letter-spacing: .04em; }
+    #apptModal .appointment-date-input[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(239,68,68,.12); }
+    #apptModal .appointment-birthday-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 13px; padding: 10px; }
+    #apptModal .appointment-birthday-fields { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 7px; }
+    #apptModal .appointment-birthday-fields input { min-width: 0; text-align: center; }
+    #apptModal .appointment-birthday-box small, #apptModal .form-group small { display: block; color: var(--text-secondary); font-size: .68rem; line-height: 1.7; margin-top: 5px; }
+    .smart-dashboard-intro { color: var(--text-secondary); font-size: .75rem; line-height: 1.8; margin: -3px 0 9px; }
+    @media (max-width: 420px) {
+      #apptModal .modal-box { padding: 12px; border-radius: 18px; }
+      #apptModal .appointment-form-section { padding: 10px; }
+      #apptModal .form-grid { grid-template-columns: minmax(0,1fr); }
+      #apptModal .appointment-birthday-fields { grid-template-columns: 1.2fr 1fr 1fr; }
+    }
+
 </style>
 </head>
 <body>
@@ -1941,68 +1963,26 @@
         <div id="quickServiceChips"></div>
       </div>
 
-      <div class="form-grid">
-        <div class="form-group full">
-          <label>نام و نام خانوادگی مشتری *</label>
-          <div class="voice-wrap">
-            <input type="text" id="apptClientName" class="form-control" placeholder="نام مشتری..." />
-            <button type="button" class="voice-btn" id="voiceNameBtn" onclick="startVoiceInput('apptClientName', 'voiceNameBtn')">🎤 گفتار</button>
-          </div>
+      <div class="appointment-form-section">
+        <div class="appointment-form-section-title">👤 اطلاعات مشتری و مراجعه</div>
+        <div class="form-grid appointment-main-grid">
+          <div class="form-group full"><label for="apptClientName">نام و نام خانوادگی مشتری *</label><div class="voice-wrap"><input type="text" id="apptClientName" class="form-control" placeholder="نام مشتری..." autocomplete="name" /><button type="button" class="voice-btn" id="voiceNameBtn" onclick="startVoiceInput('apptClientName', 'voiceNameBtn')">🎤 گفتار</button></div></div>
+          <div class="form-group full"><label for="apptService">نوع خدمت / کاری که قرار است انجام شود *</label><div class="voice-wrap"><input type="text" id="apptService" class="form-control" placeholder="مثلاً کاشت ناخن، رنگ مو، کوتاهی، لیفت..." /><button type="button" class="voice-btn" id="voiceServiceBtn" onclick="startVoiceInput('apptService', 'voiceServiceBtn')">🎤 گفتار</button></div></div>
+          <div class="form-group"><label for="apptDate">📅 تاریخ مراجعه *</label><input type="text" id="apptDate" class="form-control appointment-date-input" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۹/۰۴" onchange="updateAppointmentDate(true)" onblur="updateAppointmentDate(false)" /><small>تاریخ شمسی به شکل سال/ماه/روز.</small></div>
+          <div class="form-group"><label for="apptTime">🕒 ساعت مراجعه *</label><input type="time" id="apptTime" class="form-control" value="10:00" step="60" onchange="checkTimeConflict()" /></div>
+          <div class="form-group full"><label for="apptPhone">شماره موبایل مشتری (اختیاری)</label><input type="tel" id="apptPhone" class="form-control" placeholder="0912..." dir="ltr" inputmode="tel" autocomplete="tel" /></div>
         </div>
-        <div class="form-group">
-          <label>شماره موبایل مشتری</label>
-          <input type="tel" id="apptPhone" class="form-control" placeholder="0912..." dir="ltr" />
+      </div>
+      <div class="appointment-form-section">
+        <div class="appointment-form-section-title">🔔 یادآوری و اطلاعات تکمیلی</div>
+        <div class="form-grid">
+          <div class="form-group full"><label for="apptAlarm">زنگ هشدار یادآوری</label><select id="apptAlarm" class="form-control" onchange="updateAppointmentAlarmUI()"><option value="none">بدون زنگ هشدار</option><option value="0">سرِ ساعت نوبت</option><option value="5">۵ دقیقه قبل</option><option value="15" selected>۱۵ دقیقه قبل</option><option value="30">۳۰ دقیقه قبل</option><option value="60">۱ ساعت قبل</option><option value="custom">زمان دلخواه (دقیقه قبل)</option></select></div>
+          <div class="form-group full appointment-birthday-box"><label>🎂 تاریخ تولد مشتری (اختیاری)</label><div class="appointment-birthday-fields"><input type="text" id="apptBirthdayYear" class="form-control" inputmode="numeric" maxlength="4" placeholder="سال شمسی" aria-label="سال تولد مشتری" /><input type="text" id="apptBirthdayMonth" class="form-control" inputmode="numeric" maxlength="2" placeholder="ماه" aria-label="ماه تولد مشتری" /><input type="text" id="apptBirthdayDay" class="form-control" inputmode="numeric" maxlength="2" placeholder="روز" aria-label="روز تولد مشتری" /></div><small>با ذخیره نوبت، تولد در پرونده مشتری و بخش «تولد مشتریان» ثبت می‌شود. خالی گذاشتن این قسمت، تولد قبلی را تغییر نمی‌دهد.</small></div>
+          <div class="form-group full" id="customAlarmMinutesBox" style="display:none;"><label for="apptCustomAlarmMinutes">چند دقیقه قبل از نوبت هشدار بدهم؟</label><input type="number" id="apptCustomAlarmMinutes" class="form-control" min="0" max="43200" step="1" value="15" placeholder="مثلاً ۴۵ یا ۱۲۰" /></div>
+          <div class="form-group full"><label for="apptNotes">یادداشت و توضیحات نوبت (اختیاری)</label><textarea id="apptNotes" class="form-control" rows="3" placeholder="توضیحات دلخواه درباره مشتری، نوع کار یا نکات لازم..."></textarea></div>
         </div>
-        <div class="form-group">
-          <label>ساعت نوبت *</label>
-          <input type="time" id="apptTime" class="form-control" value="10:00" onchange="checkTimeConflict()" />
-        </div>
-        <div class="form-group full">
-          <label>نوع خدمت / کار</label>
-          <div class="voice-wrap">
-            <input type="text" id="apptService" class="form-control" placeholder="توضیحات کار..." />
-            <button type="button" class="voice-btn" id="voiceServiceBtn" onclick="startVoiceInput('apptService', 'voiceServiceBtn')">🎤 گفتار</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>زنگ هشدار یادآوری</label>
-          <select id="apptAlarm" class="form-control" onchange="updateAppointmentAlarmUI()">
-            <option value="none">بدون زنگ هشدار</option>
-            <option value="0">سرِ ساعت نوبت</option>
-            <option value="5">۵ دقیقه قبل</option>
-            <option value="15" selected>۱۵ دقیقه قبل</option>
-            <option value="30">۳۰ دقیقه قبل</option>
-            <option value="60">۱ ساعت قبل</option>
-            <option value="custom">زمان دلخواه (دقیقه قبل)</option>
-          </select>
-        </div>
-        <div class="form-group appointment-birthday-box">
-          <label>🎂 تاریخ تولد مشتری (اختیاری)</label>
-          <div class="appointment-birthday-fields">
-            <input type="text" id="apptBirthdayYear" class="form-control" inputmode="numeric" maxlength="4" placeholder="سال شمسی" aria-label="سال تولد مشتری" />
-            <input type="text" id="apptBirthdayMonth" class="form-control" inputmode="numeric" maxlength="2" placeholder="ماه" aria-label="ماه تولد مشتری" />
-            <input type="text" id="apptBirthdayDay" class="form-control" inputmode="numeric" maxlength="2" placeholder="روز" aria-label="روز تولد مشتری" />
-          </div>
-          <small>با ذخیره نوبت، تولد در بخش «تولد مشتریان» هم ثبت می‌شود. اگر خالی بماند، تاریخ قبلی تغییر نمی‌کند.</small>
-        </div>
-        <div class="form-group" id="customAlarmMinutesBox" style="display:none;">
-          <label>چند دقیقه قبل از نوبت هشدار بدهم؟</label>
-          <input type="number" id="apptCustomAlarmMinutes" class="form-control" min="0" max="43200" step="1" value="15" placeholder="مثلاً ۴۵ یا ۱۲۰" />
-        </div>
-        <div class="form-group full">
-          <label>یادداشت و توضیحات نوبت</label>
-          <textarea id="apptNotes" class="form-control" rows="3" placeholder="توضیحات دلخواه درباره مشتری، نوع کار یا نکات لازم..."></textarea>
-        </div>
-        <div class="form-group">
-          <label>رزرو خودکار نوبت ترمیم بعدی</label>
-          <select id="apptNextFollowup" class="form-control" onchange="updateFollowupUI()">
-            <option value="0">بدون نوبت ترمیم</option>
-            <option value="14">۲ هفته بعد (۱۴ روز)</option>
-            <option value="21">۳ هفته بعد (۲۱ روز)</option>
-            <option value="28">۴ هفته بعد (۲۸ روز)</option>
-            <option value="custom">دلخواه (تعداد روز دلخواه)</option>
-          </select>
-        </div>
+      </div>
+      <div class="appointment-form-section"><div class="appointment-form-section-title">🔁 نوبت بعدی و وضعیت</div><div class="form-grid"><div class="form-group">
         <div class="form-group" id="followupCustomDaysBox" style="display:none;">
           <label>چند روز بعد ترمیم ثبت شود؟</label>
           <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" oninput="updateFollowupUI()" />
@@ -2675,6 +2655,7 @@
         document.getElementById('apptModalTitle').textContent = (isFollowupAppointment(appt) ? 'ویرایش نوبت ترمیم مشتری' : 'ویرایش نوبت اصلی مشتری');
         document.getElementById('apptClientName').value = appt.clientName || '';
         document.getElementById('apptPhone').value = appt.phone || '';
+        document.getElementById('apptDate').value = toPersianDigits(String(appt.dateKey || selectedDateKey).replace(/-/g, '/'));
         document.getElementById('apptTime').value = appt.time || '10:00';
         document.getElementById('apptService').value = appt.service || '';
         document.getElementById('apptAlarm').value = appt.alarm === 'none' ? 'none' : ([0,5,15,30,60].indexOf(Number(appt.alarm)) >= 0 ? String(appt.alarm) : 'custom');
@@ -2702,6 +2683,7 @@
         document.getElementById('apptModalTitle').textContent = 'ثبت نوبت برای ' + formatJalaliFull(selectedDateKey);
         document.getElementById('apptClientName').value = '';
         document.getElementById('apptPhone').value = '';
+        document.getElementById('apptDate').value = toPersianDigits(String(selectedDateKey || getTodayKey()).replace(/-/g, '/'));
         document.getElementById('apptTime').value = '10:00';
         document.getElementById('apptService').value = '';
         document.getElementById('apptAlarm').value = '15';
@@ -2712,8 +2694,30 @@
         document.getElementById('apptBirthdayDay').value = '';
       }
       document.getElementById('customAlarmMinutesBox').style.display = document.getElementById('apptAlarm').value === 'custom' ? 'block' : 'none';
+      updateAppointmentDate(false);
+      updateFollowupUI();
       checkTimeConflict();
       document.getElementById('apptModal').classList.add('open');
+    }
+
+    function updateAppointmentDate(showError = false) {
+      const field = document.getElementById('apptDate');
+      if (!field) return false;
+      const raw = String(field.value || '').trim();
+      const parsed = parseClientJalaliDate(raw);
+      if (!parsed) {
+        field.setAttribute('aria-invalid', raw ? 'true' : 'false');
+        if (showError) showToast('تاریخ مراجعه را به‌صورت شمسی و کامل وارد کن؛ مثال: ۱۴۰۵/۰۹/۰۴');
+        return false;
+      }
+      field.value = toPersianDigits(parsed.replace(/-/g, '/'));
+      field.setAttribute('aria-invalid', 'false');
+      selectedDateKey = parsed;
+      viewYear = Number(parsed.slice(0,4));
+      viewMonth = Number(parsed.slice(5,7));
+      checkTimeConflict();
+      updateFollowupUI();
+      return true;
     }
 
     function applyServiceChip(serviceId) {
@@ -2813,6 +2817,7 @@
       if (!clientName) { showToast('نام مشتری را وارد کن ⚠️'); return; }
       if (!time) { showToast('ساعت نوبت را مشخص کن ⚠️'); return; }
       if (!service) { showToast('نوع خدمت یا کاری که قرار است انجام شود را بنویس ⚠️'); return; }
+      if (!updateAppointmentDate(true)) return;
       var editId = document.getElementById('editApptId').value;
       var conflict = hasAppointmentSlotConflict(selectedDateKey, time, editId);
       if (conflict) { checkTimeConflict(); showToast('این ساعت از قبل رزرو شده است؛ مشتری دوم ثبت نشد. زمان دیگری انتخاب کن. ⛔'); return; }
@@ -5901,12 +5906,7 @@
               <div><div class="section-title">✨ داشبورد هوشمند امروز</div><small id="smartDashDate" style="color:var(--text-secondary);"></small></div>
               <button class="btn-secondary" onclick="enableAppointmentNotifications()">🔔 فعال‌سازی اعلان</button>
             </div>
-            <div class="stats-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
-              <div class="stat-card"><div class="stat-val" id="smartTodayPending">۰</div><div class="stat-lbl">نوبت در انتظار</div></div>
-              <div class="stat-card"><div class="stat-val" id="smartTodayDone">۰</div><div class="stat-lbl">خدمات انجام‌شده</div></div>
-              <div class="stat-card"><div class="stat-val" id="smartTodayClients">۰</div><div class="stat-lbl">مشتری امروز</div></div>
-              <div class="stat-card"><div class="stat-val" id="smartUpcoming">۰</div><div class="stat-lbl">نوبت‌های ۷ روز آینده</div></div>
-            </div>
+            <div class="smart-dashboard-intro">نمای فشرده نوبت‌های پیشِ رو و یادآوری‌های مهم؛ برای جزئیات کامل امروز و ماه، شمارنده‌های بالای صفحه را لمس کن.</div>
             <div style="font-size:.8rem;font-weight:800;margin:8px 0;color:var(--accent);">⏰ نزدیک‌ترین نوبت‌ها و یادآورها</div>
             <div id="smartUpcomingList" style="display:flex;flex-direction:column;gap:7px;"></div>
             <small style="display:block;margin-top:9px;color:var(--text-secondary);line-height:1.7;">اعلان داخل برنامه و اعلان مرورگر هنگام فعال بودن برنامه بررسی می‌شود. برای اعلان در حالت بسته بودن برنامه، پشتیبانی بومی اندروید لازم است.</small>
@@ -5950,8 +5950,6 @@
       const nextToday=pending.find(a=>{const m=String(a.time||'').match(/^(\\d{1,2}):(\\d{2})$/);return m&&Number(m[1])*60+Number(m[2])>=nowMin;});
       const date=document.getElementById('smartDashDate');
       if(date)date.textContent=formatJalaliFull(today);
-      const values={smartTodayPending:pending.length,smartTodayDone:done.length,smartTodayClients:uniqueClients,smartUpcoming:upcoming.length};
-      Object.entries(values).forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.textContent=toPersianDigits(value);});
       const list=document.getElementById('smartUpcomingList');if(!list)return;
       const rows=[];
       if(nextToday)rows.push('<div class="home-next-appointment"><span>⏭️ نزدیک‌ترین نوبت امروز</span><strong>'+escapeClientText(nextToday.clientName||'مشتری')+' • '+toPersianDigits(nextToday.time||'')+'</strong><small>'+escapeClientText(nextToday.service||'خدمت ثبت نشده')+'</small></div>');
