@@ -2051,24 +2051,29 @@
         </div>
       </div>
       <div class="appointment-form-section" id="autoFollowupSection">
-        <div class="appointment-form-section-title">🔁 رزرو خودکار نوبت بعدی</div>
+        <div class="appointment-form-section-title">📅 ثبت نوبت بعدی (اختیاری)</div>
+        <p style="font-size:.76rem;color:var(--text-secondary);line-height:1.8;margin:0 0 10px;">اگر مشتری زمان مراجعه بعدی را مشخص کرده، تاریخ را از تقویم شمسی و ساعت را جداگانه انتخاب کن. هیچ تاریخی به‌صورت خودکار حدس زده نمی‌شود.</p>
         <div class="form-grid">
           <div class="form-group full">
-            <label for="apptNextFollowup">رزرو خودکار نوبت بعدی</label>
-            <select id="apptNextFollowup" class="form-control" onchange="updateFollowupUI()">
-              <option value="0">بدون نوبت بعدی</option>
-              <option value="14">۲ هفته بعد (۱۴ روز)</option>
-              <option value="21">۳ هفته بعد (۲۱ روز)</option>
-              <option value="28">۴ هفته بعد (۲۸ روز)</option>
-              <option value="custom">دلخواه (تعداد روز دلخواه)</option>
-            </select>
+            <label for="apptNextFollowupDate">📆 تاریخ نوبت بعدی</label>
+            <div style="display:flex;gap:7px;">
+              <input type="text" id="apptNextFollowupDate" class="form-control" placeholder="انتخاب از تقویم شمسی" readonly />
+              <button type="button" class="btn-secondary" style="white-space:nowrap;" onclick="toggleNextFollowupPicker()">📅 انتخاب تاریخ</button>
+            </div>
+            <div id="nextFollowupJalaliPicker" class="card client-jalali-picker" style="display:none;margin-top:9px;padding:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
+                <button type="button" class="btn-pill" onclick="changeNextFollowupPickerMonth(-1)">ماه قبل</button>
+                <strong id="nextFollowupPickerTitle"></strong>
+                <button type="button" class="btn-pill" onclick="changeNextFollowupPickerMonth(1)">ماه بعد</button>
+              </div>
+              <div class="weekdays-row client-picker-weekdays"><div>شنبه</div><div>یکشنبه</div><div>دوشنبه</div><div>سه‌شنبه</div><div>چهارشنبه</div><div>پنجشنبه</div><div>جمعه</div></div>
+              <div id="nextFollowupPickerGrid" class="days-grid client-picker-days"></div>
+              <button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="clearNextFollowupDate()">بدون نوبت بعدی</button>
+            </div>
           </div>
-          <div class="form-group" id="followupCustomDaysBox" style="display:none;">
-            <label>چند روز بعد ترمیم ثبت شود؟</label>
-            <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" oninput="updateFollowupUI()" />
-          </div>
-          <div class="form-group full" id="followupDatePreviewBox" style="display:none;margin-bottom:4px;">
-            <div style="font-size:0.75rem;font-weight:800;color:var(--accent);" id="followupDatePreviewText">تاریخ ترمیم محاسبه‌شده: —</div>
+          <div class="form-group">
+            <label for="apptNextFollowupTime">🕒 ساعت نوبت بعدی</label>
+            <input type="time" id="apptNextFollowupTime" class="form-control" step="60" value="10:00" />
           </div>
         </div>
       </div>
@@ -2715,8 +2720,9 @@
         function openApptModal(editId = null) {
       document.getElementById('editApptId').value = editId || '';
       document.getElementById('conflictWarningBox').style.display = 'none';
-      document.getElementById('apptNextFollowup').value = '0';
-      document.getElementById('apptFollowupCustomDays').value = '10';
+      document.getElementById('apptNextFollowupDate').value = '';
+      document.getElementById('apptNextFollowupTime').value = '10:00';
+      document.getElementById('nextFollowupJalaliPicker').style.display = 'none';
       document.getElementById('apptType').value = 'primary';
       document.getElementById('apptType').disabled = false;
       document.getElementById('apptJalaliPicker').style.display = 'none';
@@ -2746,6 +2752,11 @@
         document.getElementById('apptNotes').value = appt.notes || '';
         document.getElementById('apptStatus').value = appt.status || 'pending';
         document.getElementById('apptType').value = isFollowupAppointment(appt) ? 'followup' : 'primary';
+        const linkedNext = !isFollowupAppointment(appt) && appData.appointments.find(a=>a.parentAppointmentId===appt.id&&a.status!=='canceled');
+        if(linkedNext){
+          document.getElementById('apptNextFollowupDate').value=toPersianDigits(String(linkedNext.dateKey||'').replace(/-/g,'/'));
+          document.getElementById('apptNextFollowupTime').value=linkedNext.time||'10:00';
+        }
         document.getElementById('apptType').disabled = true;
         const editClientKey = findClientProfileKeyForAppointment(appt);
         const editBirthday = editClientKey ? getClientProfile(editClientKey).birthDate : '';
@@ -2918,6 +2929,59 @@
     }
 
     let showFollowupOnly = false; // retained for compatibility with older saved UI/test flows; daily schedule always shows the selected date.
+    let nextFollowupPickerYear=0,nextFollowupPickerMonth=0;
+    function toggleNextFollowupPicker() {
+      const panel=document.getElementById('nextFollowupJalaliPicker');
+      if(!panel)return;
+      const opening=panel.style.display==='none';
+      panel.style.display=opening?'block':'none';
+      if(opening){
+        const parsed=parseClientJalaliDate(document.getElementById('apptNextFollowupDate').value);
+        const base=parsed||selectedDateKey||getTodayKey();
+        [nextFollowupPickerYear,nextFollowupPickerMonth]=base.split('-').map(Number);
+        renderNextFollowupPicker();
+      }
+    }
+    function changeNextFollowupPickerMonth(delta) {
+      nextFollowupPickerMonth+=delta;
+      if(nextFollowupPickerMonth>12){nextFollowupPickerMonth=1;nextFollowupPickerYear++;}
+      if(nextFollowupPickerMonth<1){nextFollowupPickerMonth=12;nextFollowupPickerYear--;}
+      renderNextFollowupPicker();
+    }
+    function renderNextFollowupPicker() {
+      const title=document.getElementById('nextFollowupPickerTitle');
+      const grid=document.getElementById('nextFollowupPickerGrid');
+      if(!title||!grid)return;
+      title.textContent=JALALI_MONTHS[nextFollowupPickerMonth-1]+' '+toPersianDigits(nextFollowupPickerYear);
+      grid.innerHTML='';
+      const [gy,gm,gd]=jalaliToGregorian(nextFollowupPickerYear,nextFollowupPickerMonth,1);
+      const offset=(new Date(gy,gm-1,gd).getDay()+1)%7;
+      for(let i=0;i<offset;i++){const blank=document.createElement('div');blank.className='day-cell empty';grid.appendChild(blank);}
+      const today=getTodayKey();
+      const selected=parseClientJalaliDate(document.getElementById('apptNextFollowupDate').value);
+      for(let d=1;d<=jalaliMonthDays(nextFollowupPickerYear,nextFollowupPickerMonth);d++){
+        const key=nextFollowupPickerYear+'-'+pad2(nextFollowupPickerMonth)+'-'+pad2(d);
+        const cell=document.createElement('div');cell.className='day-cell';
+        if((offset+d-1)%7===6)cell.classList.add('friday');
+        if(key===today)cell.classList.add('today');
+        if(key===selected)cell.classList.add('selected');
+        const holiday=getOfficialHolidayReason(key);
+        if(holiday){cell.classList.add('holiday-day');cell.title=holiday;}
+        cell.innerHTML=(holiday?'<span class="holiday-dot"></span>':'')+'<span class="day-num">'+toPersianDigits(d)+'</span>';
+        cell.onclick=()=>selectNextFollowupDate(key);
+        grid.appendChild(cell);
+      }
+    }
+    function selectNextFollowupDate(key) {
+      document.getElementById('apptNextFollowupDate').value=toPersianDigits(key.replace(/-/g,'/'));
+      document.getElementById('nextFollowupJalaliPicker').style.display='none';
+      document.getElementById('apptNextFollowupTime').focus();
+    }
+    function clearNextFollowupDate() {
+      document.getElementById('apptNextFollowupDate').value='';
+      document.getElementById('nextFollowupJalaliPicker').style.display='none';
+    }
+
     function updateFollowupUI() {
       const sel = document.getElementById('apptNextFollowup');
       const box = document.getElementById('followupCustomDaysBox');
@@ -3052,35 +3116,34 @@
         var idx = appData.appointments.findIndex(function(a){return a.id === editId;});
         if (idx > -1) appData.appointments[idx] = Object.assign({},appData.appointments[idx],payload);
       } else appData.appointments.push(payload);
-      var followupSel = document.getElementById('apptNextFollowup').value;
-      var followupDays = selectedAppointmentType === 'primary'
-        ? (followupSel === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value)||0) : (Number(followupSel)||0))
-        : 0;
-      // Keep automatic follow-up scheduling exclusive to primary appointments.
-      var followupCreatedOrUpdated = false;
-      var followupConflict = false;
-      if (selectedAppointmentType === 'primary' && followupDays > 0) {
-        var nextDateKey = addDaysToJalaliKey(selectedDateKey,followupDays);
-        var existingFollowup = appData.appointments.find(a => a.parentAppointmentId === payload.id && a.status !== 'canceled');
-        followupConflict = hasAppointmentSlotConflict(nextDateKey, time, existingFollowup && existingFollowup.id);
-        if (!followupConflict) {
-          var followupData = {
-            id: existingFollowup ? existingFollowup.id : 'appt_fu_' + payload.id,
-            dateKey:nextDateKey, time:time, clientName:clientName,
-            phone:payload.phone, clientId:payload.clientId || '', service:'ترمیم ' + service,
-            notes:'', alarm:'60', status:'pending', notified:false,
-            appointmentType:'followup', parentAppointmentId:payload.id
-          };
-          if (existingFollowup) Object.assign(existingFollowup, followupData);
-          else appData.appointments.push(followupData);
-          followupCreatedOrUpdated = true;
-        }
+      var nextDateRaw=document.getElementById('apptNextFollowupDate').value.trim();
+      var nextDateKey=nextDateRaw?parseClientJalaliDate(nextDateRaw):'';
+      var nextTime=document.getElementById('apptNextFollowupTime').value;
+      var followupCreatedOrUpdated=false;
+      var followupConflict=false;
+      var existingFollowup=appData.appointments.find(a=>a.parentAppointmentId===payload.id&&a.status!=='canceled');
+      if(selectedAppointmentType==='primary'&&nextDateRaw){
+        if(!nextDateKey){showToast('تاریخ نوبت بعدی را از تقویم شمسی انتخاب کن.');return;}
+        if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(nextTime||'')){showToast('ساعت نوبت بعدی را دقیق انتخاب کن.');return;}
+        if(nextDateKey<selectedDateKey){showToast('تاریخ نوبت بعدی نمی‌تواند قبل از نوبت اصلی باشد.');return;}
+        followupConflict=hasAppointmentSlotConflict(nextDateKey,nextTime,existingFollowup&&existingFollowup.id);
+        if(followupConflict){showToast('ساعت انتخابی نوبت بعدی با یک نوبت دیگر تداخل دارد؛ زمان دیگری انتخاب کن. ⛔');return;}
+        var followupData={
+          id:existingFollowup?existingFollowup.id:'appt_fu_'+payload.id,
+          dateKey:nextDateKey,time:nextTime,clientName:clientName,
+          phone:payload.phone,clientId:payload.clientId||'',service:'نوبت بعدی — '+service,
+          notes:'',alarm:'60',status:'pending',notified:false,
+          appointmentType:'followup',parentAppointmentId:payload.id
+        };
+        if(existingFollowup)Object.assign(existingFollowup,followupData);
+        else appData.appointments.push(followupData);
+        followupCreatedOrUpdated=true;
       }
       saveData(); if (hasBirthdayInput && appointmentProfileKey) renderClientBirthdays(); closeModal('apptModal'); renderCalendar(); renderDaySchedule();
       renderClientsTab(); updateDashboardStats();
       var activeClientKey = appointmentProfileKey || clientKeyFromFields(payload.phone, payload.clientName);
       if (activeClientKey && document.getElementById('clientRecordKey')?.value === activeClientKey) renderClientScheduledAppointments(activeClientKey);
-      showToast(selectedAppointmentType === 'followup' ? 'نوبت بعدی با تاریخ و ساعت انتخابی ثبت شد و در پرونده مشتری و تقویم قرار گرفت 🔁' : followupCreatedOrUpdated ? 'نوبت اصلی و نوبت بعدی جداگانه ثبت شدند و در پرونده و تقویم نمایش داده می‌شوند ✨' : followupConflict ? 'نوبت اصلی ثبت شد؛ زمان ترمیم با نوبت دیگری تداخل داشت و ثبت نشد.' : 'نوبت با موفقیت ذخیره شد ✨');
+      showToast(selectedAppointmentType === 'followup' ? 'نوبت بعدی با تاریخ و ساعت انتخابی ثبت شد و در پرونده مشتری و تقویم قرار گرفت 🔁' : followupCreatedOrUpdated ? 'نوبت اصلی و نوبت بعدی با تاریخ و ساعت انتخابی جداگانه ثبت شدند و در پرونده و تقویم نمایش داده می‌شوند ✨' : followupConflict ? 'نوبت اصلی ثبت شد؛ زمان نوبت بعدی با نوبت دیگری تداخل داشت و ثبت نشد.' : 'نوبت با موفقیت ذخیره شد ✨');
     }
 
     
