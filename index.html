@@ -3042,7 +3042,7 @@
       var followupConflict=false;
       if(selectedAppointmentType==='primary'&&nextDateRaw){
         if(!nextDateKey){showToast('تاریخ نوبت بعدی را از تقویم شمسی انتخاب کن.');return;}
-        if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(nextTime||'')){showToast('ساعت نوبت بعدی را دقیق انتخاب کن.');return;}
+        if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(nextTime||'')){showToast('ساعت نوبت بعدی را دقیق انتخاب کن.');return;}
         if(nextDateKey<selectedDateKey){showToast('تاریخ نوبت بعدی نمی‌تواند قبل از نوبت اصلی باشد.');return;}
         followupConflict=hasAppointmentSlotConflict(nextDateKey,nextTime,existingFollowup&&existingFollowup.id);
         if(followupConflict){showToast('ساعت انتخابی نوبت بعدی با یک نوبت دیگر تداخل دارد؛ زمان دیگری انتخاب کن. ⛔');return;}
