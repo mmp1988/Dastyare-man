@@ -504,6 +504,8 @@ const assert = require('assert');
           clientName:'سارا احمدی', service:'کاشت ناخن', status:'pending' }
       ];
       const lookup = minaBuildReply('مینا موسوی نوبت ناخن داره؟');
+      // Keep one appointment for this customer to make the edit target unambiguous.
+      appData.appointments = appData.appointments.filter(a=>a.id!=='qa-mina-mousavi-followup');
       const changed = minaBuildReply('نوبت مینا موسوی رو برای ساعت ۱۸:۲۰ تغییر بده');
       const changedAppointment = appData.appointments.find(a=>a.id==='qa-mina-mousavi-nail');
       const otherUnchanged = appData.appointments.find(a=>a.id==='qa-other-client')?.time === '17:00';
