@@ -30,6 +30,22 @@ const assert = require('assert');
     await page.waitForTimeout(1500);
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
+    const minaDateTimeQA = await page.evaluate(() => {
+      const clock = minaTryAnswerDateTimeQuestion('الان ساعت چنده؟');
+      const weekday = minaTryAnswerDateTimeQuestion('امروز چند شنبه است؟');
+      const tomorrow = minaTryAnswerDateTimeQuestion('فردا چه تاریخی می‌شه؟');
+      return {
+        clockAnswered: typeof clock === 'string' && /ساعت [۰-۹]{2}:[۰-۹]{2}/u.test(clock),
+        weekdayAnswered: typeof weekday === 'string' && /امروز .+ است/u.test(weekday),
+        tomorrowAnswered: typeof tomorrow === 'string' && /فردا .+ است/u.test(tomorrow),
+        dateTimeInScope: minaIsSalonScopeRequest('امروز چند شنبه است؟'),
+        appHelpInScope: minaIsSalonScopeRequest('امکانات سایت رو توضیح بده')
+      };
+    });
+    assert(Object.values(minaDateTimeQA).every(Boolean),
+      'Mina must answer local clock/date questions and accept questions about all app features');
+    console.log('Mina date/time and app scope:', JSON.stringify(minaDateTimeQA));
+
     // Mina cloud/local routing must reserve cloud calls for complex salon reasoning,
     // keep straightforward appointment entry local, and never expose client PII.
     const minaHybridRoutingQA = await page.evaluate(async () => {
