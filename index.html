@@ -6882,8 +6882,8 @@
         ((hasClock || /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized)) && hasAppointmentContext) ||
         (/(?:برای|واسه|واسه‌ی)/u.test(normalized) && /(?:خدمت|کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین)/u.test(normalized))
       );
-      const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized);
-      const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized) &&
+      const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|\d{4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,2}|\d{1,2}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{4})/u.test(normalized);
+      const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|\d{4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,2}|\d{1,2}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{4})/u.test(normalized) &&
         /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
       // Multi-turn booking: preserve details when the user supplies date/time separately.
       if (minaConversationBooking && hasDateOnly && !hasClock) {
@@ -6905,8 +6905,8 @@
         minaConversationBooking = { original: expandedRaw };
         return 'حتماً عزیزم 💗 فقط تاریخ نوبت رو هم بگو؛ مثلاً «فردا» یا «پنجشنبه».';
       }
-      const hasHistoricalMonthDate = /\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(normalized);
-      if (isBookingIntent && hasDateAndService && !hasClock && !hasHistoricalMonthDate) {
+      const hasExplicitCalendarDate = /(?:\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|\d{4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,2}|\d{1,2}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{4})/u.test(normalized);
+      if (isBookingIntent && hasDateAndService && !hasClock && !hasExplicitCalendarDate) {
         minaConversationBooking = { original: expandedRaw };
         return 'حتماً عزیزم 💗 فقط ساعت نوبت رو هم بگو؛ مثلاً «۵ و نیم بعدازظهر» یا «۴ عصر».';
       }
