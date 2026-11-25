@@ -6521,7 +6521,14 @@
       const allAppointments = (appData.appointments || []).filter(a => a);
       const active = allAppointments.filter(a => a.status !== 'canceled' && a.status !== 'done');
       const selectable = isDelete ? allAppointments : active;
-      if (!selectable.length) return 'عزیزم هیچ نوبتی برای این کار پیدا نکردم 🌷';
+      if (!selectable.length) {
+        // A time-only answer belongs to an unfinished booking before it can refer to an old appointment.
+        if (contextualFollowup && (minaConversationBooking || minaPendingBooking)) {
+          minaLastReferencedAppointmentId = null;
+          return null;
+        }
+        return 'عزیزم هیچ نوبتی برای این کار پیدا نکردم 🌷';
+      }
 
       // Resolve the customer against the same set that the requested action may affect.
       const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:(?:رو|را)\s*)?(?:بکن|بسه|بذار|بزار)/u) ||
