@@ -6092,7 +6092,16 @@
         if (remembered) candidates = [remembered];
         else return 'نوبتی که درباره‌اش صحبت می‌کردیم دیگر در فهرست فعال نیست؛ اسم مشتری یا تاریخ نوبت رو دوباره بگو عزیزم 💗';
       }
-      if (nameMatch) {
+      // Prefer the complete saved customer name found anywhere in the utterance.
+      // This supports multi-word names such as «مینا موسوی» without relying on a
+      // one-token regex or forcing the user to say «برای مشتری ...».
+      const fullNameMatches = selectable.filter(a => {
+        const savedName = minaCleanText(a.clientName || '').toLowerCase();
+        return savedName.length >= 3 && !/^(?:مشتری|بدون نام|نام درج نشده)/u.test(savedName) &&
+          text.includes(savedName);
+      });
+      if (fullNameMatches.length) candidates = fullNameMatches;
+      else if (nameMatch) {
         const wanted = minaCleanText(nameMatch[1]).toLowerCase();
         const named = selectable.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
         if (named.length) candidates = named;
@@ -6229,8 +6238,43 @@
         '\\n📅 تاریخ: ' + formatJalaliFull(appt.dateKey) + '\\n⏰ ساعت: ' + (appt.time || 'بدون ساعت') +
         '\\n💅 خدمت: ' + (appt.service || 'خدمت ثبت‌نشده') + '\\nتغییر: ' + changed.join('؛ ') + '\\nاطلاعات دیگه نوبت حفظ شد 💗';
     }
+    function minaTryLookupAppointment(raw) {
+      const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
+      if (!/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text) ||
+          !/(?:داره|دار[یی]|هست|وجود داره|ثبت شده|ثبت کردی|چه نوبتی|کدوم نوبت|نوبتاش)/u.test(text) ||
+          /(?:ثبت کن|رزرو کن|تغییر بده|عوض کن|جابجا|حذف کن|پاک کن|لغو کن|کنسل کن)/u.test(text)) return null;
+      const active = (appData.appointments || []).filter(a => a && a.status !== 'canceled');
+      const named = active.filter(a => {
+        const name = minaCleanText(a.clientName || '').toLowerCase();
+        return name.length >= 3 && !/^(?:مشتری|بدون نام|نام درج نشده)/u.test(name) && text.includes(name);
+      });
+      if (!named.length) return null;
+      let matches = named;
+      const serviceTerms = Array.from(new Set(active.map(a => minaCleanText(a.service || '').toLowerCase())
+        .filter(s => s.length >= 3 && s !== 'خدمت ثبت نشده')));
+      const mentionedService = serviceTerms.filter(service => text.includes(service))
+        .sort((a,b) => b.length-a.length)[0];
+      if (mentionedService) matches = matches.filter(a =>
+        minaCleanText(a.service || '').toLowerCase().includes(mentionedService));
+      matches = matches.slice().sort((a,b) =>
+        (a.dateKey + (a.time || '')).localeCompare(b.dateKey + (b.time || '')));
+      const display = matches.slice(0, 10).map(a => {
+        const status = a.status === 'done' ? 'انجام‌شده' : 'در انتظار';
+        const kind = isFollowupAppointment(a) ? 'نوبت بعدی' : 'نوبت اصلی';
+        return '• ' + formatJalaliFull(a.dateKey) + '، ساعت ' + (a.time || 'ثبت‌نشده') +
+          ' — ' + (a.service || 'خدمت ثبت‌نشده') + ' (' + kind + '، ' + status + ')';
+      });
+      if (!matches.length) return 'برای این مشتری نوبتی با خدمت موردنظرت پیدا نکردم؛ نوبت‌های دیگرش تغییری نکردند 💗';
+      return matches[0].clientName + ' عزیزم ' +
+        (mentionedService ? 'برای «' + mentionedService + '» ' : '') +
+        'این نوبت‌ها رو داره:\n' + display.join('\n') +
+        (matches.length > 10 ? '\n... و ' + toPersianDigits(matches.length - 10) + ' نوبت دیگه' : '') +
+        '\nمجموع: ' + toPersianDigits(matches.length) + ' نوبت 💗';
+    }
     const minaBuildReplyBeforeReschedule = minaBuildReply;
     minaBuildReply = function(raw) {
+      const lookupReply = minaTryLookupAppointment(raw);
+      if (lookupReply) return lookupReply;
       const manageReply = minaTryManageAppointment(raw);
       if (manageReply) return manageReply;
       const beforeIds = new Set((appData.appointments || []).map(a => a && a.id).filter(Boolean));
