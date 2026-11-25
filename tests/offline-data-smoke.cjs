@@ -153,6 +153,42 @@ const assert = require('assert');
     assert.deepStrictEqual(responsiveFailures, [], 'Responsive layout overflow or clipped controls detected: ' + JSON.stringify(responsiveFailures));
     console.log('Responsive layout audit:', JSON.stringify({ widths:[320,360,390,430,768,1024,1366], tabs:6, profile:true, failures:responsiveFailures.length }));
 
+    // Top-to-bottom hierarchy audit for all six visible pages. The main action
+    // on each page must appear before secondary tools, with no duplicate tab.
+    const sixPageHierarchyQA = await page.evaluate(() => {
+      const ids = [...document.querySelectorAll('main > .tab-section')].map(el => el.id.replace('tab-',''));
+      const nav = [...document.querySelectorAll('.bottom-nav .nav-item')].map(el => el.textContent.trim());
+      const position = (root, selector) => {
+        const node = root.querySelector(selector);
+        return node ? [...root.querySelectorAll('*')].indexOf(node) : -1;
+      };
+      const home = document.getElementById('tab-calendar');
+      const clients = document.getElementById('tab-clients');
+      const mina = document.getElementById('tab-mina');
+      const notebook = document.getElementById('tab-notebook');
+      const messages = document.getElementById('tab-messages');
+      const settings = document.getElementById('tab-settings');
+      const ordered = (root, selectors) => {
+        const values = selectors.map(sel => position(root, sel));
+        return values.every((v,i) => v >= 0 && (i === 0 || v > values[i-1]));
+      };
+      return {
+        pageOrder:ids.join(',') === 'calendar,clients,mina,notebook,messages,settings',
+        navCount:nav.length === 6 && nav.join('|') === 'خانه|مشتریان|مینا|یادداشت‌ها|پیام‌ها|شخصی‌سازی',
+        noDuplicateAppointmentsPage:!document.getElementById('tab-appointments') && !!home?.contains(document.getElementById('allAppointmentsPanel')),
+        homePriority:ordered(home,['#homeWelcomeCard','.home-appointment-stats','#smartDashboard','.cal-header','#selectedDateLabel','#allAppointmentsPanel']),
+        clientsPriority:ordered(clients,['#clientsListContainer','#clientBirthdaysCard','#customServicesList']),
+        minaPriority:ordered(mina,['.mina-hero','.mina-chat-card','.mina-suggestions']),
+        notebookPriority:ordered(notebook,['#notesListContainer','#todoListContainer','#personalReminderList']),
+        messagesPriority:ordered(messages,['#customerMessageType','#customerMessagePreview','.mina-suggestions']),
+        settingsPriority:ordered(settings,['#officialContactCard','.mina-personalize-card','#settingAppPin','#appDirectUrlText']),
+        noFloatingDuplicateActions:!document.getElementById('fabMenu') && !document.querySelector('.fab-btn')
+      };
+    });
+    assert(Object.values(sixPageHierarchyQA).every(Boolean),
+      'Six-page top-to-bottom hierarchy or duplicate-section audit failed: ' + JSON.stringify(sixPageHierarchyQA));
+    console.log('Six-page hierarchy:', JSON.stringify(sixPageHierarchyQA));
+
     // Customer directory must show each client's nearest upcoming appointment
     // date and exact time directly on the customer row, without opening the profile.
     const customerAppointmentSummary = await page.evaluate(() => {
