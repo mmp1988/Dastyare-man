@@ -202,7 +202,6 @@ public class MainActivity extends Activity {
 
         webView.loadUrl(APP_ORIGIN + "/content/index.html");
         registerNetworkMonitoring();
-        checkForApkUpdate(false);
     }
 
     private void registerNetworkMonitoring() {
@@ -213,7 +212,6 @@ public class MainActivity extends Activity {
                 @Override public void onAvailable(Network network) {
                     // A fresh connection bypasses the six-hour startup throttle.
                     performContentUpdate(true);
-                    checkForApkUpdate(false);
                 }
             };
             connectivityManager.registerDefaultNetworkCallback(networkCallback);
@@ -603,16 +601,10 @@ public class MainActivity extends Activity {
                 if (manual) {
                     runOnUiThread(() -> {
                         notifyWebContentCheckResult(contentUnchanged ? "latest" : "updated");
-                        Toast.makeText(MainActivity.this,
-                                contentUnchanged ? "محتوای داخلی برنامه به‌روز است." : "بروزرسانی داخلی دریافت و اعمال شد؛ اطلاعاتت حفظ شد.",
-                                Toast.LENGTH_LONG).show();
-                        reloadContentPage();
+                        if (!contentUnchanged) reloadContentPage();
                     });
                 } else if (!unchanged) {
-                    runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "بخش‌های جدید دریافت شد؛ اطلاعات ذخیره‌شده حفظ شد", Toast.LENGTH_LONG).show();
-                        reloadContentPage();
-                    });
+                    runOnUiThread(this::reloadContentPage);
                 }
             } catch (Exception e) {
                 if (manual) runOnUiThread(() -> {
@@ -642,26 +634,19 @@ public class MainActivity extends Activity {
 
     // Checks the signed APK release independently from the offline-first web bundle.
     // Android always asks the user to approve installation through the system installer.
+    // APK release checks run only when the user taps Update.
+    // Ordinary web/content changes are downloaded separately and applied silently.
     private void checkForApkUpdate(boolean manual) {
+        if (!manual) return;
         if (apkUpdateCheckRunning) {
-            if (manual) {
-                apkUpdateManualRequested = true;
-                runOnUiThread(() -> Toast.makeText(this, "درخواست بروزرسانی ثبت شد؛ بررسی فعلی تمام شود، دانلود شروع می‌شود…", Toast.LENGTH_LONG).show());
-            }
+            apkUpdateManualRequested = true;
             return;
         }
         apkUpdateCheckRunning = true;
-        if (manual) {
-            // A deliberate manual check may show a version the user previously deferred.
-            getSharedPreferences("apk_updates", MODE_PRIVATE).edit().remove("deferred_version").apply();
-            runOnUiThread(() -> Toast.makeText(this, "در حال بررسی نسخه جدید و آماده‌سازی دانلود…", Toast.LENGTH_SHORT).show());
-        }
         io.execute(() -> {
             HttpURLConnection connection = null;
+            File temp = null;
             try {
-                android.content.SharedPreferences updatePrefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
-                long lastCheck = updatePrefs.getLong("last_check_ms", 0L);
-                if (!manual && System.currentTimeMillis() - lastCheck < 6L * 60L * 60L * 1000L) return;
                 connection = (HttpURLConnection)new URL(LATEST_RELEASE_API).openConnection();
                 connection.setConnectTimeout(7000);
                 connection.setReadTimeout(10000);
@@ -688,17 +673,16 @@ public class MainActivity extends Activity {
 
                 File updateDir = new File(getFilesDir(), "updates");
                 if (!updateDir.exists()) updateDir.mkdirs();
-                File apkFile = new File(updateDir, "Dastyare-man-update.apk");
-                File temp = new File(updateDir, "Dastyare-man-update.apk.new");
+                temp = new File(updateDir, "version-check.apk.tmp");
                 HttpURLConnection apkConnection = null;
                 try {
                     apkConnection = (HttpURLConnection)new URL(apkUrl).openConnection();
                     apkConnection.setConnectTimeout(10000);
                     apkConnection.setReadTimeout(20000);
                     apkConnection.setInstanceFollowRedirects(true);
-                    if (apkConnection.getResponseCode() != 200) throw new Exception("APK download failed");
+                    if (apkConnection.getResponseCode() != 200) throw new Exception("APK metadata download failed");
                     long length = apkConnection.getContentLengthLong();
-                    if (length > 100L * 1024L * 1024L) throw new Exception("APK too large");
+                    if (length <= 0 || length > 100L * 1024L * 1024L) throw new Exception("Invalid APK size");
                     try (InputStream in = new BufferedInputStream(apkConnection.getInputStream());
                          FileOutputStream out = new FileOutputStream(temp)) {
                         byte[] buffer = new byte[16384]; int n; long total = 0;
@@ -714,46 +698,18 @@ public class MainActivity extends Activity {
                 android.content.pm.PackageInfo candidate = getPackageManager().getPackageArchiveInfo(temp.getAbsolutePath(), 0);
                 if (candidate == null || !EXPECTED_PACKAGE.equals(candidate.packageName)) throw new Exception("Invalid APK package");
                 long candidateVersion = Build.VERSION.SDK_INT >= 28 ? candidate.getLongVersionCode() : candidate.versionCode;
-                long installedVersion;
                 android.content.pm.PackageInfo installed = getPackageManager().getPackageInfo(getPackageName(), 0);
-                installedVersion = Build.VERSION.SDK_INT >= 28 ? installed.getLongVersionCode() : installed.versionCode;
-                if (candidateVersion <= installedVersion) {
-                    temp.delete();
-                    // Clear any stale pending update left by an earlier download.
-                    android.content.SharedPreferences currentPrefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
-                    String stalePath = currentPrefs.getString("pending_apk", "");
-                    if (stalePath != null && !stalePath.isEmpty()) {
-                        try {
-                            File staleFile = new File(stalePath);
-                            if (staleFile.getCanonicalPath().startsWith(new File(getFilesDir(), "updates").getCanonicalPath())
-                                    && staleFile.exists()) staleFile.delete();
-                        } catch (Exception ignored) { }
-                    }
-                    currentPrefs.edit().remove("pending_apk").remove("pending_version")
-                            .remove("install_consent_version")
-                            .putLong("last_check_ms", System.currentTimeMillis()).apply();
-                    if (manual) runOnUiThread(() -> {
-                        Toast.makeText(this, "نسخه نصب‌شده: " + installedVersion + " | آخرین نسخه منتشرشده: " + candidateVersion + " — برنامه به‌روز است ✅", Toast.LENGTH_LONG).show();
-                        notifyWebUpdateCheckResult("latest", installedVersion, candidateVersion);
-                    });
-                    return;
-                }
-                if (apkFile.exists()) apkFile.delete();
-                if (!temp.renameTo(apkFile)) throw new Exception("Cannot stage downloaded APK");
+                long installedVersion = Build.VERSION.SDK_INT >= 28 ? installed.getLongVersionCode() : installed.versionCode;
+                temp.delete();
+                temp = null;
                 getSharedPreferences("apk_updates", MODE_PRIVATE).edit()
-                        .putString("pending_apk", apkFile.getAbsolutePath())
-                        .putLong("pending_version", candidateVersion)
                         .putLong("last_check_ms", System.currentTimeMillis()).apply();
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "نسخه نصب‌شده: " + installedVersion + " | نسخه جدید: " + candidateVersion + " — دانلود شد و آماده نصب است.", Toast.LENGTH_LONG).show();
-                    notifyWebUpdateCheckResult("available", installedVersion, candidateVersion);
-                    installPendingApkIfAllowed();
-                });
+                final boolean newer = candidateVersion > installedVersion;
+                runOnUiThread(() -> notifyWebUpdateCheckResult(
+                        newer ? "available" : "latest", installedVersion, candidateVersion));
             } catch (Exception e) {
-                if (manual) runOnUiThread(() -> {
-                    Toast.makeText(this, "نتیجه بررسی مشخص نشد؛ اتصال یا انتشار GitHub در دسترس نیست. نمی‌توان گفت برنامه به‌روز است.", Toast.LENGTH_LONG).show();
-                    notifyWebUpdateCheckResult("error", 0L, 0L);
-                });
+                if (temp != null) temp.delete();
+                runOnUiThread(() -> notifyWebUpdateCheckResult("error", 0L, 0L));
             } finally {
                 if (connection != null) connection.disconnect();
                 apkUpdateCheckRunning = false;
@@ -867,9 +823,6 @@ public class MainActivity extends Activity {
         super.onResume();
         // Re-arm pending reminders after the user returns from exact-alarm settings.
         PersonalReminderReceiver.rescheduleAll(this);
-        if (Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls()) {
-            installPendingApkIfAllowed();
-        }
     }
 
     private static final String APPOINTMENT_CHANNEL_ID = "dastyare_appointments_v1";
