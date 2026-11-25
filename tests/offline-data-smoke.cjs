@@ -717,7 +717,7 @@ const assert = require('assert');
       const moveDestinationSafe = appData.appointments[0].dateKey === dayAfter;
 
       return {
-        firstTurn, secondTurn, multiTurnExactMinute,
+        firstTurn, secondTurn, clockDebug:window.__minaClockDebug || null, multiTurnExactMinute,
         ambiguousDeleteReply, ambiguousDeleteSafe,
         exactDateDeleteReply, exactDateDeleteSafe,
         completedDeleteReply, completedDeleteSafe,
