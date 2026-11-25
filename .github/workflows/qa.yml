@@ -48,3 +48,60 @@ jobs:
         run: node tests/offline-data-smoke.cjs
       - name: Run mobile Safari WebKit smoke
         run: node tests/safari-webkit-smoke.cjs
+
+  cloud-ai-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify live Cloudflare Worker and Workers AI response
+        env:
+          MINA_WORKER_URL: https://mina-smart-brain.mehrdadmohammadi1988.workers.dev/
+          MINA_ALLOWED_ORIGIN: https://mmp1988.github.io
+        run: |
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const base = process.env.MINA_WORKER_URL;
+          const origin = process.env.MINA_ALLOWED_ORIGIN;
+          (async () => {
+            const health = await fetch(base, { cache: 'no-store' });
+            assert.equal(health.status, 200, 'Live Worker health endpoint must return HTTP 200');
+            const healthData = await health.json();
+            assert.equal(healthData.success, true, 'Live Worker health response must report success');
+            assert.equal(healthData.status, 'ready', 'Live Worker must report ready');
+
+            const preflight = await fetch(base, {
+              method: 'OPTIONS',
+              headers: {
+                Origin: origin,
+                'Access-Control-Request-Method': 'POST',
+                'Access-Control-Request-Headers': 'content-type'
+              }
+            });
+            assert.equal(preflight.status, 204, 'Browser CORS preflight must succeed');
+            assert.equal(preflight.headers.get('access-control-allow-origin'), origin,
+              'Worker must allow the production GitHub Pages origin');
+
+            const response = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'understand',
+                message: 'نوبت آزمایشی را برای فردا ساعت ۱۸:۱۷ جابه‌جا کن'
+              }),
+              signal: AbortSignal.timeout(25000),
+              cache: 'no-store'
+            });
+            const data = await response.json().catch(() => ({}));
+            assert.equal(response.status, 200,
+              'Workers AI must answer successfully; received HTTP ' + response.status + ' ' + JSON.stringify(data));
+            assert.equal(data.success, true, 'Workers AI response must report success: ' + JSON.stringify(data));
+            assert.equal(typeof data.command, 'string', 'Workers AI must return a parsed command');
+            assert.ok(data.command.trim().length > 0, 'Workers AI command must not be empty');
+            console.log('Live Cloudflare Worker: PASS', JSON.stringify({
+              health: healthData.status,
+              cors: preflight.status,
+              aiStatus: response.status,
+              commandReturned: true
+            }));
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          NODE
