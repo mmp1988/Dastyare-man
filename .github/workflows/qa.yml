@@ -68,7 +68,7 @@ jobs:
             const healthData = await health.json();
             assert.equal(healthData.success, true, 'Live Worker health response must report success');
             assert.equal(healthData.status, 'ready', 'Live Worker must report ready');
-            assert.equal(healthData.version, 'mina-ai-response-v9',
+            assert.equal(healthData.version, 'mina-ai-response-v10',
               'The updated Worker response parser must be deployed, not just committed to GitHub');
 
             const preflight = await fetch(base, {
@@ -127,6 +127,27 @@ jobs:
               'Casual non-command speech must be routed to conversation, not rejected by a keyword gate');
             assert.ok(typeof routeData.route?.reply === 'string' && routeData.route.reply.trim().length > 0,
               'Mina must return a natural conversational answer');
+
+            const personalReminderResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'route',
+                message: 'کاربر: برای فردا ساعت ۳ بعدازظهر بهم خبر بده، آلارمو ست کن'
+              }),
+              signal: AbortSignal.timeout(60000),
+              cache: 'no-store'
+            });
+            const personalReminderData = await personalReminderResponse.json().catch(() => ({}));
+            assert.equal(personalReminderResponse.status, 200,
+              'Personal reminder routing must return HTTP 200: ' + JSON.stringify(personalReminderData));
+            assert.equal(personalReminderData.success, true,
+              'Personal reminder routing must succeed: ' + JSON.stringify(personalReminderData));
+            assert.equal(personalReminderData.route?.type, 'personal_reminder',
+              'A personal alarm must be routed to the personal reminder scheduler, never appointment booking');
+            assert.ok(typeof personalReminderData.route?.command === 'string' &&
+              /خبر|یاد|آلارم|هشدار/u.test(personalReminderData.route.command),
+              'AI must preserve the reminder meaning in a Persian command');
 
             const actionResponse = await fetch(base, {
               method: 'POST',
@@ -188,6 +209,7 @@ jobs:
             console.log('Live Cloudflare Worker conversational routing: PASS', JSON.stringify({
               casualConversation: routeData.route.type,
               salonOperation: actionData.route.type,
+              personalReminder: personalReminderData.route.type,
               aliasMultiTurn: aliasFlowData.route.type,
               pronounEdit: pronounFlowData.route.type
             }));
