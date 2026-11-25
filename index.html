@@ -3796,7 +3796,8 @@
       document.getElementById('clientNextDate').value = '';
       document.getElementById('clientNextTime').value = '10:00';
       const typeField = document.getElementById('clientNextAppointmentType');
-      if (typeField) typeField.value = appointments.some(a => !isFollowupAppointment(a) && a.status !== 'canceled') ? 'followup' : 'primary';
+      if (typeField) typeField.value = 'primary';
+      handleClientAppointmentTypeChange();
       const saveClientButton = document.querySelector('#clientShareActions button.btn-primary');
       if (saveClientButton) saveClientButton.textContent = '💾 ثبت کار';
       document.getElementById('clientNextService').value = '';
@@ -4254,6 +4255,7 @@
       document.getElementById('clientNextNotes').value = appt.notes || '';
       const typeField = document.getElementById('clientNextAppointmentType');
       if (typeField) typeField.value = isFollowupAppointment(appt) ? 'followup' : 'primary';
+      handleClientAppointmentTypeChange();
       const saveButton = document.querySelector('#clientShareActions button.btn-primary');
       if (saveButton) saveButton.textContent = '💾 ذخیره تغییر نوبت';
       const info = document.getElementById('clientNextAppointmentInfo');
