@@ -7227,7 +7227,7 @@
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (refreshing) return; refreshing = true;
-          showToast('نسخه جدید نصب شد ✨');
+          // Silent web-bundle refresh: this is not a new Android APK release.
           setTimeout(() => window.location.reload(), 600);
         });
         navigator.serviceWorker.register('./sw.js').then((reg) => {
