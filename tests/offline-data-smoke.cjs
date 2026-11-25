@@ -493,6 +493,33 @@ const assert = require('assert');
       const weekOk = typeof weekReply === 'string' && (weekReply.includes('برنامه هفت روز آینده') || weekReply.includes('نوبتی ثبت نشده'));
       return { cancelOk, doneOk, deleteOk, cancelVerbOk, moveOk, unnamedMoveOk, exactMinuteOk, minuteMoveOk, relativeMoveOk, dateMoveOk, moveReply, unnamedMoveReply, minuteMoveReply, relativeMoveReply, dateMoveReply, weekOk, weekReply, weekNormalized:minaCleanText('برنامه هفت روز آینده'), weekAppointmentCount:appData.appointments.length, cancelReply, doneReply, deleteReply };
     });
+    const minaCustomerLookupAndFullNameQA = await page.evaluate(() => {
+      const date = getTodayKey();
+      appData.appointments = [
+        { id:'qa-mina-mousavi-nail', dateKey:addDaysToJalaliKey(date,1), time:'18:00',
+          clientName:'مینا موسوی', service:'کاشت ناخن', status:'pending', appointmentType:'primary' },
+        { id:'qa-mina-mousavi-followup', dateKey:addDaysToJalaliKey(date,20), time:'16:43',
+          clientName:'مینا موسوی', service:'ترمیم ناخن', status:'pending', appointmentType:'followup' },
+        { id:'qa-other-client', dateKey:addDaysToJalaliKey(date,1), time:'17:00',
+          clientName:'سارا احمدی', service:'کاشت ناخن', status:'pending' }
+      ];
+      const lookup = minaBuildReply('مینا موسوی نوبت ناخن داره؟');
+      const changed = minaBuildReply('نوبت مینا موسوی رو برای ساعت ۱۸:۲۰ تغییر بده');
+      const changedAppointment = appData.appointments.find(a=>a.id==='qa-mina-mousavi-nail');
+      const otherUnchanged = appData.appointments.find(a=>a.id==='qa-other-client')?.time === '17:00';
+      return {
+        lookupFindsCustomer:lookup.includes('مینا موسوی'),
+        lookupFindsNail:lookup.includes('کاشت ناخن'),
+        lookupShowsTime:lookup.includes('18:00'),
+        lookupShowsFollowup:lookup.includes('نوبت بعدی'),
+        multiWordNameEdit:changedAppointment?.time==='18:20' && changed.includes('همان نوبت'),
+        unrelatedCustomerUnchanged:otherUnchanged
+      };
+    });
+    assert(Object.values(minaCustomerLookupAndFullNameQA).every(Boolean),
+      'Mina must answer customer appointment questions and edit appointments by complete multi-word customer name: ' + JSON.stringify(minaCustomerLookupAndFullNameQA));
+    console.log('Mina customer lookup and full-name editing:', JSON.stringify(minaCustomerLookupAndFullNameQA));
+
     const spokenClockUpgrade = await page.evaluate(() => ({
       spokenHourMinute: minaParseReminderClock('ساعت پانزده و چهل و سه دقیقه'),
       spokenRelativeBefore: minaParseReminderClock('بیست دقیقه به سه بعدازظهر'),
