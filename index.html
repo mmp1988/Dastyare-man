@@ -6148,7 +6148,7 @@
         .replace(/^[\s،,:؛-]+/u, '')
         .replace(/^(?:مال|متعلق\s+به|برای|به\s+نام|به\s+اسم|اسمش|نامش)\s*/u, '')
         .trim();
-      const stop = /^(?:هست|است|میباشد|می\s*باشد|ـه|توی|تو|در|قسمت|بخش|مشتریان|مشتری|اضافه|افزودن|ثبت|کن|کنش|برو|لطفا|لطفاً|رو|را|به)$/u;
+      const stop = /^(?:هست|است|میباشد|می\s*باشد|ـه|توی|تو|در|قسمت|بخش|مشتریان|مشتری|اضافه|افزودن|ثبت|کن|کنش|برو|لطفا|لطفاً|رو|را|به|یه|یک|جدید)$/u;
       let name = '';
       const afterWords = after.split(/\s+/u).filter(Boolean);
       const chosen = [];
@@ -6162,7 +6162,14 @@
 
       if (!name) {
         const nameMatch = before.match(/(?:به\s+نام|به\s+اسم|اسمش|نامش|برای|مشتری(?:\s+جدید)?\s+به\s+نام|مشتری(?:\s+جدید)?\s+به\s+اسم)\s*([آ-یءئؤإأ‌\-]{2,30}(?:\s+[آ-یءئؤإأ‌\-]{2,30}){0,2})/u);
-        if (nameMatch) name = nameMatch[1].trim();
+        if (nameMatch) {
+          const nameParts = [];
+          for (const word of nameMatch[1].trim().split(/\s+/u)) {
+            if (stop.test(word)) break;
+            nameParts.push(word);
+          }
+          name = nameParts.join(' ');
+        }
       }
       if (!name) {
         const prefixWords = before.replace(/(?:این\s+)?شماره(?:\s+تلفن)?/gu, ' ')
