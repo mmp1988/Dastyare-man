@@ -698,9 +698,9 @@ const assert = require('assert');
       const relativeDayReply=minaTrySetPersonalReminder('یادم بنداز دو روز دیگه');
       const relativeDaySaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!beforeRelativeDayIds.has(x.id));
       const relativeDayActualAt=relativeDaySaved?iranDateTimeToEpoch(relativeDaySaved.date,relativeDaySaved.time):NaN;
-      const spokenReminderCreatedAfter=Date.now();
+      const spokenReminderBeforeIds=new Set((appData.reminders||[]).map(x=>x.id));
       const spokenReminderReply=minaTrySetPersonalReminder('ساعت ۷ عصر بهم خبر بده کار دارم');
-      const spokenReminderSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=spokenReminderCreatedAfter);
+      const spokenReminderSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!spokenReminderBeforeIds.has(x.id));
       const spokenReminderIsCorrect=!!spokenReminderSaved&&spokenReminderSaved.time==='19:00'&&spokenReminderSaved.message.includes('کار دارم')&&spokenReminderSaved.timezone==='Asia/Tehran';
       const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
@@ -727,6 +727,8 @@ const assert = require('assert');
         relativeDaySaved:!!relativeDaySaved && Math.abs(relativeDayActualAt-relativeDayExpectedAt)<=60000,
         relativeDayReply,
         spokenReminderIsCorrect,
+        spokenReminderMessage:spokenReminderSaved?.message||null,
+        spokenReminderTime:spokenReminderSaved?.time||null,
         spokenReminderReply,
         reply
       };
