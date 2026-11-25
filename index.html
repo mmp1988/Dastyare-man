@@ -5203,7 +5203,7 @@
       }
       const bubble = document.createElement('div');
       bubble.className = 'mina-bubble';
-      const instagramMarker = '\\n\\n[MINA_INSTAGRAM_LINK]';
+      const instagramMarker = '\n\n[MINA_INSTAGRAM_LINK]';
       const markerIndex = who !== 'user' ? String(text).indexOf(instagramMarker) : -1;
       if (markerIndex >= 0) {
         bubble.appendChild(document.createTextNode(String(text).slice(0, markerIndex)));
@@ -5216,9 +5216,27 @@
         link.setAttribute('aria-label', 'باز کردن صفحه اینستاگرام @lash_by_mina.m');
         link.style.cssText = 'display:inline-flex;align-items:center;gap:6px;color:#c13584;font-weight:800;text-decoration:none;';
         const logo = document.createElement('span');
-        logo.textContent = '◎';
         logo.setAttribute('aria-hidden', 'true');
-        logo.style.cssText = 'font-size:1.35em;line-height:1;background:linear-gradient(45deg,#833ab4,#c13584,#e1306c,#f77737);-webkit-background-clip:text;background-clip:text;color:transparent;';
+        logo.style.cssText = 'width:30px;height:30px;flex:0 0 30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(45deg,#feda75 0%,#fa7e1e 25%,#d62976 55%,#962fbf 78%,#4f5bd5 100%);box-shadow:0 2px 8px rgba(214,41,118,.22);';
+        const camera = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        camera.setAttribute('viewBox','0 0 24 24');
+        camera.setAttribute('width','20');
+        camera.setAttribute('height','20');
+        camera.setAttribute('fill','none');
+        camera.setAttribute('stroke','#ffffff');
+        camera.setAttribute('stroke-width','2');
+        camera.setAttribute('stroke-linecap','round');
+        camera.setAttribute('stroke-linejoin','round');
+        const cameraBody = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        cameraBody.setAttribute('x','3'); cameraBody.setAttribute('y','3');
+        cameraBody.setAttribute('width','18'); cameraBody.setAttribute('height','18');
+        cameraBody.setAttribute('rx','5');
+        const cameraLens = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        cameraLens.setAttribute('cx','12'); cameraLens.setAttribute('cy','12'); cameraLens.setAttribute('r','4');
+        const cameraDot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        cameraDot.setAttribute('cx','17.5'); cameraDot.setAttribute('cy','6.5'); cameraDot.setAttribute('r','1');
+        camera.appendChild(cameraBody); camera.appendChild(cameraLens); camera.appendChild(cameraDot);
+        logo.appendChild(camera);
         const handle = document.createElement('span');
         handle.textContent = '@lash_by_mina.m';
         link.appendChild(logo);
@@ -5863,11 +5881,20 @@
     }
 
     function minaAppendInstagram(reply) {
-      return String(reply || '').trim() + '\\n\\n[MINA_INSTAGRAM_LINK]';
+      return String(reply || '').trim() + '\n\n[MINA_INSTAGRAM_LINK]';
     }
 
-    function minaOutOfScopeReply() {
-      return minaAppendInstagram('من مینا هستم، دستیار هوشمند و تخصصی سالن زیبایی؛ برای مدیریت نوبت‌ها، مشتریان، خدمات، تبلیغات و امور سالن در خدمتم.');
+    function minaOutOfScopeReply(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      let reply = 'من مینا هستم، دستیار هوشمند و تخصصی سالن زیبایی؛ برای مدیریت نوبت‌ها، مشتریان، خدمات، تبلیغات و امور سالن در خدمتم.';
+      if (/(?:درد|دل.?درد|شکم|سردرد|تب|حالت تهوع|مریض|بیمار|دارو|پزشک|دکتر|درمان|علائم)/u.test(text)) {
+        reply = 'عزیزم، من مینا هستم و تخصصم امور سالن زیباییه، نه پزشکی. 🌸 برای بررسی درد یا علائم با پزشک یا مرکز درمانی مشورت کن؛ اگر درد شدید یا ناگهانیه یا حالت رو به بدتر شدنه، فوراً از اورژانس کمک بگیر.';
+      } else if (/(?:دوست.?پسر|دوست.?دختر|عاشق|رابطه|نامزد|همسر|بحثم|دعوا|قهر|ازدواج|خیانت)/u.test(text)) {
+        reply = 'عزیزم، امیدوارم زودتر شرایط بهتر بشه. ❤️ من مینا هستم، دستیار تخصصی سالن زیبایی و در مشاوره روابط عاطفی تخصص ندارم؛ برای امور سالن، نوبت‌ها و مشتریانت در خدمتم.';
+      } else if (/(?:ماشین|خودرو|موتور|مکانیک|تعمیر|لاستیک|ترمز)/u.test(text)) {
+        reply = 'من مینا هستم، دستیار تخصصی سالن زیبایی و در تعمیر خودرو تخصص ندارم. 🌸 برای بررسی دقیق از مکانیک کمک بگیر؛ اگر خودرو صدای غیرعادی یا ایراد ایمنی دارد، تا بررسی متخصص با آن رانندگی نکن.';
+      }
+      return minaAppendInstagram(reply);
     }
 
     function minaIsCriticismMessage(message) {
@@ -5921,7 +5948,7 @@
 
       // Strict scope gate: unrelated chat is answered locally and never sent to AI.
       if (!minaIsSalonScopeRequest(message)) {
-        addMinaMessage(minaOutOfScopeReply(), 'assistant');
+        addMinaMessage(minaOutOfScopeReply(message), 'assistant');
         return;
       }
 
