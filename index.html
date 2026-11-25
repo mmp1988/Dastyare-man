@@ -3109,7 +3109,7 @@
       const override = appointment.repairReminderOverride && typeof appointment.repairReminderOverride === 'object'
         ? appointment.repairReminderOverride : null;
       const time = override?.time || settings.repairReminderTime || '10:00';
-      if (appointment.repairReminderDisabled === true || settings.repairReminderEnabled === false || days === null || !Number.isInteger(days) || days < 1 || days > 365 ||
+      if (appointment.repairReminderDisabled === true || days === null || !Number.isInteger(days) || days < 1 || days > 365 ||
           appointment.status === 'canceled' || !appointment.dateKey) {
         cancelAutomaticRepairReminder(appointment.id);
         return;
@@ -3117,11 +3117,11 @@
       const reminderJalaliDate = addDaysToJalaliKey(appointment.dateKey, days);
       const gregorianDate = override?.date || jalaliKeyToGregorianDate(reminderJalaliDate);
       if (!gregorianDate) return;
-      const message = override?.message || ('📞 زمان تماس برای نوبت ترمیم مشتری\\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
-        (appointment.phone ? '\\n📱 تلفن: ' + appointment.phone : '') +
-        '\\n💅 خدمت قبلی: ' + (appointment.service || 'ثبت نشده') +
-        '\\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
-        '\\n🔔 پیگیری ترمیم: ' + formatJalaliFull(reminderJalaliDate));
+      const message = override?.message || ('📞 زمان تماس برای نوبت ترمیم مشتری\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
+        (appointment.phone ? '\n📱 تلفن: ' + appointment.phone : '') +
+        '\n💅 خدمت قبلی: ' + (appointment.service || 'ثبت نشده') +
+        '\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
+        '\n🔔 پیگیری ترمیم: ' + formatJalaliFull(reminderJalaliDate));
       const targetAt = iranDateTimeToEpoch(gregorianDate, time);
       const item = { id, date: gregorianDate, time, message, notified: false, enabled: true, cancelled: false,
         createdAt: old?.createdAt || Date.now(), timezone: 'Asia/Tehran', kind: 'automatic-repair',
@@ -3250,12 +3250,13 @@
         };
         if(existingFollowup)Object.assign(existingFollowup,followupData);
         else appData.appointments.push(followupData);
+        syncAutomaticRepairReminder(followupData);
         followupCreatedOrUpdated=true;
       } else if (selectedAppointmentType === 'primary' && editId && existingFollowup && !nextDateRaw) {
         appData.appointments = appData.appointments.filter(a => a.id !== existingFollowup.id);
       }
       syncAutomaticRepairReminder(payload);
-      saveData(); if (hasBirthdayInput && appointmentProfileKey) renderClientBirthdays(); closeModal('apptModal'); renderCalendar(); renderDaySchedule(); renderPersonalReminders();
+      saveData(); renderPersonalReminders(); if (hasBirthdayInput && appointmentProfileKey) renderClientBirthdays(); closeModal('apptModal'); renderCalendar(); renderDaySchedule(); renderPersonalReminders();
       renderClientsTab(); updateDashboardStats();
       var activeClientKey = appointmentProfileKey || clientKeyFromFields(payload.phone, payload.clientName);
       if (activeClientKey && document.getElementById('clientRecordKey')?.value === activeClientKey) renderClientScheduledAppointments(activeClientKey);
@@ -5678,6 +5679,7 @@
         const ensuredClientKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
         syncAutomaticRepairReminder(appointment);
+        if (typeof renderPersonalReminders === 'function') renderPersonalReminders();
         if (ensuredClientKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaLastReferencedAppointmentId = appointment.id;
         selectedDateKey = appointment.dateKey;
@@ -5864,6 +5866,7 @@
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
         syncAutomaticRepairReminder(appointment);
+        if (typeof renderPersonalReminders === 'function') renderPersonalReminders();
         if (appointmentProfileKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaPendingBooking = null;
         saveData();
