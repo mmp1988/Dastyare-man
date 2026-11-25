@@ -6123,15 +6123,27 @@
       return /(?:^|[\s،,.!?؟])(?:احمق|بی\s*شعور|بی\s*ادب|خفه\s*شو|گمشو|گم\s*شو|کثافت|حرومزاده|لعنتی|مادرجنده|جنده|فحش|توهین)(?=$|[\s،,.!?؟])/u.test(text);
     }
 
+    let minaPendingCustomerPhone = '';
     function minaTryAddClientFromMessage(raw) {
       const original = String(raw || '').trim();
       const normalized = minaNormalizePersianTypos(minaNormalizeDigits(original)).replace(/[يى]/g, 'ی');
       const text = normalized.toLocaleLowerCase('fa');
       const addIntent = /(?:اضافه|افزودن|ثبت|وارد\s*کن|بساز|ایجاد|ذخیره)/u.test(text);
       const customerIntent = /(?:مشتری|مشتریان|پرونده)/u.test(text);
+      const phoneMatch = normalized.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
+      const onlyPhone = phoneMatch && !addIntent && !customerIntent &&
+        normalized.replace(phoneMatch[0], '').replace(/(?:شماره|تلفن|این|مال|برای)/gu, '').replace(/[\s،,:؛-]/gu, '') === '';
+      if (onlyPhone) {
+        let captured = phoneMatch[0].replace(/\D/g, '');
+        if (captured.startsWith('0098')) captured = '0' + captured.slice(4);
+        else if (captured.startsWith('98') && captured.length === 12) captured = '0' + captured.slice(2);
+        else if (captured.length === 10 && captured.startsWith('9')) captured = '0' + captured;
+        if (!/^09\d{9}$/.test(captured)) return 'شماره کامل و معتبر نیست؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
+        minaPendingCustomerPhone = captured;
+        return 'شماره رو گرفتم عزیزم 📞 حالا اسم صاحب شماره رو بگو و بگو در بخش مشتریان اضافه‌اش کنم؛ تاریخ نوبت لازم نیست. 💗';
+      }
       if (!addIntent || !customerIntent) return null;
 
-      const phoneMatch = normalized.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
       let phone = '';
       if (phoneMatch) {
         phone = phoneMatch[0].replace(/\D/g, '');
@@ -6139,6 +6151,8 @@
         else if (phone.startsWith('98') && phone.length === 12) phone = '0' + phone.slice(2);
         else if (phone.length === 10 && phone.startsWith('9')) phone = '0' + phone;
         if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل و معتبر نیست عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
+      } else if (minaPendingCustomerPhone) {
+        phone = minaPendingCustomerPhone;
       } else if (/\d/u.test(normalized)) {
         return 'شماره تلفن رو کامل متوجه نشدم عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
       }
@@ -6161,6 +6175,10 @@
       if (chosen.length) name = chosen.join(' ');
 
       if (!name) {
+        const ownerMatch = before.match(/(?:این\s+)?شماره\s+([آ-یءئؤإأ‌\-]{2,30})(?=\s+(?:هست|است|ـه|مال|متعلق|رو|را|توی|در|به))/u);
+        if (ownerMatch) name = ownerMatch[1].trim();
+      }
+      if (!name) {
         const nameMatch = before.match(/(?:به\s+نام|به\s+اسم|اسمش|نامش|برای|مشتری(?:\s+جدید)?\s+به\s+نام|مشتری(?:\s+جدید)?\s+به\s+اسم)\s*([آ-یءئؤإأ‌\-]{2,30}(?:\s+[آ-یءئؤإأ‌\-]{2,30}){0,2})/u);
         if (nameMatch) {
           const nameParts = [];
@@ -6174,7 +6192,7 @@
       if (!name) {
         const prefixWords = before.replace(/(?:این\s+)?شماره(?:\s+تلفن)?/gu, ' ')
           .replace(/(?:مشتری(?:\s+جدید)?|پرونده|اضافه|افزودن|ثبت|کن|کنش|برو|توی|تو|قسمت|بخش|مشتریان|مشتری|مال|برای|به|اسم|نام)/gu, ' ')
-          .trim().split(/\s+/u).filter(word => /^[آ-یءئؤإأ‌\-]{2,30}$/u.test(word));
+          .trim().split(/\s+/u).filter(word => /^[آ-یءئؤإأ‌\-]{2,30}$/u.test(word) && !stop.test(word));
         if (prefixWords.length) name = prefixWords.slice(-2).join(' ');
       }
       if (!name || stop.test(name)) return 'شماره رو گرفتم عزیزم؛ اسم مشتری رو هم بگو تا پرونده‌اش رو بدون نیاز به تاریخ بسازم. 💗';
@@ -6206,6 +6224,7 @@
         profile.name = cleanName;
         if (phone) profile.phone = phone;
       }
+      minaPendingCustomerPhone = '';
       saveData();
       if (typeof renderClientsTab === 'function') renderClientsTab();
       if (typeof switchTab === 'function') switchTab('clients');
