@@ -7128,7 +7128,7 @@
       let baseKey = '';
       let baseLabel = '';
 
-      const numericDate = text.match(/(?:تاریخ\\s*)?(1[2345]\\d{2})[\\/.-](\\d{1,2})[\\/.-](\\d{1,2})/u);
+      const numericDate = text.match(/(?:تاریخ\s*)?(1[2345]\d{2})[\/.-](\d{1,2})[\/.-](\d{1,2})/u);
       if (numericDate) {
         const y=Number(numericDate[1]),m=Number(numericDate[2]),d=Number(numericDate[3]);
         if(m>=1&&m<=12&&d>=1&&d<=jalaliMonthDays(y,m)) baseKey=y+'-'+pad2(m)+'-'+pad2(d);
@@ -7144,7 +7144,7 @@
             baseKey=year+'-'+pad2(month)+'-'+pad2(day);
             // A month/day without a year in a clearly past-visit sentence belongs to
             // the previous Jalali year when that date has not happened yet this year.
-            if (!explicit[3] && /(?:قبلی|گذشته|مراجعه\\s*کرده|اومده|آمده|بوده)/u.test(text) && baseKey>today) {
+            if (!explicit[3] && /(?:قبلی|گذشته|مراجعه\s*کرده|اومده|آمده|بوده)/u.test(text) && baseKey>today) {
               year--; if(day<=jalaliMonthDays(year,month)) baseKey=year+'-'+pad2(month)+'-'+pad2(day);
             }
           }
@@ -7187,7 +7187,7 @@
         } else if(chosen) {
           (appData.appointments||[]).filter(a=>a&&a.status==='done'&&a.dateKey&&String(a.clientName||'').toLocaleLowerCase('fa')===chosen.name.toLocaleLowerCase('fa'))
             .forEach(a=>historical.push({dateKey:a.dateKey,time:a.time||'',name:chosen.name}));
-        } else if (/(?:مشتری\\s*(?:قبلی|آخر)|آخرین\\s*مراجعه|مراجعه\\s*قبلی)/u.test(text)) {
+        } else if (/(?:مشتری\s*(?:قبلی|آخر)|آخرین\s*مراجعه|مراجعه\s*قبلی)/u.test(text)) {
           // «مشتری قبلیم» is resolved only when there is one unambiguous latest completed visit.
           (appData.appointments||[]).filter(a=>a&&a.status==='done'&&a.dateKey)
             .forEach(a=>historical.push({dateKey:a.dateKey,time:a.time||'',name:a.clientName||'مشتری'}));
@@ -7195,7 +7195,7 @@
             if(record&&record.dateKey)historical.push({dateKey:record.dateKey,time:record.time||'',name:p.name||key});
           }));
         }
-        const valid=historical.filter(x=>/^1[2345]\\d{2}-\\d{2}-\\d{2}$/.test(x.dateKey)&&x.dateKey<=today)
+        const valid=historical.filter(x=>/^1[2345]\d{2}-\d{2}-\d{2}$/.test(x.dateKey)&&x.dateKey<=today)
           .sort((a,b)=>(b.dateKey+b.time).localeCompare(a.dateKey+a.time));
         if(valid.length) {
           const latest=valid[0];
