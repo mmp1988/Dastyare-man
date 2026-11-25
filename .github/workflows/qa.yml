@@ -146,9 +146,50 @@ jobs:
               'Salon operation must be routed to local execution');
             assert.ok(typeof actionData.route?.command === 'string' && /[آ-ی]/u.test(actionData.route.command),
               'AI must return a natural Persian command for local execution');
+
+            const aliasFlowResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'route',
+                message: 'مکالمه اخیر: کاربر گفت برای مشتری جدید «مامان مینا» پرونده بساز. مینا گفت پرونده ساخته شد. کاربر گفت شماره تماس مامان مینا را جداگانه می‌فرستم. حالا کاربر می‌گوید: برای همون مشتری فردا ساعت ۱۷:۳۰ نوبت لیفت مژه ثبت کن.'
+              }),
+              signal: AbortSignal.timeout(60000),
+              cache: 'no-store'
+            });
+            const aliasFlowData = await aliasFlowResponse.json().catch(() => ({}));
+            assert.equal(aliasFlowResponse.status, 200,
+              'Alias-based multi-turn booking route must return HTTP 200: ' + JSON.stringify(aliasFlowData));
+            assert.equal(aliasFlowData.route?.type, 'action',
+              'Cloud AI must resolve «همون مشتری» from the supplied conversation context as an operation');
+            assert.ok(/نوبت|رزرو|ثبت/u.test(aliasFlowData.route?.command || '') &&
+              /۱۷:۳۰|17:30|پنج و نیم|پنج‌ونیم/u.test(aliasFlowData.route?.command || ''),
+              'Cloud AI must preserve the appointment intent and exact time in a natural Persian command');
+
+            const pronounFlowResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'route',
+                message: 'مکالمه اخیر: کاربر برای مامان مینا فردا ساعت ۱۷:۳۰ نوبت لیفت مژه ثبت کرد. مینا تأیید کرد که نوبت ذخیره شده است. کاربر حالا می‌گوید: همونو تغییر بده و ساعتش رو بذار ۱۸:۲۰.'
+              }),
+              signal: AbortSignal.timeout(60000),
+              cache: 'no-store'
+            });
+            const pronounFlowData = await pronounFlowResponse.json().catch(() => ({}));
+            assert.equal(pronounFlowResponse.status, 200,
+              'Pronoun appointment-edit route must return HTTP 200: ' + JSON.stringify(pronounFlowData));
+            assert.equal(pronounFlowData.route?.type, 'action',
+              'Cloud AI must understand «همونو تغییر بده» as an edit to the referenced appointment');
+            assert.ok(/تغییر|عوض|ویرایش|جابه.?جا/u.test(pronounFlowData.route?.command || '') &&
+              /۱۸:۲۰|18:20/u.test(pronounFlowData.route?.command || ''),
+              'Cloud AI must preserve the pronoun-linked edit and exact new time');
+
             console.log('Live Cloudflare Worker conversational routing: PASS', JSON.stringify({
               casualConversation: routeData.route.type,
-              salonOperation: actionData.route.type
+              salonOperation: actionData.route.type,
+              aliasMultiTurn: aliasFlowData.route.type,
+              pronounEdit: pronounFlowData.route.type
             }));
           })().catch(error => { console.error(error); process.exitCode = 1; });
           NODE
