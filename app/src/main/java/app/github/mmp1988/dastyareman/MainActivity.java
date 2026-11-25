@@ -820,6 +820,10 @@ public class MainActivity extends Activity {
                             installPendingApkIfAllowed();
                         })
                         .setNegativeButton("فعلاً نه", (dialog, which) -> apkInstallDialogVisible = false)
+                        .setNeutralButton("بررسی مجدد نسخه‌ها", (dialog, which) -> {
+                            apkInstallDialogVisible = false;
+                            checkForApkUpdate(true);
+                        })
                         .setOnCancelListener(dialog -> apkInstallDialogVisible = false)
                         .show();
                 return;
