@@ -5454,13 +5454,13 @@
             /(?:پس\s*فردا|فردا|امروز|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|ظهر|شب|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
+          const time = pad2(hour) + ':' + pad2(minute);
         if (!service) {
           if (!clientName) return 'حتماً عزیزم 💗 تاریخ و ساعت رو متوجه شدم؛ اسم مشتری رو هم بگو تا نوبت رو کامل کنم.';
           minaPendingBooking = { dateKey, time, clientName, phone: phoneMatch ? phoneMatch[0] : '', service: '', notes: '', alarm: '15' };
           return 'حتماً عزیزم 💗 نوبت ' + clientName + ' برای ' + formatJalaliFull(dateKey) +
             ' ساعت ' + time + ' رو در نظر گرفتم. چه خدمتی براش انجام بدم؟';
         }
-          const time = pad2(hour) + ':' + pad2(minute);
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === time && a.status !== 'canceled' &&
           (clientName ? String(a.clientName || '').trim() === clientName :
