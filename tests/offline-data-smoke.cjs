@@ -795,6 +795,43 @@ const assert = require('assert');
       birthdayPersistenceQA.separateSnapshotExists,
       'Customer birthdays must survive stale app snapshots independently of appointments');
 
+    // Deleting a birthday must synchronously clear the open form, remove the list row,
+    // update the count, and remain deleted after the normal load/restore path.
+    const birthdayDeleteImmediateQA = await page.evaluate(() => {
+      const key = 'مشتری حذف فوری تولد';
+      appData.clientProfiles = {
+        [key]: { name:key, phone:'', clientId:'qa-birthday-delete-client', birthDate:'1375-08-12', birthdayAlertYear:'1405', records:[] }
+      };
+      appData.reminders = [{ id:'qa-birthday-delete-reminder', birthdayClientKey:key, birthdayYear:1405, enabled:true }];
+      saveData();
+      document.getElementById('clientRecordKey').value = key;
+      document.getElementById('clientBirthdayYear').value = '۱۳۷۵';
+      document.getElementById('clientBirthdayMonth').value = '۰۸';
+      document.getElementById('clientBirthdayDay').value = '۱۲';
+      renderClientBirthdays();
+      window.confirm = () => true;
+      deleteClientBirthday(key);
+      const rowGone = ![...document.querySelectorAll('#clientBirthdaysList [data-client-birthday-key]')]
+        .some(row => row.dataset.clientBirthdayKey === encodeURIComponent(key));
+      const countUpdated = document.getElementById('clientBirthdayCount').textContent.includes('۰');
+      const fieldsCleared = ['clientBirthdayYear','clientBirthdayMonth','clientBirthdayDay']
+        .every(id => document.getElementById(id).value === '');
+      const reminderRemoved = !appData.reminders.some(r => r && r.birthdayClientKey === key);
+      const recordPreserved = !!appData.clientProfiles[key] && !appData.clientProfiles[key].birthDate;
+      const tombstoneSaved = !!JSON.parse(localStorage.getItem('dastyare_man_client_birthday_deleted_v1') || '{}')[key];
+      loadData();
+      return {
+        rowGone, countUpdated, fieldsCleared, reminderRemoved, recordPreserved, tombstoneSaved,
+        remainsDeletedAfterReload: !appData.clientProfiles[key]?.birthDate
+      };
+    });
+    assert(birthdayDeleteImmediateQA.rowGone && birthdayDeleteImmediateQA.countUpdated &&
+      birthdayDeleteImmediateQA.fieldsCleared && birthdayDeleteImmediateQA.reminderRemoved &&
+      birthdayDeleteImmediateQA.recordPreserved && birthdayDeleteImmediateQA.tombstoneSaved &&
+      birthdayDeleteImmediateQA.remainsDeletedAfterReload,
+      'Birthday deletion must update the UI immediately, cancel its reminder, preserve the customer record, and survive reload');
+    console.log('Immediate birthday deletion:', JSON.stringify(birthdayDeleteImmediateQA));
+
     // Backup round trip: export a valid JSON backup, clear the data, then restore it.
     await page.evaluate(async () => {
       appData.appointments = [{ id:'qa-backup-appt', dateKey:getTodayKey(), time:'15:00', clientName:'مشتری پشتیبان', phone:'09127776655', service:'تست بازیابی', price:123, status:'pending' }];
