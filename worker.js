@@ -147,8 +147,18 @@ export default {
 
       return json({ success: true, reply }, 200, headers);
     } catch (error) {
+      const detail = String(error && (error.message || error.cause || error) || "").toLowerCase();
+      const quotaExceeded = /(?:quota|rate.?limit|too many requests|429|exceeded.*(?:request|token|limit)|daily limit|resource exhausted)/i.test(detail);
+      if (quotaExceeded) {
+        return json({
+          success: false,
+          code: "AI_QUOTA_EXHAUSTED",
+          error: "سهمیه رایگان هوش ابری فعلاً به پایان رسیده است."
+        }, 429, headers);
+      }
       return json({
         success: false,
+        code: "AI_TEMPORARILY_UNAVAILABLE",
         error: "سرویس هوش مصنوعی فعلاً در دسترس نیست."
       }, 503, headers);
     }
