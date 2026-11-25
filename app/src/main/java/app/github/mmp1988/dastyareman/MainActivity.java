@@ -1002,8 +1002,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void showAppointmentNotification(String appointmentId, String message) {
             runOnUiThread(() -> MainActivity.this.showAppointmentNotification(appointmentId, message));
         }
-        @JavascriptInterface public void schedulePersonalReminder(String reminderId, long triggerAtMillis, String message) {
-            PersonalReminderReceiver.schedule(MainActivity.this, reminderId, triggerAtMillis, message);
+        @JavascriptInterface public String schedulePersonalReminder(String reminderId, long triggerAtMillis, String message) {
+            return PersonalReminderReceiver.schedule(MainActivity.this, reminderId, triggerAtMillis, message);
         }
         @JavascriptInterface public void cancelPersonalReminder(String reminderId) {
             PersonalReminderReceiver.cancel(MainActivity.this, reminderId);
