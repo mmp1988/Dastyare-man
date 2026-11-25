@@ -5896,11 +5896,11 @@
       // Cloud AI is for salon knowledge, writing and genuinely ambiguous multi-step reasoning.
       // Deterministic appointment CRUD must run locally so it works instantly and offline.
       if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
-      const normalized = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      const normalized = minaCleanText(minaExpandSpokenTime(String(message || ''))).toLocaleLowerCase('fa');
       if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
       // Complete natural-language booking: date + exact time + service + booking verb.
       const hasDate = /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized);
-      const hasTime = /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/u.test(normalized);
+      const hasTime = /(?:ساعت\s*\d{1,2}(?:\s*[:٫.]\s*\d{1,2})?|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/u.test(normalized);
       const hasService = /(?:کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین|خدمت)/u.test(normalized);
       const hasBookingVerb = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s*بده|انجام\s*بده)/u.test(normalized);
       if (hasDate && hasTime && hasService && hasBookingVerb) return false;
