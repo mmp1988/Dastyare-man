@@ -99,6 +99,9 @@ jobs:
             assert.equal(data.success, true, 'Workers AI response must report success: ' + JSON.stringify(data));
             assert.equal(typeof data.command, 'string', 'Workers AI must return a parsed command');
             assert.ok(data.command.trim().length > 0, 'Workers AI command must not be empty');
+            assert.match(data.command, /[آ-ی]/u, 'Workers AI must return a natural Persian instruction, not an action code');
+            assert.ok(!/^[a-z0-9_ -]+$/iu.test(data.command.trim()),
+              'Workers AI command must not be a snake_case or English action label');
             console.log('Live Cloudflare Worker: PASS', JSON.stringify({
               health: healthData.status,
               cors: preflight.status,
