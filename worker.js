@@ -1,3 +1,4 @@
+// Cloudflare Workers entry point; this comment also verifies Git-connected deployment.
 const ALLOWED_ORIGIN = "https://mmp1988.github.io";
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
