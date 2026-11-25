@@ -1355,7 +1355,81 @@
       </details>
     </section>
 
-    <!-- ==================== TAB 2: NOTEBOOK & DAILY CHECKLIST ==================== -->
+    
+
+<!-- ==================== TAB 4: CLIENTS & CUSTOM SERVICES ==================== -->
+    <section id="tab-clients" class="tab-section">
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">👥 پرونده مشتریان و سوابق</div>
+          <button class="btn-primary" type="button" onclick="openAddClientModal()">➕ افزودن مشتری</button>
+        </div>
+        <div class="form-group">
+          <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
+        </div>
+        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:9px;"></div><div class="card" id="clientBirthdaysCard" style="margin:0 0 12px;box-shadow:none;border-color:var(--accent);">
+          <div class="section-head"><div class="section-title">🎂 تولد مشتریان</div><span id="clientBirthdayCount" style="font-size:.72rem;color:var(--text-secondary);"></span></div>
+          <div id="clientBirthdaysList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">✨ تعریف خدمات دلخواه سالن</div>
+        </div>
+        <div class="form-grid" style="background:var(--bg-input); padding:11px; border-radius:14px; margin-bottom:12px;">
+          <div class="form-group full">
+            <label>عنوان خدمت</label>
+            <input type="text" id="newServiceName" class="form-control" placeholder="عنوان خدمت دلخواه..." />
+          </div>
+<div class="form-group full" style="margin-bottom:0;">
+            <button class="btn-primary" style="width:100%;" onclick="addCustomService()">➕ افزودن خدمت</button>
+          </div>
+        </div>
+        <div id="customServicesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+
+    
+
+<!-- ==================== MINA PERSONAL ASSISTANT ==================== -->
+    <section id="tab-mina" class="tab-section">
+      <div class="mina-hero card">
+        <div class="mina-orbit"><div class="mina-avatar">💗</div><span class="mina-spark s1">✦</span><span class="mina-spark s2">✧</span><span class="mina-spark s3">♡</span></div>
+        <div class="mina-brand">مینا <span>Mina</span></div>
+        <div class="mina-tagline">رفیق مهربون و همراه همیشگی تو 🌷</div>
+        <div class="mina-welcome" id="minaWelcome">سلام عزیزم! من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.</div>
+      </div>
+      <div class="mina-chat-card card">
+        <div class="mina-chat-head"><div><strong>گفت‌وگوی من و مینا</strong><small>هرچی دوست داری بگو یا تایپ کن؛ من با کلی انرژی و ایموجی جواب می‌دم 💗🎀</small></div><button class="mini-btn" onclick="clearMinaChat()">پاک‌کردن گفتگو</button></div>
+        <div id="minaChatMessages" class="mina-messages" aria-live="polite">
+          <div class="mina-message assistant"><span class="mina-message-avatar">M</span><div class="mina-bubble">سلام خوشگلم! من مینام، رفیق کوچولوت 💗 یادداشت‌هات و نوبت‌هات رو بسپر به من؛ با هم حواسمون به همه‌چی هست.</div></div>
+        </div>
+        <div class="mina-compose">
+          <textarea id="minaInput" class="form-control" rows="2" placeholder="مثلاً: مینا امروز چیکارایی دارم؟ یا اینو یادداشت کن..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMinaMessage();}"></textarea>
+          <div class="mina-compose-actions">
+            <button type="button" class="mina-mic-btn" id="minaVoiceBtn" onclick="startVoiceInput('minaInput','minaVoiceBtn')" title="صحبت با مینا">🎙️ صحبت</button>
+            <button type="button" class="btn-primary mina-send-btn" onclick="sendMinaMessage()">ارسال <span>➤</span></button>
+          </div>
+        </div>
+        <div class="mina-hint">🎀 می‌تونی با دکمه میکروفون حرف بزنی یا تایپ کنی؛ من فقط متنی و خودمونی جواب می‌دم 💕</div>
+      </div>
+      <div class="card">
+        <div class="section-title">✨ سریع از مینا بپرس</div>
+        <div class="mina-suggestions">
+          <button onclick="askMina('مینا امروز چه نوبت‌هایی دارم؟')">📅 برنامه امروز من</button>
+          <button onclick="askMina('مینا برنامه نوبت‌های این هفته رو نشون بده')">📅 نوبت‌های این هفته</button>
+          <button onclick="askMina('مینا مشتری‌های موعد ترمیم رو بگو')">🔔 موعد ترمیم‌ها</button>
+          <button onclick="askMina('مینا یادداشت‌هام رو نشون بده')">📝 یادداشت‌هام</button>
+        </div>
+      </div>
+    </section>
+
+    
+
+<!-- ==================== TAB 2: NOTEBOOK & DAILY CHECKLIST ==================== -->
     <section id="tab-notebook" class="tab-section">
       <!-- Full Notebook -->
       <div class="card">
@@ -1399,42 +1473,9 @@
 
     </section>
 
-    <!-- ==================== TAB 4: CLIENTS & CUSTOM SERVICES ==================== -->
-    <section id="tab-clients" class="tab-section">
-      <div class="card">
-        <div class="section-head">
-          <div class="section-title">👥 پرونده مشتریان و سوابق</div>
-          <button class="btn-primary" type="button" onclick="openAddClientModal()">➕ افزودن مشتری</button>
-        </div>
-        <div class="form-group">
-          <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
-        </div>
-        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:9px;"></div><div class="card" id="clientBirthdaysCard" style="margin:0 0 12px;box-shadow:none;border-color:var(--accent);">
-          <div class="section-head"><div class="section-title">🎂 تولد مشتریان</div><span id="clientBirthdayCount" style="font-size:.72rem;color:var(--text-secondary);"></span></div>
-          <div id="clientBirthdaysList" style="display:flex;flex-direction:column;gap:8px;"></div>
-        </div>
-        
-      </div>
+    
 
-      <div class="card">
-        <div class="section-head">
-          <div class="section-title">✨ تعریف خدمات دلخواه سالن</div>
-        </div>
-        <div class="form-grid" style="background:var(--bg-input); padding:11px; border-radius:14px; margin-bottom:12px;">
-          <div class="form-group full">
-            <label>عنوان خدمت</label>
-            <input type="text" id="newServiceName" class="form-control" placeholder="عنوان خدمت دلخواه..." />
-          </div>
-<div class="form-group full" style="margin-bottom:0;">
-            <button class="btn-primary" style="width:100%;" onclick="addCustomService()">➕ افزودن خدمت</button>
-          </div>
-        </div>
-        <div id="customServicesList" style="display:flex; flex-direction:column; gap:8px;"></div>
-      </div>
-    </section>
-
-
-    <!-- ==================== TAB: CUSTOMER MESSAGES ==================== -->
+<!-- ==================== TAB: CUSTOMER MESSAGES ==================== -->
     <section id="tab-messages" class="tab-section">
       <div class="card" style="border:1.5px solid var(--accent);">
         <div class="section-title">💌 پیام‌های آماده برای مشتریان</div>
@@ -1482,40 +1523,9 @@
       </div>
     </section>
 
-    <!-- ==================== MINA PERSONAL ASSISTANT ==================== -->
-    <section id="tab-mina" class="tab-section">
-      <div class="mina-hero card">
-        <div class="mina-orbit"><div class="mina-avatar">💗</div><span class="mina-spark s1">✦</span><span class="mina-spark s2">✧</span><span class="mina-spark s3">♡</span></div>
-        <div class="mina-brand">مینا <span>Mina</span></div>
-        <div class="mina-tagline">رفیق مهربون و همراه همیشگی تو 🌷</div>
-        <div class="mina-welcome" id="minaWelcome">سلام عزیزم! من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.</div>
-      </div>
-      <div class="mina-chat-card card">
-        <div class="mina-chat-head"><div><strong>گفت‌وگوی من و مینا</strong><small>هرچی دوست داری بگو یا تایپ کن؛ من با کلی انرژی و ایموجی جواب می‌دم 💗🎀</small></div><button class="mini-btn" onclick="clearMinaChat()">پاک‌کردن گفتگو</button></div>
-        <div id="minaChatMessages" class="mina-messages" aria-live="polite">
-          <div class="mina-message assistant"><span class="mina-message-avatar">M</span><div class="mina-bubble">سلام خوشگلم! من مینام، رفیق کوچولوت 💗 یادداشت‌هات و نوبت‌هات رو بسپر به من؛ با هم حواسمون به همه‌چی هست.</div></div>
-        </div>
-        <div class="mina-compose">
-          <textarea id="minaInput" class="form-control" rows="2" placeholder="مثلاً: مینا امروز چیکارایی دارم؟ یا اینو یادداشت کن..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMinaMessage();}"></textarea>
-          <div class="mina-compose-actions">
-            <button type="button" class="mina-mic-btn" id="minaVoiceBtn" onclick="startVoiceInput('minaInput','minaVoiceBtn')" title="صحبت با مینا">🎙️ صحبت</button>
-            <button type="button" class="btn-primary mina-send-btn" onclick="sendMinaMessage()">ارسال <span>➤</span></button>
-          </div>
-        </div>
-        <div class="mina-hint">🎀 می‌تونی با دکمه میکروفون حرف بزنی یا تایپ کنی؛ من فقط متنی و خودمونی جواب می‌دم 💕</div>
-      </div>
-      <div class="card">
-        <div class="section-title">✨ سریع از مینا بپرس</div>
-        <div class="mina-suggestions">
-          <button onclick="askMina('مینا امروز چه نوبت‌هایی دارم؟')">📅 برنامه امروز من</button>
-          <button onclick="askMina('مینا برنامه نوبت‌های این هفته رو نشون بده')">📅 نوبت‌های این هفته</button>
-          <button onclick="askMina('مینا مشتری‌های موعد ترمیم رو بگو')">🔔 موعد ترمیم‌ها</button>
-          <button onclick="askMina('مینا یادداشت‌هام رو نشون بده')">📝 یادداشت‌هام</button>
-        </div>
-      </div>
-    </section>
+    
 
-    <!-- ==================== TAB 5: FULL PERSONALIZATION, SHARE & SECURITY ==================== -->
+<!-- ==================== TAB 5: FULL PERSONALIZATION, SHARE & SECURITY ==================== -->
     <section id="tab-settings" class="tab-section">
 
       <!-- Official Support & Instagram: fixed owner-controlled contact details -->
