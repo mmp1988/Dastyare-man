@@ -5835,7 +5835,7 @@
     }
 
     function minaPrepareSalonAIMessage(message) {
-      let safeMessage = minaNormalizePersianTypos(String(message || ''));
+      let safeMessage = minaExtractSalonOnlyMessage(minaNormalizePersianTypos(String(message || '')));
       // Saved customer names and phone numbers are redacted before cloud requests.
       for (const profile of Object.values(appData.clientProfiles || {})) {
         const name = profile && String(profile.name || '').trim();
@@ -5874,10 +5874,22 @@
       }
     }
 
+    function minaHasSalonDomainAnchor(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa').replace(/[يى]/g, 'ی');
+      return /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
+    }
+
     function minaIsSalonScopeRequest(message) {
-      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|متن|پیام|تبریک|تخفیف|تبلیغ|کپشن|استوری|پست|کمپین|بازاریابی|مناسبت|جشن|ایده|شعار|معرفی|دعوت|اطلاع.?رسانی|راهنما|آموزش|تنظیمات|شخصی.?سازی|ظاهر|رنگ|فونت|سایت|اپلیکیشن|برنامه|گزارش|آمار|خروجی|پشتیبان|بکاپ|امکانات|قابلیت|کارکرد|سلام|خوبی|چطوری|درود|مرسی|ممنون|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
-        !!minaPendingBooking || !!minaConversationBooking;
+      // Generic words such as "time", "text", "question" or "hello" never grant salon scope by themselves.
+      // A pending salon workflow may accept a short follow-up such as "5 PM".
+      return minaHasSalonDomainAnchor(message) || !!minaPendingBooking || !!minaConversationBooking;
+    }
+
+    function minaExtractSalonOnlyMessage(message) {
+      const raw = String(message || '').trim();
+      const clauses = raw.split(/(?:[؟?!؛؛\n]+|\s+(?:راستی|ضمناً|ضمنًا|در ضمن|یه سؤال دیگه|یک سؤال دیگر)\s+)/u).map(part => part.trim()).filter(Boolean);
+      const salonClauses = clauses.filter(part => minaHasSalonDomainAnchor(part));
+      return salonClauses.length ? salonClauses.join('؛ ') : raw;
     }
 
     function minaAppendInstagram(reply) {
