@@ -1115,7 +1115,14 @@
     #apptModal .form-group { margin-bottom:3px; min-width:0; }
     #apptModal .form-control { min-height:41px; }
     #apptModal textarea.form-control { min-height:76px; }
-\n    .home-stat-button { appearance:none; font:inherit; color:var(--text-primary); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-height:92px; transition:transform .15s,border-color .15s; }
+\n    .home-appointment-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .home-welcome-card { position:relative; overflow:hidden; border:1px solid var(--border-color); background:linear-gradient(125deg,var(--bg-card),var(--accent-glow)); }
+    .home-welcome-title { font-size:1.05rem; font-weight:900; color:var(--accent); }
+    .home-welcome-subtitle { color:var(--text-secondary); font-size:.75rem; margin-top:4px; line-height:1.7; }
+    .home-quick-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin-top:12px; }
+    .home-quick-actions button { min-width:0; min-height:42px; padding:7px 5px; font-size:.72rem; }
+    @media(max-width:380px) { .home-quick-actions { grid-template-columns:1fr; } }
+    .home-stat-button { appearance:none; font:inherit; color:var(--text-primary); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-height:92px; transition:transform .15s,border-color .15s; }
     .home-stat-button:active { transform:scale(.98); }
     .home-stat-button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
     .home-stat-hint { display:block; margin-top:5px; font-size:.62rem; color:var(--accent); font-weight:800; }
@@ -5854,6 +5861,17 @@
       const calendar = document.getElementById('tab-calendar');
       if (calendar && !document.getElementById('smartDashboard')) {
         const stats = calendar.querySelector('.stats-grid');
+        if (stats && !document.getElementById('homeWelcomeCard')) stats.insertAdjacentHTML('beforebegin', `
+          <section class="card home-welcome-card" id="homeWelcomeCard">
+            <div class="home-welcome-title">✨ دستیار من؛ مرکز مدیریت روز کاری</div>
+            <div class="home-welcome-subtitle">نوبت‌ها، مشتریان و برنامه سالن را یک‌جا و مرتب مدیریت کن.</div>
+            <div class="home-quick-actions">
+              <button type="button" class="btn-primary" onclick="openApptModal()">➕ ثبت نوبت جدید</button>
+              <button type="button" class="btn-secondary" onclick="switchTab('clients',document.querySelector('[data-tab=\'clients\']'))">👥 پرونده مشتریان</button>
+              <button type="button" class="btn-secondary" onclick="goToday();document.getElementById('selectedDateLabel').scrollIntoView({behavior:'smooth',block:'center'});">📅 برنامه امروز</button>
+            </div>
+          </section>`);
+
         if (stats) stats.insertAdjacentHTML('afterend', `
           <section class="card" id="smartDashboard" style="border:1px solid var(--accent);">
             <div class="section-head">
