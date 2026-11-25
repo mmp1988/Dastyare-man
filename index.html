@@ -5548,6 +5548,28 @@
       const openedKey = String(document.getElementById('clientRecordKey')?.value || '');
       if (openedKey === key) renderClientConversationHistory(key);
     }
+    function minaBuildCustomerMemoryContext(message) {
+      const key = minaResolveConversationClientKey(message) || minaConversationContextClientKey;
+      if (!key || !appData.clientProfiles?.[key]) return '';
+      const profile = getClientProfile(key);
+      const appointments = (appData.appointments || []).filter(a =>
+        a && a.status !== 'canceled' && clientMatchesAppointment(key, a)
+      ).sort((a,b) => String(b.dateKey || '').localeCompare(String(a.dateKey || ''))).slice(0,8);
+      const records = (profile.records || []).slice(-8);
+      const conversations = (profile.conversations || []).slice(-8);
+      const lines = ['سابقه مرتبط پرونده مشتری:'];
+      lines.push('نام پرونده: ' + String(profile.name || key));
+      if (Array.isArray(profile.aliases) && profile.aliases.length) lines.push('نام‌های مستعار: ' + profile.aliases.join('، '));
+      if (profile.notes) lines.push('یادداشت سالن: ' + String(profile.notes).slice(0,500));
+      const custom = Array.isArray(profile.customFields) ? profile.customFields.slice(0,12) : [];
+      custom.forEach(item => {
+        if (item && (item.label || item.value)) lines.push('اطلاعات مشتری: ' + String(item.label || '') + '؛ ' + String(item.value || '').slice(0,160));
+      });
+      appointments.forEach(a => lines.push('نوبت مشتری: ' + String(a.dateKey || 'بدون تاریخ') + '، ' + String(a.time || 'ساعت ثبت نشده') + '، ' + String(a.service || 'خدمت ثبت نشده') + '، وضعیت ' + (a.status === 'done' ? 'انجام‌شده' : 'در انتظار')));
+      records.forEach(record => lines.push('سابقه خدمت: ' + String(record.dateKey || 'بدون تاریخ') + '، ' + String(record.service || 'خدمت ثبت نشده') + (record.notes ? '، توضیح: ' + String(record.notes).slice(0,180) : '')));
+      conversations.forEach(item => lines.push((item.role === 'user' ? 'درخواست قبلی مشتری: ' : 'پاسخ قبلی مینا: ') + String(item.text || '').slice(0,260)));
+      return lines.join('\n').slice(0,3200);
+    }
     function renderClientConversationHistory(key) {
       const profile = getClientProfile(key);
       const root = document.getElementById('clientConversationHistory');
@@ -6694,7 +6716,8 @@
           const bubble = row.querySelector('.mina-bubble');
           return role + ': ' + (bubble ? bubble.textContent : '');
         }).join('\n') : '';
-        const cloudContext = (recent || message).slice(-6000);
+        const customerMemory = minaBuildCustomerMemoryContext(message);
+        const cloudContext = ((recent || message) + (customerMemory ? '\n\n' + customerMemory : '')).slice(-9000);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
         if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
