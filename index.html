@@ -7111,6 +7111,20 @@
 
     // --- AUTO-UPDATE ENGINE ---
     let swRegistration = null;
+    function getWorkerBuildVersion(worker) {
+      return new Promise(resolve => {
+        if (!worker || typeof MessageChannel === 'undefined') { resolve('نامشخص'); return; }
+        const channel = new MessageChannel();
+        const timer = setTimeout(() => { try { channel.port1.close(); } catch(e) {} resolve('نامشخص'); }, 1800);
+        channel.port1.onmessage = event => {
+          clearTimeout(timer);
+          try { channel.port1.close(); } catch(e) {}
+          resolve(event.data && event.data.version ? String(event.data.version).replace('dastyare-man-final-', '') : 'نامشخص');
+        };
+        try { worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]); }
+        catch(e) { clearTimeout(timer); resolve('نامشخص'); }
+      });
+    }
     async function checkForAppUpdate(manual = false) {
       if (!('serviceWorker' in navigator)) { if(manual)showToast('بررسی نسخه در این مرورگر پشتیبانی نمی‌شود.'); return; }
       try {
@@ -7118,11 +7132,16 @@
         if (reg) {
           await reg.update();
           if (reg.waiting) {
+            const currentVersion = await getWorkerBuildVersion(navigator.serviceWorker.controller || reg.active);
+            const nextVersion = await getWorkerBuildVersion(reg.waiting);
+            showToast('نسخه فعلی: '+currentVersion+' | نسخه جدید: '+nextVersion+' — در حال نصب خودکار… 🔄');
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            showToast('نسخه جدید یافت شد! در حال به‌روزرسانی... 🔄');
           } else if (manual) {
-            showToast('برنامه شما روی آخرین نسخه است ✅');
+            const currentVersion = await getWorkerBuildVersion(navigator.serviceWorker.controller || reg.active);
+            showToast('نسخه فعلی: '+currentVersion+' | نسخه جدیدی منتشر نشده؛ برنامه به‌روز است ✅');
           }
+        } else if (manual) {
+          showToast('سرویس به‌روزرسانی هنوز فعال نیست؛ یک بار صفحه را تازه‌سازی کن.');
         }
       } catch (e) { if (manual) showToast('بررسی آپدیت نیازمند اینترنت است 🌐'); }
     }
