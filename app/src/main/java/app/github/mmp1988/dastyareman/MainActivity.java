@@ -600,8 +600,9 @@ public class MainActivity extends Activity {
                 final boolean contentUnchanged = unchanged;
                 if (manual) {
                     runOnUiThread(() -> {
+                        notifyWebContentCheckResult(contentUnchanged ? "latest" : "updated");
                         Toast.makeText(MainActivity.this,
-                                contentUnchanged ? "برنامه به‌روز است؛ صفحه با نسخه ذخیره‌شده دوباره بارگذاری می‌شود." : "نسخه جدید دریافت شد؛ در حال اعمال تغییرات…",
+                                contentUnchanged ? "محتوای داخلی برنامه به‌روز است." : "بروزرسانی داخلی دریافت و اعمال شد؛ اطلاعاتت حفظ شد.",
                                 Toast.LENGTH_LONG).show();
                         reloadContentPage();
                     });
@@ -612,10 +613,12 @@ public class MainActivity extends Activity {
                     });
                 }
             } catch (Exception e) {
-                if (manual) runOnUiThread(() ->
-                        Toast.makeText(MainActivity.this,
-                                "بروزرسانی محتوای برنامه انجام نشد؛ اتصال اینترنت را بررسی کن. نسخه فعلی و اطلاعاتت محفوظ هستند.",
-                                Toast.LENGTH_LONG).show());
+                if (manual) runOnUiThread(() -> {
+                    notifyWebContentCheckResult("error");
+                    Toast.makeText(MainActivity.this,
+                            "بررسی بروزرسانی داخلی ناموفق بود؛ نسخه فعلی و اطلاعاتت محفوظ هستند.",
+                            Toast.LENGTH_LONG).show();
+                });
             } finally {
                 if (connection != null) connection.disconnect();
             }
@@ -753,6 +756,16 @@ public class MainActivity extends Activity {
                     checkForApkUpdate(true);
                 }
             }
+        });
+    }
+
+    private void notifyWebContentCheckResult(String result) {
+        WebView current = webView;
+        if (current == null) return;
+        current.post(() -> {
+            WebView active = webView;
+            if (active == null || isFinishing() || isDestroyed()) return;
+            active.evaluateJavascript("if(typeof window.onNativeContentCheckResult==='function'){window.onNativeContentCheckResult('" + result + "');}", null);
         });
     }
 
