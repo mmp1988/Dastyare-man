@@ -122,8 +122,12 @@ export default {
           },
           { role: "user", content: message }
         ],
-        max_completion_tokens: understandMode ? 256 : 512,
-        temperature: understandMode ? 0.05 : 0.25
+        max_completion_tokens: understandMode ? 512 : 768,
+        temperature: understandMode ? 0.05 : 0.25,
+        // Disable the model's private reasoning channel so the constrained JSON
+        // command is returned in message.content instead of exhausting the token budget.
+        chat_template_kwargs: { enable_thinking: false },
+        ...(understandMode ? { response_format: { type: "json_object" } } : {})
       });
 
       // Some Workers AI failures are returned in the result object instead of being thrown.
@@ -136,9 +140,20 @@ export default {
         return json({ success: false, code: "AI_TEMPORARILY_UNAVAILABLE", error: "سرویس هوش مصنوعی فعلاً در دسترس نیست." }, 503, headers);
       }
 
-      const reply = result?.response ?? result?.choices?.[0]?.message?.content ?? "";
-      if (typeof reply !== "string" || !reply.trim()) {
-        return json({ success: false, error: "پاسخ معتبری از مدل دریافت نشد." }, 502, headers);
+      // Different Workers AI model adapters may populate either the legacy
+      // response field or the OpenAI-compatible choices array. Ignore empty
+      // strings so an empty legacy field cannot hide a valid chat completion.
+      const replyCandidates = [
+        result?.response,
+        result?.choices?.[0]?.message?.content,
+        result?.result?.response,
+        result?.result?.choices?.[0]?.message?.content,
+        result?.output_text,
+        result?.generated_text
+      ];
+      const reply = replyCandidates.find(value => typeof value === "string" && value.trim()) || "";
+      if (!reply) {
+        return json({ success: false, code: "AI_EMPTY_RESPONSE", error: "مدل پاسخ متنی معتبری برنگرداند." }, 502, headers);
       }
 
       if (understandMode) {
