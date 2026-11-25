@@ -123,7 +123,7 @@ export default {
           },
           { role: "user", content: message }
         ],
-        max_completion_tokens: understandMode ? 512 : 768,
+        max_tokens: understandMode ? 1024 : 1536,
         temperature: understandMode ? 0.05 : 0.25,
         // Disable the model's private reasoning channel so the constrained JSON
         // command is returned in message.content instead of exhausting the token budget.
