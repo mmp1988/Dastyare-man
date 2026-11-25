@@ -2905,7 +2905,7 @@
       if (!confirm('این نوبت حذف شود؟')) return;
       const deleted = appData.appointments.find(function(a){return a.id === id;});
       appData.appointments = appData.appointments.filter(function(a){return a.id !== id;});
-      saveData(); renderCalendar(); renderDaySchedule();
+      saveData(); renderCalendar(); renderDaySchedule(); updateDashboardStats();
       if (typeof renderClientsTab === 'function') renderClientsTab();
       if (typeof renderClientBirthdays === 'function') renderClientBirthdays();
       const clientKey = deleted ? findClientProfileKeyForAppointment(deleted) : '';
