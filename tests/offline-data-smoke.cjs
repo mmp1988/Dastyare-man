@@ -47,7 +47,7 @@ const assert = require('assert');
         visible: !!field && !!document.querySelector('label[for="apptDate"]'),
         initialDateMatchesSelectedDay: initialDate === toPersianDigits(getTodayKey().replace(/-/g, '/')),
         validDateAccepted: accepted && updatedDate === target,
-        invalidDateRejected
+        invalidDateRejected: invalidRejected
       };
     });
     assert(appointmentDateFormQA.visible && appointmentDateFormQA.initialDateMatchesSelectedDay &&
