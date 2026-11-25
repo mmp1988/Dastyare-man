@@ -1982,7 +1982,11 @@
       </div>
       <div class="client-profile-section" style="border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:8px;">
         <div class="section-title" style="margin-bottom:9px;">🧾 سوابق کارهای انجام‌شده</div>
-        <div id="clientHistoryList" style="display:flex;flex-direction:column;gap:9px;"></div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin:0 0 9px;">
+          <input id="clientHistorySearch" type="search" class="form-control" placeholder="🔎 جستجو در تاریخچه؛ خدمت، توضیحات یا تاریخ..." oninput="renderClientHistory(document.getElementById('clientRecordKey').value)" style="flex:1;min-width:150px;" />
+          <select id="clientHistoryPeriod" class="form-control" onchange="renderClientHistory(document.getElementById('clientRecordKey').value)" style="width:auto;min-width:110px;"><option value="all">همه تاریخ‌ها</option><option value="year">گروه‌بندی سالانه</option><option value="month">گروه‌بندی ماهانه</option></select>
+        </div>
+        <div id="clientHistoryList" style="display:flex;flex-direction:column;gap:9px;max-height:440px;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 2px 0;-webkit-overflow-scrolling:touch;"></div>
       </div>
       <details class="client-profile-extra client-share-extra" style="margin:12px 0;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-secondary);padding:10px;">
         <summary style="cursor:pointer;font-weight:800;font-size:.84rem;">📤 تنظیمات ارسال پرونده برای مشتری</summary>
@@ -3414,6 +3418,25 @@
       openClientRecord(key);
       showToast('پرونده مشتری ساخته شد ✅');
     }
+    function ensureClientProfileForAppointment(appointment) {
+      if (!appointment || !String(appointment.clientName || '').trim() || appointment.clientNameMissing) return '';
+      let key = findClientProfileKeyForAppointment(appointment);
+      if (!key) key = clientKeyFromFields(appointment.phone || '', appointment.clientName);
+      const profile = getClientProfile(key);
+      profile.name = profile.name || String(appointment.clientName).trim();
+      if (!profile.phone && appointment.phone) profile.phone = appointment.phone;
+      appointment.clientId = profile.clientId;
+      return key;
+    }
+
+    function toggleClientVip(key) {
+      const profile = getClientProfile(key);
+      profile.vip = !profile.vip;
+      saveData();
+      renderClientsTab();
+      showToast(profile.vip ? 'مشتری به فهرست VIP اضافه شد 💎' : 'نشان VIP مشتری برداشته شد.');
+    }
+
     function renderClientsTab() {
       const q = (document.getElementById('globalSearchInput').value || '').trim().toLowerCase();
       const c = document.getElementById('clientsListContainer');
@@ -3456,9 +3479,15 @@
         const inactive = !lastDate || (Date.now() - (() => { const a=lastDate.split('-').map(Number); const g=jalaliToGregorian(a[0],a[1],a[2]); return new Date(g[0],g[1]-1,g[2]).getTime(); })()) > 90*86400000;
         const textMatch = !q || (x.name || '').toLowerCase().includes(q) || (x.phone && x.phone.includes(q)) || allServices.includes(q);
         const serviceMatch = !serviceQuery || allServices.includes(serviceQuery);
-        const segmentMatch = segment === 'all' || (segment === 'loyal' && completed >= 5) || (segment === 'new' && completed <= 1) || (segment === 'inactive' && inactive) || (segment === 'photos' && hasPhotos);
+        const segmentMatch = segment === 'all' || (segment === 'vip' && p.vip === true) || (segment === 'loyal' && completed >= 5) || (segment === 'new' && completed <= 1) || (segment === 'inactive' && inactive) || (segment === 'photos' && hasPhotos);
         return textMatch && serviceMatch && segmentMatch;
       });
+      const todayForSort = getTodayKey();
+      const nextAppointmentKey = cl => (cl.visits || [])
+        .filter(a => a.status !== 'canceled' && a.status !== 'done' && a.dateKey && a.dateKey >= todayForSort)
+        .map(a => String(a.dateKey) + (a.time || '99:99')).sort()[0] || '9999-99-99';
+      clients.sort((a,b) => nextAppointmentKey(a).localeCompare(nextAppointmentKey(b)) ||
+        String(a.name || '').localeCompare(String(b.name || ''), 'fa'));
       if (clients.length === 0) {
         c.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.82rem;">هنوز مشتری‌ای ثبت نشده؛ از دکمه «افزودن مشتری» یک پرونده بساز.</div>`;
         return;
@@ -3485,12 +3514,13 @@
             <div style="width:100%;text-align:right;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:14px;padding:10px 12px;color:var(--text-primary);display:flex;align-items:center;gap:10px;">
               <button type="button" onclick="toggleClientAppointmentPeek(decodeURIComponent('${encoded}'))" title="نمایش نوبت‌های مشتری بدون ورود به پرونده" aria-label="نمایش نوبت‌های مشتری" style="border:0;background:transparent;padding:0;cursor:pointer;flex-shrink:0;">${photo}</button>
               <button type="button" onclick="openClientRecord(decodeURIComponent('${encoded}'))" style="flex:1;min-width:0;text-align:right;background:transparent;border:0;padding:0;color:inherit;cursor:pointer;">
-                <strong style="display:block;font-size:0.9rem;">${escapeClientText(cl.name)}</strong>
+                <strong style="display:block;font-size:0.9rem;">${escapeClientText(cl.name)}${p.vip ? ' <span style="display:inline-block;margin-right:5px;padding:2px 7px;border-radius:20px;background:rgba(214,160,50,.16);color:#a87913;font-size:.68rem;">💎 VIP</span>' : ''}</strong>
                 <small style="display:block;color:var(--text-secondary);margin-top:3px;">${escapeClientText(cl.phone || 'بدون شماره تماس')}</small>
                 ${appointmentLine}
                 <small style="display:block;color:var(--accent);margin-top:3px;">${toPersianDigits(count)} سابقه • مشاهده پرونده</small>
               </button>
               <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                <button type="button" class="mini-btn" onclick="toggleClientVip(decodeURIComponent('${encoded}'))" aria-label="تغییر وضعیت VIP مشتری" title="نشان VIP">${p.vip ? '💎 VIP' : '☆ VIP'}</button>
                 <button type="button" class="mini-btn" onclick="openEditClientModal(decodeURIComponent('${encoded}'))" aria-label="ویرایش مشتری">✏️ ویرایش</button>
                 <button type="button" class="mini-btn del" onclick="deleteClient(decodeURIComponent('${encoded}'))" aria-label="حذف مشتری">🗑️ حذف</button>
               </div>
@@ -4357,13 +4387,31 @@
         !(p.records || []).some(record => record.id === 'done_' + String(a.id)))
         .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:a.notes || '', photo:'', appointmentType:a.appointmentType || (isFollowupAppointment(a)?'followup':'primary'), source:'appointment' }));
       const records = (p.records || []).map(r => ({...r, source:'record'}));
-      const items = appts.concat(records).sort((a,b) => (b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
+      const allItems = appts.concat(records).sort((a,b) => (b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
       const box = document.getElementById('clientHistoryList');
+      const searchText = String(document.getElementById('clientHistorySearch')?.value || '').trim().toLocaleLowerCase('fa');
+      const periodMode = document.getElementById('clientHistoryPeriod')?.value || 'month';
+      const items = allItems.filter(item => !searchText || [
+        item.service, item.notes, item.dateKey, item.time,
+        ...Object.values(item.customValues || {}).map(v => typeof v === 'string' ? v : v?.value || '')
+      ].join(' ').toLocaleLowerCase('fa').includes(searchText));
       if (!items.length) {
         box.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-secondary);font-size:.8rem;">هنوز سابقه کار انجام‌شده‌ای ثبت نشده است. بعد از هر جلسه، جزئیات و عکس را اینجا ذخیره کن.</div>';
         return;
       }
-      box.innerHTML = items.map(item => `
+      const monthLabel = key => {
+        const parts = String(key || '').split('-');
+        const months = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+        return parts.length >= 2 ? (months[Number(parts[1])-1] || 'ماه نامشخص') + ' ' + (parts[0] || '') : 'بدون تاریخ';
+      };
+      const groups = new Map();
+      items.forEach(item => {
+        const groupKey = periodMode === 'year' ? (item.dateKey || '').slice(0,4) || 'بدون تاریخ'
+          : periodMode === 'month' ? (item.dateKey || '').slice(0,7) || 'بدون تاریخ' : 'همه سوابق';
+        if (!groups.has(groupKey)) groups.set(groupKey, []);
+        groups.get(groupKey).push(item);
+      });
+      const renderHistoryItem = item => `
         <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:13px;padding:10px;">
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
             <strong style="font-size:.84rem;">${escapeClientText(item.service)}</strong>
@@ -4390,7 +4438,17 @@
           <button class="mini-btn wa" style="margin-top:8px;" onclick="shareClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">📤 ارسال این سابقه</button>
           <button class="mini-btn history-delete-btn" onclick="deleteClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">🗑️ حذف از تاریخچه</button>
         </div>
-      `).join('');
+      `;
+      box.innerHTML = Array.from(groups.entries()).map(([groupKey, groupItems], index) => {
+        const label = groupKey === 'همه سوابق' ? 'همه سوابق' : groupKey === 'بدون تاریخ' ? 'بدون تاریخ' :
+          periodMode === 'year' ? 'سال ' + toPersianDigits(groupKey) : monthLabel(groupKey + '-01');
+        return `<details class="client-history-group" ${index === 0 ? 'open' : ''} style="border:1px solid var(--border-subtle);border-radius:12px;padding:7px;margin-bottom:8px;">
+          <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px;font-weight:800;">
+            <span>🗂️ ${escapeClientText(label)}</span><small style="color:var(--text-secondary);font-weight:600;">${toPersianDigits(groupItems.length)} سابقه　⌄</small>
+          </summary>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px;">${groupItems.map(renderHistoryItem).join('')}</div>
+        </details>`;
+      }).join('');
       box.querySelectorAll('img[data-photo-ref]').forEach(async img=>{
         try { const url=await getClientPhotoUrl(img.getAttribute('data-photo-ref')); if(url)img.src=url; } catch(e) {}
       });
@@ -5534,7 +5592,9 @@
           status: 'pending',
           notified: false
         };
+        const ensuredClientKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
+        if (ensuredClientKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaLastReferencedAppointmentId = appointment.id;
         selectedDateKey = appointment.dateKey;
         viewYear = Number(appointment.dateKey.slice(0,4));
@@ -5717,15 +5777,9 @@
           notes: '',
           alarm: '15', status: 'pending', notified: false
         };
-        const appointmentProfileKey = findClientProfileKeyForAppointment(appointment) ||
-          (appointment.clientName && !appointment.clientNameMissing ? clientKeyFromFields(appointment.phone, appointment.clientName) : '');
-        if (appointmentProfileKey) {
-          const appointmentProfile = getClientProfile(appointmentProfileKey);
-          appointment.clientId = appointmentProfile.clientId;
-          if (!appointmentProfile.name) appointmentProfile.name = appointment.clientName;
-          if (!appointmentProfile.phone && appointment.phone) appointmentProfile.phone = appointment.phone;
-        }
+        const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
+        if (appointmentProfileKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaPendingBooking = null;
         saveData();
         if (typeof renderCalendar === 'function') renderCalendar();
@@ -7402,7 +7456,7 @@
             <div style="font-size:.78rem;font-weight:800;color:var(--accent);margin-bottom:7px;">🔎 فیلترهای پیشرفته مشتریان</div>
             <div class="form-grid">
               <div class="form-group" style="margin:0;"><label>جستجو بر اساس نوع خدمت</label><input id="advancedClientService" class="form-control" placeholder="مثلاً والیوم، لیفت..." oninput="renderClientsTab()" /></div>
-              <div class="form-group" style="margin:0;"><label>گروه مشتری</label><select id="advancedClientSegment" class="form-control" onchange="renderClientsTab()"><option value="all">همه مشتریان</option><option value="loyal">مشتریان وفادار (۵ مراجعه به بالا)</option><option value="new">مشتریان جدید (حداکثر یک مراجعه)</option><option value="inactive">بدون مراجعه بیش از ۹۰ روز</option><option value="photos">دارای گالری عکس</option></select></div>
+              <div class="form-group" style="margin:0;"><label>گروه مشتری</label><select id="advancedClientSegment" class="form-control" onchange="renderClientsTab()"><option value="all">همه مشتریان</option><option value="vip">مشتریان VIP 💎</option><option value="loyal">مشتریان وفادار (۵ مراجعه به بالا)</option><option value="new">مشتریان جدید (حداکثر یک مراجعه)</option><option value="inactive">بدون مراجعه بیش از ۹۰ روز</option><option value="photos">دارای گالری عکس</option></select></div>
             </div>
             <button class="btn-secondary" style="margin-top:8px;" onclick="document.getElementById('globalSearchInput').value='';document.getElementById('advancedClientService').value='';document.getElementById('advancedClientSegment').value='all';renderClientsTab();">پاک‌کردن فیلترها</button>
           </div>`);
