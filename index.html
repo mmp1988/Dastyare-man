@@ -2728,6 +2728,10 @@
       selectedDateKey = parsed;
       viewYear = Number(parsed.slice(0,4));
       viewMonth = Number(parsed.slice(5,7));
+      if (!document.getElementById('editApptId')?.value) {
+        const title = document.getElementById('apptModalTitle');
+        if (title) title.textContent = 'ثبت نوبت برای ' + formatJalaliFull(parsed);
+      }
       checkTimeConflict();
       updateFollowupUI();
       return true;
