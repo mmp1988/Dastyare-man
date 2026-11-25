@@ -4067,13 +4067,17 @@
     function scheduleNextClientBirthdayAlarm(key,p){
       cancelClientBirthdayAlarm(key);
       const info=nextClientBirthdayInfo(p);if(!info)return;
-      const trigger=new Date(info.gregorianDate.getTime()-86400000);trigger.setHours(9,0,0,0);
-      if(trigger.getTime()<=Date.now())return;
+      const birthday=info.gregorianDate;
+      const birthdayJalali=gregorianToJalali(birthday.getFullYear(),birthday.getMonth()+1,birthday.getDate());
+      const triggerJalali=addDaysToJalaliKey(birthdayJalali[0]+'-'+pad2(birthdayJalali[1])+'-'+pad2(birthdayJalali[2]),-1);
+      const triggerDate=jalaliKeyToGregorianDate(triggerJalali);
+      const triggerAt=iranDateTimeToEpoch(triggerDate,'09:00');
+      if(!Number.isFinite(triggerAt)||triggerAt<=Date.now())return;
       const id='birthday_'+encodeURIComponent(key)+'_'+info.year;
       const message='فردا تولد '+(p.name||key)+' است 🎂 برای تبریک و هدیه یا تخفیف ویژه آماده شو.';
-      const item={id,date:localReminderDate(trigger),time:'09:00',message,enabled:true,notified:false,birthdayClientKey:key,birthdayYear:info.year};
+      const item={id,date:triggerDate,time:'09:00',message,enabled:true,notified:false,birthdayClientKey:key,birthdayYear:info.year,timezone:'Asia/Tehran'};
       appData.reminders=appData.reminders||[];appData.reminders.push(item);
-      try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==='function')AndroidApp.schedulePersonalReminder(String(id),trigger.getTime(),message);}catch(e){}
+      try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==='function')AndroidApp.schedulePersonalReminder(String(id),triggerAt,message);}catch(e){}
       saveData();
     }
     function saveClientBirthday(){
