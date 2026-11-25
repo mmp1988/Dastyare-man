@@ -58,6 +58,20 @@ public class PersonalReminderReceiver extends BroadcastReceiver {
         } catch (Exception ignored) { }
     }
 
+    public static void rescheduleAll(Context context) {
+        JSONArray items = readItems(context);
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item == null) continue;
+            String id = item.optString("id", "");
+            long at = item.optLong("at", 0L);
+            if (!id.isEmpty() && at > now) {
+                scheduleSystemAlarm(context, id, at, item.optString("message", ""));
+            }
+        }
+    }
+
     public static boolean wasFired(Context context, String id) {
         if (id == null) return false;
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet("fired", new java.util.HashSet<>()).contains(id);
