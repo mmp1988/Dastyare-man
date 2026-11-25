@@ -822,7 +822,7 @@ const assert = require('assert');
         todayExpanded,
         monthRows:monthRows.length,
         monthIncludesFutureDate:monthNames.includes('مشتری فردا'),
-        upcomingExcludesToday:!upcomingText.includes('مشتری اول') && !upcomingText.includes('مشتری دوم') && upcomingText.includes('مشتری فردا')
+        upcomingExcludesToday:document.getElementById('smartUpcoming').textContent==='۱' && !upcomingText.includes('مشتری اول') && upcomingText.includes('مشتری فردا')
       };
     });
     assert(homeDashboardQA.todayRows===2 && homeDashboardQA.todaySorted &&
