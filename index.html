@@ -6193,10 +6193,13 @@
       let nameSource = normalized;
       if (phoneMatch) nameSource = normalized.slice(0, phoneMatch.index) + ' ' + normalized.slice(phoneMatch.index + phoneMatch[0].length);
       const patterns = [
-        /(?:مشتری(?:\s+جدید)?|پرونده(?:\s+جدید)?)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|مشتریان|پرونده|ثبت|اضافه|افزودن|وارد|بساز|ایجاد|کن|کنش|برو)|$)/u,
-        /(?:به\s+نام|به\s+اسم|اسمش|نامش)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|ثبت|اضافه|افزودن|کن|کنش)|$)/u,
+        // Prefer explicit owner/name phrases before the generic «پرونده ...» pattern.
+        // In «برای مامان مینا تو قسمت مشتریان یه پرونده باز کن», the name is
+        // «مامان مینا»; «باز کن» is an action, never a customer name.
+        /(?:برای|واسه)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|ثبت|اضافه|افزودن|کن|کنش|باز\s+کن)|$)/u,
+        /(?:به\s+نام|به\s+اسم|اسمش|نامش)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|ثبت|اضافه|افزودن|کن|کنش|باز\s+کن)|$)/u,
         /(?:این\s+)?شماره(?:\s+تلفن)?\s+(.+?)(?=\s+(?:هست|است|ـه|مال|متعلق|توی|در|قسمت|بخش)|$)/u,
-        /(?:برای|واسه)\s+(.+?)(?=\s+(?:توی|تو|در|قسمت|بخش|ثبت|اضافه|کن|کنش)|$)/u
+        /(?:مشتری(?:\s+جدید)?|پرونده(?:\s+جدید)?)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|مشتریان|پرونده|ثبت|اضافه|افزودن|وارد|بساز|ایجاد|کن|کنش|برو|باز\s+کن)|$)/u
       ];
       let name = '';
       for (const pattern of patterns) {
@@ -6259,7 +6262,8 @@
       saveData();
       if (typeof renderClientsTab === 'function') renderClientsTab();
       if (typeof switchTab === 'function') switchTab('clients');
-      if (typeof openClientRecord === 'function') openClientRecord(key);
+      // Keep the user on the customer directory after creation; do not force-open
+      // the long customer profile form. The record is already saved and visible in the list.
       const actionText = phoneAssignmentIntent && !addIntent && !customerIntent
         ? 'شماره تلفن رو به پرونده مشتری وصل کردم'
         : existing ? (updated ? 'پرونده قبلی مشتری رو به‌روزرسانی کردم' : 'این مشتری از قبل ثبت شده بود و پرونده تکراری نساختم')
@@ -6346,7 +6350,21 @@
         }
       }
 
-      // Cloud AI routes every natural-language message exactly once: conversation vs. a real app operation.
+      // Execute customer-profile operations from the user's original Persian wording before
+      // cloud rewriting. This preserves exact names and prevents a model paraphrase from
+      // turning «مامان مینا» into a different name or a bulk-delete request into profile creation.
+      const localCustomerMutationReply = minaTryManageClientFromMessage(message);
+      if (localCustomerMutationReply) {
+        addMinaMessage(minaFormatReplyForMode(localCustomerMutationReply), 'assistant');
+        return;
+      }
+      const localCustomerCreateReply = minaTryAddClientFromMessage(message);
+      if (localCustomerCreateReply) {
+        addMinaMessage(minaFormatReplyForMode(localCustomerCreateReply), 'assistant');
+        return;
+      }
+
+      // Cloud AI routes every other natural-language message exactly once: conversation vs. a real app operation.
       // The model sees recent turns for references like «همونو»، «براش» and «مثل قبلی».
       let reply = null;
       let routedCommand = null;
@@ -6432,11 +6450,44 @@
     function minaTryManageClientFromMessage(raw) {
       const source = minaNormalizePersianTypos(minaNormalizeDigits(String(raw || ''))).replace(/[يى]/g, 'ی').trim();
       const text = source.toLocaleLowerCase('fa');
-      const profiles = appData.clientProfiles || {};
+      const profiles = appData.clientProfiles || (appData.clientProfiles = {});
       const entries = Object.entries(profiles);
+      const normalize = value => String(value || '').replace(/[يى]/g,'ی').replace(/[\u064B-\u065F]/g,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fa');
+      const wantsBulkDelete = /(?:(?:همه|تمام|کلیه|هرچی|هر\s+چه|هرکدام|هر\s+کدام).{0,90}(?:پرونده|مشتری)|(?:پرونده|مشتری).{0,90}(?:همه|تمام|کلیه|هرچی|هر\s+چه))/u.test(text) &&
+        /(?:حذف|پاک|خالی)/u.test(text);
+      if (wantsBulkDelete) {
+        if (!entries.length) return 'عزیزم، در قسمت مشتریان هیچ پرونده‌ای برای حذف وجود نداره. 💗';
+        if (!confirm('همه ' + entries.length + ' پرونده مشتری و سوابق و نوبت‌های متصل به آن‌ها حذف شوند؟ این کار برگشت‌پذیر نیست.')) {
+          return 'چشم عزیزم؛ هیچ پرونده‌ای حذف نشد و اطلاعاتت دست‌نخورده باقی موند. 💗';
+        }
+        const keys = new Set(entries.map(([key]) => String(key)));
+        const clientIds = new Set(entries.map(([,p]) => String(p?.clientId || '')).filter(Boolean));
+        const names = new Set(entries.flatMap(([key,p]) => [p?.name || key, ...(Array.isArray(p?.aliases) ? p.aliases : [])]).map(normalize).filter(Boolean));
+        const phones = new Set(entries.map(([key,p]) => String(p?.phone || (/^[0-9۰-۹٠-٩+() -]+$/u.test(key) ? key : '')).replace(/\D/g,'')).filter(Boolean));
+        entries.forEach(([,profile]) => {
+          if (typeof deleteClientPhotoRefs === 'function') Promise.resolve(deleteClientPhotoRefs(profile)).catch(()=>{});
+        });
+        appData.appointments = (appData.appointments || []).filter(a => {
+          if (a?.clientId && clientIds.has(String(a.clientId))) return false;
+          const apptKey = String(clientKeyFromFields(a?.phone, a?.clientName) || '');
+          if (keys.has(apptKey)) return false;
+          if (names.has(normalize(a?.clientName))) return false;
+          const apptPhone = String(a?.phone || '').replace(/\D/g,'');
+          if (apptPhone && phones.has(apptPhone)) return false;
+          return true;
+        });
+        entries.forEach(([key]) => { if (appData.clientNotes) delete appData.clientNotes[key]; });
+        appData.clientProfiles = {};
+        if (typeof minaLastReferencedAppointmentId !== 'undefined' && minaLastReferencedAppointmentId &&
+            !(appData.appointments || []).some(a => a.id === minaLastReferencedAppointmentId)) minaLastReferencedAppointmentId = null;
+        saveData();
+        if (typeof renderClientsTab === 'function') renderClientsTab();
+        if (typeof renderCalendar === 'function') renderCalendar();
+        if (typeof renderDaySchedule === 'function') renderDaySchedule();
+        return 'انجام شد عزیزم 🌸 همه ' + toPersianDigits(entries.length) + ' پرونده مشتری و سوابق و نوبت‌های مرتبط حذف شدند. 💗';
+      }
       if (!entries.length) return null;
       const phoneMatch = source.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
-      const normalize = value => String(value || '').replace(/[يى]/g,'ی').replace(/[\u064B-\u065F]/g,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fa');
       const target = entries
         .flatMap(([key,p]) => [String(p?.name || key), ...(Array.isArray(p?.aliases) ? p.aliases : [])].map(alias => ({key,profile:p,alias:String(alias||'').trim()})))
         .filter(x => x.alias.length > 1 && text.includes(normalize(x.alias)))
