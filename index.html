@@ -1982,8 +1982,20 @@
           <div class="form-group full"><label for="apptNotes">یادداشت و توضیحات نوبت (اختیاری)</label><textarea id="apptNotes" class="form-control" rows="3" placeholder="توضیحات دلخواه درباره مشتری، نوع کار یا نکات لازم..."></textarea></div>
         </div>
       </div>
-      <div class="appointment-form-section"><div class="appointment-form-section-title">🔁 نوبت بعدی و وضعیت</div><div class="form-grid"><div class="form-group">
-        <div class="form-group" id="followupCustomDaysBox" style="display:none;">
+      <div class="appointment-form-section">
+        <div class="appointment-form-section-title">🔁 نوبت بعدی و وضعیت</div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="apptNextFollowup">رزرو خودکار نوبت ترمیم بعدی</label>
+            <select id="apptNextFollowup" class="form-control" onchange="updateFollowupUI()">
+              <option value="0">بدون نوبت ترمیم</option>
+              <option value="14">۲ هفته بعد (۱۴ روز)</option>
+              <option value="21">۳ هفته بعد (۲۱ روز)</option>
+              <option value="28">۴ هفته بعد (۲۸ روز)</option>
+              <option value="custom">دلخواه (تعداد روز دلخواه)</option>
+            </select>
+          </div>
+          <div class="form-group" id="followupCustomDaysBox" style="display:none;">
           <label>چند روز بعد ترمیم ثبت شود؟</label>
           <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" oninput="updateFollowupUI()" />
         </div>
@@ -1998,6 +2010,7 @@
             <option value="canceled">لغو شد</option>
           </select>
         </div>
+      </div>
       </div>
 
       <div id="conflictWarningBox" style="display:none; background:rgba(239,68,68,0.14); border:1px solid var(--danger); color:var(--danger); padding:8px 12px; border-radius:11px; font-size:0.78rem; margin-bottom:10px;">
