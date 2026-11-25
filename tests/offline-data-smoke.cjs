@@ -180,11 +180,12 @@ const assert = require('assert');
       'Mina must route short and colloquial Persian appointment edits, parse spoken hour/minute with afternoon correctly, move the exact named appointment, and navigate the calendar to its saved date: ' + JSON.stringify(appointmentRescheduleQA));
     console.log('Mina appointment reschedule:', JSON.stringify(appointmentRescheduleQA));
 
-    // Historical booking regression across named Jalali months, including the
-    // colloquial «ماه» suffix and an omitted year that defaults to the current year.
+    // Historical booking regression across month-name, past-relative and personalized reminder dates.
     const historicalBookingQA = await page.evaluate(() => {
       const oldAppointments = appData.appointments;
       const oldProfiles = appData.clientProfiles;
+      const oldReminders = appData.reminders;
+      const oldSettings = appData.settings;
       const oldLastId = minaLastReferencedAppointmentId;
       const oldSelectedDate = selectedDateKey;
       const oldViewYear = viewYear;
@@ -192,31 +193,53 @@ const assert = require('assert');
       try {
         appData.appointments = [];
         appData.clientProfiles = {};
+        appData.reminders = [];
+        appData.settings = { ...oldSettings, repairReminderDays: 18, repairReminderTime: '10:15', repairReminderEnabled: true };
         minaLastReferencedAppointmentId = null;
-        const replyAban = minaBuildReply('برای مینا موسوی مطلق ۱۸ آبان ۱۴۰۵ نوبت کاشت مژه ثبت کن');
+        const replyAban = minaBuildReply('برای مینا موسوی مطلق ۱۸ آبان ماه گذشته نوبت کاشت مژه ثبت کن');
         const replyMehr = minaBuildReply('برای سارا ۲۰ مهر ماه نوبت لیفت مژه ثبت کن');
+        const replyRelative = minaBuildReply('برای نازنین ۳ روز پیش نوبت فیشیال ثبت کن');
         const aban = appData.appointments.find(a => a.clientName === 'مینا موسوی مطلق');
         const mehr = appData.appointments.find(a => a.clientName === 'سارا');
-        const noLookupError = !/هیچ نوبتی برای این کار پیدا نکردم/u.test(replyAban + replyMehr);
-        const exactDates = aban?.dateKey === '1405-08-18' && mehr?.dateKey === '1405-07-20';
-        const exactServices = aban?.service === 'کاشت مژه' && mehr?.service === 'لیفت مژه';
-        const completed = aban?.status === 'done' && mehr?.status === 'done';
-        const profilesLinked = [aban, mehr].every(a => !!a?.clientId &&
+        const relative = appData.appointments.find(a => a.clientName === 'نازنین');
+        const noLookupError = !/هیچ نوبتی برای این کار پیدا نکردم/u.test(replyAban + replyMehr + replyRelative);
+        const exactDates = aban?.dateKey === '1405-08-18' && mehr?.dateKey === '1405-07-20' &&
+          relative?.dateKey === addDaysToJalaliKey(getTodayKey(), -3);
+        const exactServices = aban?.service === 'کاشت مژه' && mehr?.service === 'لیفت مژه' && relative?.service === 'فیشیال';
+        const completed = [aban, mehr, relative].every(a => a?.status === 'done');
+        const profilesLinked = [aban, mehr, relative].every(a => !!a?.clientId &&
           Object.values(appData.clientProfiles).some(p => p.clientId === a.clientId));
+        const reminder = appData.reminders.find(r => r.appointmentId === aban?.id && r.kind === 'automatic-repair');
+        const reminderJalali = reminder?.date ? (() => { const p=reminder.date.split('-').map(Number); const j=gregorianToJalali(p[0],p[1],p[2]); return j[0]+'-'+pad2(j[1])+'-'+pad2(j[2]); })() : '';
+        const reminderFromOriginalDate = reminderJalali === '1405-09-06' && reminder?.appointmentDateKey === '1405-08-18';
+        const reminderUsesPersonalization = reminder?.daysAfter === 18 && reminder?.time === '10:15';
+        const soundChoices = ['classic','gentle','digital','bell','short','long','custom'].every(v =>
+          Array.from(document.querySelectorAll('#settingAlarmSound option')).some(o => o.value === v));
+        const soundActions = !!document.querySelector('#settingAlarmSound[onchange*="previewAlarmSoundChoice"]') &&
+          Array.from(document.querySelectorAll('button[onclick*="previewAlarmSoundChoice"]')).length > 0 &&
+          Array.from(document.querySelectorAll('button[onclick*="saveAlarmSoundChoice"]')).length > 0;
         return {
-          createdExactlyTwo: appData.appointments.length === 2,
+          createdExactlyThree: appData.appointments.length === 3,
           noLookupError,
           exactDates,
           exactServices,
           completed,
           profilesLinked,
+          reminderFromOriginalDate,
+          reminderUsesPersonalization,
+          soundChoices,
+          soundActions,
           todayKey: getTodayKey(),
           replyAban,
-          replyMehr
+          replyMehr,
+          replyRelative,
+          reminderJalali
         };
       } finally {
         appData.appointments = oldAppointments;
         appData.clientProfiles = oldProfiles;
+        appData.reminders = oldReminders;
+        appData.settings = oldSettings;
         minaLastReferencedAppointmentId = oldLastId;
         selectedDateKey = oldSelectedDate;
         viewYear = oldViewYear;
@@ -227,11 +250,13 @@ const assert = require('assert');
         renderClientsTab();
       }
     });
-    assert(historicalBookingQA.createdExactlyTwo && historicalBookingQA.noLookupError &&
+    assert(historicalBookingQA.createdExactlyThree && historicalBookingQA.noLookupError &&
       historicalBookingQA.exactDates && historicalBookingQA.exactServices &&
-      historicalBookingQA.completed && historicalBookingQA.profilesLinked,
-      'Past Jalali dates in different months must create completed appointments linked to the correct customers: ' + JSON.stringify(historicalBookingQA));
-    console.log('Historical Jalali booking regression:', JSON.stringify(historicalBookingQA));
+      historicalBookingQA.completed && historicalBookingQA.profilesLinked &&
+      historicalBookingQA.reminderFromOriginalDate && historicalBookingQA.reminderUsesPersonalization &&
+      historicalBookingQA.soundChoices && historicalBookingQA.soundActions,
+      'Past tense, relative dates, personalized repair reminders, and two-step alarm sound controls must work: ' + JSON.stringify(historicalBookingQA));
+    console.log('Historical booking and reminder regression:', JSON.stringify(historicalBookingQA));
 
     // The redesigned appointment form must expose and persist an editable Jalali visit date.
     const appointmentDateFormQA = await page.evaluate(() => {
