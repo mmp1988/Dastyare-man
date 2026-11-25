@@ -6692,6 +6692,7 @@
       // Explicit first-person plans with reminder language are personal alarms,
       // not salon appointments; execute them before cloud routing can misclassify them.
       let reply = minaTrySetPersonalReminder(message);
+      let personalReminderHandled = !!reply;
       let routedCommand = null;
       if (!reply && navigator.onLine) {
         const root = document.getElementById('minaChatMessages');
@@ -6715,6 +6716,7 @@
           // Semantic personal-alarm classification must never enter appointment booking.
           reply = minaTrySetPersonalReminder(message) ||
             'برای تنظیم یادآوری شخصی، لطفاً تاریخ و ساعت دقیق را بگو عزیزم.';
+          personalReminderHandled = true;
         } else if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
@@ -6725,7 +6727,7 @@
       // Safety net for explicit operations: the cloud decides the intent first, but it cannot
       // veto a well-formed operation that the trusted local executor can actually complete.
       // Every executor is guarded and must return a result before its reply replaces the AI answer.
-      if (!routedCommand && reply && minaIsClearlyLocalAction(message)) {
+      if (!personalReminderHandled && !routedCommand && reply && minaIsClearlyLocalAction(message)) {
         const personalReminderAction = minaTrySetPersonalReminder(message);
         const customerMutationAction = personalReminderAction || minaTryManageClientFromMessage(message);
         const customerCreateAction = customerMutationAction || minaTryAddClientFromMessage(message);
