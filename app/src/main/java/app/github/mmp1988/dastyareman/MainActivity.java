@@ -1002,6 +1002,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void showAppointmentNotification(String appointmentId, String message) {
             runOnUiThread(() -> MainActivity.this.showAppointmentNotification(appointmentId, message));
         }
+        // Mina passes an absolute timestamp calculated from Asia/Tehran wall time.
+        // Return the receiver's actual scheduling status so the assistant never fabricates success.
         @JavascriptInterface public String schedulePersonalReminder(String reminderId, long triggerAtMillis, String message) {
             if (Build.VERSION.SDK_INT >= 33
                     && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
