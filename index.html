@@ -1107,6 +1107,14 @@
       .client-appointment-actions { flex-direction:column; }
       .client-appointment-actions .btn-secondary { min-width:52px; min-height:32px; }
     }
+\n    .appointment-birthday-box { padding:9px 10px; border:1px solid var(--border-subtle); border-radius:11px; background:var(--bg-secondary); margin:2px 0 8px; }
+    .appointment-birthday-fields { display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:7px; }
+    .appointment-birthday-fields .form-control { min-width:0; text-align:center; direction:ltr; }
+    .appointment-birthday-box small { display:block; margin-top:6px; color:var(--text-secondary); font-size:.68rem; line-height:1.7; }
+    #apptModal .form-grid { gap:9px 10px; }
+    #apptModal .form-group { margin-bottom:3px; min-width:0; }
+    #apptModal .form-control { min-height:41px; }
+    #apptModal textarea.form-control { min-height:76px; }
 \n</style>
 </head>
 <body>
@@ -1935,6 +1943,15 @@
           <label>چند دقیقه قبل از نوبت هشدار بدهم؟</label>
           <input type="number" id="apptCustomAlarmMinutes" class="form-control" min="0" max="43200" step="1" value="15" placeholder="مثلاً ۴۵ یا ۱۲۰" />
         </div>
+        <div class="form-group full appointment-birthday-box">
+          <label>🎂 تاریخ تولد مشتری (اختیاری)</label>
+          <div class="appointment-birthday-fields">
+            <input type="number" id="apptBirthdayYear" class="form-control" inputmode="numeric" min="1200" max="1500" placeholder="سال شمسی" aria-label="سال تولد مشتری" />
+            <input type="number" id="apptBirthdayMonth" class="form-control" inputmode="numeric" min="1" max="12" placeholder="ماه" aria-label="ماه تولد مشتری" />
+            <input type="number" id="apptBirthdayDay" class="form-control" inputmode="numeric" min="1" max="31" placeholder="روز" aria-label="روز تولد مشتری" />
+          </div>
+          <small>با ذخیره نوبت، تولد در بخش «تولد مشتریان» هم ثبت می‌شود. اگر خالی بماند، تاریخ قبلی تغییر نمی‌کند.</small>
+        </div>
         <div class="form-group full">
           <label>یادداشت و توضیحات نوبت</label>
           <textarea id="apptNotes" class="form-control" rows="3" placeholder="توضیحات دلخواه درباره مشتری، نوع کار یا نکات لازم..."></textarea>
@@ -2627,6 +2644,12 @@
         if (document.getElementById('apptAlarm').value === 'custom') document.getElementById('apptCustomAlarmMinutes').value = String(Math.max(0,Number(appt.alarm)||0));
         document.getElementById('apptNotes').value = appt.notes || '';
         document.getElementById('apptStatus').value = appt.status || 'pending';
+        const editClientKey = findClientProfileKeyForAppointment(appt);
+        const editBirthday = editClientKey ? getClientProfile(editClientKey).birthDate : '';
+        const editBirthdayParts = editBirthday ? editBirthday.split('-') : [];
+        document.getElementById('apptBirthdayYear').value = editBirthdayParts[0] || '';
+        document.getElementById('apptBirthdayMonth').value = editBirthdayParts[1] || '';
+        document.getElementById('apptBirthdayDay').value = editBirthdayParts[2] || '';
         const linkedFollowup = !isFollowupAppointment(appt) && appData.appointments.find(a => a.parentAppointmentId === appt.id && a.status !== 'canceled');
         if (linkedFollowup) {
           let followupDays = 0;
@@ -2647,6 +2670,9 @@
         document.getElementById('apptAlarm').value = '15';
         document.getElementById('apptNotes').value = '';
         document.getElementById('apptStatus').value = 'pending';
+        document.getElementById('apptBirthdayYear').value = '';
+        document.getElementById('apptBirthdayMonth').value = '';
+        document.getElementById('apptBirthdayDay').value = '';
       }
       document.getElementById('customAlarmMinutesBox').style.display = document.getElementById('apptAlarm').value === 'custom' ? 'block' : 'none';
       checkTimeConflict();
@@ -2759,6 +2785,25 @@
         showToast('زمان هشدار دلخواه باید بین صفر تا ۴۳۲۰۰ دقیقه باشد.'); return;
       }
       var existingAppointment = editId ? appData.appointments.find(a => a.id === editId) : null;
+      var birthdayYear = String(document.getElementById('apptBirthdayYear')?.value || '').trim();
+      var birthdayMonth = String(document.getElementById('apptBirthdayMonth')?.value || '').trim();
+      var birthdayDay = String(document.getElementById('apptBirthdayDay')?.value || '').trim();
+      var hasBirthdayInput = !!(birthdayYear || birthdayMonth || birthdayDay);
+      var parsedBirthday = '';
+      if (hasBirthdayInput) {
+        if (!birthdayYear || !birthdayMonth || !birthdayDay) {
+          showToast('برای ثبت تولد، سال و ماه و روز را کامل وارد کن.');
+          return;
+        }
+        parsedBirthday = parseClientJalaliDate(birthdayYear + '/' + birthdayMonth + '/' + birthdayDay) || '';
+        var birthdayParts = parsedBirthday ? parsedBirthday.split('-').map(Number) : [];
+        var currentJalaliYear = Number(getTodayKey().slice(0,4));
+        if (!parsedBirthday || birthdayParts[0] < 1200 || birthdayParts[0] > currentJalaliYear ||
+            birthdayParts[1] < 1 || birthdayParts[1] > 12 || birthdayParts[2] < 1 || birthdayParts[2] > 31) {
+          showToast('تاریخ تولد معتبر نیست؛ تاریخ را به شمسی وارد کن.');
+          return;
+        }
+      }
       var payload = {
         id: editId || ('appt_' + Date.now()),
         appointmentType: existingAppointment?.appointmentType || (existingAppointment && isFollowupAppointment(existingAppointment) ? 'followup' : 'primary'),
@@ -2776,6 +2821,20 @@
         appointmentProfile.name = appointmentProfile.name || payload.clientName;
         appointmentProfile.phone = appointmentProfile.phone || payload.phone;
         payload.clientId = appointmentProfile.clientId;
+      }
+      if (hasBirthdayInput && appointmentProfileKey) {
+        var birthdayProfile = getClientProfile(appointmentProfileKey);
+        birthdayProfile.birthDate = parsedBirthday;
+        birthdayProfile.birthdayAlertYear = '';
+        try {
+          var deletedBirthdayKeys = JSON.parse(localStorage.getItem('dastyare_man_client_birthday_deleted_v1') || '{}');
+          delete deletedBirthdayKeys[appointmentProfileKey];
+          Object.keys(deletedBirthdayKeys).forEach(function(k) {
+            if (birthdayProfile.clientId && deletedBirthdayKeys[k] && deletedBirthdayKeys[k].clientId === birthdayProfile.clientId) delete deletedBirthdayKeys[k];
+          });
+          localStorage.setItem('dastyare_man_client_birthday_deleted_v1', JSON.stringify(deletedBirthdayKeys));
+        } catch (e) {}
+        scheduleNextClientBirthdayAlarm(appointmentProfileKey, birthdayProfile);
       }
       if (editId) {
         var idx = appData.appointments.findIndex(function(a){return a.id === editId;});
@@ -2804,7 +2863,7 @@
           followupCreatedOrUpdated = true;
         }
       }
-      saveData(); closeModal('apptModal'); renderCalendar(); renderDaySchedule();
+      saveData(); if (hasBirthdayInput && appointmentProfileKey) renderClientBirthdays(); closeModal('apptModal'); renderCalendar(); renderDaySchedule();
       renderClientsTab(); updateDashboardStats();
       var activeClientKey = appointmentProfileKey || clientKeyFromFields(payload.phone, payload.clientName);
       if (activeClientKey && document.getElementById('clientRecordKey')?.value === activeClientKey) renderClientScheduledAppointments(activeClientKey);
