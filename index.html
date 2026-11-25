@@ -6132,15 +6132,19 @@
       if (!addIntent || !customerIntent) return null;
 
       const phoneMatch = normalized.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
-      if (!phoneMatch) return 'شماره تلفن مشتری رو کامل متوجه نشدم عزیزم؛ لطفاً شماره رو یک‌بار دیگه بگو. 💗';
-      let phone = phoneMatch[0].replace(/\D/g, '');
-      if (phone.startsWith('0098')) phone = '0' + phone.slice(4);
-      else if (phone.startsWith('98') && phone.length === 12) phone = '0' + phone.slice(2);
-      else if (phone.length === 10 && phone.startsWith('9')) phone = '0' + phone;
-      if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل و معتبر نیست عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
+      let phone = '';
+      if (phoneMatch) {
+        phone = phoneMatch[0].replace(/\D/g, '');
+        if (phone.startsWith('0098')) phone = '0' + phone.slice(4);
+        else if (phone.startsWith('98') && phone.length === 12) phone = '0' + phone.slice(2);
+        else if (phone.length === 10 && phone.startsWith('9')) phone = '0' + phone;
+        if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل و معتبر نیست عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
+      } else if (/\d/u.test(normalized)) {
+        return 'شماره تلفن رو کامل متوجه نشدم عزیزم؛ لطفاً هر ۱۱ رقم رو دوباره بگو. 💗';
+      }
 
-      const before = normalized.slice(0, phoneMatch.index).trim();
-      let after = normalized.slice(phoneMatch.index + phoneMatch[0].length)
+      const before = phoneMatch ? normalized.slice(0, phoneMatch.index).trim() : normalized;
+      let after = phoneMatch ? normalized.slice(phoneMatch.index + phoneMatch[0].length) : ''
         .replace(/^[\s،,:؛-]+/u, '')
         .replace(/^(?:مال|متعلق\s+به|برای|به\s+نام|به\s+اسم|اسمش|نامش)\s*/u, '')
         .trim();
@@ -6172,9 +6176,9 @@
       const normalizeDigits = value => String(value || '').replace(/[۰-۹]/g, ch => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(ch))).replace(/[٠-٩]/g, ch => String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch))).replace(/\D/g, '');
       const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fa');
       const profiles = appData.clientProfiles || (appData.clientProfiles = {});
-      let existing = Object.entries(profiles).find(([key, profile]) =>
+      let existing = phone ? Object.entries(profiles).find(([key, profile]) =>
         normalizeDigits((profile && profile.phone) || (/^[0-9۰-۹٠-٩+() -]+$/u.test(key) ? key : '')) === phone
-      );
+      ) : null;
       if (!existing) {
         existing = Object.entries(profiles).find(([key, profile]) =>
           normalizeName((profile && profile.name) || key) === normalizeName(cleanName)
@@ -6186,14 +6190,14 @@
       if (existing) {
         key = existing[0];
         const profile = getClientProfile(key);
-        if (profile.name !== cleanName || normalizeDigits(profile.phone || '') !== phone) updated = true;
+        if (profile.name !== cleanName || (phone && normalizeDigits(profile.phone || '') !== phone)) updated = true;
         profile.name = cleanName;
-        profile.phone = phone;
+        if (phone) profile.phone = phone;
       } else {
         key = clientKeyFromFields(phone, cleanName);
         const profile = getClientProfile(key);
         profile.name = cleanName;
-        profile.phone = phone;
+        if (phone) profile.phone = phone;
       }
       saveData();
       if (typeof renderClientsTab === 'function') renderClientsTab();
