@@ -1341,7 +1341,6 @@
           </table>
         </div>
       </div>
-    </section>
 
       <details class="card appointment-hub-embedded" id="allAppointmentsPanel" style="margin-top:14px;">
         <summary style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:850;list-style:none;">
@@ -2012,9 +2011,10 @@
       <div class="appointment-form-section">
         <div class="appointment-form-section-title">👤 اطلاعات مشتری و مراجعه</div>
         <div class="form-grid appointment-main-grid">
+          <div class="form-group full"><label for="apptType">نوع نوبت</label><select id="apptType" class="form-control" onchange="updateAppointmentTypeUI()"><option value="primary">📅 نوبت اصلی</option><option value="followup">🔁 نوبت ترمیم</option></select><small style="color:var(--text-secondary);">برای نوبت ترمیم، تاریخ و ساعت را مستقیم از تقویم انتخاب کن.</small></div>
           <div class="form-group full"><label for="apptClientName">نام و نام خانوادگی مشتری *</label><div class="voice-wrap"><input type="text" id="apptClientName" class="form-control" placeholder="نام مشتری..." autocomplete="name" /><button type="button" class="voice-btn" id="voiceNameBtn" onclick="startVoiceInput('apptClientName', 'voiceNameBtn')">🎤 گفتار</button></div></div>
           <div class="form-group full"><label for="apptService">نوع خدمت / کاری که قرار است انجام شود *</label><div class="voice-wrap"><input type="text" id="apptService" class="form-control" placeholder="مثلاً کاشت ناخن، رنگ مو، کوتاهی، لیفت..." /><button type="button" class="voice-btn" id="voiceServiceBtn" onclick="startVoiceInput('apptService', 'voiceServiceBtn')">🎤 گفتار</button></div></div>
-          <div class="form-group"><label for="apptDate">📅 تاریخ مراجعه *</label><input type="text" id="apptDate" class="form-control appointment-date-input" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="۱۴۰۵/۰۹/۰۴" onchange="updateAppointmentDate(true)" onblur="updateAppointmentDate(false)" /><small>تاریخ شمسی به شکل سال/ماه/روز.</small></div>
+          <div class="form-group full"><label for="apptDate">📅 تاریخ مراجعه *</label><div style="display:flex;gap:7px;align-items:center;"><input type="text" id="apptDate" class="form-control appointment-date-input" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="انتخاب از تقویم شمسی" readonly onclick="toggleAppointmentJalaliPicker()" aria-label="تاریخ مراجعه شمسی" style="flex:1;cursor:pointer;" /><button type="button" class="btn-secondary" onclick="toggleAppointmentJalaliPicker()">📅 تقویم</button></div><div id="apptJalaliPicker" class="card client-jalali-picker" style="display:none;margin-top:9px;padding:10px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;"><button type="button" class="btn-pill" onclick="changeAppointmentJalaliPickerMonth(-1)">ماه قبل</button><strong id="apptJalaliPickerTitle"></strong><button type="button" class="btn-pill" onclick="changeAppointmentJalaliPickerMonth(1)">ماه بعد</button></div><div class="weekdays-row client-picker-weekdays"><div>شنبه</div><div>یکشنبه</div><div>دوشنبه</div><div>سه‌شنبه</div><div>چهارشنبه</div><div>پنجشنبه</div><div>جمعه</div></div><div id="apptJalaliPickerGrid" class="days-grid client-picker-days"></div><button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="selectAppointmentJalaliToday()">امروز</button></div><small style="display:block;margin-top:5px;">تاریخ را از تقویم شمسی انتخاب کن.</small></div>
           <div class="form-group"><label for="apptTime">🕒 ساعت مراجعه *</label><input type="time" id="apptTime" class="form-control" value="10:00" step="60" onchange="checkTimeConflict()" /></div>
           <div class="form-group full"><label for="apptPhone">شماره موبایل مشتری (اختیاری)</label><input type="tel" id="apptPhone" class="form-control" placeholder="0912..." dir="ltr" inputmode="tel" autocomplete="tel" /></div>
         </div>
@@ -2028,8 +2028,8 @@
           <div class="form-group full"><label for="apptNotes">یادداشت و توضیحات نوبت (اختیاری)</label><textarea id="apptNotes" class="form-control" rows="3" placeholder="توضیحات دلخواه درباره مشتری، نوع کار یا نکات لازم..."></textarea></div>
         </div>
       </div>
-      <div class="appointment-form-section">
-        <div class="appointment-form-section-title">🔁 نوبت بعدی و وضعیت</div>
+      <div class="appointment-form-section" id="autoFollowupSection">
+        <div class="appointment-form-section-title">🔁 رزرو خودکار ترمیم بعدی</div>
         <div class="form-grid">
           <div class="form-group full">
             <label for="apptNextFollowup">رزرو خودکار نوبت ترمیم بعدی</label>
@@ -2042,21 +2042,21 @@
             </select>
           </div>
           <div class="form-group" id="followupCustomDaysBox" style="display:none;">
-          <label>چند روز بعد ترمیم ثبت شود؟</label>
-          <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" oninput="updateFollowupUI()" />
-        </div>
-        <div class="form-group full" id="followupDatePreviewBox" style="display:none; margin-bottom:4px;">
-          <div style="font-size:0.75rem; font-weight:800; color:var(--accent);" id="followupDatePreviewText">تاریخ ترمیم محاسبه‌شده: —</div>
-        </div>
-        <div class="form-group full">
-          <label>وضعیت نوبت</label>
-          <select id="apptStatus" class="form-control">
-            <option value="pending">در انتظار مراجعه</option>
-            <option value="done">خدمت انجام شد</option>
-            <option value="canceled">لغو شد</option>
-          </select>
+            <label>چند روز بعد ترمیم ثبت شود؟</label>
+            <input type="number" id="apptFollowupCustomDays" class="form-control" min="1" max="365" value="10" oninput="updateFollowupUI()" />
+          </div>
+          <div class="form-group full" id="followupDatePreviewBox" style="display:none;margin-bottom:4px;">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--accent);" id="followupDatePreviewText">تاریخ ترمیم محاسبه‌شده: —</div>
+          </div>
         </div>
       </div>
+      <div class="appointment-form-section" id="appointmentStatusSection">
+        <div class="appointment-form-section-title">وضعیت نوبت</div>
+        <select id="apptStatus" class="form-control">
+          <option value="pending">در انتظار مراجعه</option>
+          <option value="done">خدمت انجام شد</option>
+          <option value="canceled">لغو شد</option>
+        </select>
       </div>
 
       <div id="conflictWarningBox" style="display:none; background:rgba(239,68,68,0.14); border:1px solid var(--danger); color:var(--danger); padding:8px 12px; border-radius:11px; font-size:0.78rem; margin-bottom:10px;">
@@ -2696,6 +2696,9 @@
       document.getElementById('conflictWarningBox').style.display = 'none';
       document.getElementById('apptNextFollowup').value = '0';
       document.getElementById('apptFollowupCustomDays').value = '10';
+      document.getElementById('apptType').value = 'primary';
+      document.getElementById('apptType').disabled = false;
+      document.getElementById('apptJalaliPicker').style.display = 'none';
       document.getElementById('apptCustomAlarmMinutes').value = '15';
       updateFollowupUI();
       var chipsWrap = document.getElementById('quickServiceChipsWrap');
@@ -2721,6 +2724,8 @@
         if (document.getElementById('apptAlarm').value === 'custom') document.getElementById('apptCustomAlarmMinutes').value = String(Math.max(0,Number(appt.alarm)||0));
         document.getElementById('apptNotes').value = appt.notes || '';
         document.getElementById('apptStatus').value = appt.status || 'pending';
+        document.getElementById('apptType').value = isFollowupAppointment(appt) ? 'followup' : 'primary';
+        document.getElementById('apptType').disabled = true;
         const editClientKey = findClientProfileKeyForAppointment(appt);
         const editBirthday = editClientKey ? getClientProfile(editClientKey).birthDate : '';
         const editBirthdayParts = editBirthday ? editBirthday.split('-') : [];
@@ -2751,12 +2756,81 @@
         document.getElementById('apptBirthdayYear').value = '';
         document.getElementById('apptBirthdayMonth').value = '';
         document.getElementById('apptBirthdayDay').value = '';
+        document.getElementById('apptType').value = 'primary';
+        document.getElementById('apptType').disabled = false;
       }
       document.getElementById('customAlarmMinutesBox').style.display = document.getElementById('apptAlarm').value === 'custom' ? 'block' : 'none';
       updateAppointmentDate(false);
-      updateFollowupUI();
+      updateAppointmentTypeUI(false);
       checkTimeConflict();
       document.getElementById('apptModal').classList.add('open');
+    }
+
+    let appointmentPickerYear = 0, appointmentPickerMonth = 0;
+    function toggleAppointmentJalaliPicker() {
+      const panel = document.getElementById('apptJalaliPicker');
+      if (!panel) return;
+      const opening = panel.style.display === 'none';
+      panel.style.display = opening ? 'block' : 'none';
+      if (opening) {
+        const parsed = parseClientJalaliDate(document.getElementById('apptDate').value);
+        const base = parsed || selectedDateKey || getTodayKey();
+        [appointmentPickerYear, appointmentPickerMonth] = base.split('-').map(Number);
+        renderAppointmentJalaliPicker();
+      }
+    }
+    function changeAppointmentJalaliPickerMonth(delta) {
+      appointmentPickerMonth += delta;
+      if (appointmentPickerMonth > 12) { appointmentPickerMonth = 1; appointmentPickerYear++; }
+      if (appointmentPickerMonth < 1) { appointmentPickerMonth = 12; appointmentPickerYear--; }
+      renderAppointmentJalaliPicker();
+    }
+    function selectAppointmentJalaliDate(key) {
+      document.getElementById('apptDate').value = toPersianDigits(key.replace(/-/g, '/'));
+      document.getElementById('apptJalaliPicker').style.display = 'none';
+      updateAppointmentDate(false);
+    }
+    function selectAppointmentJalaliToday() {
+      const today = getTodayKey();
+      [appointmentPickerYear, appointmentPickerMonth] = today.split('-').map(Number);
+      selectAppointmentJalaliDate(today);
+    }
+    function renderAppointmentJalaliPicker() {
+      const title = document.getElementById('apptJalaliPickerTitle');
+      const grid = document.getElementById('apptJalaliPickerGrid');
+      if (!title || !grid) return;
+      title.textContent = JALALI_MONTHS[appointmentPickerMonth - 1] + ' ' + toPersianDigits(appointmentPickerYear);
+      grid.innerHTML = '';
+      const [gy,gm,gd] = jalaliToGregorian(appointmentPickerYear,appointmentPickerMonth,1);
+      const offset = (new Date(gy,gm-1,gd).getDay()+1)%7;
+      for(let i=0;i<offset;i++){ const blank=document.createElement('div'); blank.className='day-cell empty'; grid.appendChild(blank); }
+      const today = getTodayKey();
+      const selected = parseClientJalaliDate(document.getElementById('apptDate').value);
+      for(let d=1;d<=jalaliMonthDays(appointmentPickerYear,appointmentPickerMonth);d++){
+        const key=appointmentPickerYear+'-'+pad2(appointmentPickerMonth)+'-'+pad2(d);
+        const cell=document.createElement('div');
+        cell.className='day-cell';
+        if((offset+d-1)%7===6) cell.classList.add('friday');
+        if(key===today) cell.classList.add('today');
+        if(key===selected) cell.classList.add('selected');
+        const holidayReason=getOfficialHolidayReason(key);
+        if(holidayReason){cell.classList.add('holiday-day');cell.title=holidayReason;}
+        cell.innerHTML=(holidayReason?'<span class="holiday-dot"></span>':'')+'<span class="day-num">'+toPersianDigits(d)+'</span>';
+        cell.onclick=()=>selectAppointmentJalaliDate(key);
+        grid.appendChild(cell);
+      }
+    }
+    function updateAppointmentTypeUI(openCalendar = true) {
+      const type = document.getElementById('apptType')?.value || 'primary';
+      const automatic = document.getElementById('autoFollowupSection');
+      if (automatic) automatic.style.display = type === 'followup' ? 'none' : '';
+      const service = document.getElementById('apptService');
+      if (service && !service.value.trim()) service.placeholder = type === 'followup' ? 'مثلاً ترمیم مژه، ترمیم ناخن...' : 'مثلاً کاشت ناخن، رنگ مو، کوتاهی، لیفت...';
+      if (type === 'followup' && openCalendar && document.getElementById('apptModal')?.classList.contains('open')) {
+        const panel = document.getElementById('apptJalaliPicker');
+        if (panel && panel.style.display === 'none') toggleAppointmentJalaliPicker();
+      }
+      updateFollowupUI();
     }
 
     function updateAppointmentDate(showError = false) {
@@ -2836,10 +2910,11 @@
       const prevTxt = document.getElementById('followupDatePreviewText');
       if (!sel) return;
       const val = sel.value;
-      if (box) box.style.display = val === 'custom' ? 'flex' : 'none';
+      const isManualFollowup = document.getElementById('apptType')?.value === 'followup';
+      if (box) box.style.display = !isManualFollowup && val === 'custom' ? 'flex' : 'none';
       const days = val === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value) || 0) : (Number(val) || 0);
       if (prevBox && prevTxt) {
-        if (days > 0) {
+        if (!isManualFollowup && days > 0) {
           const targetKey = addDaysToJalaliKey(selectedDateKey, days);
           prevBox.style.display = 'block';
           prevTxt.textContent = `تاریخ ترمیم محاسبه‌شده: ${formatJalaliFull(targetKey)}`;
@@ -2890,6 +2965,22 @@
         showToast('زمان هشدار دلخواه باید بین صفر تا ۴۳۲۰۰ دقیقه باشد.'); return;
       }
       var existingAppointment = editId ? appData.appointments.find(a => a.id === editId) : null;
+      var selectedAppointmentType = existingAppointment
+        ? (isFollowupAppointment(existingAppointment) ? 'followup' : 'primary')
+        : (document.getElementById('apptType')?.value === 'followup' ? 'followup' : 'primary');
+      var primaryForManualFollowup = null;
+      if (selectedAppointmentType === 'followup') {
+        const clientKeyForFollowup = findClientProfileKeyForAppointment({ clientName, phone: document.getElementById('apptPhone').value.trim() });
+        primaryForManualFollowup = clientKeyForFollowup
+          ? getClientAppointments(clientKeyForFollowup, true).find(a => !isFollowupAppointment(a) && a.status !== 'canceled')
+          : appData.appointments.find(a => !isFollowupAppointment(a) && a.status !== 'canceled' &&
+              String(a.clientName || '').trim() === clientName &&
+              String(a.phone || '').replace(/[^0-9]/g,'') === String(document.getElementById('apptPhone').value || '').replace(/[^0-9]/g,''));
+        if (!primaryForManualFollowup) {
+          showToast('برای ثبت نوبت ترمیم، ابتدا نوبت اصلی همین مشتری را ثبت کن یا از پرونده او وارد شو.');
+          return;
+        }
+      }
       var birthdayYear = String(document.getElementById('apptBirthdayYear')?.value || '').trim();
       var birthdayMonth = String(document.getElementById('apptBirthdayMonth')?.value || '').trim();
       var birthdayDay = String(document.getElementById('apptBirthdayDay')?.value || '').trim();
@@ -2911,8 +3002,8 @@
       }
       var payload = {
         id: editId || ('appt_' + Date.now()),
-        appointmentType: existingAppointment?.appointmentType || (existingAppointment && isFollowupAppointment(existingAppointment) ? 'followup' : 'primary'),
-        parentAppointmentId: existingAppointment?.parentAppointmentId || '',
+        appointmentType: selectedAppointmentType,
+        parentAppointmentId: selectedAppointmentType === 'followup' ? (existingAppointment?.parentAppointmentId || primaryForManualFollowup?.id || '') : (existingAppointment?.parentAppointmentId || ''),
         dateKey: selectedDateKey, time: time, clientName: clientName,
         phone: document.getElementById('apptPhone').value.trim(),
         service: service, notes: document.getElementById('apptNotes').value.trim(),
@@ -2946,12 +3037,13 @@
         if (idx > -1) appData.appointments[idx] = Object.assign({},appData.appointments[idx],payload);
       } else appData.appointments.push(payload);
       var followupSel = document.getElementById('apptNextFollowup').value;
-      var followupDays = followupSel === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value)||0) : (Number(followupSel)||0);
-      // Keep one linked follow-up per primary appointment; editing the primary updates it.
-      if (!editId) payload.appointmentType = 'primary';
+      var followupDays = selectedAppointmentType === 'primary'
+        ? (followupSel === 'custom' ? (Number(document.getElementById('apptFollowupCustomDays').value)||0) : (Number(followupSel)||0))
+        : 0;
+      // Keep automatic follow-up scheduling exclusive to primary appointments.
       var followupCreatedOrUpdated = false;
       var followupConflict = false;
-      if (followupDays > 0 && payload.appointmentType !== 'followup') {
+      if (selectedAppointmentType === 'primary' && followupDays > 0) {
         var nextDateKey = addDaysToJalaliKey(selectedDateKey,followupDays);
         var existingFollowup = appData.appointments.find(a => a.parentAppointmentId === payload.id && a.status !== 'canceled');
         followupConflict = hasAppointmentSlotConflict(nextDateKey, time, existingFollowup && existingFollowup.id);
@@ -2972,7 +3064,7 @@
       renderClientsTab(); updateDashboardStats();
       var activeClientKey = appointmentProfileKey || clientKeyFromFields(payload.phone, payload.clientName);
       if (activeClientKey && document.getElementById('clientRecordKey')?.value === activeClientKey) renderClientScheduledAppointments(activeClientKey);
-      showToast(followupCreatedOrUpdated ? 'نوبت اصلی و نوبت ترمیم جداگانه ثبت شدند و در پرونده و تقویم نمایش داده می‌شوند ✨' : followupConflict ? 'نوبت اصلی ثبت شد؛ زمان ترمیم با نوبت دیگری تداخل داشت و ثبت نشد.' : 'نوبت با موفقیت ذخیره شد ✨');
+      showToast(selectedAppointmentType === 'followup' ? 'نوبت ترمیم با تاریخ و ساعت انتخابی ثبت شد و در پرونده مشتری و تقویم قرار گرفت 🔁' : followupCreatedOrUpdated ? 'نوبت اصلی و نوبت ترمیم جداگانه ثبت شدند و در پرونده و تقویم نمایش داده می‌شوند ✨' : followupConflict ? 'نوبت اصلی ثبت شد؛ زمان ترمیم با نوبت دیگری تداخل داشت و ثبت نشد.' : 'نوبت با موفقیت ذخیره شد ✨');
     }
 
     
