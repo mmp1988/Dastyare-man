@@ -4328,8 +4328,10 @@
       const appointments=getClientAppointments(key,true);
       const next=appointments.filter(a=>a.status!=='done'&&a.status!=='canceled'&&String(a.dateKey||'')>=nowKey)
         .sort((a,b)=>(String(a.dateKey||'')+(a.time||'')).localeCompare(String(b.dateKey||'')+(b.time||'')))[0];
-      const history=(profile.records||[]).concat((appData.appointments||[]).filter(a=>clientMatchesAppointment(key,a)&&a.status==='done'))
-        .sort((a,b)=>(String(b.dateKey||'')+(b.time||'')).localeCompare(String(a.dateKey||'')+(a.time||'')));
+      const history=(profile.records||[]).concat((appData.appointments||[]).filter(a=>
+        clientMatchesAppointment(key,a)&&a.status==='done'&&
+        !(profile.records||[]).some(record=>record.id==='done_'+String(a.id))
+      )).sort((a,b)=>(String(b.dateKey||'')+(b.time||'')).localeCompare(String(a.dateKey||'')+(a.time||'')));
       const last=history[0];
       const note=String(profile.notes||appData.clientNotes[key]||'').trim();
       const row=(icon,label,value)=>'<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:9px;background:var(--bg-input);"><span>'+icon+'</span><div style="min-width:0;flex:1;"><strong>'+label+'</strong><div style="white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text-secondary);">'+escapeClientText(value)+'</div></div></div>';
