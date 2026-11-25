@@ -5236,6 +5236,40 @@
     function minaStripPrefix(value) {
       return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
     }
+    function minaTransliterateFinglish(value) {
+      const words = {
+        salam:'سلام', sal am:'سلام', slm:'سلام', dorood:'درود', khobi:'خوبی', khoobi:'خوبی',
+        chetori:'چطوری', chetori:'چطوری', merci:'مرسی', mamnoon:'ممنون', mamnun:'ممنون',
+        baraye:'برای', bara:'برای', vase:'برای', vas:'برای', farda:'فردا', emrooz:'امروز',
+        emruz:'امروز', diruz:'دیروز', pasfarda:'پس فردا', pasfard:'پس فردا',
+        saat:'ساعت', sa'at:'ساعت', daghighe:'دقیقه', daghigheh:'دقیقه', daghighee:'دقیقه',
+        sobh:'صبح', zohr:'ظهر', badazzohr:'بعدازظهر', asr:'عصر', shab:'شب',
+        nobat:'نوبت', nobate:'نوبت', nobatam:'نوبتم', rezerv:'رزرو', reserve:'رزرو',
+        sabt:'ثبت', sabt kon:'ثبت کن', bezar:'بذار', bezare:'بذار', bezarin:'بذار',
+        bezarid:'بذار', bezaram:'بذارم', kon:'کن', kone:'کنه', konid:'کنید',
+        bede:'بده', bedesh:'بدهش', begir:'بگیر', avaz:'عوض', avaz kon:'عوض کن',
+        taghir:'تغییر', taghir bede:'تغییر بده', hazf:'حذف', hazf kon:'حذف کن',
+        pak:'پاک', pak kon:'پاک کن', cancel:'لغو', cancel kon:'لغو کن',
+        cansel:'لغو', cansel kon:'لغو کن', laghv:'لغو', laghv kon:'لغو کن',
+        jabeja:'جابه‌جا', jabeja kon:'جابه‌جا کن', enteghal:'انتقال',
+        moshtari:'مشتری', moshtarie:'مشتری', klient:'مشتری', client:'مشتری',
+        khadamat:'خدمات', khedmat:'خدمت', salon:'سالن', arayesh:'آرایش',
+        mozh:'مژه', mozhe:'مژه', abroo:'ابرو', abru:'ابرو', nakhon:'ناخن',
+        lift:'لیفت', kasht:'کاشت', tarim:'ترمیم', classic:'کلاسیک',
+        matn:'متن', payam:'پیام', tabrik:'تبریک', takhfif:'تخفیف',
+        tabligh:'تبلیغ', caption:'کپشن', story:'استوری', benevis:'بنویس',
+        benevis:'بنویس', benevisid:'بنویسید', ide:'ایده', rahnama:'راهنما',
+        baram:'برام', lotfan:'لطفاً', mishe:'میشه', misheh:'میشه',
+        mikham:'می‌خوام', mikhaham:'می‌خواهم', mikham:'می‌خوام',
+        ro:'رو', ra:'را', va:'و', ye:'یک', yek:'یک', age:'اگه',
+        alan:'الان', che:'چه', chi:'چی', hast:'هست', hastam:'هستم'
+      };
+      return String(value || '').replace(/[A-Za-z]+(?:'[A-Za-z]+)?/g, token => {
+        const key = token.toLowerCase();
+        return words[key] || token;
+      });
+    }
+
     function minaNormalizePersianTypos(value) {
       // Offline Persian language cleanup for fast typing, colloquial spelling and speech-to-text noise.
       // Fuzzy correction is restricted to command vocabulary; names and arbitrary service descriptions are preserved.
@@ -5279,7 +5313,7 @@
         .flatMap(service => String(service && service.name || '').split(/[\s\u200c]+/))
         .map(word => word.trim()).filter(word => word.length >= 4);
       const vocabulary = Array.from(new Set(commandWords.concat(customServiceWords)));
-      const normalized=String(value||'').replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+      const normalized=minaTransliterateFinglish(String(value||'')).replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
         .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
         .replace(/[\u064B-\u065F\u0670\u0640]/g,'')
         .replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[أإآ]/g,'ا').replace(/ۀ/g,'ه')
@@ -5752,7 +5786,7 @@
     }
 
     function minaPrepareSalonAIMessage(message) {
-      let safeMessage = String(message || '');
+      let safeMessage = minaNormalizePersianTypos(String(message || ''));
       // Saved customer names and phone numbers are redacted before cloud requests.
       for (const profile of Object.values(appData.clientProfiles || {})) {
         const name = profile && String(profile.name || '').trim();
@@ -5793,7 +5827,7 @@
 
     function minaIsSalonScopeRequest(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|متن|پیام|تبریک|تخفیف|تبلیغ|کپشن|استوری|پست|کمپین|بازاریابی|مناسبت|جشن|ایده|شعار|معرفی|دعوت|اطلاع.?رسانی|راهنما|آموزش|تنظیمات|شخصی.?سازی|ظاهر|رنگ|فونت|سایت|اپلیکیشن|برنامه|گزارش|آمار|خروجی|پشتیبان|بکاپ|امکانات|قابلیت|کارکرد|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
+      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|متن|پیام|تبریک|تخفیف|تبلیغ|کپشن|استوری|پست|کمپین|بازاریابی|مناسبت|جشن|ایده|شعار|معرفی|دعوت|اطلاع.?رسانی|راهنما|آموزش|تنظیمات|شخصی.?سازی|ظاهر|رنگ|فونت|سایت|اپلیکیشن|برنامه|گزارش|آمار|خروجی|پشتیبان|بکاپ|امکانات|قابلیت|کارکرد|سلام|خوبی|چطوری|درود|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
         !!minaPendingBooking || !!minaConversationBooking;
     }
 
@@ -5809,7 +5843,14 @@
       addMinaMessage(message, 'user');
       input.value = '';
 
-      // Strict scope gate: unrelated messages are answered locally and never sent to AI.
+      // Friendly greetings are handled locally and do not consume AI quota.
+      const normalizedForGreeting = minaNormalizePersianTypos(message).toLocaleLowerCase('fa');
+      if (/^(?:خوبی|چطوری|سلام خوبی|سلام چطوری|درود|صبح بخیر|عصر بخیر|سلام)$/u.test(normalizedForGreeting)) {
+        addMinaMessage('سلام عزیزم 🌸 من مینا هستم؛ برای نوبت‌ها، مشتری‌ها و کارهای سالن در خدمتم. بگو چه کاری برات انجام بدم؟', 'assistant');
+        return;
+      }
+
+      // Strict scope gate: unrelated chat is answered locally and never sent to AI.
       if (!minaIsSalonScopeRequest(message)) {
         addMinaMessage(minaOutOfScopeReply(), 'assistant');
         return;
