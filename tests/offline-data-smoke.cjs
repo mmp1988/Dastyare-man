@@ -715,6 +715,16 @@ const assert = require('assert');
       const card = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
       const cardText = card?.textContent || '';
       if (key) openClientRecord(key);
+      if (primary) editClientAppointmentInline(primary.id);
+      const inlineEditWorks = !!primary &&
+        clientEditingNextAppointmentId === primary.id &&
+        document.getElementById('clientNextTime').value === primary.time &&
+        document.getElementById('clientNextService').value === primary.service &&
+        document.getElementById('clientNextAppointmentType').value === 'primary' &&
+        document.getElementById('clientProfileModal').classList.contains('open');
+      if (key) openClientRecord(key);
+      const compactAppointmentUI = !!document.querySelector('#clientScheduledAppointments .client-appointment-row') ||
+        document.querySelector('#clientScheduledAppointments').style.display === 'flex';
       const nextFormStartsNew = clientEditingNextAppointmentId === null &&
         !document.getElementById('clientNextDate').value &&
         document.getElementById('clientNextTime').value === '10:00';
@@ -749,6 +759,8 @@ const assert = require('assert');
         cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('ترمیم'),
         profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت بعدی ترمیم'),
         profileHasEditDelete:!!document.querySelector('#clientScheduledAppointments [data-client-appt-edit]') && !!document.querySelector('#clientScheduledAppointments [data-client-appt-delete]'),
+        inlineEditWorks,
+        compactAppointmentUI,
         profileFormAddsNewWithoutOverwriting:nextFormStartsNew && !!extraAppointment &&
           appData.appointments.some(a => a.id === primary.id) &&
           appData.appointments.some(a => a.id === followup.id) &&
@@ -765,6 +777,8 @@ const assert = require('assert');
       'Primary and follow-up must be separately stored with a stable parent link and exact date/time');
     assert(primaryFollowupQA.cardShowsBoth && primaryFollowupQA.profileShowsBoth && primaryFollowupQA.profileHasEditDelete,
       'Customer card and profile must show both appointment types with edit/delete actions');
+    assert(primaryFollowupQA.inlineEditWorks && primaryFollowupQA.compactAppointmentUI,
+      'Customer appointment controls must be compact and edit directly inside the customer profile');
     assert(primaryFollowupQA.profileFormAddsNewWithoutOverwriting,
       'Adding another appointment from the customer profile must create a new record without overwriting the primary or follow-up');
     assert(primaryFollowupQA.calendarShowsFollowup && primaryFollowupQA.scheduleShowsFollowup,
