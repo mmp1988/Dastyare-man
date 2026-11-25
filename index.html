@@ -6394,14 +6394,13 @@
         return;
       }
 
-      // Offline reminder fallback is local. Online requests go through one unified cloud
-      // routing call below, avoiding a second sequential model request and unnecessary delay.
-      if (!navigator.onLine) {
-        const directPersonalReminderReply = minaTrySetPersonalReminder(message);
-        if (directPersonalReminderReply) {
-          addMinaMessage(minaFormatReplyForMode(directPersonalReminderReply), 'assistant');
-          return;
-        }
+      // Personal reminders are deterministic local actions, not cloud-chat suggestions.
+      // Parse the user's original wording before cloud routing so relative requests such as
+      // «دو دقیقه دیگه آلارمو تنظیم کن» are saved and scheduled immediately, online or offline.
+      const directPersonalReminderReply = minaTrySetPersonalReminder(message);
+      if (directPersonalReminderReply) {
+        addMinaMessage(minaFormatReplyForMode(directPersonalReminderReply), 'assistant');
+        return;
       }
 
       // Execute customer-profile operations from the user's original Persian wording before
@@ -7043,7 +7042,9 @@
           }
         }
       }
-      if(durationMs>0)relativeTargetAt=Math.ceil((Date.now()+durationMs)/60000)*60000;
+      // Preserve the exact relative instant; rounding up to the next minute can add
+      // almost 60 seconds to a short alarm (e.g. «دو دقیقه دیگه»).
+      if(durationMs>0)relativeTargetAt=Date.now()+durationMs;
       let clock=relativeTargetAt?null:minaParseReminderClock(combined);
       let dateKey=relativeTargetAt?null:minaReminderDateKey(combined);
       let gregorianDate=null;
