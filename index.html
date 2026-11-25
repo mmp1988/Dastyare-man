@@ -5203,7 +5203,31 @@
       }
       const bubble = document.createElement('div');
       bubble.className = 'mina-bubble';
-      bubble.textContent = text;
+      const instagramMarker = '\\n\\n[MINA_INSTAGRAM_LINK]';
+      const markerIndex = who !== 'user' ? String(text).indexOf(instagramMarker) : -1;
+      if (markerIndex >= 0) {
+        bubble.appendChild(document.createTextNode(String(text).slice(0, markerIndex)));
+        const linkRow = document.createElement('div');
+        linkRow.style.cssText = 'display:flex;align-items:center;gap:7px;margin-top:9px;direction:ltr;';
+        const link = document.createElement('a');
+        link.href = 'https://www.instagram.com/lash_by_mina.m/';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.setAttribute('aria-label', 'باز کردن صفحه اینستاگرام @lash_by_mina.m');
+        link.style.cssText = 'display:inline-flex;align-items:center;gap:6px;color:#c13584;font-weight:800;text-decoration:none;';
+        const logo = document.createElement('span');
+        logo.textContent = '◎';
+        logo.setAttribute('aria-hidden', 'true');
+        logo.style.cssText = 'font-size:1.35em;line-height:1;background:linear-gradient(45deg,#833ab4,#c13584,#e1306c,#f77737);-webkit-background-clip:text;background-clip:text;color:transparent;';
+        const handle = document.createElement('span');
+        handle.textContent = '@lash_by_mina.m';
+        link.appendChild(logo);
+        link.appendChild(handle);
+        linkRow.appendChild(link);
+        bubble.appendChild(linkRow);
+      } else {
+        bubble.textContent = text;
+      }
       row.appendChild(bubble);
       root.appendChild(row);
       root.scrollTop = root.scrollHeight;
@@ -5839,7 +5863,7 @@
     }
 
     function minaAppendInstagram(reply) {
-      return String(reply || '').trim() + '\n\nاینستاگرام: @lash_by_mina.m\nhttps://www.instagram.com/lash_by_mina.m/';
+      return String(reply || '').trim() + '\\n\\n[MINA_INSTAGRAM_LINK]';
     }
 
     function minaOutOfScopeReply() {
