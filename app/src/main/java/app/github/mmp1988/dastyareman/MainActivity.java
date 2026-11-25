@@ -702,9 +702,20 @@ public class MainActivity extends Activity {
                 installedVersion = Build.VERSION.SDK_INT >= 28 ? installed.getLongVersionCode() : installed.versionCode;
                 if (candidateVersion <= installedVersion) {
                     temp.delete();
-                    getSharedPreferences("apk_updates", MODE_PRIVATE).edit()
+                    // Clear any stale pending update left by an earlier download.
+                    android.content.SharedPreferences currentPrefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
+                    String stalePath = currentPrefs.getString("pending_apk", "");
+                    if (stalePath != null && !stalePath.isEmpty()) {
+                        try {
+                            File staleFile = new File(stalePath);
+                            if (staleFile.getCanonicalPath().startsWith(new File(getFilesDir(), "updates").getCanonicalPath())
+                                    && staleFile.exists()) staleFile.delete();
+                        } catch (Exception ignored) { }
+                    }
+                    currentPrefs.edit().remove("pending_apk").remove("pending_version")
+                            .remove("install_consent_version")
                             .putLong("last_check_ms", System.currentTimeMillis()).apply();
-                    if (manual) runOnUiThread(() -> Toast.makeText(this, "اپلیکیشن روی آخرین نسخه است ✅", Toast.LENGTH_LONG).show());
+                    if (manual) runOnUiThread(() -> Toast.makeText(this, "اپلیکیشن روی آخرین نسخه است؛ پیام بروزرسانی قبلی پاک شد ✅", Toast.LENGTH_LONG).show());
                     return;
                 }
                 if (apkFile.exists()) apkFile.delete();
@@ -734,6 +745,17 @@ public class MainActivity extends Activity {
             if (path == null || path.isEmpty()) return;
             File apk = new File(path);
             if (!apk.exists() || apk.length() == 0) {
+                prefs.edit().remove("pending_apk").remove("pending_version")
+                        .remove("install_consent_version").apply();
+                return;
+            }
+            // Never offer an already-installed or older APK from stale preferences.
+            android.content.pm.PackageInfo currentPackage = getPackageManager().getPackageInfo(getPackageName(), 0);
+            long installedNow = Build.VERSION.SDK_INT >= 28 ? currentPackage.getLongVersionCode() : currentPackage.versionCode;
+            if (pendingVersion <= installedNow) {
+                try {
+                    if (apk.getCanonicalPath().startsWith(new File(getFilesDir(), "updates").getCanonicalPath())) apk.delete();
+                } catch (Exception ignored) { }
                 prefs.edit().remove("pending_apk").remove("pending_version")
                         .remove("install_consent_version").apply();
                 return;
