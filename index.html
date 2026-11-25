@@ -1316,7 +1316,7 @@
             <div class="section-title" id="selectedDateLabel">برنامه روز انتخاب‌شده</div>
             <div style="font-size:0.74rem; color:var(--text-secondary);" id="selectedDaySummary">مشتریان و خدمات ثبت‌شده در این روز</div>
           </div>
-          <button class="btn-secondary" id="toggleFollowupFilterBtn" onclick="toggleFollowupOnlyView()">🔁 نوبت‌های ترمیم</button>
+          <button class="btn-secondary" id="toggleFollowupFilterBtn" onclick="toggleFollowupOnlyView()" title="فقط نوبت‌های ترمیمِ تاریخ انتخاب‌شده را نمایش می‌دهد" aria-label="فقط نمایش نوبت‌های ترمیم در روز انتخاب‌شده">🔁 فقط ترمیم‌ها</button>
         </div>
 
         <div class="holiday-banner" id="selectedDayHolidayBanner"></div>
@@ -1399,13 +1399,13 @@
       <div class="mina-hero card">
         <div class="mina-orbit"><div class="mina-avatar">💗</div><span class="mina-spark s1">✦</span><span class="mina-spark s2">✧</span><span class="mina-spark s3">♡</span></div>
         <div class="mina-brand">مینا <span>Mina</span></div>
-        <div class="mina-tagline">رفیق مهربون و همراه همیشگی تو 🌷</div>
+        <div class="mina-tagline">دستیار هوشمند، مطمئن و خوش‌انرژی تو 🌷</div>
         <div class="mina-welcome" id="minaWelcome">سلام عزیزم! من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.</div>
       </div>
       <div class="mina-chat-card card">
         <div class="mina-chat-head"><div><strong>گفت‌وگوی من و مینا</strong><small>هرچی دوست داری بگو یا تایپ کن؛ من با کلی انرژی و ایموجی جواب می‌دم 💗🎀</small></div><button class="mini-btn" onclick="clearMinaChat()">پاک‌کردن گفتگو</button></div>
         <div id="minaChatMessages" class="mina-messages" aria-live="polite">
-          <div class="mina-message assistant"><span class="mina-message-avatar">M</span><div class="mina-bubble">سلام خوشگلم! من مینام، رفیق کوچولوت 💗 یادداشت‌هات و نوبت‌هات رو بسپر به من؛ با هم حواسمون به همه‌چی هست.</div></div>
+          <div class="mina-message assistant"><span class="mina-message-avatar">M</span><div class="mina-bubble">سلام خوشگلم! من مینام؛ دستیار هوشمند و قابل‌اعتمادتم. کارهات، نوبت‌ها و یادداشت‌هات رو دقیق و مرتب مدیریت می‌کنم؛ خیالت راحت! 💗</div></div>
         </div>
         <div class="mina-compose">
           <textarea id="minaInput" class="form-control" rows="2" placeholder="مثلاً: مینا امروز چیکارایی دارم؟ یا اینو یادداشت کن..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMinaMessage();}"></textarea>
@@ -4555,7 +4555,7 @@
       const alarmStatus = document.getElementById('alarmCustomAudioStatus'); if (alarmStatus) alarmStatus.textContent = s.customAlarmAudio ? 'آهنگ دلخواه ذخیره شده و آماده پخش است' : 'صدای پیش‌فرض فعال است';
       const themeChoice = document.getElementById('minaThemeChoice'); if (themeChoice) themeChoice.value = s.theme || 'light';
       const customColor = document.getElementById('settingCustomHex'); if (customColor) customColor.value = s.customHex || '#d77fa2';
-      const minaWelcome = document.getElementById('minaWelcome'); if (minaWelcome) minaWelcome.textContent = (s.personalGreeting ? 'سلام '+s.personalGreeting+' جان! ' : 'سلام عزیزم! ' )+'من مینام. هرچی توی ذهنت هست بهم بگو یا برام بنویس.';
+      const minaWelcome = document.getElementById('minaWelcome'); if (minaWelcome) minaWelcome.textContent = (s.personalGreeting ? 'سلام '+s.personalGreeting+' جان! ' : 'سلام عزیزم! ' )+'من مینام؛ دستیار هوشمند و قابل‌اعتمادتم. بگو چه کاری داری تا دقیق و مرتب انجامش بدیم. 💗';
 
       document.documentElement.style.setProperty('--font-scale', s.fontScale || '16px');
       document.documentElement.setAttribute('data-theme', s.theme || 'dark');
@@ -6080,7 +6080,8 @@
             </div>
           </section>`);
 
-        if (stats) stats.insertAdjacentHTML('afterend', `
+        const calendarCard = calendar.querySelector('.cal-header')?.closest('.card');
+        const dashboardMarkup = `
           <section class="card" id="smartDashboard" style="border:1px solid var(--accent);">
             <div class="section-head">
               <div><div class="section-title">✨ داشبورد هوشمند امروز</div><small id="smartDashDate" style="color:var(--text-secondary);"></small></div>
@@ -6090,7 +6091,9 @@
             <div style="font-size:.8rem;font-weight:800;margin:8px 0;color:var(--accent);">⏰ نزدیک‌ترین نوبت‌ها و یادآورها</div>
             <div id="smartUpcomingList" style="display:flex;flex-direction:column;gap:7px;"></div>
             <small style="display:block;margin-top:9px;color:var(--text-secondary);line-height:1.7;">اعلان داخل برنامه و اعلان مرورگر هنگام فعال بودن برنامه بررسی می‌شود. برای اعلان در حالت بسته بودن برنامه، پشتیبانی بومی اندروید لازم است.</small>
-          </section>`);
+          </section>`;
+        if (calendarCard) calendarCard.insertAdjacentHTML('afterend', dashboardMarkup);
+        else if (stats) stats.insertAdjacentHTML('afterend', dashboardMarkup);
       }
       const search = document.getElementById('globalSearchInput');
       if (search && !document.getElementById('advancedClientFilters')) {
