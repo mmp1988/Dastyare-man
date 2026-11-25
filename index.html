@@ -6502,6 +6502,14 @@
         return;
       }
 
+      // Appointment edits, cancellations and deletions are also local-first operations.
+      // Never let a cloud reply replace an actual calendar mutation or claim that Mina lacks access.
+      const localAppointmentMutationReply = minaTryManageAppointment(message);
+      if (localAppointmentMutationReply) {
+        addMinaMessage(minaFormatReplyForMode(localAppointmentMutationReply), 'assistant');
+        return;
+      }
+
       // Explicit complete appointment bookings are executed locally before cloud chat routing.
       // A cloud conversational reply must never override a concrete booking command or claim that Mina
       // lacks access to the calendar. The local executor validates the slot and persists the record.
