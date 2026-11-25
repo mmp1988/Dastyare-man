@@ -6401,7 +6401,7 @@
           response = await fetch(MINA_SMART_BRAIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...(mode !== 'reply' ? { mode } : {}), message: safe.message }),
+            body: JSON.stringify({ ...(mode !== 'reply' ? { mode } : {}), ...(mode === 'route' ? { enableReview: true } : {}), message: safe.message }),
             signal: controller.signal,
             cache: 'no-store'
           });
