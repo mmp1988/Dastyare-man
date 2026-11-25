@@ -572,6 +572,67 @@ const assert = require('assert');
     assert(minaBookingResult.contextualEditOk, 'Mina must interpret a short time correction as an edit to the appointment just created, without creating a duplicate');
     assert(minaBookingResult.calendarSourceLabelOk, 'Calendar day schedule must visibly label Mina-created appointments');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
+    // Realistic multi-turn Persian flow: create a customer under a familiar alias,
+    // attach a phone in a later message, book in two turns, then edit by pronoun.
+    const minaMultiTurnPersianQA = await page.evaluate(() => {
+      const previous = {
+        profiles: appData.clientProfiles, appointments: appData.appointments,
+        notes: appData.clientNotes, pending: minaPendingBooking,
+        conversationBooking: minaConversationBooking,
+        lastAppointment: minaLastReferencedAppointmentId,
+        contextClient: minaConversationContextClientKey,
+        pendingPhone: minaPendingCustomerPhone
+      };
+      try {
+        appData.clientProfiles = {};
+        appData.clientNotes = {};
+        appData.appointments = [];
+        minaPendingBooking = null;
+        minaConversationBooking = null;
+        minaLastReferencedAppointmentId = null;
+        minaConversationContextClientKey = null;
+        minaPendingCustomerPhone = '';
+        const createReply = minaBuildReply('برای مشتری جدید مامان مینا توی قسمت مشتریان پرونده ثبت کن');
+        const created = Object.entries(appData.clientProfiles).find(([,p]) => p.name === 'مامان مینا');
+        const phoneReply = minaBuildReply('شماره تماس مامان مینا 09120001234 هست');
+        const profileKey = created ? Object.keys(appData.clientProfiles).find(k => appData.clientProfiles[k] === created[1]) : '';
+        const phoneSaved = !!profileKey && appData.clientProfiles[profileKey].phone === '09120001234';
+        const firstTurn = minaBuildReply('برای فردا نوبت لیفت مژه برای مامان مینا ثبت کن');
+        const secondTurn = minaBuildReply('ساعت پنج و نیم بعد از ظهر');
+        const booked = appData.appointments.find(a => a.clientName === 'مامان مینا' || a.clientId === created?.[1]?.clientId);
+        const multiTurnSaved = !!booked && booked.time === '17:30' &&
+          booked.dateKey === addDaysToJalaliKey(getTodayKey(), 1) &&
+          booked.service.includes('لیفت مژه') && booked.clientId === created?.[1]?.clientId;
+        minaLastReferencedAppointmentId = booked?.id || null;
+        const pronounReply = minaBuildReply('همونو تغییر بده و ساعتش رو بذار ۱۸:۲۰');
+        const pronounEdited = !!booked && booked.time === '18:20' &&
+          appData.appointments.filter(a => a.clientId === created?.[1]?.clientId).length === 1;
+        return {
+          createReply, phoneReply, firstTurn, secondTurn, pronounReply,
+          profileCreated:!!created, phoneSaved, multiTurnSaved, pronounEdited,
+          aliasResolves:!!profileKey && minaResolveConversationClientKey('برای مامان مینا نوبت ثبت کن') === profileKey
+        };
+      } finally {
+        appData.clientProfiles = previous.profiles;
+        appData.appointments = previous.appointments;
+        appData.clientNotes = previous.notes;
+        minaPendingBooking = previous.pending;
+        minaConversationBooking = previous.conversationBooking;
+        minaLastReferencedAppointmentId = previous.lastAppointment;
+        minaConversationContextClientKey = previous.contextClient;
+        minaPendingCustomerPhone = previous.pendingPhone;
+        saveData();
+        renderCalendar();
+        renderDaySchedule();
+      }
+    });
+    console.log('Mina multi-turn Persian workflow:', JSON.stringify(minaMultiTurnPersianQA));
+    assert(minaMultiTurnPersianQA.profileCreated, 'Mina must create a customer profile from a natural Persian alias request');
+    assert(minaMultiTurnPersianQA.phoneSaved, 'Mina must attach a phone number supplied in a separate message to the same customer');
+    assert(minaMultiTurnPersianQA.aliasResolves, 'Mina must resolve the familiar customer name to the same profile');
+    assert(minaMultiTurnPersianQA.multiTurnSaved, 'Mina must retain customer, service and date while collecting a missing time in a later message');
+    assert(minaMultiTurnPersianQA.pronounEdited, 'Mina must edit the exact last-referenced appointment from «همونو ... ساعتش ...» without creating a duplicate');
+
     // End-to-end guard: a complete booking is interpreted by cloud AI and then saved by the local executor.
     const minaDirectBookingFlow = await page.evaluate(async () => {
       appData.appointments = [];
