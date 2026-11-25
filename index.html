@@ -6815,6 +6815,7 @@
       }
 
       const hasClock = !!minaParseReminderClock(expandedRaw) ||
+        /ساعت\s*\d{1,2}(?![\d:])/u.test(normalized) ||
         /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}/.test(normalized) ||
         /(?:ساعت\s*)?\d{1,2}\s*(?:و\s*)\d{1,2}\s*دقیقه/.test(normalized) ||
         /(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized) ||
@@ -6992,6 +6993,9 @@
       let m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})/u);
       if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*دقیقه/u);
       if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*(صبح|ظهر|بعدازظهر|عصر|شب)/u);
+      // Explicit 24-hour clock: «ساعت ۱۳» through «ساعت ۲۳» needs no AM/PM.
+      // 24:00 is normalized to midnight.
+      if (!m) m = value.match(/ساعت\s*(\d{1,2})(?![\d:])/u);
       if (!m) m = value.match(new RegExp('(?:ساعت\\s*)?(' + numberWord + ')\\s+و\\s+(' + numberWord + ')\\s*دقیقه', 'u'));
       if (!m) m = value.match(new RegExp('(?:ساعت\\s*)?(' + numberWord + ')\\s*(صبح|ظهر|بعدازظهر|عصر|شب)', 'u'));
       if (!m) return null;
@@ -7004,6 +7008,7 @@
       if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
       if (period && /ظهر|بعدازظهر|عصر|شب/u.test(period) && hour < 12) hour += 12;
       if ((/صبح/u.test(period) || /شب/u.test(period)) && hour === 12) hour = 0;
+      if (hour === 24 && minute === 0) return '00:00';
       if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
       return pad2(hour) + ':' + pad2(minute);
     }
