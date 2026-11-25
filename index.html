@@ -6643,16 +6643,16 @@
           const role = row.classList.contains('user') ? 'کاربر' : 'مینا';
           const bubble = row.querySelector('.mina-bubble');
           return role + ': ' + (bubble ? bubble.textContent : '');
-        }).join('\\n') : '';
+        }).join('\n') : '';
         const customerMemory = minaBuildCustomerMemoryContext(message);
         const trustedFacts = [dateTimeFact, customerHistoryFact, customerDateFact]
           .filter(value => typeof value === 'string' && value.trim())
           .map(value => 'نتیجه قطعی محاسبه/پرونده در برنامه: ' + value.trim())
-          .join('\\n');
+          .join('\n');
         const cloudContext = (
           String(recent || message).slice(-1500) +
-          (customerMemory ? '\\n\\n' + customerMemory.slice(-1500) : '') +
-          (trustedFacts ? '\\n\\n' + trustedFacts.slice(-900) : '')
+          (customerMemory ? '\n\n' + customerMemory.slice(-1500) : '') +
+          (trustedFacts ? '\n\n' + trustedFacts.slice(-900) : '')
         ).slice(-3900);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
         if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
@@ -6676,7 +6676,7 @@
         } else {
           const greetingSource = minaTransliterateFinglish(message);
           const normalizedForGreeting = minaNormalizePersianTypos(greetingSource).toLocaleLowerCase('fa');
-          const greetingRaw = String(greetingSource).replace(/[؟?!،,.]/g, ' ').replace(/\\s+/g, ' ').trim().toLocaleLowerCase('fa');
+          const greetingRaw = String(greetingSource).replace(/[؟?!،,.]/g, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fa');
           if (/^(?:nm)$/iu.test(String(message).trim())) {
             reply = 'منظورت از «nm» «نمی‌خوام» هست؟ برای اینکه اشتباه برداشت نکنم، لطفاً یک کلمه بیشتر توضیح بده 🌸';
           } else if (/^(?:مرسی|ممنون)$/u.test(normalizedForGreeting)) {
@@ -6689,9 +6689,9 @@
             const localCustomerCreateReply = localCustomerMutationReply || minaTryAddClientFromMessage(message);
             const localAppointmentMutationReply = localCustomerCreateReply || minaTryManageAppointment(message);
             const directBookingIntent = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
-              /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
-              /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
-              /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
+              /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\s*بده|بده|اختصاص\s*بده|هماهنگ\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
+              /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
+              /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
             if (directPersonalReminderReply) reply = directPersonalReminderReply;
             else if (localCustomerMutationReply) reply = localCustomerMutationReply;
             else if (localCustomerCreateReply) reply = localCustomerCreateReply;
@@ -6707,24 +6707,6 @@
         }
       }
 
-      if (routedCommand) {
-        // The routed action is executed immediately by the local feature handlers.
-        // Personal alarms are included here too, without a separate cloud round-trip.
-        reply = minaBuildReply(routedCommand);
-      } else if (!reply) {
-        // Customer creation is a local, offline-capable record operation.
-        // Run it only after cloud routing has had the first chance to interpret natural language,
-        // and only its guarded customer-specific parser may claim the message.
-        const directClientReply = minaTryAddClientFromMessage(message);
-        if (directClientReply) {
-          reply = directClientReply;
-        } else {
-          // If cloud is unavailable, preserve supported local workflows without pretending AI responded.
-          reply = minaIsClearlyLocalAction(message)
-            ? minaBuildReply(message)
-            : minaOutOfScopeReply(message);
-        }
-      }
       reply = minaFormatReplyForMode(reply);
       if (getMinaMode()==='friendly' && !/[💗💕💖💞🌸🌷🎀✨🥰😊😉😄]/u.test(reply)) reply += ' 💗🌸✨';
       addMinaMessage(reply, 'assistant');
