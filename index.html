@@ -5845,30 +5845,90 @@
       return safeMessage;
     }
 
-    async function minaAskSmartBrain(message) {
-      // Only salon-domain content is sent to AI; local records remain on-device.
-      const contentRequest = minaIsSalonContentRequest(message);
-      if (!navigator.onLine || (minaIsClearlyLocalAction(message) && !contentRequest)) return null;
+    function minaCloudQuotaCooldownActive() {
+      try {
+        const retryAt = Number(localStorage.getItem('mina_cloud_quota_retry_at') || 0);
+        return Number.isFinite(retryAt) && retryAt > Date.now();
+      } catch (error) { return false; }
+    }
+
+    function minaBuildCloudSafeCommand(message) {
+      let safeMessage = minaExtractSalonOnlyMessage(minaNormalizePersianTypos(String(message || '')));
+      const replacements = [];
+      const mask = (value, type) => {
+        const token = '[' + type + '_' + (replacements.filter(item => item.type === type).length + 1) + ']';
+        replacements.push({ token, value, type });
+        return token;
+      };
+      // Mask saved names and phone numbers before any cloud request; tokens are restored only on-device.
+      for (const profile of Object.values(appData.clientProfiles || {})) {
+        const name = profile && String(profile.name || '').trim();
+        if (name && name.length > 1 && safeMessage.includes(name) && !replacements.some(item => item.value === name)) {
+          safeMessage = safeMessage.split(name).join(mask(name, 'CLIENT'));
+        }
+      }
+      // Also mask a newly supplied customer name after "برای/واسه", even if it is not saved yet.
+      const nonNames = /^(?:امروز|فردا|پسفردا|پس فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|صبح|ظهر|عصر|شب|ساعت|نوبت|رزرو|کاشت|لیفت|ترمیم|مژه|ابرو|ناخن|مو|رنگ|فیشیال|شینیون|کراتین|مشتری|من|خودم)$/u;
+      safeMessage = safeMessage.replace(/((?:برای|واسه|واسه‌ی|مشتری)s+)([آ-یءئؤإأ‌\-]{2,24})/gu, (whole, prefix, candidate) => {
+        if (nonNames.test(candidate) || /^\d+$/u.test(candidate)) return whole;
+        return prefix + mask(candidate, 'CLIENT');
+      });
+      safeMessage = safeMessage.replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, value => mask(value, 'PHONE'));
+      return {
+        message: safeMessage,
+        restore(command) {
+          let result = String(command || '');
+          for (const item of replacements) result = result.split(item.token).join(item.value);
+          return result;
+        }
+      };
+    }
+
+    function minaNeedsCloudUnderstanding(message) {
+      if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
+      if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      const multiIntent = /(?:؛|\n|همزمان|بعدش|بعد از اون|همراه با|علاوه بر|همچنین|و بعد)/u.test(text) ||
+        (text.match(/(?:ثبت|رزرو|تغییر|ویرایش|جابجا|حذف|لغو|یادآوری|نمایش|پیدا کن)/gu) || []).length > 1;
+      const conversationalAmbiguity = /(?:همون|همان|قبلی|بعدی|اون یکی|این یکی|مثل دفعه قبل|یادم رفت|یادم نیست|منظورم|یعنی|اگه|اگر|ولی|اما|به جز|غیر از|هر کدوم|هرچی|هر وقت|هر ساعتی|یه جوری|جوری که)/u.test(text);
+      const complexNaturalLanguage = text.length > 105 && /(?:میخوام|می‌خوام|می خواهم|میشه|میتونی|می‌تونی|لطفا|لطفاً|برام|واسم|یه|یکم|بعدش)/u.test(text);
+      return multiIntent || conversationalAmbiguity || complexNaturalLanguage;
+    }
+
+    async function minaAskSmartBrain(message, mode = 'reply') {
+      // Cloud is reserved for salon reasoning/content; local records and execution never leave this device.
+      if (!navigator.onLine || minaCloudQuotaCooldownActive()) return null;
+      const safe = mode === 'understand'
+        ? minaBuildCloudSafeCommand(message)
+        : { message: minaPrepareSalonAIMessage(message), restore: value => value };
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 18000);
         let response;
+        let data;
         try {
           response = await fetch(MINA_SMART_BRAIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: minaPrepareSalonAIMessage(message) }),
+            body: JSON.stringify({ ...(mode === 'understand' ? { mode: 'understand' } : {}), message: safe.message }),
             signal: controller.signal,
             cache: 'no-store'
           });
+          data = await response.json().catch(() => ({}));
         } finally {
           clearTimeout(timeout);
         }
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data && data.success && typeof data.reply === 'string' && data.reply.trim()
-          ? data.reply.trim()
-          : null;
+        if (response.status === 429 || data?.code === 'AI_QUOTA_EXHAUSTED') {
+          try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 30 * 60 * 1000)); } catch (error) {}
+          return null;
+        }
+        if (!response.ok || !data?.success) return null;
+        if (mode === 'understand') {
+          return typeof data.command === 'string' && data.command.trim()
+            ? safe.restore(data.command.trim())
+            : null;
+        }
+        return typeof data.reply === 'string' && data.reply.trim() ? data.reply.trim() : null;
       } catch (error) {
         return null;
       }
@@ -5974,15 +6034,21 @@
         return;
       }
 
-      // Local data operations stay on-device; salon copywriting and feature guidance may use AI.
+      // Use cloud intelligence for salon content, advice and genuinely complex local commands.
+      // Straightforward data entry remains instant and local; cloud never receives private records.
       let reply = null;
-      if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) {
-        addMinaMessage('دارم به حرفت فکر می‌کنم…', 'assistant');
+      const cloudMode = minaIsSalonContentRequest(message) || !minaIsClearlyLocalAction(message)
+        ? 'reply'
+        : (minaNeedsCloudUnderstanding(message) ? 'understand' : '');
+      if (cloudMode) {
+        addMinaMessage('دارم درخواستت رو دقیق بررسی می‌کنم…', 'assistant');
         const thinkingNode = document.querySelector('#minaChatMessages .mina-message:last-child');
-        reply = await minaAskSmartBrain(message);
-        if (thinkingNode && thinkingNode.textContent.includes('دارم به حرفت فکر می‌کنم')) {
+        const cloudResult = await minaAskSmartBrain(message, cloudMode);
+        if (thinkingNode && thinkingNode.textContent.includes('دارم درخواستت رو دقیق بررسی می‌کنم')) {
           thinkingNode.remove();
         }
+        // The cloud may clarify the wording, but only the local engine can read or change app data.
+        if (cloudResult) reply = cloudMode === 'understand' ? minaBuildReply(cloudResult) : cloudResult;
       }
       if (!reply) reply = minaBuildReply(message);
       reply = minaFormatReplyForMode(reply);
