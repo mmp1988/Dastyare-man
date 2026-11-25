@@ -6533,8 +6533,70 @@
       saveData();
       presentAppointmentAlarm(appt,'یادآوری مینا 💗');
     }
+    let minaPendingPersonalReminder = null;
+    function minaReminderDateKey(raw) {
+      const text=minaCleanText(minaNormalizeDigits(String(raw||''))).toLocaleLowerCase('fa');
+      const today=getTodayKey();
+      if(/پس\s*فردا|پسفردا/u.test(text))return addDaysToJalaliKey(today,2);
+      if(/فردا/u.test(text))return addDaysToJalaliKey(today,1);
+      if(/امروز/u.test(text))return today;
+      const exact=text.match(/(?:تاریخ\s*)?(1[2345]\d{2})[\/.-](\d{1,2})[\/.-](\d{1,2})/u);
+      if(exact){const y=Number(exact[1]),m=Number(exact[2]),d=Number(exact[3]);if(m>=1&&m<=12&&d>=1&&d<=jalaliMonthDays(y,m))return y+'-'+pad2(m)+'-'+pad2(d);}
+      const monthPattern=/(\d{1,2})\s*(فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)(?:\s*(1[2345]\d{2}))?/u;
+      const monthMatch=text.match(monthPattern);
+      if(monthMatch){const m=JALALI_MONTHS.findIndex(x=>x===monthMatch[2]|| (x==='آذر'&&monthMatch[2]==='اذر'))+1;const d=Number(monthMatch[1]),y=Number(monthMatch[3]||today.slice(0,4));if(m&&d>=1&&d<=jalaliMonthDays(y,m))return y+'-'+pad2(m)+'-'+pad2(d);}
+      const weekdays=[['یکشنبه',0],['دوشنبه',1],['سه‌شنبه',2],['سه شنبه',2],['چهارشنبه',3],['پنجشنبه',4],['پنج‌شنبه',4],['جمعه',5],['شنبه',6]];
+      const wanted=weekdays.find(([name])=>text.includes(name));
+      if(wanted){const now=getIranNow();const delta=(wanted[1]-now.getDay()+7)%7;return addDaysToJalaliKey(today,delta);}
+      return null;
+    }
+    function minaTrySetPersonalReminder(raw) {
+      const text=minaCleanText(minaNormalizeDigits(String(raw||''))).toLocaleLowerCase('fa');
+      const reminderIntent=/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری|یاداور|هشدار|آلارم|زنگ\s*هشدار|خبرم\s*کن|یادم\s*بنداز)/u.test(text);
+      if(!reminderIntent && !minaPendingPersonalReminder)return null;
+      if(/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text))return null;
+      const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
+      const combinedText=minaCleanText(minaNormalizeDigits(combined)).toLocaleLowerCase('fa');
+      const clock=minaParseReminderClock(combined);
+      let dateKey=minaReminderDateKey(combined);
+      if(!dateKey && clock){
+        const now=getIranNow(),current=pad2(now.getHours())+':'+pad2(now.getMinutes());
+        if(clock>current)dateKey=getTodayKey();
+      }
+      if(!clock){minaPendingPersonalReminder={raw:combined};return 'حتماً عزیزم 💗 چه ساعتی یادآوریت کنم؟ ساعت و دقیقه رو دقیق بگو؛ مثلاً «۳ و ۷ دقیقه بعدازظهر».';
+      }
+      if(!dateKey){minaPendingPersonalReminder={raw:combined};return 'ساعت رو گرفتم عزیزم 💗 برای امروز تنظیم کنم یا تاریخ دیگه‌ای مدنظرت هست؟';
+      }
+      const gregorianDate=jalaliKeyToGregorianDate(dateKey);
+      const targetAt=iranDateTimeToEpoch(gregorianDate,clock);
+      if(!Number.isFinite(targetAt)||targetAt<=Date.now()){minaPendingPersonalReminder={raw:combined};return 'این زمان به وقت ایران گذشته عزیزم؛ تاریخ یا ساعت آینده رو بگو تا درست تنظیمش کنم. 💗';}
+      let message=combinedText
+        .replace(/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری\s*(?:کن|بذار|بزار)?|یاداور|هشدار\s*(?:بذار|بزار|تنظیم\s*کن)?|آلارم\s*(?:بذار|بزار|تنظیم\s*کن)?|زنگ\s*هشدار\s*(?:بذار|بزار|تنظیم\s*کن)?|خبرم\s*کن)/gu,' ')
+        .replace(/(?:امروز|فردا|پس\s*فردا|پسفردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه)/gu,' ')
+        .replace(/(?:تاریخ\s*)?(?:1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)(?:\s*1[2345]\d{2})?)/gu,' ')
+        .replace(/(?:ساعت\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s*و\s*\d{1,2}\s*دقیقه|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی|چهل|پنجاه|شصت|\d{1,2})(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|\d{1,2}))?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/gu,' ')
+        .replace(/\b(?:برام|برای من|لطفا|لطفاً|کن|بکن|بذار|بزار|تنظیم کن)\b/gu,' ').replace(/\s+/g,' ').trim();
+      if(!message||/^(?:امروز|فردا|ساعت|برام|من)$/u.test(message))message='یادآوری شخصی';
+      const id='mina_rem_'+Date.now();
+      const reminder={id,date:gregorianDate,time:clock,message,notified:false,enabled:true,createdAt:Date.now(),timezone:'Asia/Tehran',source:'mina'};
+      if(!Array.isArray(appData.reminders))appData.reminders=[];
+      appData.reminders.push(reminder);
+      saveData();
+      let scheduleStatus='web';
+      try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==='function')scheduleStatus=String(AndroidApp.schedulePersonalReminder(id,targetAt,message)||'failed');}catch(e){scheduleStatus='failed';}
+      minaPendingPersonalReminder=null;
+      renderPersonalReminders();
+      const timeText=toPersianDigits(clock);
+      if(scheduleStatus==='exact')return 'انجام شد عزیزم 💗 یادآوری واقعاً ذخیره و آلارم دقیق گوشی هم زمان‌بندی شد.\n📅 '+formatJalaliFull(dateKey)+'\n⏰ ساعت '+timeText+' به وقت ایران\n🔔 '+message;
+      if(scheduleStatus==='approximate')return 'یادآوری ذخیره شد عزیزم 💗 اعلان گوشی هم زمان‌بندی شد، اما به‌دلیل محدودیت مجوز آلارم دقیق ممکنه چند دقیقه تأخیر داشته باشه.\n📅 '+formatJalaliFull(dateKey)+'\n⏰ ساعت '+timeText+' به وقت ایران\n🔔 '+message;
+      if(scheduleStatus==='failed')return 'یادآوری در فهرست برنامه ذخیره شد، اما سیستم گوشی زمان‌بندی آلارم را تأیید نکرد؛ پس نمی‌گم زنگ حتماً تنظیم شده. مجوز اعلان و هشدار دقیق گوشی رو بررسی کن عزیزم.\n📅 '+formatJalaliFull(dateKey)+'، ساعت '+timeText+' به وقت ایران';
+      return 'یادآوری داخل برنامه ذخیره شد عزیزم 💗\n📅 '+formatJalaliFull(dateKey)+'\n⏰ ساعت '+timeText+' به وقت ایران\nبرای زنگ مستقل حتی وقتی سایت بسته است، باید از اپ اندروید استفاده کنی.';
+    }
+
     const minaBuildReplyBeforeReminder = minaBuildReply;
     minaBuildReply = function(raw) {
+      const personalReminderReply = minaTrySetPersonalReminder(raw);
+      if (personalReminderReply) return personalReminderReply;
       const reminderReply = minaTrySetAppointmentReminder(raw);
       if (reminderReply) return reminderReply;
       return minaBuildReplyBeforeReminder(raw);
