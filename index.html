@@ -5855,19 +5855,24 @@
     };
 
 
+    // Session-only reference: follow-up phrases can refer to the last discussed appointment.
+    let minaLastReferencedAppointmentId = null;
+
     // Unified offline Persian intent engine for appointment management.
     // Understands colloquial verbs and updates the existing record only.
     function minaTryManageAppointment(raw) {
       const expanded = minaExpandSpokenTime(minaNormalizeDigits(raw));
       const text = minaCleanText(expanded).toLowerCase();
-      if (!/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text)) return null;
+      const hasAppointmentWord = /(?:نوبت|رزرو|وقت|مراجعه)/u.test(text);
+      const contextualFollowup = !hasAppointmentWord && /(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|ساعت|دقیقه|فردا|پس\\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text);
+      if (!hasAppointmentWord && !contextualFollowup) return null;
 
       const isDelete = /(?:حذف|پاک(?:\s*کردن|\s*کن|ش\s*کن)?|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
       const isCancel = !isDelete && /(?:لغو(?:\s*کردن|\s*کن)?|کنسل(?:\s*کردن|\s*کن|ش)?|بی\s*خیال\s*نوبت|منتفی|دیگه\s*نمیاد)/u.test(text);
       const isDone = /(?:انجام\s*شد|تموم\s*شد|تمام\s*شد|انجامش\s*دادم|مراجعه\s*کرد|کارش\s*انجام)/u.test(text);
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه)/u.test(text);
       const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
-      const isMove = /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار))/u.test(text);
+      const isMove = contextualFollowup || /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار))/u.test(text);
       const serviceTail = text.match(/(?:به|برای)\s+(.+?)\s+(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)/u) ||
         text.match(/(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)\s+(?:به\s+)?(.+)$/u);
       let requestedService = serviceTail ? serviceTail[1].trim() : '';
@@ -5888,6 +5893,11 @@
         text.match(/(?:کنسل|لغو|حذف|پاک)\s+(?:کردن\s+)?(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})/u) ||
         text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
       let candidates = selectable.slice();
+      if (contextualFollowup && minaLastReferencedAppointmentId) {
+        const remembered = selectable.find(a => a.id === minaLastReferencedAppointmentId);
+        if (remembered) candidates = [remembered];
+        else return 'نوبتی که درباره‌اش صحبت می‌کردیم دیگر در فهرست فعال نیست؛ اسم مشتری یا تاریخ نوبت رو دوباره بگو عزیزم 💗';
+      }
       if (nameMatch) {
         const wanted = minaCleanText(nameMatch[1]).toLowerCase();
         const named = selectable.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(wanted));
@@ -5929,6 +5939,7 @@
       }
       if (candidates.length !== 1) return 'نوبت موردنظرت رو با این مشخصات پیدا نکردم؛ اسم مشتری یا تاریخش رو بگو عزیزم 🌷';
       const appt = candidates[0];
+      minaLastReferencedAppointmentId = appt.id;
 
       if (isMove && !isDelete && !isCancel && !isDone && !asksTime && !asksDate && requestedService) {
         const previousService = appt.service || 'خدمت ثبت‌نشده';
@@ -6021,7 +6032,11 @@
     minaBuildReply = function(raw) {
       const manageReply = minaTryManageAppointment(raw);
       if (manageReply) return manageReply;
-      return minaBuildReplyBeforeReschedule(raw);
+      const beforeIds = new Set((appData.appointments || []).map(a => a && a.id).filter(Boolean));
+      const reply = minaBuildReplyBeforeReschedule(raw);
+      const newlyCreated = (appData.appointments || []).filter(a => a && a.id && !beforeIds.has(a.id) && minaIsAssistantAppointment(a));
+      if (newlyCreated.length) minaLastReferencedAppointmentId = newlyCreated[newlyCreated.length - 1].id;
+      return reply;
     };
 
     function refreshSmartCalendarInsights() {
