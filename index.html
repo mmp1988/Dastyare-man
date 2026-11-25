@@ -3803,7 +3803,7 @@
       if (list.length !== 2) return;
       const [primary, possibleFollowup] = list;
       if (!primary || !possibleFollowup || isFollowupAppointment(primary) || isFollowupAppointment(possibleFollowup)) return;
-      if (!/^(?:مراجعه بعدی|ترمیم)(?:\\s|$)/u.test(String(possibleFollowup.service || '').trim())) return;
+      if (!/^(?:مراجعه بعدی|ترمیم)(?:\s|$)/u.test(String(possibleFollowup.service || '').trim())) return;
       primary.appointmentType = primary.appointmentType || 'primary';
       possibleFollowup.appointmentType = 'followup';
       possibleFollowup.parentAppointmentId = primary.id;
@@ -5433,7 +5433,7 @@
         return 'انجام شد! به فهرست کارهات اضافه‌اش کردم تا یادت نره 🎀\n«' + task + '»';
       }
 
-      if ((/(?:نوبت|رزرو|وقت)/u.test(t) || (/(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(t) && /(?:برای|واسه|خدمت|مینا|مشتری)/u.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\\s*بده|انجامش\\s*بده|بده|فیکس|فیکسش|قطعی\\s*کن|نگه\\s*دار|جورش\\s*کن|اوکی\\s*کن|هماهنگ\\s*کن|اختصاص\\s*بده|تعیین\\s*کن|ردیف\\s*کن|بچین|جا\\s*بده|براش\\s*بذار|براش\\s*وقت\\s*بذار)/u.test(t) &&
+      if ((/(?:نوبت|رزرو|وقت)/u.test(t) || (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(t) && /(?:برای|واسه|خدمت|مینا|مشتری)/u.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده|فیکس|فیکسش|قطعی\s*کن|نگه\s*دار|جورش\s*کن|اوکی\s*کن|هماهنگ\s*کن|اختصاص\s*بده|تعیین\s*کن|ردیف\s*کن|بچین|جا\s*بده|براش\s*بذار|براش\s*وقت\s*بذار)/u.test(t) &&
           (/(?:امروز|فردا|پس\s*فردا|تاریخ)/.test(t) || /\d{1,2}(?::\d{1,2})?/.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/.test(t))) {
         // Understand digital clocks and natural relative expressions such as "a quarter to 3".
         let clock = t.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})\s*(?:دقیقه\s*)?(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
@@ -5848,7 +5848,7 @@
 
     function minaIsAbusiveMessage(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      return /(?:^|[\\s،,.!?؟])(?:احمق|بی\\s*شعور|بی\\s*ادب|خفه\\s*شو|گمشو|گم\\s*شو|کثافت|حرومزاده|لعنتی|مادرجنده|جنده|فحش|توهین)(?=$|[\\s،,.!?؟])/u.test(text);
+      return /(?:^|[\s،,.!?؟])(?:احمق|بی\s*شعور|بی\s*ادب|خفه\s*شو|گمشو|گم\s*شو|کثافت|حرومزاده|لعنتی|مادرجنده|جنده|فحش|توهین)(?=$|[\s،,.!?؟])/u.test(text);
     }
 
     async function sendMinaMessage() {
@@ -5928,8 +5928,8 @@
         .replace(/یک\s*و\s*نیم/g, '1:30').replace(/هشت\s*و\s*نیم/g, '8:30')
         .replace(/نه\s*و\s*نیم/g, '9:30').replace(/ده\s*و\s*نیم/g, '10:30')
         .replace(/یازده\s*و\s*نیم/g, '11:30').replace(/دوازده\s*و\s*نیم/g, '12:30');
-      const spokenNumber = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?)';
-      const spokenMinutes = new RegExp('(?:ساعت\\s*)?(' + spokenNumber + ')\\s+و\\s+(' + spokenNumber + ')\\s*دقیقه', 'g');
+      const spokenNumber = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\s+و\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\s+و\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\s+و\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\s+و\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?)';
+      const spokenMinutes = new RegExp('(?:ساعت\s*)?(' + spokenNumber + ')\s+و\s+(' + spokenNumber + ')\s*دقیقه', 'g');
       result = result.replace(spokenMinutes, (match, hourWord, minuteWord) => {
         const h = minaPersianNumberValue(hourWord), m = minaPersianNumberValue(minuteWord);
         return Number.isFinite(h) && Number.isFinite(m) ? String(h) + ' و ' + String(m) + ' دقیقه' : match;
@@ -6025,11 +6025,11 @@
         /(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/.test(normalized) ||
         /(?:یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه)\s*(?:به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)/.test(normalized);
       // Whole-utterance intent detection: natural commands need not contain "ثبت نوبت".
-      const bookingAction = /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\\s*بده|انجامش\\s*بده|بده|فیکس|فیکسش|قطعی\\s*کن|نگه\\s*دار|جورش\\s*کن|اوکی\\s*کن|هماهنگ\\s*کن|اختصاص\\s*بده|تعیین\\s*کن|ردیف\\s*کن|بچین|جا\\s*بده|براش\\s*بذار|براش\\s*وقت\\s*بذار)/u.test(normalized);
-      const hasAppointmentContext = /(?:نوبت|رزرو|وقت|مشتری|مینا|امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized);
+      const bookingAction = /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده|فیکس|فیکسش|قطعی\s*کن|نگه\s*دار|جورش\s*کن|اوکی\s*کن|هماهنگ\s*کن|اختصاص\s*بده|تعیین\s*کن|ردیف\s*کن|بچین|جا\s*بده|براش\s*بذار|براش\s*وقت\s*بذار)/u.test(normalized);
+      const hasAppointmentContext = /(?:نوبت|رزرو|وقت|مشتری|مینا|امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized);
       const isBookingIntent = bookingAction && (
         /(?:نوبت|رزرو|وقت)/u.test(normalized) ||
-        ((hasClock || /(?:امروز|فردا|پس\\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized)) && hasAppointmentContext) ||
+        ((hasClock || /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized)) && hasAppointmentContext) ||
         (/(?:برای|واسه|واسه‌ی)/u.test(normalized) && /(?:خدمت|کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین)/u.test(normalized))
       );
       const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized);
@@ -6103,8 +6103,8 @@
       const value = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
       const rawValue = minaCleanText(minaNormalizeDigits(raw)).toLowerCase();
       if (/(?:12|دوازده)\s*شب/u.test(rawValue) || /(?:12|دوازده)\s*شب/u.test(value)) return '00:00';
-      const numberWord = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
-      const relative = value.match(new RegExp('(' + numberWord + '\\s*دقیقه|یک\\s*ربع|ربع|نیم\\s*ساعت|نیم\\s*ربع)\\s*(به|مونده\\s*به|مانده\\s*به|قبل\\s*از|بعد\\s*از|گذشته\\s*از)\\s*(' + numberWord + ')(?:\\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
+      const numberWord = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
+      const relative = value.match(new RegExp('(' + numberWord + '\s*دقیقه|یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع)\s*(به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(' + numberWord + ')(?:\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
       if (relative) {
         const amountText = relative[1].replace(/\s*دقیقه\s*/g, '').trim();
         const amount = /ربع/u.test(amountText) ? (/نیم/u.test(amountText) ? 7 : 15) :
@@ -6124,8 +6124,8 @@
       let m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})/u);
       if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*دقیقه/u);
       if (!m) m = value.match(/(?:ساعت\s*)?(\d{1,2})\s*(صبح|ظهر|بعدازظهر|عصر|شب)/u);
-      if (!m) m = value.match(new RegExp('(?:ساعت\\\\s*)?(' + numberWord + ')\\\\s+و\\\\s+(' + numberWord + ')\\\\s*دقیقه', 'u'));
-      if (!m) m = value.match(new RegExp('(?:ساعت\\\\s*)?(' + numberWord + ')\\\\s*(صبح|ظهر|بعدازظهر|عصر|شب)', 'u'));
+      if (!m) m = value.match(new RegExp('(?:ساعت\\\s*)?(' + numberWord + ')\\\s+و\\\s+(' + numberWord + ')\\\s*دقیقه', 'u'));
+      if (!m) m = value.match(new RegExp('(?:ساعت\\\s*)?(' + numberWord + ')\\\s*(صبح|ظهر|بعدازظهر|عصر|شب)', 'u'));
       if (!m) return null;
       let hour = /^\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
       const secondPart = String(m[2] || '');
@@ -6363,7 +6363,7 @@
         if (!newTime) return 'ساعت رو دقیق متوجه نشدم؛ می‌تونی هر ساعت و دقیقه رو مثل «۱۵:۰۷»، «۳ و ۷ دقیقه بعدازظهر» یا «یک ربع به ۳» بگی 💗';
         // For a short contextual correction such as «ساعتش ۴:۲۰ باشه»,
         // preserve the existing AM/PM period when the user omits it.
-        const explicitPeriod = /(?:صبح|ظهر|بعدازظهر|بعد\\s*از\\s*ظهر|عصر|شب)/u.test(text);
+        const explicitPeriod = /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/u.test(text);
         const oldHour = Number(String(appt.time || '').slice(0,2));
         const parsedHour = Number(newTime.slice(0,2));
         if (!explicitPeriod && oldHour >= 12 && parsedHour < 12) newTime = pad2(parsedHour + 12) + newTime.slice(2);
