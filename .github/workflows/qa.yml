@@ -40,6 +40,8 @@ jobs:
       - name: Install Playwright
         run: |
           npm install --no-save playwright
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
       - name: Run browser QA
         run: node tests/offline-data-smoke.cjs
+      - name: Run mobile Safari WebKit smoke
+        run: node tests/safari-webkit-smoke.cjs
