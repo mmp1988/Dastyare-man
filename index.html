@@ -5897,6 +5897,10 @@
       // Deterministic appointment CRUD must run locally so it works instantly and offline.
       if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
       const normalized = minaCleanText(minaExpandSpokenTime(String(message || ''))).toLocaleLowerCase('fa');
+      // Multi-action salon requests must reach the reasoning model even if local CRUD
+      // heuristics do not recognize every colloquial mutation verb in the sentence.
+      const multiAction = /(?:و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)|همزمان|هم\s*این)/u.test(normalized);
+      if (multiAction) return true;
       if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
       // Complete natural-language booking: date + exact time + service + booking verb.
       const hasDate = /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized);
@@ -5904,10 +5908,7 @@
       const hasService = /(?:کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین|خدمت)/u.test(normalized);
       const hasBookingVerb = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s*بده|انجام\s*بده)/u.test(normalized);
       if (hasDate && hasTime && hasService && hasBookingVerb) return false;
-      // A request combining an appointment change with a second action needs cloud reasoning.
-      const multiAction = /(?:و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)|همزمان|هم\s*این)/u.test(normalized);
-      if (multiAction) return true;
-      // One clear, named appointment edit is deterministic too; multi-action requests still use AI.
+      // One clear, named appointment edit is deterministic too; multi-action requests use AI.
       const hasOneEdit = /(?:نوبت|رزرو|وقت)/u.test(normalized) &&
         /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز|کن|بکن|بشه|باشه)/u.test(normalized) &&
         (hasTime || hasDate) && !/(?:و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض)|همزمان|هم\s*این)/u.test(normalized);
