@@ -676,7 +676,8 @@ const assert = require('assert');
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
       const actualEpoch=saved?iranDateTimeToEpoch(saved.date,saved.time):NaN;
       const routed=minaIsSalonScopeRequest('ساعت ۳ ظهر امروز آلارم بذار برام') &&
-        minaIsClearlyLocalAction('ساعت ۳ ظهر امروز آلارم بذار برام');
+        minaIsClearlyLocalAction('ساعت ۳ ظهر امروز آلارم بذار برام') &&
+        !minaNeedsCloudUnderstanding('ساعت ۳ ظهر امروز آلارم بذار برام');
       appData.reminders=previousReminders;
       minaPendingPersonalReminder=null;
       return {
