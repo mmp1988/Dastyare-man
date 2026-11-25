@@ -5561,7 +5561,6 @@
       const lines = ['سابقه مرتبط پرونده مشتری:'];
       lines.push('نام پرونده: ' + String(profile.name || key));
       if (Array.isArray(profile.aliases) && profile.aliases.length) lines.push('نام‌های مستعار: ' + profile.aliases.join('، '));
-      if (profile.notes) lines.push('یادداشت سالن: ' + String(profile.notes).slice(0,500));
       const custom = Array.isArray(profile.customFields) ? profile.customFields.slice(0,12) : [];
       custom.forEach(item => {
         if (item && (item.label || item.value)) lines.push('اطلاعات مشتری: ' + String(item.label || '') + '؛ ' + String(item.value || '').slice(0,160));
@@ -6335,7 +6334,7 @@
     }
 
     async function minaAskSmartBrain(message, mode = 'reply') {
-      // Cloud is reserved for salon reasoning/content; local records and execution never leave this device.
+      // Cloud interprets salon requests with a minimized, name/phone-redacted context; all record mutations remain local.
       if (!navigator.onLine) return null;
       const safe = minaBuildCloudSafeCommand(message);
       try {
