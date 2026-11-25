@@ -539,7 +539,7 @@ const assert = require('assert');
     assert(minaBookingResult.contextualEditOk, 'Mina must interpret a short time correction as an edit to the appointment just created, without creating a duplicate');
     assert(minaBookingResult.calendarSourceLabelOk, 'Calendar day schedule must visibly label Mina-created appointments');
     assert(minaBookingResult.missingTimeOk, 'Mina must ask only for a missing required time');
-    // End-to-end guard: a complete explicit booking must execute locally before cloud chat routing.
+    // End-to-end guard: a complete booking is interpreted by cloud AI and then saved by the local executor.
     const minaDirectBookingFlow = await page.evaluate(async () => {
       appData.appointments = [];
       minaPendingBooking = null;
@@ -563,9 +563,9 @@ const assert = require('assert');
       };
     });
     console.log('Mina direct booking flow:', JSON.stringify(minaDirectBookingFlow));
-    assert(minaDirectBookingFlow.cloudCalls === 0 && minaDirectBookingFlow.appointmentSaved &&
+    assert(minaDirectBookingFlow.cloudCalls === 1 && minaDirectBookingFlow.appointmentSaved &&
       minaDirectBookingFlow.replyConfirmsSaved && minaDirectBookingFlow.noFalseAccessDenial,
-      'Complete appointment commands must be saved locally and must not be overridden by a cloud denial');
+      'Complete appointment commands must be routed through cloud AI and then saved locally');
     const minaAppointmentMutationFlow = await page.evaluate(async () => {
       appData.appointments = [{
         id:'qa-local-mutation', dateKey:addDaysToJalaliKey(getTodayKey(),1),
@@ -591,9 +591,9 @@ const assert = require('assert');
       };
     });
     console.log('Mina appointment mutation flow:', JSON.stringify(minaAppointmentMutationFlow));
-    assert(minaAppointmentMutationFlow.cloudCalls === 0 &&
+    assert(minaAppointmentMutationFlow.cloudCalls === 2 &&
       minaAppointmentMutationFlow.editSucceeded && minaAppointmentMutationFlow.deleteSucceeded,
-      'Appointment edits and deletions must execute locally before cloud routing');
+      'Appointment edits and deletions must be routed through cloud AI and executed locally');
 
 
 
