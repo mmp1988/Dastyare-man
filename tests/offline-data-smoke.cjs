@@ -1100,6 +1100,26 @@ const assert = require('assert');
     assert(minaCustomerLanguageQA.deleted, 'Natural-language customer deletion did not remove the matching profile and appointment');
     assert(minaCustomerLanguageQA.appointmentWasNotTreatedAsProfile, 'An appointment request was incorrectly parsed as customer creation');
 
+    // Natural-language profile creation and a separate phone-number follow-up must join the same record offline.
+    const minaCreateAndPhoneQA = await page.evaluate(() => {
+      appData.clientProfiles = {};
+      appData.clientNotes = {};
+      const createReply = minaTryAddClientFromMessage('برای مشتری جدید به اسم مامان مینا پرونده بساز');
+      const created = Object.entries(appData.clientProfiles).find(([key,p]) => p.name === 'مامان مینا');
+      const phoneReply = minaTryAddClientFromMessage('این شماره تلفن مامان مینا هست 09123456789');
+      const finalProfile = appData.clientProfiles['09123456789'];
+      return {
+        created:!!created,
+        phoneAttached:!!finalProfile && finalProfile.name === 'مامان مینا' && finalProfile.phone === '09123456789',
+        noDuplicate:Object.values(appData.clientProfiles).filter(p => p.name === 'مامان مینا').length === 1,
+        replies:[createReply,phoneReply]
+      };
+    });
+    assert(minaCreateAndPhoneQA.created, 'Mina did not create a customer profile from a natural Persian sentence');
+    assert(minaCreateAndPhoneQA.phoneAttached, 'A separate phone-number message did not attach to the correct customer profile');
+    assert(minaCreateAndPhoneQA.noDuplicate, 'Adding a phone number created a duplicate customer profile');
+
+
 
     // A customer without a phone number must still have a stable profile identity,
     // show the next appointment in the directory, and appear in the main calendar.
