@@ -3109,7 +3109,7 @@
       const override = appointment.repairReminderOverride && typeof appointment.repairReminderOverride === 'object'
         ? appointment.repairReminderOverride : null;
       const time = override?.time || settings.repairReminderTime || '10:00';
-      if (appointment.repairReminderDisabled === true || settings.repairReminderEnabled === false || days === null || !Number.isInteger(days) || days < 1 || days > 365 ||
+      if (appointment.repairReminderDisabled === true || days === null || !Number.isInteger(days) || days < 1 || days > 365 ||
           appointment.status === 'canceled' || !appointment.dateKey) {
         cancelAutomaticRepairReminder(appointment.id);
         return;
@@ -3117,11 +3117,11 @@
       const reminderJalaliDate = addDaysToJalaliKey(appointment.dateKey, days);
       const gregorianDate = override?.date || jalaliKeyToGregorianDate(reminderJalaliDate);
       if (!gregorianDate) return;
-      const message = override?.message || ('📞 زمان تماس برای نوبت ترمیم مشتری\\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
-        (appointment.phone ? '\\n📱 تلفن: ' + appointment.phone : '') +
-        '\\n💅 خدمت قبلی: ' + (appointment.service || 'ثبت نشده') +
-        '\\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
-        '\\n🔔 پیگیری ترمیم: ' + formatJalaliFull(reminderJalaliDate));
+      const message = override?.message || ('📞 زمان تماس برای نوبت ترمیم مشتری\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
+        (appointment.phone ? '\n📱 تلفن: ' + appointment.phone : '') +
+        '\n💅 خدمت قبلی: ' + (appointment.service || 'ثبت نشده') +
+        '\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
+        '\n🔔 پیگیری ترمیم: ' + formatJalaliFull(reminderJalaliDate));
       const targetAt = iranDateTimeToEpoch(gregorianDate, time);
       const item = { id, date: gregorianDate, time, message, notified: false, enabled: true, cancelled: false,
         createdAt: old?.createdAt || Date.now(), timezone: 'Asia/Tehran', kind: 'automatic-repair',
@@ -3250,12 +3250,13 @@
         };
         if(existingFollowup)Object.assign(existingFollowup,followupData);
         else appData.appointments.push(followupData);
+        syncAutomaticRepairReminder(followupData);
         followupCreatedOrUpdated=true;
       } else if (selectedAppointmentType === 'primary' && editId && existingFollowup && !nextDateRaw) {
         appData.appointments = appData.appointments.filter(a => a.id !== existingFollowup.id);
       }
       syncAutomaticRepairReminder(payload);
-      saveData(); if (hasBirthdayInput && appointmentProfileKey) renderClientBirthdays(); closeModal('apptModal'); renderCalendar(); renderDaySchedule(); renderPersonalReminders();
+      saveData(); renderPersonalReminders(); if (hasBirthdayInput && appointmentProfileKey) renderClientBirthdays(); closeModal('apptModal'); renderCalendar(); renderDaySchedule(); renderPersonalReminders();
       renderClientsTab(); updateDashboardStats();
       var activeClientKey = appointmentProfileKey || clientKeyFromFields(payload.phone, payload.clientName);
       if (activeClientKey && document.getElementById('clientRecordKey')?.value === activeClientKey) renderClientScheduledAppointments(activeClientKey);
@@ -5678,6 +5679,7 @@
         const ensuredClientKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
         syncAutomaticRepairReminder(appointment);
+        if (typeof renderPersonalReminders === 'function') renderPersonalReminders();
         if (ensuredClientKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaLastReferencedAppointmentId = appointment.id;
         selectedDateKey = appointment.dateKey;
@@ -5806,7 +5808,7 @@
           if (delta === 0 && !/(?:امروز|فردا|پس\s*فردا)/.test(t)) delta = 7;
           dateKey = addDaysToJalaliKey(dateKey, delta);
         }
-        const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*(?:صورت|پوست)|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
+        const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*(?:صورت|پوست)|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم|مژه|ابرو|ناخن)/;
         const serviceMatch = t.match(servicePattern);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
@@ -5864,6 +5866,7 @@
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
         syncAutomaticRepairReminder(appointment);
+        if (typeof renderPersonalReminders === 'function') renderPersonalReminders();
         if (appointmentProfileKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaPendingBooking = null;
         saveData();
@@ -6516,7 +6519,7 @@
       const directBookingIntent = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
         /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\s*بده|بده|اختصاص\s*بده|هماهنگ\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
         /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
+        /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|صبح|ظهر|بعد\s*از\s*ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
       if (directBookingIntent) {
         const bookingReply = minaBuildReply(message);
         addMinaMessage(minaFormatReplyForMode(bookingReply), 'assistant');
