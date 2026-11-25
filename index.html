@@ -7577,7 +7577,94 @@
       }
       try { return minaParseReminderClock(raw); } catch (error) { return null; }
     }
+    function minaTryEditPersonalReminder(raw) {
+      const source = minaNormalizePersianTypos(minaNormalizeDigits(String(raw || '')))
+        .replace(/بعد\s*از\s*ظهر/gu, 'بعدازظهر').trim();
+      const text = source.toLocaleLowerCase('fa');
+      const editIntent = /(?:بکنش|تغییر(?:ش)?\s*بده|عوض(?:ش)?\s*کن|جابجا(?:ش)?\s*کن|جابه.?جا(?:ش)?\s*کن|ببرش|منتقل(?:ش)?\s*کن|به\s*جاش)/u.test(text);
+      if (!editIntent || /(?:حذف|پاک|لغو|کنسل)\s*(?:کن|ش)?/u.test(text)) return null;
+
+      const active = (appData.reminders || []).filter(item =>
+        item && item.enabled !== false && !item.cancelled &&
+        item.kind !== 'automatic-repair' && item.source !== 'automatic-repair'
+      );
+      if (!active.length) return null;
+
+      const clockPattern = /(?:ساعت\s*)?\d{1,2}\s*[:٫.]\s*\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)?|(?:ساعت\s*)?\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)/gu;
+      const clockParts = source.match(clockPattern) || [];
+      const clocks = clockParts.map(part => minaParsePersonalReminderClock(part)).filter(Boolean);
+      const hasDate = /(?:امروز|فردا|پس\s*فردا|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2})/u.test(text);
+      const targetClock = clocks.length ? clocks[clocks.length - 1] : null;
+      if (!targetClock) return 'ساعت جدید رو متوجه نشدم عزیزم؛ ساعت دقیق رو بگو تا همون یادآوری قبلی رو تغییر بدم.';
+
+      let candidates = active.slice();
+      if (clocks.length >= 2) {
+        const oldClock = clocks[0];
+        candidates = candidates.filter(item => String(item.time || '') === oldClock);
+      } else if (hasDate) {
+        const wantedKey = minaReminderDateKey(source);
+        if (wantedKey) candidates = candidates.filter(item => {
+          const p = String(item.date || '').split('-').map(Number);
+          if (p.length !== 3 || !p.every(Number.isFinite)) return false;
+          const j = gregorianToJalali(p[0], p[1], p[2]);
+          return j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]) === wantedKey;
+        });
+      }
+
+      if (candidates.length !== 1) {
+        if (!candidates.length) return 'یادآوری قبلی با این ساعت یا تاریخ پیدا نشد؛ چیزی رو تغییر ندادم. ساعت و تاریخ یادآوری قبلی رو بگو تا اشتباهی دست نزنم.';
+        return 'چند یادآوری فعال داری و نمی‌خوام مورد اشتباهی رو تغییر بدم؛ ساعت یا موضوع یادآوری قبلی رو مشخص می‌کنی؟';
+      }
+
+      const item = candidates[0];
+      let date = String(item.date || '');
+      if (hasDate) {
+        const key = minaReminderDateKey(source);
+        if (key) date = jalaliKeyToGregorianDate(key);
+      }
+      const targetAt = iranDateTimeToEpoch(date, targetClock);
+      if (!date || !Number.isFinite(targetAt) || targetAt <= Date.now()) {
+        return 'زمان جدید به وقت ایران در گذشته است یا تاریخش معتبر نیست؛ هنوز هیچ تغییری ندادم.';
+      }
+
+      const oldId = String(item.id);
+      const preservedMessage = normalizeReminderMessage(item.message);
+      Object.assign(item, {
+        date,
+        time: targetClock,
+        message: preservedMessage,
+        notified: false,
+        enabled: true,
+        cancelled: false,
+        timezone: 'Asia/Tehran',
+        updatedAt: Date.now()
+      });
+      saveData();
+      let nativeStatus = 'web';
+      try {
+        if (window.AndroidApp?.cancelPersonalReminder) AndroidApp.cancelPersonalReminder(oldId);
+        if (window.AndroidApp?.schedulePersonalReminder) {
+          nativeStatus = String(AndroidApp.schedulePersonalReminder(oldId, targetAt, preservedMessage) || 'failed');
+        }
+      } catch (error) { nativeStatus = 'failed'; }
+      item.nativeStatus = nativeStatus;
+      saveData();
+      renderPersonalReminders();
+      const j = gregorianToJalali(...date.split('-').map(Number));
+      const dateKey = j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
+      const result = 'همون یادآوری قبلی تغییر کرد؛ مورد جدیدی نساختم. 💗\n📅 ' + formatJalaliFull(dateKey) +
+        '\n⏰ ساعت ' + toPersianDigits(targetClock) + '\n🔔 ' + preservedMessage;
+      if (nativeStatus === 'failed' || nativeStatus === 'notifications_denied') {
+        return result + '\nیادآوری داخل برنامه ذخیره شد، اما زمان‌بندی زنگ گوشی تأیید نشد.';
+      }
+      return result + (nativeStatus === 'exact' ? '\nآلارم گوشی هم دوباره زمان‌بندی شد. 🔔' :
+        nativeStatus === 'approximate' ? '\nاعلان گوشی زمان‌بندی شد؛ ممکنه چند دقیقه تأخیر داشته باشه.' :
+        '\nتغییر داخل برنامه ذخیره شد؛ اجرای زنگ در حالت بسته به پشتیبانی اپ بستگی داره.');
+    }
+
     function minaTrySetPersonalReminder(raw, batchChild = false) {
+      const editedReminder = minaTryEditPersonalReminder(raw);
+      if (editedReminder) return editedReminder;
       // A single natural-language message may contain several personal plans.
       // Split only explicit sequential clauses with their own clock times.
       if (!batchChild) {
