@@ -566,6 +566,35 @@ const assert = require('assert');
     assert(minaDirectBookingFlow.cloudCalls === 0 && minaDirectBookingFlow.appointmentSaved &&
       minaDirectBookingFlow.replyConfirmsSaved && minaDirectBookingFlow.noFalseAccessDenial,
       'Complete appointment commands must be saved locally and must not be overridden by a cloud denial');
+    const minaAppointmentMutationFlow = await page.evaluate(async () => {
+      appData.appointments = [{
+        id:'qa-local-mutation', dateKey:addDaysToJalaliKey(getTodayKey(),1),
+        time:'18:45', clientName:'مینا موسوی مطلق', service:'کاشت مژه', status:'pending'
+      }];
+      minaLastReferencedAppointmentId = null;
+      const originalFetch = window.fetch;
+      let cloudCalls = 0;
+      window.fetch = async (...args) => { cloudCalls++; return originalFetch(...args); };
+      const input = document.getElementById('minaInput');
+      input.value = 'نوبت مینا موسوی مطلق رو ساعت ۱۹:۰۰ کن';
+      try { await sendMinaMessageCore(); } finally { window.fetch = originalFetch; }
+      const edited = appData.appointments.find(a => a.id === 'qa-local-mutation');
+      const editSucceeded = !!edited && edited.time === '19:00';
+      window.fetch = async (...args) => { cloudCalls++; return originalFetch(...args); };
+      input.value = 'نوبت مینا موسوی مطلق رو حذف کن';
+      try { await sendMinaMessageCore(); } finally { window.fetch = originalFetch; }
+      return {
+        cloudCalls,
+        editSucceeded,
+        deleteSucceeded: !appData.appointments.some(a => a.id === 'qa-local-mutation'),
+        transcript: document.getElementById('minaChatMessages')?.innerText || ''
+      };
+    });
+    console.log('Mina appointment mutation flow:', JSON.stringify(minaAppointmentMutationFlow));
+    assert(minaAppointmentMutationFlow.cloudCalls === 0 &&
+      minaAppointmentMutationFlow.editSucceeded && minaAppointmentMutationFlow.deleteSucceeded,
+      'Appointment edits and deletions must execute locally before cloud routing');
+
 
 
     // Simulate app exit: pagehide flushes in-memory data and reopening restores it.
