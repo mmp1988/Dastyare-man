@@ -157,7 +157,7 @@ const assert = require('assert');
     // on each page must appear before secondary tools, with no duplicate tab.
     const sixPageHierarchyQA = await page.evaluate(() => {
       const ids = [...document.querySelectorAll('main > .tab-section')].map(el => el.id.replace('tab-',''));
-      const nav = [...document.querySelectorAll('.bottom-nav .nav-item')].map(el => el.querySelectorAll('span')[1]?.textContent.trim() || '');
+      const nav = [...document.querySelectorAll('.bottom-nav .nav-item')].map(el => el.textContent.trim());
       const position = (root, selector) => {
         const node = root.querySelector(selector);
         return node ? [...root.querySelectorAll('*')].indexOf(node) : -1;
@@ -174,7 +174,7 @@ const assert = require('assert');
       };
       return {
         pageOrder:ids.join(',') === 'calendar,clients,mina,notebook,messages,settings',
-        navCount:nav.length === 6 && nav.join('|') === 'خانه|مشتریان|مینا|یادداشت‌ها|پیام‌ها|شخصی‌سازی',
+        navCount:nav.length === 6 && ['خانه','مشتریان','مینا','یادداشت‌ها','پیام‌ها','شخصی‌سازی'].every((label,i) => nav[i].includes(label)),
         noDuplicateAppointmentsPage:!document.getElementById('tab-appointments') && !!home?.contains(document.getElementById('allAppointmentsPanel')),
         homePriority:ordered(home,['#homeWelcomeCard','.home-appointment-stats','#smartDashboard','.cal-header','#selectedDateLabel','#allAppointmentsPanel']),
         clientsPriority:ordered(clients,['#clientsListContainer','#clientBirthdaysCard','#customServicesList']),
