@@ -5555,20 +5555,23 @@
       const profile = getClientProfile(key);
       const appointments = (appData.appointments || []).filter(a =>
         a && a.status !== 'canceled' && clientMatchesAppointment(key, a)
-      ).sort((a,b) => String(b.dateKey || '').localeCompare(String(a.dateKey || ''))).slice(0,8);
-      const records = (profile.records || []).slice(-8);
-      const conversations = (profile.conversations || []).slice(-8);
+      ).sort((a,b) => String(b.dateKey || '').localeCompare(String(a.dateKey || ''))).slice(0,5);
+      const records = (profile.records || []).slice(-5);
+      const conversations = (profile.conversations || []).slice(-5);
       const lines = ['سابقه مرتبط پرونده مشتری:'];
+      // Keep identity labels first so context truncation cannot discard the primary name or aliases.
       lines.push('نام پرونده: ' + String(profile.name || key));
-      if (Array.isArray(profile.aliases) && profile.aliases.length) lines.push('نام‌های مستعار: ' + profile.aliases.join('، '));
-      const custom = Array.isArray(profile.customFields) ? profile.customFields.slice(0,12) : [];
+      if (Array.isArray(profile.aliases) && profile.aliases.length) {
+        lines.push('نام‌های مستعار همین مشتری: ' + profile.aliases.join('، '));
+      }
+      const custom = Array.isArray(profile.customFields) ? profile.customFields.slice(0,8) : [];
       custom.forEach(item => {
-        if (item && (item.label || item.value)) lines.push('اطلاعات مشتری: ' + String(item.label || '') + '؛ ' + String(item.value || '').slice(0,160));
+        if (item && (item.label || item.value)) lines.push('اطلاعات سالن مشتری: ' + String(item.label || '') + '؛ ' + String(item.value || '').slice(0,140));
       });
       appointments.forEach(a => lines.push('نوبت مشتری: ' + String(a.dateKey || 'بدون تاریخ') + '، ' + String(a.time || 'ساعت ثبت نشده') + '، ' + String(a.service || 'خدمت ثبت نشده') + '، وضعیت ' + (a.status === 'done' ? 'انجام‌شده' : 'در انتظار')));
-      records.forEach(record => lines.push('سابقه خدمت: ' + String(record.dateKey || 'بدون تاریخ') + '، ' + String(record.service || 'خدمت ثبت نشده') + (record.notes ? '، توضیح: ' + String(record.notes).slice(0,180) : '')));
-      conversations.forEach(item => lines.push((item.role === 'user' ? 'درخواست قبلی مشتری: ' : 'پاسخ قبلی مینا: ') + String(item.text || '').slice(0,260)));
-      return lines.join('\n').slice(0,3200);
+      records.forEach(record => lines.push('سابقه خدمت: ' + String(record.dateKey || 'بدون تاریخ') + '، ' + String(record.service || 'خدمت ثبت نشده') + (record.notes ? '، توضیح: ' + String(record.notes).slice(0,120) : '')));
+      conversations.forEach(item => lines.push((item.role === 'user' ? 'درخواست قبلی مشتری: ' : 'پاسخ قبلی مینا: ') + String(item.text || '').slice(0,180)));
+      return lines.join('\\n').slice(0,2400);
     }
     function renderClientConversationHistory(key) {
       const profile = getClientProfile(key);
@@ -6651,7 +6654,7 @@
           .join('\n');
         const cloudContext = (
           String(recent || message).slice(-1500) +
-          (customerMemory ? '\n\n' + customerMemory.slice(-1500) : '') +
+          (customerMemory ? '\n\n' + customerMemory.slice(0,2200) : '') +
           (trustedFacts ? '\n\n' + trustedFacts.slice(-900) : '')
         ).slice(-3900);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
