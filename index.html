@@ -4913,11 +4913,13 @@
       const due=(appData.appointments||[]).filter(appt=>{
         if (!appt || appt.status==='canceled' || appt.status==='done' || appt.alarm==='none' || appt.notified || !appt.dateKey || !appt.time) return false;
         const parts=appt.dateKey.split('-').map(Number), gregorian=jalaliToGregorian(parts[0],parts[1],parts[2]);
-        const hm=appt.time.split(':').map(Number);
-        const appointmentAt=new Date(gregorian[0],gregorian[1]-1,gregorian[2],hm[0],hm[1],0,0);
+        const gregorianDate=gregorian[0]+'-'+pad2(gregorian[1])+'-'+pad2(gregorian[2]);
+        const appointmentAt=iranDateTimeToEpoch(gregorianDate,appt.time);
+        if(!Number.isFinite(appointmentAt))return false;
         const alarmMinutes=Math.max(0,Math.min(43200,Number(appt.alarm)||0));
-        const remindAt=appointmentAt.getTime()-alarmMinutes*60000;
-        return now.getTime()>=remindAt && now.getTime()<=appointmentAt.getTime();
+        const remindAt=appointmentAt-alarmMinutes*60000;
+        const nowMillis=Date.now();
+        return nowMillis>=remindAt && nowMillis<=appointmentAt;
       }).sort((a,b)=>(a.dateKey+a.time).localeCompare(b.dateKey+b.time));
       const appt=due[0];
       if (!appt) return;
