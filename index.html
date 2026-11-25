@@ -4097,7 +4097,7 @@
       const p = getClientProfile(key);
       const workFieldLabels=Object.fromEntries(getClientWorkFieldDefinitions().map(f=>[f.id,f.label]));
       const appts = appData.appointments.filter(a => clientMatchesAppointment(key, a) && a.status === 'done')
-        .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:a.notes || '', photo:'', source:'appointment' }));
+        .map(a => ({ id:a.id, dateKey:a.dateKey, time:a.time || '', service:a.service || 'خدمت ثبت‌نشده', notes:a.notes || '', photo:'', appointmentType:a.appointmentType || (isFollowupAppointment(a)?'followup':'primary'), source:'appointment' }));
       const records = (p.records || []).map(r => ({...r, source:'record'}));
       const items = appts.concat(records).sort((a,b) => (b.dateKey+(b.time||'')).localeCompare(a.dateKey+(a.time||'')));
       const box = document.getElementById('clientHistoryList');
@@ -4111,6 +4111,7 @@
             <strong style="font-size:.84rem;">${escapeClientText(item.service)}</strong>
             <small style="color:var(--accent);white-space:nowrap;">${item.dateKey?formatJalaliFull(item.dateKey):''}${item.dateKey&&item.time?' • ':''}${item.time?toPersianDigits(item.time):''}</small>
           </div>
+          ${item.appointmentType ? `<div style="margin-top:5px;"><span style="font-size:.67rem;border-radius:20px;padding:3px 8px;background:rgba(232,95,168,.1);color:var(--accent-dark);">${item.appointmentType==='followup'?'نوبت ترمیم':'نوبت اصلی'}</span></div>` : ''}
           ${item.beforePhotoRef || item.afterPhotoRef ? `
             <div style="margin-top:10px;border:1px solid var(--border-subtle);border-radius:12px;overflow:hidden;background:var(--bg-secondary);">
               <div style="display:grid;grid-template-columns:1fr 1fr;min-height:170px;">
@@ -6232,7 +6233,7 @@
   const p=getClientProfile(key);if(!Array.isArray(p.records))p.records=[];
   const archiveId='done_'+String(a.id);
   if(!p.records.some(r=>r.id===archiveId)){
-   p.records.unshift({id:archiveId,dateKey:a.dateKey||'',time:a.time||'',service:a.service||'خدمت ثبت‌نشده',notes:a.notes||'',customValues:{},photoRef:'',beforePhotoRef:'',afterPhotoRef:'',createdAt:a.completedAt||a.updatedAt||Date.now(),sourceAppointmentId:a.id,immutable:true,recordType:'completed-appointment'});
+   p.records.unshift({id:archiveId,dateKey:a.dateKey||'',time:a.time||'',service:a.service||'خدمت ثبت‌نشده',notes:a.notes||'',customValues:{},photoRef:'',beforePhotoRef:'',afterPhotoRef:'',createdAt:a.completedAt||a.updatedAt||Date.now(),sourceAppointmentId:a.id,appointmentType:a.appointmentType || (isFollowupAppointment(a)?'followup':'primary'),parentAppointmentId:a.parentAppointmentId||'',immutable:true,recordType:'completed-appointment'});
   }
   return key;
  };
@@ -6271,90 +6272,7 @@
 })();
 
 
-(function(){
- 'use strict';
- const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- window.renderAppointmentsHub=function(){
-  const root=document.getElementById('appointmentHubList');if(!root||typeof appData==='undefined')return;
-  const q=(document.getElementById('appointmentHubSearch')?.value||'').trim().toLocaleLowerCase('fa');
-  const filter=document.getElementById('appointmentHubFilter')?.value||'upcoming',today=typeof getTodayKey==='function'?getTodayKey():'';
-  const all=(appData.appointments||[]).filter(a=>a&&a.status!=='deleted');
-  const active=all.filter(a=>a.status!=='canceled'&&a.status!=='done');
-  const todayCount=active.filter(a=>a.dateKey===today).length;
-  const futureCount=active.filter(a=>String(a.dateKey||'')>=today).length;
-  const doneCount=all.filter(a=>a.status==='done').length;
-  const stats=document.getElementById('appointmentHubStats');
-  if(stats)stats.innerHTML='<div class="appointment-hub-stat"><strong>'+toPersianDigits(todayCount)+'</strong><span>نوبت امروز</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(futureCount)+'</strong><span>نوبت پیش‌رو</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(doneCount)+'</strong><span>انجام‌شده</span></div>';
-  let rows=all.filter(a=>{
-   if(filter==='upcoming'&&(a.status==='done'||a.status==='canceled'||String(a.dateKey||'')<today))return false;
-   if(filter==='today'&&a.dateKey!==today)return false;
-   if(filter==='done'&&a.status!=='done')return false;
-   if(filter==='canceled'&&a.status!=='canceled')return false;
-   const hay=(String(a.clientName||'')+' '+String(a.phone||'')+' '+String(a.service||'')).toLocaleLowerCase('fa');
-   return !q||hay.includes(q);
-  }).sort((a,b)=>(String(a.dateKey||'')+(a.time||'')).localeCompare(String(b.dateKey||'')+(b.time||'')));
-  if(filter==='upcoming')rows=rows;
-  if(!rows.length){root.innerHTML='<div style="text-align:center;padding:28px 10px;color:var(--text-secondary);font-size:.8rem">🌸 موردی برای نمایش پیدا نشد.</div>';return;}
-  root.innerHTML=rows.map(a=>{
-   const status=a.status==='done'?'انجام‌شده':a.status==='canceled'?'لغوشده':a.status==='confirmed'?'تأییدشده':'در انتظار';
-   const kind=typeof isFollowupAppointment==='function'&&isFollowupAppointment(a)?'نوبت ترمیم':'نوبت اصلی';
-   const date=typeof formatJalaliFull==='function'?formatJalaliFull(a.dateKey):a.dateKey||'';
-   const key=typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'';
-   return '<article class="appointment-hub-item"><div class="appointment-hub-item-top"><div><strong>'+esc(a.clientName||'مشتری بدون نام')+'</strong><small>'+esc(a.service||'خدمت ثبت نشده')+'</small></div><span class="appointment-hub-time">'+esc(toPersianDigits(a.time||''))+'</span></div><div class="appointment-hub-tags"><span class="appointment-hub-tag">📅 '+esc(date)+'</span><span class="appointment-hub-tag">'+kind+'</span><span class="appointment-hub-tag">'+status+'</span></div><div class="appointment-hub-actions">'+(key?'<button class="mini-btn" onclick="openClientRecord(\''+esc(key).replace(/'/g,'&#39;')+'\')">پرونده مشتری</button>':'')+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="openApptModal(\''+esc(a.id)+'\')">ویرایش</button>':'')+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="markAppointmentDone(\''+esc(a.id)+'\')">ثبت انجام‌شدن</button>':'')+'<button class="mini-btn del" onclick="deleteAppointment(\''+esc(a.id)+'\')">'+(a.status==='done'?'حذف از تاریخچه':'حذف نوبت')+'</button></div></article>';
-  }).join('');
- };
- window.markAppointmentDone=function(id){
-  const a=(appData.appointments||[]).find(x=>x.id===id);if(!a)return;
-  if(!confirm('این خدمت انجام‌شده ثبت شود؟ سابقه آن در پرونده مشتری باقی می‌ماند.'))return;
-  a.status='done';a.completedAt=Date.now();if(typeof saveData==='function')saveData();
-  if(typeof renderCalendar==='function')renderCalendar();if(typeof renderDaySchedule==='function')renderDaySchedule();
-  renderAppointmentsHub();if(typeof renderClientsTab==='function')renderClientsTab();
-  if(typeof showToast==='function')showToast('خدمت انجام‌شده ثبت شد و در تاریخچه مشتری باقی می‌ماند 🌸');
- };
- window.archiveCompletedAppointment=function(a){
-  if(!a||a.status!=='done')return '';
-  const key=(typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'') || (typeof clientKeyFromFields==='function'?clientKeyFromFields(a.phone,a.clientName):'');
-  if(!key)return '';
-  const p=getClientProfile(key);if(!Array.isArray(p.records))p.records=[];
-  const archiveId='done_'+String(a.id);
-  if(!p.records.some(r=>r.id===archiveId)){
-   p.records.unshift({id:archiveId,dateKey:a.dateKey||'',time:a.time||'',service:a.service||'خدمت ثبت‌نشده',notes:a.notes||'',customValues:{},photoRef:'',beforePhotoRef:'',afterPhotoRef:'',createdAt:a.completedAt||a.updatedAt||Date.now(),sourceAppointmentId:a.id,immutable:true,recordType:'completed-appointment'});
-  }
-  return key;
- };
- window.deleteAppointment=function(id){
-  const a=(appData.appointments||[]).find(x=>x.id===id);if(!a)return;
-  const completed=a.status==='done';
-  if(!confirm(completed?'این نوبت از فهرست نوبت‌ها حذف شود؟ سابقه انجام‌شده در پرونده مشتری حفظ می‌شود.':'این نوبت حذف شود؟'))return;
-  const key=completed?archiveCompletedAppointment(a):'';
-  appData.appointments=appData.appointments.filter(x=>x.id!==id);
-  if(typeof saveData==='function')saveData();
-  if(typeof renderCalendar==='function')renderCalendar();if(typeof renderDaySchedule==='function')renderDaySchedule();
-  if(typeof renderClientsTab==='function')renderClientsTab();if(typeof renderClientBirthdays==='function')renderClientBirthdays();
-  if(key&&document.getElementById('clientRecordKey')?.value===key){renderClientHistory(key);renderClientScheduledAppointments(key);}
-  renderAppointmentsHub();
-  if(typeof updateDashboardStats==='function')updateDashboardStats();
-  if(typeof showToast==='function')showToast(completed?'نوبت حذف شد؛ سابقه خدمت در تاریخچه مشتری ماندگار شد 💗':'نوبت حذف شد؛ پرونده مشتری حفظ شد.');
- };
- window.deleteClientHistoryItem=function(encodedKey,encodedId,source){
-  const key=decodeURIComponent(encodedKey),id=decodeURIComponent(encodedId);
-  if(!confirm('این سابقه از تاریخچه مشتری حذف شود؟ این عملیات قابل بازگشت نیست.'))return;
-  const p=getClientProfile(key);
-  if(source==='appointment'){
-   const a=(appData.appointments||[]).find(x=>x.id===id&&x.status==='done');
-   if(a)appData.appointments=appData.appointments.filter(x=>x.id!==id);
-  }else{
-   p.records=(p.records||[]).filter(r=>r.id!==id);
-  }
-  saveData();renderClientHistory(key);renderClientsTab();renderAppointmentsHub();
-  if(typeof showToast==='function')showToast('سابقه انتخاب‌شده حذف شد.');
- };
- const originalSwitch=window.switchTab;
- if(typeof originalSwitch==='function'){
-  window.switchTab=function(tab,btn){originalSwitch(tab,btn);if(tab==='appointments')renderAppointmentsHub();};
- }
- document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(document.getElementById('appointmentHubList'))renderAppointmentsHub();},250);});
-})();
+
 
 </script>
 </body>
