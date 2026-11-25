@@ -344,6 +344,45 @@ const assert = require('assert');
     assert(customerAppointmentSummary.visibleText.includes('کوتاهی مو'), 'Customer row must show the nearest appointment service');
     assert(!customerAppointmentSummary.visibleText.includes('لغوشده') && !customerAppointmentSummary.visibleText.includes('انجام‌شده'), 'Canceled and completed appointments must not appear as upcoming');
     console.log('Customer appointment summary:', JSON.stringify(customerAppointmentSummary));
+    
+    // A dated appointment must create/link a customer profile; the customer directory
+    // sorts by the next upcoming booking and exposes an independent VIP marker/filter.
+    const customerBookingAndVipQA = await page.evaluate(() => {
+      appData.clientProfiles = {};
+      appData.appointments = [];
+      const appointment = {
+        id:'qa-profile-linked-booking', dateKey:addDaysToJalaliKey(getTodayKey(), 2),
+        time:'11:30', clientName:'مشتری دارای نوبت', phone:'', status:'pending'
+      };
+      const key = ensureClientProfileForAppointment(appointment);
+      appData.appointments.push(appointment);
+      const linkedProfile = appData.clientProfiles[key];
+      const linked = !!linkedProfile && !!appointment.clientId && appointment.clientId === linkedProfile.clientId;
+
+      const nearKey = clientKeyFromFields('', 'مشتری نزدیک');
+      const farKey = clientKeyFromFields('', 'مشتری دور');
+      getClientProfile(nearKey).name = 'مشتری نزدیک';
+      getClientProfile(farKey).name = 'مشتری دور';
+      appData.appointments.push(
+        { id:'qa-near-appt', dateKey:addDaysToJalaliKey(getTodayKey(),1), time:'09:00', clientName:'مشتری نزدیک', clientId:getClientProfile(nearKey).clientId, status:'pending' },
+        { id:'qa-far-appt', dateKey:addDaysToJalaliKey(getTodayKey(),8), time:'09:00', clientName:'مشتری دور', clientId:getClientProfile(farKey).clientId, status:'pending' }
+      );
+      renderClientsTab();
+      const cards = [...document.querySelectorAll('#clientsListContainer > div')];
+      const nearIndex = cards.findIndex(el=>el.textContent.includes('مشتری نزدیک'));
+      const farIndex = cards.findIndex(el=>el.textContent.includes('مشتری دور'));
+      toggleClientVip(nearKey);
+      const vipSaved = getClientProfile(nearKey).vip === true;
+      const vipSelect = document.getElementById('advancedClientSegment');
+      if (vipSelect) { vipSelect.value='vip'; renderClientsTab(); }
+      const vipOnly = [...document.querySelectorAll('#clientsListContainer > div')].every(el=>el.textContent.includes('مشتری نزدیک'));
+      return { linked, nearBeforeFar:nearIndex >= 0 && farIndex >= 0 && nearIndex < farIndex, vipSaved, vipOnly };
+    });
+    assert(customerBookingAndVipQA.linked, 'A named dated booking must create and link a customer profile');
+    assert(customerBookingAndVipQA.nearBeforeFar, 'Customer directory must sort by nearest upcoming appointment');
+    assert(customerBookingAndVipQA.vipSaved && customerBookingAndVipQA.vipOnly, 'VIP marker and VIP-only filter must persist and work');
+    console.log('Customer booking and VIP:', JSON.stringify(customerBookingAndVipQA));
+
 
     // Seed local data, then prove the installed Service Worker can reopen the app offline.
     await page.evaluate(() => {
