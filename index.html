@@ -4913,7 +4913,7 @@
       root.innerHTML=list.map(a=>{
         const dateHeading=mode==='month'&&a.dateKey!==lastDate?'<div class="home-appt-date-heading">'+formatJalaliFull(a.dateKey)+'</div>':'';
         lastDate=a.dateKey;
-        const type=isFollowupAppointment(a)?'🔁 نوبت ترمیم':'📌 نوبت اصلی';
+        const type=isFollowupAppointment(a)?'🔁 نوبت بعدی':'📌 نوبت اصلی';
         const status=a.status==='done'?'انجام شد':'در انتظار مراجعه';
         const phone=String(a.phone||'').replace(/[^0-9]/g,'');
         const alarm=a.alarm==='none'?'بدون هشدار':Number(a.alarm)===0?'سر ساعت':Number(a.alarm)>0?toPersianDigits(a.alarm)+' دقیقه قبل':'—';
@@ -6234,7 +6234,7 @@
       const list=document.getElementById('smartUpcomingList');if(!list)return;
       const rows=[];
       if(nextToday)rows.push('<div class="home-next-appointment"><span>⏭️ نزدیک‌ترین نوبت امروز</span><strong>'+escapeClientText(nextToday.clientName||'مشتری')+' • '+toPersianDigits(nextToday.time||'')+'</strong><small>'+escapeClientText(nextToday.service||'خدمت ثبت نشده')+'</small></div>');
-      if(upcoming.length)rows.push(...upcoming.slice(0,4).map(a=>'<div class="home-next-appointment"><span>🗓️ '+formatJalaliFull(a.dateKey)+' • '+toPersianDigits(a.time||'')+'</span><strong>'+escapeClientText(a.clientName||'مشتری')+'</strong><small>'+escapeClientText(a.service||'خدمت ثبت نشده')+(isFollowupAppointment(a)?' • نوبت ترمیم':' • نوبت اصلی')+'</small></div>'));
+      if(upcoming.length)rows.push(...upcoming.slice(0,4).map(a=>'<div class="home-next-appointment"><span>🗓️ '+formatJalaliFull(a.dateKey)+' • '+toPersianDigits(a.time||'')+'</span><strong>'+escapeClientText(a.clientName||'مشتری')+'</strong><small>'+escapeClientText(a.service||'خدمت ثبت نشده')+(isFollowupAppointment(a)?' • نوبت بعدی':' • نوبت اصلی')+'</small></div>'));
       if(!rows.length)rows.push('<div style="font-size:.78rem;color:var(--text-secondary);padding:8px;">'+(pending.length?'نوبت باقی‌مانده‌ای برای امروز ندارید.':'امروز نوبتی در انتظار نیست و در ۷ روز آینده هم نوبتی ثبت نشده است.')+'</div>');
       list.innerHTML=rows.join('');
     }
