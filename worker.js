@@ -1,5 +1,5 @@
 // Cloudflare Workers entry point; this comment also verifies Git-connected deployment.
-const ALLOWED_ORIGIN = "https://mmp1988.github.io";
+const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
 function json(data, status = 200, extraHeaders = {}) {
@@ -31,7 +31,7 @@ export default {
       return json({ success: true, status: "ready" });
     }
 
-    if (origin !== ALLOWED_ORIGIN) {
+    if (!ALLOWED_ORIGINS.has(origin)) {
       return json({ success: false, error: "Origin not allowed" }, 403);
     }
 
