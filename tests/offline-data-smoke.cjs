@@ -847,6 +847,58 @@ const assert = require('assert');
     assert(primaryFollowupQA.followupStillShownAfterDone,
       'Marking the primary appointment done must not hide or remove its future follow-up');
     console.log('Primary/follow-up integration:', JSON.stringify(primaryFollowupQA));
+
+    // Direct follow-up booking from the appointment modal must open the Jalali
+    // calendar, accept a manually chosen date and minute-precise time, and skip
+    // the automatic 14/21/28-day scheduling controls.
+    const directFollowupModalQA = await page.evaluate(() => {
+      const name = 'مشتری ترمیم با تاریخ دلخواه';
+      const clientId = 'qa-direct-followup-client';
+      const today = getTodayKey();
+      const targetDate = addDaysToJalaliKey(today, 17);
+      appData.clientProfiles = {
+        [name]: { name, phone:'', clientId, records:[] }
+      };
+      appData.appointments = [{
+        id:'qa-direct-followup-primary', appointmentType:'primary', parentAppointmentId:'',
+        dateKey:today, time:'09:00', clientName:name, phone:'', clientId,
+        service:'کاشت مژه', status:'done', alarm:'none'
+      }];
+      selectedDateKey = today;
+      viewYear = Number(today.slice(0,4));
+      viewMonth = Number(today.slice(5,7));
+      openApptModal();
+      document.getElementById('apptClientName').value = name;
+      document.getElementById('apptPhone').value = '';
+      document.getElementById('apptService').value = 'ترمیم مژه';
+      document.getElementById('apptTime').value = '13:47';
+      document.getElementById('apptType').value = 'followup';
+      updateAppointmentTypeUI();
+      const calendarOpened = document.getElementById('apptJalaliPicker').style.display === 'block';
+      const autoScheduleHidden = document.getElementById('autoFollowupSection').style.display === 'none';
+      selectAppointmentJalaliDate(targetDate);
+      saveAppointment();
+      const created = appData.appointments.find(a => a.appointmentType === 'followup' &&
+        a.parentAppointmentId === 'qa-direct-followup-primary' && a.clientName === name);
+      const linkedFollowups = appData.appointments.filter(a => a.parentAppointmentId === 'qa-direct-followup-primary');
+      return {
+        calendarOpened,
+        autoScheduleHidden,
+        saved:!!created,
+        exactDate:!!created && created.dateKey === targetDate,
+        exactTime:!!created && created.time === '13:47',
+        linkedToPrimary:!!created && created.parentAppointmentId === 'qa-direct-followup-primary',
+        noDuplicateFollowup:linkedFollowups.length === 1,
+        pickerClosedAfterSelection:document.getElementById('apptJalaliPicker').style.display === 'none'
+      };
+    });
+    assert(directFollowupModalQA.calendarOpened && directFollowupModalQA.autoScheduleHidden &&
+      directFollowupModalQA.saved && directFollowupModalQA.exactDate && directFollowupModalQA.exactTime &&
+      directFollowupModalQA.linkedToPrimary && directFollowupModalQA.noDuplicateFollowup &&
+      directFollowupModalQA.pickerClosedAfterSelection,
+      'Direct follow-up booking must use a manually selected Jalali date/time and must not show auto-schedule controls');
+    console.log('Direct follow-up modal:', JSON.stringify(directFollowupModalQA));
+
     const homeDashboardQA = await page.evaluate(() => {
       const today = getTodayKey();
       const tomorrow = addDaysToJalaliKey(today, 1);
