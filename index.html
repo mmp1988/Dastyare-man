@@ -6510,6 +6510,7 @@
         // In «برای مامان مینا تو قسمت مشتریان یه پرونده باز کن», the name is
         // «مامان مینا»; «باز کن» is an action, never a customer name.
         /(?:برای|واسه)\s+(.+?)(?=\s+(?:به\s+نام|به\s+اسم|اسمش|نامش|توی|تو|در|داخل|قسمت|بخش|ثبت|اضافه|افزودن|کن|کنش|باز\s+کن)|$)/u,
+        /(?:شماره\s+تماس|تلفن\s+مشتری)\s+(.+?)(?=\s+(?:هست|است|ـه|مال|متعلق|توی|در|قسمت|بخش)|$)/u,
         /(?:این\s+)?شماره(?:\s+تلفن)?\s+(.+?)(?=\s+(?:هست|است|ـه|مال|متعلق|توی|در|قسمت|بخش)|$)/u,
         /(?:مشتری(?:\s+جدید)?|پرونده(?:\s+جدید)?)\s+(.+?)(?=\s+(?:توی|تو|در|داخل|قسمت|بخش|مشتریان|پرونده|ثبت|اضافه|افزودن|وارد|بساز|ایجاد|کن|کنش|برو|باز\s+کن)|$)/u
       ];
@@ -7595,10 +7596,13 @@
       const text = minaCleanText(expanded).toLowerCase();
       const hasAppointmentWord = /(?:نوبت|رزرو|وقت|مراجعه)/u.test(text);
       const hasClockLikeValue = /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|یک\s*ربع|ربع|نیم\s*ساعت)/u.test(text);
+      const pronounAppointmentFollowup = !!minaLastReferencedAppointmentId && hasClockLikeValue &&
+        /(?:همونو|همون\s+رو|همان\s+را|همان\s+رو|اونو|اون\s+رو)/u.test(text);
       const contextualFollowup = (!hasAppointmentWord && (
         (/(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|ساعت|دقیقه|فردا|پس\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text)) ||
         (!!minaLastReferencedAppointmentId && hasClockLikeValue && !/(?:برای|ثبت|رزرو|بده|بگیر|خدمت|کاشت|لیفت|مژه|ابرو|ناخن|مو|فیشیال|شینیون|کراتین)/u.test(text))
-      )) || (/(?:نوبتشو|نوبت\s*ش\s*رو|نوبتش\s*رو|نوبت\s*رو)/u.test(text) && hasClockLikeValue);
+      )) || (/(?:نوبتشو|نوبت\s*ش\s*رو|نوبتش\s*رو|نوبت\s*رو)/u.test(text) && hasClockLikeValue) ||
+        pronounAppointmentFollowup;
       if (!hasAppointmentWord && !contextualFollowup) return null;
 
       const isDelete = /(?:حذف|پاک(?:\s*کردن|\s*کن|ش\s*کن)?|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
