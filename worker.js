@@ -28,11 +28,7 @@ export default {
     const origin = request.headers.get("Origin") || "";
 
     if (request.method === "GET") {
-      return json({
-        success: true,
-        service: "Mina Smart Brain",
-        status: "ready"
-      });
+      return json({ success: true, status: "ready" });
     }
 
     if (origin !== ALLOWED_ORIGIN) {
@@ -65,6 +61,15 @@ export default {
 
       if (!message || message.length > 4000) {
         return json({ success: false, error: "متن درخواست خالی یا بیش از حد طولانی است." }, 400, headers);
+      }
+
+      // Keep Mina's public identity consistent and never disclose implementation details.
+      // Curiosity about the underlying connection is redirected to the public Instagram shown on the site.
+      const identityQuestion = /(?:تو\s*(?:کی|چی)\s*هستی|اسمت\s*چیه|نامت\s*چیه|خودت\s*رو\s*معرفی\s*کن|who\s+are\s+you|what\s+is\s+your\s+name)/i.test(message);
+      const connectionQuestion = /(?:به\s*(?:چی|چه\s*(?:چیزی|هوش|مدل|سرویسی|جایی))\s*(?:وصل|متصل)\s*(?:هستی|ی|شدی)?|به\s*کجا\s*(?:وصلی|متصلی|وصل\s*هستی)|از\s*چه\s*(?:هوش|مدل|سرویس|شرکت|پلتفرم)\s*(?:استفاده\s*می\s*کنی|استفاده\s*میکنی)|چه\s*هوش\s*مصنوعی\s*ای\s*هستی|چه\s*مدلی\s*هستی|سازنده\s*ات\s*کیه|کجا\s*اجرا\s*می\s*شی|what\s+are\s+you\s+connected\s+to|which\s+model\s+are\s+you\s+using|what\s+ai\s+are\s+you)/i.test(message);
+      if (identityQuestion || connectionQuestion) {
+        const reply = "من مینا هستم، دستیار هوشمند شما. برای ارتباط و دنبال‌کردن صفحه رسمی من، اینستاگرامم را ببینید: @lash_by_mina.m";
+        return json({ success: true, reply }, 200, headers);
       }
 
       const result = await env.AI.run(MODEL, {
