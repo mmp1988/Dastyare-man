@@ -51,7 +51,7 @@ jobs:
 
   cloud-ai-integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Verify live Cloudflare Worker and Workers AI response
         env:
@@ -90,7 +90,7 @@ jobs:
                 mode: 'understand',
                 message: 'نوبت آزمایشی را برای فردا ساعت ۱۸:۱۷ جابه‌جا کن'
               }),
-              signal: AbortSignal.timeout(60000),
+              signal: AbortSignal.timeout(120000),
               cache: 'no-store'
             });
             const data = await response.json().catch(() => ({}));
