@@ -5893,17 +5893,23 @@
     }
 
     function minaNeedsCloudUnderstanding(message) {
-      // Every salon action is interpreted by the connected language model when online,
-      // not only messages that a brittle local heuristic labels as "complex".
-      // Names, digits and exact times are masked/restored by minaBuildCloudSafeCommand;
-      // the model interprets intent while the local engine alone executes and stores records.
+      // Cloud AI is for salon knowledge, writing and genuinely ambiguous multi-step reasoning.
+      // Deterministic appointment CRUD must run locally so it works instantly and offline.
       if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
-      // A direct named-appointment time command is deterministic and must execute locally.
-      // Avoid sending this short form to the chat model, which can mistake it for general conversation.
-      if (/(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو\s*)?بکن(?:ش)?\s+(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/u.test(minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))))) return false;
+      const normalized = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
       if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
+      // Complete natural-language booking: date + exact time + service + booking verb.
+      const hasDate = /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized);
+      const hasTime = /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/u.test(normalized);
+      const hasService = /(?:کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین|خدمت)/u.test(normalized);
+      const hasBookingVerb = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s*بده|انجام\s*بده)/u.test(normalized);
+      if (hasDate && hasTime && hasService && hasBookingVerb) return false;
+      // One clear, named appointment edit is deterministic too; multi-action requests still use AI.
+      const hasOneEdit = /(?:نوبت|رزرو|وقت)/u.test(normalized) &&
+        /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز|کن|بکن|بشه|باشه)/u.test(normalized) &&
+        (hasTime || hasDate) && !/(?:و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض)|همزمان|هم\s*این)/u.test(normalized);
+      if (hasOneEdit) return false;
       // A short follow-up is resolved against the appointment already selected locally.
-      // Do not send context-free fragments like «۶ عصر» to a stateless cloud endpoint.
       if (minaIsPendingSalonFollowUp(message)) return false;
       return true;
     }
