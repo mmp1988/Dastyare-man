@@ -683,8 +683,9 @@ const assert = require('assert');
         minaParseReminderClock('ساعت سه و صفر دقیقه')==='03:00' &&
         minaParseReminderClock('ساعت سه و پنجاه و نه دقیقه')==='03:59';
       const relative59ExpectedAt=Math.ceil((Date.now()+59*60000)/60000)*60000;
+      const relative59CreatedAfter=Date.now();
       const relative59Reply=minaTrySetPersonalReminder('برای پنجاه و نه دقیقه دیگه آلارم تنظیم کن');
-      const relative59Saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.id!==saved?.id&&x.id!==relativeSaved?.id);
+      const relative59Saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=relative59CreatedAfter&&x.id!==saved?.id&&x.id!==relativeSaved?.id);
       const relative59ActualAt=relative59Saved?iranDateTimeToEpoch(relative59Saved.date,relative59Saved.time):NaN;
       const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
