@@ -6171,7 +6171,7 @@
       // appointment lookup/edit handlers can misclassify it as a request about an old record.
       if (minaConversationBooking && continuationHasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/u.test(normalized)) {
-        const continuationTime = minaParseReminderClock(expandedRaw);
+        const continuationTime = minaParseReminderClock(/ساعت/u.test(expandedRaw) ? expandedRaw : 'ساعت ' + expandedRaw);
         const continuation = minaConversationBooking.original + ' ' +
           (continuationTime ? 'ساعت ' + continuationTime : expandedRaw);
         minaConversationBooking = null;
