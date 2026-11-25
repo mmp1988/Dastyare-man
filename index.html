@@ -5571,7 +5571,7 @@
       appointments.forEach(a => lines.push('نوبت مشتری: ' + String(a.dateKey || 'بدون تاریخ') + '، ' + String(a.time || 'ساعت ثبت نشده') + '، ' + String(a.service || 'خدمت ثبت نشده') + '، وضعیت ' + (a.status === 'done' ? 'انجام‌شده' : 'در انتظار')));
       records.forEach(record => lines.push('سابقه خدمت: ' + String(record.dateKey || 'بدون تاریخ') + '، ' + String(record.service || 'خدمت ثبت نشده') + (record.notes ? '، توضیح: ' + String(record.notes).slice(0,120) : '')));
       conversations.forEach(item => lines.push((item.role === 'user' ? 'درخواست قبلی مشتری: ' : 'پاسخ قبلی مینا: ') + String(item.text || '').slice(0,180)));
-      return lines.join('\\n').slice(0,2400);
+      return lines.join('\n').slice(0,2400);
     }
     function renderClientConversationHistory(key) {
       const profile = getClientProfile(key);
