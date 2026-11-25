@@ -5866,7 +5866,7 @@
     }
 
     function minaPrepareSalonAIMessage(message) {
-      let safeMessage = minaExtractSalonOnlyMessage(minaNormalizePersianTypos(String(message || '')));
+      let safeMessage = minaNormalizePersianTypos(String(message || '')).trim();
       // Saved customer names and phone numbers are redacted before cloud requests.
       for (const profile of Object.values(appData.clientProfiles || {})) {
         const name = profile && String(profile.name || '').trim();
@@ -6107,29 +6107,34 @@
         return;
       }
 
-      // Strict scope gate: unrelated chat is answered locally and never sent to AI.
-      if (!minaIsSalonScopeRequest(message)) {
-        addMinaMessage(minaOutOfScopeReply(message), 'assistant');
-        return;
+      // Cloud AI routes every natural-language message: conversation vs. a real app operation.
+      // The model sees recent turns for references like «همونو»، «براش» and «مثل قبلی».
+      let reply = null;
+      let routedCommand = null;
+      if (navigator.onLine) {
+        const root = document.getElementById('minaChatMessages');
+        const recent = root ? Array.from(root.querySelectorAll('.mina-message')).slice(-8).map(row => {
+          const role = row.classList.contains('user') ? 'کاربر' : 'مینا';
+          const bubble = row.querySelector('.mina-bubble');
+          return role + ': ' + (bubble ? bubble.textContent : '');
+        }).join('\n') : '';
+        const cloudResult = await minaAskSmartBrain(recent || message, 'route');
+        if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
+          routedCommand = cloudResult.command;
+        } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
+          reply = cloudResult.reply;
+        }
       }
 
-      // Use cloud intelligence for salon content, advice and genuinely complex local commands.
-      // Straightforward data entry remains instant and local; cloud never receives private records.
-      let reply = null;
-      const cloudMode = minaIsSalonContentRequest(message) || !minaIsClearlyLocalAction(message)
-        ? 'reply'
-        : (minaNeedsCloudUnderstanding(message) ? 'understand' : '');
-      if (cloudMode) {
-        addMinaMessage('دارم درخواستت رو دقیق بررسی می‌کنم…', 'assistant');
-        const thinkingNode = document.querySelector('#minaChatMessages .mina-message:last-child');
-        const cloudResult = await minaAskSmartBrain(message, cloudMode);
-        if (thinkingNode && thinkingNode.textContent.includes('دارم درخواستت رو دقیق بررسی می‌کنم')) {
-          thinkingNode.remove();
-        }
-        // The cloud may clarify the wording, but only the local engine can read or change app data.
-        if (cloudResult) reply = cloudMode === 'understand' ? minaBuildReply(cloudResult) : cloudResult;
+      // The cloud only interprets intent. Local code remains the sole executor and offline fallback.
+      if (routedCommand) {
+        reply = minaBuildReply(routedCommand);
+      } else if (!reply) {
+        // If cloud is unavailable, preserve supported local workflows without pretending AI responded.
+        reply = minaIsClearlyLocalAction(message)
+          ? minaBuildReply(message)
+          : minaOutOfScopeReply(message);
       }
-      if (!reply) reply = minaBuildReply(minaExtractSalonOnlyMessage(message));
       reply = minaFormatReplyForMode(reply);
       if (getMinaMode()==='friendly' && !/[💗💕💖💞🌸🌷🎀✨🥰😊😉😄]/u.test(reply)) reply += ' 💗🌸✨';
       addMinaMessage(reply, 'assistant');
