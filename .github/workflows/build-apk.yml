@@ -13,7 +13,6 @@ on:
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
-      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 permissions:
