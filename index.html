@@ -7575,8 +7575,8 @@
       // A single natural-language message may contain several personal plans.
       // Split only explicit sequential clauses with their own clock times.
       if (!batchChild) {
-        const source = String(raw || '').trim();
-        const parts = source.split(/\s+بعدش\s+(?=(?:ساعت\s*)?(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)\b)/u).map(x => x.trim()).filter(Boolean);
+        const source = minaNormalizeDigits(String(raw || '').trim());
+        const parts = source.split(/\s+بعدش\s+(?=(?:ساعت\s*)?(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)(?=\s|[:٫.]|$))/u).map(x => x.trim()).filter(Boolean);
         if (parts.length > 1 && parts.every(part => !!minaParsePersonalReminderClock(part))) {
           const dateHint = source.match(/پس\s*فردا|پسفردا|فردا|امروز|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه|(?:1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2})|(?:\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند))/u)?.[0] || '';
           const results = parts.map(part => {
