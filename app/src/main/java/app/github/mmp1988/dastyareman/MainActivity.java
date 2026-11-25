@@ -2,6 +2,7 @@ package app.github.mmp1988.dastyareman;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -65,6 +66,7 @@ public class MainActivity extends Activity {
     private static final String LATEST_RELEASE_API = "https://api.github.com/repos/mmp1988/Dastyare-man/releases/tags/latest";
     private static final String EXPECTED_PACKAGE = "app.github.mmp1988.dastyareman";
     private volatile boolean apkUpdateCheckRunning = false;
+    private boolean apkInstallDialogVisible = false;
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
@@ -728,12 +730,35 @@ public class MainActivity extends Activity {
         try {
             android.content.SharedPreferences prefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
             String path = prefs.getString("pending_apk", "");
+            long pendingVersion = prefs.getLong("pending_version", -1L);
             if (path == null || path.isEmpty()) return;
             File apk = new File(path);
             if (!apk.exists() || apk.length() == 0) {
-                prefs.edit().remove("pending_apk").remove("pending_version").apply();
+                prefs.edit().remove("pending_apk").remove("pending_version")
+                        .remove("install_consent_version").apply();
                 return;
             }
+
+            // Ask before installing. Android's package installer updates the existing
+            // package in place (same applicationId/signing key), preserving app data.
+            long consentedVersion = prefs.getLong("install_consent_version", -1L);
+            if (consentedVersion != pendingVersion) {
+                if (apkInstallDialogVisible || isFinishing() || isDestroyed()) return;
+                apkInstallDialogVisible = true;
+                new AlertDialog.Builder(this)
+                        .setTitle("به‌روزرسانی دستیار من")
+                        .setMessage("نسخه جدید برنامه آماده است. با تأیید تو، نسخه فعلی روی همین برنامه به‌روزرسانی می‌شود و اطلاعات ذخیره‌شده‌ات باقی می‌ماند. برنامه حذف نخواهد شد.")
+                        .setPositiveButton("بروزرسانی و نصب", (dialog, which) -> {
+                            apkInstallDialogVisible = false;
+                            prefs.edit().putLong("install_consent_version", pendingVersion).apply();
+                            installPendingApkIfAllowed();
+                        })
+                        .setNegativeButton("فعلاً نه", (dialog, which) -> apkInstallDialogVisible = false)
+                        .setOnCancelListener(dialog -> apkInstallDialogVisible = false)
+                        .show();
+                return;
+            }
+
             if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
                 Intent settings = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                         Uri.parse("package:" + getPackageName()));
@@ -743,14 +768,15 @@ public class MainActivity extends Activity {
                 return;
             }
             Uri contentUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
-            // Clear the pending marker before handing off; returning from a canceled
-            // installer must not repeatedly reopen the installer on every resume.
-            prefs.edit().remove("pending_apk").remove("pending_version").apply();
+            // Keep the update on the same package; do not uninstall the previous app.
+            prefs.edit().remove("pending_apk").remove("pending_version")
+                    .remove("install_consent_version").apply();
             Intent install = new Intent(Intent.ACTION_VIEW);
             install.setDataAndType(contentUri, "application/vnd.android.package-archive");
             install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(install);
         } catch (Exception e) {
+            apkInstallDialogVisible = false;
             Toast.makeText(this, "باز کردن نصب‌کننده به‌روزرسانی ممکن نشد.", Toast.LENGTH_LONG).show();
         }
     }
