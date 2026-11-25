@@ -7590,7 +7590,7 @@
             // an unqualified 1–11 o'clock time (e.g. 7 PM, then 9).
             if (previousClock && currentClock && !hasExplicitPeriod &&
                 Number(previousClock.slice(0, 2)) >= 12 && Number(currentClock.slice(0, 2)) >= 1 &&
-                Number(currentClock.slice(0, 2)) <= 11) timedPart += ' شب';
+                Number(currentClock.slice(0, 2)) <= 11) timedPart = timedPart.replace(/((?:ساعت\s*)?\d{1,2})(?![\d:])/u, '$1 شب');
             const clause = (dateHint && !/(?:فردا|امروز|پس\s*فردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه|1[2345]\d{2}[\/.-]|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند))/u.test(timedPart) ? dateHint + ' ' : '') + timedPart + ' یادآوری کن';
             return minaTrySetPersonalReminder(clause, true);
           });
