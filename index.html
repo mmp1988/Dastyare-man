@@ -6724,8 +6724,10 @@
           (trustedFacts ? '\n\n' + trustedFacts.slice(-900) : '')
         ).slice(-3900);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
-        if (cloudResult?.type === 'review_unavailable' ||
-            (cloudResult?.review?.reviewed && cloudResult.review.decision !== 'approve')) {
+        if (cloudResult?.type === 'review_unavailable') {
+          cloudOperationBlocked = true;
+          reply = cloudResult.reply || 'بازبینی مستقل انجام نشد؛ برای جلوگیری از اشتباه، درخواست اجرا نشد.';
+        } else if (cloudResult?.review?.reviewed && cloudResult.review.decision !== 'approve') {
           cloudOperationBlocked = true;
         }
         if (cloudResult && cloudResult.type === 'personal_reminder') {
