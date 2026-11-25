@@ -729,8 +729,8 @@ public class MainActivity extends Activity {
                             .remove("install_consent_version")
                             .putLong("last_check_ms", System.currentTimeMillis()).apply();
                     if (manual) runOnUiThread(() -> {
-                        Toast.makeText(this, "بررسی آنلاین کامل شد؛ نسخه نصب‌شده آخرین نسخه منتشرشده است ✅", Toast.LENGTH_LONG).show();
-                        notifyWebUpdateCheckResult("latest");
+                        Toast.makeText(this, "نسخه نصب‌شده: " + installedVersion + " | آخرین نسخه منتشرشده: " + candidateVersion + " — برنامه به‌روز است ✅", Toast.LENGTH_LONG).show();
+                        notifyWebUpdateCheckResult("latest", installedVersion, candidateVersion);
                     });
                     return;
                 }
@@ -741,8 +741,8 @@ public class MainActivity extends Activity {
                         .putLong("pending_version", candidateVersion)
                         .putLong("last_check_ms", System.currentTimeMillis()).apply();
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "بررسی آنلاین کامل شد؛ نسخه جدید دانلود شد و آماده نصب است.", Toast.LENGTH_LONG).show();
-                    notifyWebUpdateCheckResult("available");
+                    Toast.makeText(this, "نسخه نصب‌شده: " + installedVersion + " | نسخه جدید: " + candidateVersion + " — دانلود شد و آماده نصب است.", Toast.LENGTH_LONG).show();
+                    notifyWebUpdateCheckResult("available", installedVersion, candidateVersion);
                     installPendingApkIfAllowed();
                 });
             } catch (Exception e) {
@@ -771,13 +771,13 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void notifyWebUpdateCheckResult(String result) {
+    private void notifyWebUpdateCheckResult(String result, long installedVersion, long latestVersion) {
         WebView current = webView;
         if (current == null) return;
         current.post(() -> {
             WebView active = webView;
             if (active == null || isFinishing() || isDestroyed()) return;
-            active.evaluateJavascript("if(typeof window.onNativeUpdateCheckResult==='function'){window.onNativeUpdateCheckResult('" + result + "');}", null);
+            active.evaluateJavascript("if(typeof window.onNativeUpdateCheckResult==='function'){window.onNativeUpdateCheckResult('" + result + "'," + installedVersion + "," + latestVersion + ");}", null);
         });
     }
 
@@ -813,7 +813,7 @@ public class MainActivity extends Activity {
                 apkInstallDialogVisible = true;
                 new AlertDialog.Builder(this)
                         .setTitle("به‌روزرسانی دستیار من")
-                        .setMessage("نسخه نصب‌شده قدیمی است. برای رفع اشکال‌ها و استفاده از نسخه جدید دستیار من، بروزرسانی را انجام بده. با تأیید تو، همین برنامه به نسخه جدید ارتقا پیدا می‌کند؛ اطلاعات ذخیره‌شده باقی می‌مانند و برنامه حذف نمی‌شود.")
+                        .setMessage("نسخه فعلی نصب‌شده: " + installedNow + "\nنسخه جدید منتشرشده: " + pendingVersion + "\n\nبرای دریافت قابلیت‌ها و اصلاحات جدید، بروزرسانی را انجام بده. با تأیید تو همین برنامه ارتقا پیدا می‌کند؛ اطلاعات ذخیره‌شده باقی می‌مانند و برنامه حذف نمی‌شود.")
                         .setPositiveButton("بروزرسانی و نصب", (dialog, which) -> {
                             apkInstallDialogVisible = false;
                             prefs.edit().putLong("install_consent_version", pendingVersion).apply();
