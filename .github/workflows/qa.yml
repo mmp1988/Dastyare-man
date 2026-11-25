@@ -68,7 +68,7 @@ jobs:
             const healthData = await health.json();
             assert.equal(healthData.success, true, 'Live Worker health response must report success');
             assert.equal(healthData.status, 'ready', 'Live Worker must report ready');
-            assert.equal(healthData.version, 'mina-ai-response-v4',
+            assert.equal(healthData.version, 'mina-ai-response-v5',
               'The updated Worker response parser must be deployed, not just committed to GitHub');
 
             const preflight = await fetch(base, {
@@ -102,11 +102,53 @@ jobs:
             assert.match(data.command, /[آ-ی]/u, 'Workers AI must return a natural Persian instruction, not an action code');
             assert.ok(!/^[a-z0-9_ -]+$/iu.test(data.command.trim()),
               'Workers AI command must not be a snake_case or English action label');
-            console.log('Live Cloudflare Worker: PASS', JSON.stringify({
+            console.log('Live Cloudflare Worker understand mode: PASS', JSON.stringify({
               health: healthData.status,
               cors: preflight.status,
               aiStatus: response.status,
               commandReturned: true
+            }));
+
+            const routeResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'route',
+                message: 'کاربر: سلام مینا، امروز واقعاً خسته‌ام، میشه یکم باهام حرف بزنی؟'
+              }),
+              signal: AbortSignal.timeout(60000),
+              cache: 'no-store'
+            });
+            const routeData = await routeResponse.json().catch(() => ({}));
+            assert.equal(routeResponse.status, 200,
+              'Conversational routing must return HTTP 200: ' + JSON.stringify(routeData));
+            assert.equal(routeData.success, true, 'Conversational routing must succeed: ' + JSON.stringify(routeData));
+            assert.equal(routeData.route?.type, 'reply',
+              'Casual non-command speech must be routed to conversation, not rejected by a keyword gate');
+            assert.ok(typeof routeData.route?.reply === 'string' && routeData.route.reply.trim().length > 0,
+              'Mina must return a natural conversational answer');
+
+            const actionResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'route',
+                message: 'کاربر: نوبت آزمایشی را برای فردا ساعت ۱۸:۱۷ جابه‌جا کن'
+              }),
+              signal: AbortSignal.timeout(60000),
+              cache: 'no-store'
+            });
+            const actionData = await actionResponse.json().catch(() => ({}));
+            assert.equal(actionResponse.status, 200,
+              'Natural salon action routing must return HTTP 200: ' + JSON.stringify(actionData));
+            assert.equal(actionData.success, true, 'Natural salon action routing must succeed');
+            assert.equal(actionData.route?.type, 'action',
+              'Salon operation must be routed to local execution');
+            assert.ok(typeof actionData.route?.command === 'string' && /[آ-ی]/u.test(actionData.route.command),
+              'AI must return a natural Persian command for local execution');
+            console.log('Live Cloudflare Worker conversational routing: PASS', JSON.stringify({
+              casualConversation: routeData.route.type,
+              salonOperation: actionData.route.type
             }));
           })().catch(error => { console.error(error); process.exitCode = 1; });
           NODE
