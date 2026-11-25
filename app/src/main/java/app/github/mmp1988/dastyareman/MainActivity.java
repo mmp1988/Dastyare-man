@@ -1003,6 +1003,10 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> MainActivity.this.showAppointmentNotification(appointmentId, message));
         }
         @JavascriptInterface public String schedulePersonalReminder(String reminderId, long triggerAtMillis, String message) {
+            if (Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                return "notifications_denied";
+            }
             return PersonalReminderReceiver.schedule(MainActivity.this, reminderId, triggerAtMillis, message);
         }
         @JavascriptInterface public void cancelPersonalReminder(String reminderId) {
