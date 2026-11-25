@@ -73,8 +73,7 @@ export default {
       }
 
       // Strict salon-only boundary: unrelated chat never consumes Workers AI quota.
-      const salonDomainMessage = /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(message)
-        || /(?:ثبت|ایجاد|اضافه|افزودن|ویرایش|تغییر|عوض|جابجا|جابه‌جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید)/u.test(message);
+      const salonDomainMessage = /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(message);
       if (!salonDomainMessage) {
         const reply = "من مینا هستم؛ دستیار تخصصی امور سالن زیبایی. فقط در زمینه نوبت‌ها، مشتریان، خدمات و مدیریت سالن کمک می‌کنم و برای گفت‌وگوی عمومی طراحی نشده‌ام. برای اطلاعات و ارتباط بیشتر، صفحه اینستاگرام را ببینید: @lash_by_mina.m\nhttps://www.instagram.com/lash_by_mina.m/";
         return json({ success: true, reply }, 200, headers);
