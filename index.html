@@ -5891,10 +5891,14 @@
         replacements.push({ token, value, type });
         return token;
       };
-      // Mask saved names and phone numbers before any cloud request; tokens are restored only on-device.
-      for (const profile of Object.values(appData.clientProfiles || {})) {
-        const name = profile && String(profile.name || '').trim();
-        if (name && name.length > 1 && safeMessage.includes(name) && !replacements.some(item => item.value === name)) {
+      // Mask customer names from both profiles and appointment history before cloud routing.
+      // Tokens are restored only on this device, so the model can understand references without receiving names.
+      const privateClientNames = new Set([
+        ...Object.values(appData.clientProfiles || {}).map(profile => profile && String(profile.name || '').trim()),
+        ...(appData.appointments || []).map(appointment => appointment && String(appointment.clientName || '').trim())
+      ].filter(name => name && name.length > 1));
+      for (const name of privateClientNames) {
+        if (safeMessage.includes(name) && !replacements.some(item => item.value === name)) {
           safeMessage = safeMessage.split(name).join(mask(name, 'CLIENT'));
         }
       }
@@ -6125,7 +6129,8 @@
           const bubble = row.querySelector('.mina-bubble');
           return role + ': ' + (bubble ? bubble.textContent : '');
         }).join('\n') : '';
-        const cloudResult = await minaAskSmartBrain(recent || message, 'route');
+        const cloudContext = (recent || message).slice(-3500);
+        const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
         if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
