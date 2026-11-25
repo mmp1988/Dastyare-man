@@ -6340,7 +6340,8 @@
     }
 
     function minaBuildCloudSafeCommand(message) {
-      let safeMessage = minaExtractSalonOnlyMessage(minaNormalizePersianTypos(String(message || '')));
+      // Preserve the full recent dialogue: short follow-ups and ordinary conversational turns may carry the referent for the latest request. Known client names and phone numbers are masked below before cloud transmission.
+      let safeMessage = minaNormalizePersianTypos(String(message || '')).trim();
       const replacements = [];
       const mask = (value, type) => {
         const token = '[' + type + '_' + (replacements.filter(item => item.type === type).length + 1) + ']';
