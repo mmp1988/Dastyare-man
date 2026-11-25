@@ -6571,7 +6571,7 @@
     }
     function minaTrySetPersonalReminder(raw) {
       const text=minaCleanText(minaNormalizeDigits(String(raw||''))).toLocaleLowerCase('fa');
-      const reminderIntent=/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری|یاداور|هشدار|آلارم|زنگ\s*هشدار|خبرم\s*کن|یادم\s*بنداز)/u.test(text);
+      const reminderIntent=/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری|یاداور|هشدار|آلارم|الارم|زنگ\s*هشدار|خبرم\s*کن|یادم\s*بنداز)/u.test(text);
       if(!reminderIntent && !minaPendingPersonalReminder)return null;
       if(/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text))return null;
       const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
@@ -6626,7 +6626,7 @@
       const targetAt=relativeTargetAt||iranDateTimeToEpoch(gregorianDate,clock);
       if(!Number.isFinite(targetAt)||targetAt<=Date.now()){minaPendingPersonalReminder={raw:combined};return 'این زمان به وقت ایران گذشته عزیزم؛ تاریخ یا ساعت آینده رو بگو تا درست تنظیمش کنم. 💗';}
       let message=combinedText
-        .replace(/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری\s*(?:کن|بذار|بزار)?|یاداور|هشدار\s*(?:بذار|بزار|تنظیم\s*کن)?|آلارم\s*(?:بذار|بزار|تنظیم\s*کن)?|زنگ\s*هشدار\s*(?:بذار|بزار|تنظیم\s*کن)?|خبرم\s*کن)/gu,' ')
+        .replace(/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری\s*(?:کن|بذار|بزار)?|یاداور|هشدار\s*(?:بذار|بزار|تنظیم\s*کن)?|آلارم\s*(?:بذار|بزار|تنظیم\s*کن)?|الارم\s*(?:بذار|بزار|تنظیم\s*کن)?|زنگ\s*هشدار\s*(?:بذار|بزار|تنظیم\s*کن)?|خبرم\s*کن)/gu,' ')
         .replace(/(?:امروز|فردا|پس\s*فردا|پسفردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه)/gu,' ')
         .replace(/(?:تاریخ\s*)?(?:1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)(?:\s*1[2345]\d{2})?)/gu,' ')
         .replace(/(?:ساعت\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s*و\s*\d{1,2}\s*دقیقه|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی|چهل|پنجاه|شصت|\d{1,2})(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|\d{1,2}))?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/gu,' ')
