@@ -5834,7 +5834,7 @@
 
     function minaIsSalonScopeRequest(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|متن|پیام|تبریک|تخفیف|تبلیغ|کپشن|استوری|پست|کمپین|بازاریابی|مناسبت|جشن|ایده|شعار|معرفی|دعوت|اطلاع.?رسانی|راهنما|آموزش|تنظیمات|شخصی.?سازی|ظاهر|رنگ|فونت|سایت|اپلیکیشن|برنامه|گزارش|آمار|خروجی|پشتیبان|بکاپ|امکانات|قابلیت|کارکرد|سلام|خوبی|چطوری|درود|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
+      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|متن|پیام|تبریک|تخفیف|تبلیغ|کپشن|استوری|پست|کمپین|بازاریابی|مناسبت|جشن|ایده|شعار|معرفی|دعوت|اطلاع.?رسانی|راهنما|آموزش|تنظیمات|شخصی.?سازی|ظاهر|رنگ|فونت|سایت|اپلیکیشن|برنامه|گزارش|آمار|خروجی|پشتیبان|بکاپ|امکانات|قابلیت|کارکرد|سلام|خوبی|چطوری|درود|مرسی|ممنون|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
         !!minaPendingBooking || !!minaConversationBooking;
     }
 
@@ -5854,6 +5854,14 @@
       const greetingSource = minaTransliterateFinglish(message);
       const normalizedForGreeting = minaNormalizePersianTypos(greetingSource).toLocaleLowerCase('fa');
       const greetingRaw = String(greetingSource).replace(/[؟?!،,.]/g, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fa');
+      if (/^(?:nm)$/iu.test(String(message).trim())) {
+        addMinaMessage('منظورت از «nm» «نمی‌خوام» هست؟ برای اینکه اشتباه برداشت نکنم، لطفاً یک کلمه بیشتر توضیح بده 🌸', 'assistant');
+        return;
+      }
+      if (/^(?:مرسی|ممنون)$/u.test(normalizedForGreeting)) {
+        addMinaMessage('خواهش می‌کنم عزیزم 🌸 هر کاری برای سالن داشتی بگو.', 'assistant');
+        return;
+      }
       if (/^(?:خوبی|چطوری|سلام خوبی|سلام چطوری|درود|صبح بخیر|عصر بخیر|سلام)$/u.test(normalizedForGreeting) || /^(?:سلام|درود|صبح بخیر|عصر بخیر)$/u.test(greetingRaw)) {
         addMinaMessage('سلام عزیزم 🌸 من مینا هستم؛ برای نوبت‌ها، مشتری‌ها و کارهای سالن در خدمتم. بگو چه کاری برات انجام بدم؟', 'assistant');
         return;
