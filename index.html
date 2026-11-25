@@ -5904,6 +5904,9 @@
       const hasService = /(?:کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین|خدمت)/u.test(normalized);
       const hasBookingVerb = /(?:ثبت|رزرو|بگیر|اضافه|ذخیره|سیو|نوبت\s*بده|انجام\s*بده)/u.test(normalized);
       if (hasDate && hasTime && hasService && hasBookingVerb) return false;
+      // A request combining an appointment change with a second action needs cloud reasoning.
+      const multiAction = /(?:و\\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)|همزمان|هم\\s*این)/u.test(normalized);
+      if (multiAction) return true;
       // One clear, named appointment edit is deterministic too; multi-action requests still use AI.
       const hasOneEdit = /(?:نوبت|رزرو|وقت)/u.test(normalized) &&
         /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز|کن|بکن|بشه|باشه)/u.test(normalized) &&
