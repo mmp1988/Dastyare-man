@@ -4007,7 +4007,7 @@
       const dateValue = document.getElementById('clientNextDate').value;
       const time = document.getElementById('clientNextTime').value;
       const existingPrimary = getClientAppointments(key, false).find(a => !isFollowupAppointment(a) && a.status !== 'canceled');
-      const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId && a.status !== 'canceled') : null;
+      const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId) : null;
       const typeField = document.getElementById('clientNextAppointmentType');
       const appointmentType = editing
         ? (isFollowupAppointment(editing) ? 'followup' : 'primary')
