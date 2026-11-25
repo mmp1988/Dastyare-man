@@ -6614,7 +6614,7 @@
       input.value = '';
 
       // User frustration or criticism directed at Mina is acknowledged first, without Instagram or cloud quota.
-      if (minaIsCriticismMessage(message)) {
+      if (!navigator.onLine && minaIsCriticismMessage(message)) {
         addMinaMessage('حق داری کلافه شده باشی؛ احتمالاً چند بار چیزی رو که خواستی درست متوجه نشدم. بابتش معذرت می‌خوام. 🌸\n\nنمی‌خوام باهات بحث کنم یا از خودم دفاع کنم. بگو کجای کار رو اشتباه فهمیدم تا همون رو اصلاح کنم و این بار دقیق انجامش بدم.', 'assistant');
         return;
       }
@@ -6625,88 +6625,16 @@
         return;
       }
 
-      // Friendly greetings are handled locally and do not consume AI quota.
-      const greetingSource = minaTransliterateFinglish(message);
-      const normalizedForGreeting = minaNormalizePersianTypos(greetingSource).toLocaleLowerCase('fa');
-      const greetingRaw = String(greetingSource).replace(/[؟?!،,.]/g, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fa');
-      if (/^(?:nm)$/iu.test(String(message).trim())) {
-        addMinaMessage('منظورت از «nm» «نمی‌خوام» هست؟ برای اینکه اشتباه برداشت نکنم، لطفاً یک کلمه بیشتر توضیح بده 🌸', 'assistant');
-        return;
-      }
-      if (/^(?:مرسی|ممنون)$/u.test(normalizedForGreeting)) {
-        addMinaMessage('خواهش می‌کنم عزیزم 🌸 هر کاری برای سالن داشتی بگو.', 'assistant');
-        return;
-      }
-      if (/^(?:خوبی|چطوری|سلام خوبی|سلام چطوری|درود|صبح بخیر|عصر بخیر|سلام)$/u.test(normalizedForGreeting) || /^(?:سلام|درود|صبح بخیر|عصر بخیر)$/u.test(greetingRaw)) {
-        addMinaMessage('سلام عزیزم 🌸 من مینا هستم، دستیار هوشمند سالن زیبایی؛ برای نوبت‌ها، مشتری‌ها و کارهای سالن در خدمتم. بگو چه کاری برات انجام بدم؟', 'assistant');
-        return;
-      }
+      // Deterministic local facts are computed first, but online conversation and intent
+      // are always interpreted by the cloud model. These facts are supplied as evidence,
+      // not used as canned conversational replies.
+      const dateTimeFact = minaTryAnswerDateTimeQuestion(message);
+      const customerHistoryFact = minaAnswerCustomerHistory(message);
+      const customerDateFact = minaTryCalculateCustomerDate(message);
 
-      // Device date and time are answered deterministically, with no cloud dependency.
-      const dateTimeReply = minaTryAnswerDateTimeQuestion(message);
-      if (dateTimeReply) {
-        addMinaMessage(dateTimeReply, 'assistant');
-        return;
-      }
-
-      const customerHistoryReply = minaAnswerCustomerHistory(message);
-      if (customerHistoryReply) {
-        addMinaMessage(minaFormatReplyForMode(customerHistoryReply), 'assistant');
-        return;
-      }
-      // Customer visit-date arithmetic is deterministic and reads only saved local history.
-      const customerDateCalculationReply = minaTryCalculateCustomerDate(message);
-      if (customerDateCalculationReply) {
-        addMinaMessage(minaFormatReplyForMode(customerDateCalculationReply), 'assistant');
-        return;
-      }
-
-      // Personal reminders are deterministic local actions, not cloud-chat suggestions.
-      // Parse the user's original wording before cloud routing so relative requests such as
-      // «دو دقیقه دیگه آلارمو تنظیم کن» are saved and scheduled immediately, online or offline.
-      const directPersonalReminderReply = minaTrySetPersonalReminder(message);
-      if (directPersonalReminderReply) {
-        addMinaMessage(minaFormatReplyForMode(directPersonalReminderReply), 'assistant');
-        return;
-      }
-
-      // Execute customer-profile operations from the user's original Persian wording before
-      // cloud rewriting. This preserves exact names and prevents a model paraphrase from
-      // turning «مامان مینا» into a different name or a bulk-delete request into profile creation.
-      const localCustomerMutationReply = minaTryManageClientFromMessage(message);
-      if (localCustomerMutationReply) {
-        addMinaMessage(minaFormatReplyForMode(localCustomerMutationReply), 'assistant');
-        return;
-      }
-      const localCustomerCreateReply = minaTryAddClientFromMessage(message);
-      if (localCustomerCreateReply) {
-        addMinaMessage(minaFormatReplyForMode(localCustomerCreateReply), 'assistant');
-        return;
-      }
-
-      // Appointment edits, cancellations and deletions are also local-first operations.
-      // Never let a cloud reply replace an actual calendar mutation or claim that Mina lacks access.
-      const localAppointmentMutationReply = minaTryManageAppointment(message);
-      if (localAppointmentMutationReply) {
-        addMinaMessage(minaFormatReplyForMode(localAppointmentMutationReply), 'assistant');
-        return;
-      }
-
-      // Explicit complete appointment bookings are executed locally before cloud chat routing.
-      // A cloud conversational reply must never override a concrete booking command or claim that Mina
-      // lacks access to the calendar. The local executor validates the slot and persists the record.
-      const directBookingIntent = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\s*بده|بده|اختصاص\s*بده|هماهنگ\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
-      if (directBookingIntent) {
-        const bookingReply = minaBuildReply(message);
-        addMinaMessage(minaFormatReplyForMode(bookingReply), 'assistant');
-        return;
-      }
-
-      // Cloud AI routes other natural-language messages: conversation vs. a real app operation.
-      // The model sees recent turns for references like «همونو»، «براش» and «مثل قبلی».
+      // Cloud-first interaction: every online message reaches the same semantic router.
+      // The router receives recent turns and relevant customer facts; local code only executes
+      // an action after the model explicitly classifies it as an action.
       let reply = null;
       let routedCommand = null;
       if (navigator.onLine) {
@@ -6715,12 +6643,17 @@
           const role = row.classList.contains('user') ? 'کاربر' : 'مینا';
           const bubble = row.querySelector('.mina-bubble');
           return role + ': ' + (bubble ? bubble.textContent : '');
-        }).join('\n') : '';
+        }).join('\\n') : '';
         const customerMemory = minaBuildCustomerMemoryContext(message);
-        // The Worker accepts up to 4,000 characters per message; keep both recent turns and
-        // the selected customer's local memory inside that limit.
-        const cloudContext = (String(recent || message).slice(-1700) +
-          (customerMemory ? '\n\n' + customerMemory.slice(-1700) : '')).slice(-3600);
+        const trustedFacts = [dateTimeFact, customerHistoryFact, customerDateFact]
+          .filter(value => typeof value === 'string' && value.trim())
+          .map(value => 'نتیجه قطعی محاسبه/پرونده در برنامه: ' + value.trim())
+          .join('\\n');
+        const cloudContext = (
+          String(recent || message).slice(-1500) +
+          (customerMemory ? '\\n\\n' + customerMemory.slice(-1500) : '') +
+          (trustedFacts ? '\\n\\n' + trustedFacts.slice(-900) : '')
+        ).slice(-3900);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
         if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
@@ -6729,7 +6662,51 @@
         }
       }
 
-      // The cloud only interprets intent. Local code remains the sole executor and offline fallback.
+      // Offline fallback: deterministic data queries and guarded local workflows remain available.
+      // No online operation is claimed complete unless its local executor confirms the result.
+      if (routedCommand) {
+        reply = minaBuildReply(routedCommand);
+      } else if (!reply) {
+        if (dateTimeFact) {
+          reply = dateTimeFact;
+        } else if (customerHistoryFact) {
+          reply = customerHistoryFact;
+        } else if (customerDateFact) {
+          reply = customerDateFact;
+        } else {
+          const greetingSource = minaTransliterateFinglish(message);
+          const normalizedForGreeting = minaNormalizePersianTypos(greetingSource).toLocaleLowerCase('fa');
+          const greetingRaw = String(greetingSource).replace(/[؟?!،,.]/g, ' ').replace(/\\s+/g, ' ').trim().toLocaleLowerCase('fa');
+          if (/^(?:nm)$/iu.test(String(message).trim())) {
+            reply = 'منظورت از «nm» «نمی‌خوام» هست؟ برای اینکه اشتباه برداشت نکنم، لطفاً یک کلمه بیشتر توضیح بده 🌸';
+          } else if (/^(?:مرسی|ممنون)$/u.test(normalizedForGreeting)) {
+            reply = 'خواهش می‌کنم عزیزم 🌸 هر کاری برای سالن داشتی بگو.';
+          } else if (/^(?:خوبی|چطوری|سلام خوبی|سلام چطوری|درود|صبح بخیر|عصر بخیر|سلام)$/u.test(normalizedForGreeting) || /^(?:سلام|درود|صبح بخیر|عصر بخیر)$/u.test(greetingRaw)) {
+            reply = 'سلام عزیزم 🌸 من مینا هستم، دستیار هوشمند سالن زیبایی؛ برای نوبت‌ها، مشتری‌ها و کارهای سالن در خدمتم. بگو چه کاری برات انجام بدم؟';
+          } else {
+            const directPersonalReminderReply = minaTrySetPersonalReminder(message);
+            const localCustomerMutationReply = directPersonalReminderReply || minaTryManageClientFromMessage(message);
+            const localCustomerCreateReply = localCustomerMutationReply || minaTryAddClientFromMessage(message);
+            const localAppointmentMutationReply = localCustomerCreateReply || minaTryManageAppointment(message);
+            const directBookingIntent = /(?:نوبت|رزرو|وقت)/u.test(minaNormalizePersianTypos(message)) &&
+              /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(minaNormalizePersianTypos(message)) &&
+              /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ)/u.test(minaNormalizePersianTypos(message)) &&
+              /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(minaNormalizePersianTypos(message));
+            if (directPersonalReminderReply) reply = directPersonalReminderReply;
+            else if (localCustomerMutationReply) reply = localCustomerMutationReply;
+            else if (localCustomerCreateReply) reply = localCustomerCreateReply;
+            else if (localAppointmentMutationReply) reply = localAppointmentMutationReply;
+            else if (directBookingIntent) reply = minaBuildReply(message);
+            else {
+              const directClientReply = minaTryAddClientFromMessage(message);
+              reply = directClientReply || (minaIsClearlyLocalAction(message)
+                ? minaBuildReply(message)
+                : minaOutOfScopeReply(message));
+            }
+          }
+        }
+      }
+
       if (routedCommand) {
         // The routed action is executed immediately by the local feature handlers.
         // Personal alarms are included here too, without a separate cloud round-trip.
