@@ -6560,12 +6560,12 @@
       let routedCommand = null;
       if (navigator.onLine) {
         const root = document.getElementById('minaChatMessages');
-        const recent = root ? Array.from(root.querySelectorAll('.mina-message')).slice(-8).map(row => {
+        const recent = root ? Array.from(root.querySelectorAll('.mina-message')).slice(-12).map(row => {
           const role = row.classList.contains('user') ? 'کاربر' : 'مینا';
           const bubble = row.querySelector('.mina-bubble');
           return role + ': ' + (bubble ? bubble.textContent : '');
         }).join('\n') : '';
-        const cloudContext = (recent || message).slice(-3500);
+        const cloudContext = (recent || message).slice(-6000);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
         if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           routedCommand = cloudResult.command;
