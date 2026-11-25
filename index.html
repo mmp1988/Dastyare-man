@@ -6425,7 +6425,7 @@
         }
         if (mode === 'route' && data.route && typeof data.route === 'object') {
           return {
-            type: data.route.type === 'action' ? 'action' : 'reply',
+            type: data.route.type === 'personal_reminder' ? 'personal_reminder' : data.route.type === 'action' ? 'action' : 'reply',
             command: safe.restore(String(data.route.command || '')),
             reply: safe.restore(String(data.route.reply || ''))
           };
