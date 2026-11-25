@@ -793,6 +793,46 @@ const assert = require('assert');
     assert(primaryFollowupQA.followupStillShownAfterDone,
       'Marking the primary appointment done must not hide or remove its future follow-up');
     console.log('Primary/follow-up integration:', JSON.stringify(primaryFollowupQA));
+    const homeDashboardQA = await page.evaluate(() => {
+      const today = getTodayKey();
+      const tomorrow = addDaysToJalaliKey(today, 1);
+      appData.appointments = [
+        { id:'qa-home-late', dateKey:today, time:'14:45', clientName:'مشتری دوم', service:'لیفت', status:'pending', alarm:'15' },
+        { id:'qa-home-early', dateKey:today, time:'09:05', clientName:'مشتری اول', service:'کاشت', status:'done', alarm:'none' },
+        { id:'qa-home-next', dateKey:tomorrow, time:'11:07', clientName:'مشتری فردا', service:'ترمیم', status:'pending', appointmentType:'followup', alarm:'30' },
+        { id:'qa-home-canceled', dateKey:today, time:'08:00', clientName:'لغوشده', service:'—', status:'canceled' }
+      ];
+      updateDashboardStats();
+      openHomeAppointmentList('today');
+      const todayRows = [...document.querySelectorAll('#homeAppointmentDetailsList .home-appt-row')];
+      const todayNames = todayRows.map(row => row.querySelector('.home-appt-main strong')?.textContent || '');
+      const todaySummary = document.getElementById('homeAppointmentDetailsSummary').textContent;
+      const todayExpanded = document.querySelector('[data-home-mode="today"]').getAttribute('aria-expanded') === 'true';
+      openHomeAppointmentList('month');
+      const monthRows = [...document.querySelectorAll('#homeAppointmentDetailsList .home-appt-row')];
+      const monthNames = monthRows.map(row => row.querySelector('.home-appt-main strong')?.textContent || '');
+      renderSmartDashboard();
+      const upcomingText = document.getElementById('smartUpcomingList').textContent || '';
+      return {
+        todayCount:document.getElementById('statTodayCount').textContent,
+        monthCount:document.getElementById('statMonthCount').textContent,
+        todayRows:todayRows.length,
+        todaySorted:todayNames[0]==='مشتری اول' && todayNames[1]==='مشتری دوم',
+        todaySummaryAccurate:todaySummary.includes('۲ نوبت') && todaySummary.includes('۱ در انتظار') && todaySummary.includes('۱ انجام‌شده'),
+        todayExpanded,
+        monthRows:monthRows.length,
+        monthIncludesFutureDate:monthNames.includes('مشتری فردا'),
+        upcomingExcludesToday:!upcomingText.includes('مشتری اول') && !upcomingText.includes('مشتری دوم') && upcomingText.includes('مشتری فردا')
+      };
+    });
+    assert(homeDashboardQA.todayRows===2 && homeDashboardQA.todaySorted &&
+      homeDashboardQA.todaySummaryAccurate && homeDashboardQA.todayExpanded,
+      'Home today summary must show active appointments sorted by exact time and accurate statuses');
+    assert(homeDashboardQA.monthRows===3 && homeDashboardQA.monthIncludesFutureDate &&
+      homeDashboardQA.upcomingExcludesToday,
+      'Home month summary and upcoming panel must distinguish this month from the next seven days');
+    console.log('Home dashboard:', JSON.stringify(homeDashboardQA));
+
 
     // Birthday fields are restored from their independent local snapshot even if
     // the main app record is stale after a close/reopen or an appointment change.
