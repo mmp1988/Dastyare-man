@@ -1,13 +1,12 @@
 name: Build and Release Signed APK
 
 on:
-  # index.html is bundled into the standalone Android app as well as GitHub Pages;
-  # rebuild the APK when shared assistant behavior changes.
+  # Build an APK only for native Android changes. Web-only improvements never
+  # trigger APK releases or installation prompts.
   push:
     branches: [main, master]
     paths:
-      - 'index.html'
-      - 'app/src/main/java/**'
+      - 'index.html'\n      - 'app/src/main/java/**'
       - 'app/src/main/res/**'
       - 'app/src/main/AndroidManifest.xml'
       - 'app/build.gradle'
