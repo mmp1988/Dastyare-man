@@ -3676,6 +3676,8 @@
       if (profile) await deleteClientPhotoRefs(profile);
       delete appData.clientProfiles[key];
       if (appData.clientNotes) delete appData.clientNotes[key];
+      const removedClientAppointments = appData.appointments.filter(a => clientMatchesAppointment(key, a) || clientKeyFromFields(a.phone, a.clientName) === key);
+      removedClientAppointments.forEach(a => cancelAutomaticRepairReminder(a.id));
       appData.appointments = appData.appointments.filter(a => !clientMatchesAppointment(key, a) && clientKeyFromFields(a.phone, a.clientName) !== key);
       saveData();
       renderClientsTab();
@@ -4598,6 +4600,8 @@
         appData.appointments.push(created);
         clientEditingNextAppointmentId = created.id;
       }
+      const savedClientAppointment = editing || appData.appointments.find(a => a.id === clientEditingNextAppointmentId);
+      if (savedClientAppointment) syncAutomaticRepairReminder(savedClientAppointment);
       saveData();
       // Move the calendar to the appointment's exact date before showing it.
       selectedDateKey = dateKey;
@@ -5669,6 +5673,7 @@
         };
         const ensuredClientKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
+        syncAutomaticRepairReminder(appointment);
         if (ensuredClientKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaLastReferencedAppointmentId = appointment.id;
         selectedDateKey = appointment.dateKey;
@@ -5854,6 +5859,7 @@
         };
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
+        syncAutomaticRepairReminder(appointment);
         if (appointmentProfileKey && typeof renderClientsTab === 'function') renderClientsTab();
         minaPendingBooking = null;
         saveData();
@@ -6595,6 +6601,7 @@
         entries.forEach(([,profile]) => {
           if (typeof deleteClientPhotoRefs === 'function') Promise.resolve(deleteClientPhotoRefs(profile)).catch(()=>{});
         });
+        (appData.appointments || []).filter(a => (a?.clientId && clientIds.has(String(a.clientId))) || keys.has(String(clientKeyFromFields(a?.phone,a?.clientName)||'')) || names.has(normalize(a?.clientName)) || (String(a?.phone||'').replace(/\\D/g,'') && phones.has(String(a?.phone||'').replace(/\\D/g,'')))).forEach(a => cancelAutomaticRepairReminder(a.id));
         appData.appointments = (appData.appointments || []).filter(a => {
           if (a?.clientId && clientIds.has(String(a.clientId))) return false;
           const apptKey = String(clientKeyFromFields(a?.phone, a?.clientName) || '');
@@ -7317,7 +7324,8 @@
       if (isDelete) {
         if (minaLastReferencedAppointmentId === appt.id) minaLastReferencedAppointmentId = null;
         appData.appointments = appData.appointments.filter(a => a.id !== appt.id);
-        saveData(); renderCalendar(); renderDaySchedule();
+        cancelAutomaticRepairReminder(appt.id);
+        saveData(); renderPersonalReminders(); renderCalendar(); renderDaySchedule();
         if (typeof renderClientsTab === 'function') renderClientsTab();
         if (typeof renderClientBirthdays === 'function') renderClientBirthdays();
         if (typeof updateDashboardStats === 'function') updateDashboardStats();
@@ -7850,6 +7858,7 @@
   if(!confirm(completed?'این نوبت از فهرست نوبت‌ها حذف شود؟ سابقه انجام‌شده در پرونده مشتری حفظ می‌شود.':'این نوبت حذف شود؟'))return;
   const key=completed?archiveCompletedAppointment(a):'';
   appData.appointments=appData.appointments.filter(x=>x.id!==id);
+  if(typeof cancelAutomaticRepairReminder==='function')cancelAutomaticRepairReminder(id);
   if(typeof saveData==='function')saveData();
   if(typeof renderCalendar==='function')renderCalendar();if(typeof renderDaySchedule==='function')renderDaySchedule();
   if(typeof renderClientsTab==='function')renderClientsTab();if(typeof renderClientBirthdays==='function')renderClientBirthdays();
@@ -7864,7 +7873,7 @@
   const p=getClientProfile(key);
   if(source==='appointment'){
    const a=(appData.appointments||[]).find(x=>x.id===id&&x.status==='done');
-   if(a)appData.appointments=appData.appointments.filter(x=>x.id!==id);
+   if(a){appData.appointments=appData.appointments.filter(x=>x.id!==id);if(typeof cancelAutomaticRepairReminder==='function')cancelAutomaticRepairReminder(id);}
   }else{
    p.records=(p.records||[]).filter(r=>r.id!==id);
   }
