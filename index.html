@@ -6228,7 +6228,7 @@
  };
  window.archiveCompletedAppointment=function(a){
   if(!a||a.status!=='done')return '';
-  const key=typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'';
+  const key=(typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'') || (typeof clientKeyFromFields==='function'?clientKeyFromFields(a.phone,a.clientName):'');
   if(!key)return '';
   const p=getClientProfile(key);if(!Array.isArray(p.records))p.records=[];
   const archiveId='done_'+String(a.id);
