@@ -5948,7 +5948,8 @@
 
     function minaIsPendingSalonFollowUp(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa').trim();
-      if (!minaPendingBooking && !minaConversationBooking) return false;
+      // A short answer such as «۶ عصر» belongs to the appointment Mina just asked about.
+      if (!minaPendingBooking && !minaConversationBooking && !minaLastReferencedAppointmentId) return false;
       // Never let an unrelated topic masquerade as a pending booking answer.
       if (/(?:هواشناسی|وضعیت هوا|باران|بارون|رابطه|دوست.?پسر|دوست.?دختر|عاشق|ماشین|خودرو|موتور|پزشک|دکتر|دارو|سردرد|دل.?درد|سیاست|اخبار)/u.test(text)) return false;
       if (/^(?:(?:بله|آره|اره|نه|لغو|بیخیال|بی خیال|منصرف شدم|تایید|تأیید|اوکی|باشه|درسته|ثبت کن)\s*)+$/u.test(text)) return true;
@@ -6388,7 +6389,7 @@
       const hasClockLikeValue = /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|یک\s*ربع|ربع|نیم\s*ساعت)/u.test(text);
       const contextualFollowup = !hasAppointmentWord && (
         (/(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|ساعت|دقیقه|فردا|پس\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text)) ||
-        (!!minaLastReferencedAppointmentId && hasClockLikeValue && /(?:باشه|بشه|بذار|بزار|درسته|اوکی|نه)/u.test(text))
+        (!!minaLastReferencedAppointmentId && hasClockLikeValue)
       );
       if (!hasAppointmentWord && !contextualFollowup) return null;
 
