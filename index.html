@@ -2828,6 +2828,10 @@
       if (automatic) automatic.style.display = type === 'followup' ? 'none' : '';
       const service = document.getElementById('apptService');
       if (service && !service.value.trim()) service.placeholder = type === 'followup' ? 'مثلاً ترمیم مژه، ترمیم ناخن...' : 'مثلاً کاشت ناخن، رنگ مو، کوتاهی، لیفت...';
+      const dateLabel = document.querySelector('label[for="apptDate"]');
+      const timeLabel = document.querySelector('label[for="apptTime"]');
+      if (dateLabel) dateLabel.textContent = type === 'followup' ? '📅 تاریخ ترمیم *' : '📅 تاریخ مراجعه *';
+      if (timeLabel) timeLabel.textContent = type === 'followup' ? '🕒 ساعت ترمیم *' : '🕒 ساعت مراجعه *';
       if (type === 'followup' && openCalendar && document.getElementById('apptModal')?.classList.contains('open')) {
         const panel = document.getElementById('apptJalaliPicker');
         if (panel && panel.style.display === 'none') toggleAppointmentJalaliPicker();
@@ -2953,7 +2957,8 @@
     function saveAppointment() {
       var clientName = document.getElementById('apptClientName').value.trim();
       var time = document.getElementById('apptTime').value;
-      var service = document.getElementById('apptService').value.trim();
+      var selectedTypeBeforeValidation = document.getElementById('apptType')?.value === 'followup' ? 'followup' : 'primary';
+      var service = document.getElementById('apptService').value.trim() || (selectedTypeBeforeValidation === 'followup' ? 'ترمیم' : '');
       if (!clientName) { showToast('نام مشتری را وارد کن ⚠️'); return; }
       if (!time) { showToast('ساعت نوبت را مشخص کن ⚠️'); return; }
       if (!service) { showToast('نوع خدمت یا کاری که قرار است انجام شود را بنویس ⚠️'); return; }
