@@ -527,7 +527,7 @@
       background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid var(--border-color); padding: 6px 5px calc(6px + var(--safe-bottom));
     }
-    .nav-inner { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+    .nav-inner { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;p: 3px; }
     .nav-item {
       background: transparent; border: none; color: var(--text-secondary);
       display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -1168,6 +1168,47 @@
     }
 
 </style>
+<style id="dastyare-delight-upgrade">
+:root{
+ --accent:#e85fa8;--accent-light:#f49acb;--accent-dark:#c43f87;--accent-glow:rgba(232,95,168,.18);
+ --border-color:rgba(224,120,180,.25);--bg-primary:#fff8fc;--bg-secondary:#fff0f7;
+ --bg-card:rgba(255,255,255,.96);--bg-card-solid:#fff;--bg-input:#fff4f9;
+ --text-primary:#38283a;--text-secondary:#806b82;--text-muted:#a18ca2;
+ --shadow-lg:0 14px 36px rgba(177,91,145,.12);
+}
+[data-theme="dark"]{
+ --bg-primary:#19121d;--bg-secondary:#241827;--bg-card:rgba(43,29,47,.96);--bg-card-solid:#2b1d2f;
+ --bg-input:#35253a;--text-primary:#fff4fb;--text-secondary:#d0b7cc;--text-muted:#ad91a8;
+ --border-color:rgba(244,154,203,.24);--accent:#f18bc2;--accent-light:#ffc0df;--accent-dark:#d75b9f;
+ --accent-glow:rgba(241,139,194,.18);--shadow-lg:0 14px 36px rgba(0,0,0,.28);
+}
+.card,.stat-card,.modal-box{border-color:var(--border-color)}
+.btn-primary,.fab{background:linear-gradient(135deg,#f18bc2,#c879e8)!important;color:#fff!important;box-shadow:0 8px 20px rgba(218,105,174,.22)}
+.bottom-nav{border-top-color:var(--border-color);background:color-mix(in srgb,var(--bg-card) 92%,transparent)}
+.nav-item.active{color:var(--accent);background:rgba(232,95,168,.09);border-radius:13px}
+.nav-item{min-width:0;font-size:.67rem}
+.nav-icon{font-size:1.12rem}
+.appointment-hub-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;margin:8px 0 12px;border-radius:22px;color:#fff;background:linear-gradient(125deg,#ed83b9 0%,#c18ae8 55%,#9a9be9 100%);box-shadow:0 12px 28px rgba(202,112,178,.22)}
+.appointment-hub-kicker{font-size:.7rem;opacity:.88}.appointment-hub-hero h2{font-size:1.22rem;margin:4px 0}.appointment-hub-hero p{font-size:.73rem;opacity:.9}
+.appointment-hub-add{border:0;border-radius:14px;background:#fff;color:#c64e98;padding:11px 13px;font-weight:900;white-space:nowrap}
+.appointment-hub-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.appointment-hub-stat{padding:11px 8px;border-radius:16px;text-align:center;background:var(--bg-card);border:1px solid var(--border-color)}
+.appointment-hub-stat strong{display:block;font-size:1.18rem;color:var(--accent)}.appointment-hub-stat span{font-size:.68rem;color:var(--text-secondary)}
+.appointment-hub-card{padding:12px}.appointment-hub-toolbar{display:grid;grid-template-columns:1fr 145px;gap:8px;margin-bottom:12px}
+.appointment-hub-list{display:flex;flex-direction:column;gap:9px}
+.appointment-hub-item{padding:12px;border:1px solid var(--border-color);border-radius:16px;background:linear-gradient(135deg,var(--bg-card),var(--bg-input))}
+.appointment-hub-item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.appointment-hub-item strong{font-size:.88rem}.appointment-hub-item small{color:var(--text-secondary);font-size:.72rem;display:block;margin-top:4px}
+.appointment-hub-time{font-weight:900;color:var(--accent);white-space:nowrap;direction:ltr}
+.appointment-hub-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.appointment-hub-tag{font-size:.65rem;border-radius:20px;padding:4px 8px;background:rgba(232,95,168,.1);color:var(--accent-dark)}
+.appointment-hub-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.appointment-hub-actions button{min-height:34px}
+.appointment-hub-tip{font-size:.72rem;line-height:1.9;color:var(--text-secondary);padding:8px 4px}
+.history-delete-btn{margin-top:8px!important;color:#c43f65!important;border-color:rgba(220,70,110,.28)!important}
+@media(max-width:420px){.appointment-hub-toolbar{grid-template-columns:1fr}.appointment-hub-hero{padding:14px}.appointment-hub-add{padding:10px;font-size:.75rem}.nav-item{font-size:.59rem}.nav-icon{font-size:1rem}}
+@media(min-width:700px){.appointment-hub-card{padding:18px}.appointment-hub-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
 </head>
 <body>
 
@@ -1296,6 +1337,25 @@
           </table>
         </div>
       </div>
+    </section>
+
+    <!-- ==================== APPOINTMENTS HUB ==================== -->
+    <section id="tab-appointments" class="tab-section">
+      <div class="appointment-hub-hero">
+        <div><span class="appointment-hub-kicker">برنامه سالن من</span><h2>نوبت‌های من 🌷</h2><p>همه مراجعه‌ها، مرتب و همیشه در دسترس</p></div>
+        <button type="button" class="appointment-hub-add" onclick="openApptModal()">＋ ثبت نوبت</button>
+      </div>
+      <div class="appointment-hub-stats" id="appointmentHubStats"></div>
+      <div class="card appointment-hub-card">
+        <div class="appointment-hub-toolbar">
+          <input id="appointmentHubSearch" class="form-control" type="search" placeholder="جستجوی نام مشتری یا نوع خدمت…" oninput="renderAppointmentsHub()" />
+          <select id="appointmentHubFilter" class="form-control" onchange="renderAppointmentsHub()" aria-label="فیلتر نوبت‌ها">
+            <option value="upcoming">نوبت‌های پیش‌رو</option><option value="today">امروز</option><option value="all">همه نوبت‌ها</option><option value="done">انجام‌شده</option><option value="canceled">لغوشده</option>
+          </select>
+        </div>
+        <div id="appointmentHubList" class="appointment-hub-list" aria-live="polite"></div>
+      </div>
+      <div class="appointment-hub-tip">برای دیدن جزئیات و سوابق هر مراجعه، روی نام مشتری بزن. نوبت انجام‌شده پس از حذف از برنامه، در تاریخچه مشتری باقی می‌ماند. 💕</div>
     </section>
 
     <!-- ==================== TAB 2: NOTEBOOK & DAILY CHECKLIST ==================== -->
@@ -1664,8 +1724,12 @@
   <nav class="bottom-nav">
     <div class="nav-inner">
       <button class="nav-item active" onclick="switchTab('calendar', this)">
-        <span class="nav-icon">📅</span>
-        <span>تقویم و نوبت</span>
+        <span class="nav-icon">🏡</span>
+        <span>خانه و تقویم</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('appointments', this)">
+        <span class="nav-icon">💗</span>
+        <span>نوبت‌ها</span>
       </button>
       <button class="nav-item" onclick="switchTab('notebook', this)">
         <span class="nav-icon">📒</span>
@@ -2930,16 +2994,18 @@
     }
 
     
+    // Completed appointments are archived into immutable client history before removal.
     function deleteAppointment(id) {
-      if (!confirm('این نوبت حذف شود؟')) return;
-      const deleted = appData.appointments.find(function(a){return a.id === id;});
-      appData.appointments = appData.appointments.filter(function(a){return a.id !== id;});
-      saveData(); renderCalendar(); renderDaySchedule(); updateDashboardStats();
-      if (typeof renderClientsTab === 'function') renderClientsTab();
-      if (typeof renderClientBirthdays === 'function') renderClientBirthdays();
-      const clientKey = deleted ? findClientProfileKeyForAppointment(deleted) : '';
-      if (clientKey && document.getElementById('clientRecordKey')?.value === clientKey) renderClientScheduledAppointments(clientKey);
-      showToast('فقط نوبت حذف شد؛ پرونده و تاریخ تولد مشتری باقی ماند.');
+      const a=appData.appointments.find(x=>x.id===id); if(!a)return;
+      if(!confirm(a.status==='done'?'نوبت انجام‌شده از برنامه حذف شود؟ سابقه در پرونده مشتری باقی می‌ماند.':'این نوبت حذف شود؟'))return;
+      const key=a.status==='done'&&typeof archiveCompletedAppointment==='function'?archiveCompletedAppointment(a):'';
+      appData.appointments=appData.appointments.filter(x=>x.id!==id);
+      saveData();renderCalendar();renderDaySchedule();updateDashboardStats();
+      if(typeof renderClientsTab==='function')renderClientsTab();
+      if(typeof renderClientBirthdays==='function')renderClientBirthdays();
+      if(key&&document.getElementById('clientRecordKey')?.value===key){renderClientHistory(key);renderClientScheduledAppointments(key);}
+      if(typeof renderAppointmentsHub==='function')renderAppointmentsHub();
+      showToast(a.status==='done'?'نوبت حذف شد؛ تاریخچه خدمت حفظ شد.':'فقط نوبت حذف شد؛ پرونده مشتری باقی ماند.');
     }
 
         // ==================== TO-DO & NOTEBOOK ====================
@@ -4063,6 +4129,7 @@
           ${item.createdAt ? `<small style="display:block;color:var(--text-secondary);margin-top:5px;">ثبت در برنامه: ${formatClientTimestamp(item.createdAt)}</small>` : ''}
           ${item.notes ? `<div style="font-size:.78rem;line-height:1.8;color:var(--text-secondary);margin-top:6px;white-space:pre-wrap;">${escapeClientText(item.notes)}</div>` : ''}
           <button class="mini-btn wa" style="margin-top:8px;" onclick="shareClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">📤 ارسال این سابقه</button>
+          <button class="mini-btn history-delete-btn" onclick="deleteClientHistoryItem('${encodeURIComponent(key)}','${encodeURIComponent(item.id)}','${item.source}')">🗑️ حذف از تاریخچه</button>
         </div>
       `).join('');
       box.querySelectorAll('img[data-photo-ref]').forEach(async img=>{
@@ -4894,6 +4961,7 @@
           window.history.pushState({ dastyareAppTab: tabName }, '', window.location.href);
         }
       }
+      if (tabName === 'appointments') { renderAppointmentsHub(); }
       if (tabName === 'notebook') { renderTodos(); renderNotebook(); }
       if (tabName === 'clients') { renderClientsTab(); renderClientBirthdays(); renderServicesTab(); }
       if (tabName === 'settings') { syncShareUrls(); }
@@ -6117,5 +6185,91 @@
       }
     });
   </script>
+<script id="dastyare-delight-logic">
+(function(){
+ 'use strict';
+ const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ window.renderAppointmentsHub=function(){
+  const root=document.getElementById('appointmentHubList');if(!root||typeof appData==='undefined')return;
+  const q=(document.getElementById('appointmentHubSearch')?.value||'').trim().toLocaleLowerCase('fa');
+  const filter=document.getElementById('appointmentHubFilter')?.value||'upcoming',today=typeof getTodayKey==='function'?getTodayKey():'';
+  const all=(appData.appointments||[]).filter(a=>a&&a.status!=='deleted');
+  const active=all.filter(a=>a.status!=='canceled'&&a.status!=='done');
+  const todayCount=active.filter(a=>a.dateKey===today).length;
+  const futureCount=active.filter(a=>String(a.dateKey||'')>=today).length;
+  const doneCount=all.filter(a=>a.status==='done').length;
+  const stats=document.getElementById('appointmentHubStats');
+  if(stats)stats.innerHTML='<div class="appointment-hub-stat"><strong>'+toPersianDigits(todayCount)+'</strong><span>نوبت امروز</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(futureCount)+'</strong><span>نوبت پیش‌رو</span></div><div class="appointment-hub-stat"><strong>'+toPersianDigits(doneCount)+'</strong><span>انجام‌شده</span></div>';
+  let rows=all.filter(a=>{
+   if(filter==='upcoming'&&(a.status==='done'||a.status==='canceled'||String(a.dateKey||'')<today))return false;
+   if(filter==='today'&&a.dateKey!==today)return false;
+   if(filter==='done'&&a.status!=='done')return false;
+   if(filter==='canceled'&&a.status!=='canceled')return false;
+   const hay=(String(a.clientName||'')+' '+String(a.phone||'')+' '+String(a.service||'')).toLocaleLowerCase('fa');
+   return !q||hay.includes(q);
+  }).sort((a,b)=>(String(a.dateKey||'')+(a.time||'')).localeCompare(String(b.dateKey||'')+(b.time||'')));
+  if(filter==='upcoming')rows=rows;
+  if(!rows.length){root.innerHTML='<div style="text-align:center;padding:28px 10px;color:var(--text-secondary);font-size:.8rem">🌸 موردی برای نمایش پیدا نشد.</div>';return;}
+  root.innerHTML=rows.map(a=>{
+   const status=a.status==='done'?'انجام‌شده':a.status==='canceled'?'لغوشده':a.status==='confirmed'?'تأییدشده':'در انتظار';
+   const kind=typeof isFollowupAppointment==='function'&&isFollowupAppointment(a)?'نوبت ترمیم':'نوبت اصلی';
+   const date=typeof formatJalaliFull==='function'?formatJalaliFull(a.dateKey):a.dateKey||'';
+   const key=typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'';
+   return '<article class="appointment-hub-item"><div class="appointment-hub-item-top"><div><strong>'+esc(a.clientName||'مشتری بدون نام')+'</strong><small>'+esc(a.service||'خدمت ثبت نشده')+'</small></div><span class="appointment-hub-time">'+esc(toPersianDigits(a.time||''))+'</span></div><div class="appointment-hub-tags"><span class="appointment-hub-tag">📅 '+esc(date)+'</span><span class="appointment-hub-tag">'+kind+'</span><span class="appointment-hub-tag">'+status+'</span></div><div class="appointment-hub-actions">'+(key?'<button class="mini-btn" onclick="openClientRecord(\''+esc(key).replace(/'/g,'&#39;')+'\')">پرونده مشتری</button>':'')+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="openApptModal(\''+esc(a.id)+'\')">ویرایش</button>':'')+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="markAppointmentDone(\''+esc(a.id)+'\')">ثبت انجام‌شدن</button>':'')+'<button class="mini-btn del" onclick="deleteAppointment(\''+esc(a.id)+'\')">'+(a.status==='done'?'حذف از تاریخچه':'حذف نوبت')+'</button></div></article>';
+  }).join('');
+ };
+ window.markAppointmentDone=function(id){
+  const a=(appData.appointments||[]).find(x=>x.id===id);if(!a)return;
+  if(!confirm('این خدمت انجام‌شده ثبت شود؟ سابقه آن در پرونده مشتری باقی می‌ماند.'))return;
+  a.status='done';a.completedAt=Date.now();if(typeof saveData==='function')saveData();
+  if(typeof renderCalendar==='function')renderCalendar();if(typeof renderDaySchedule==='function')renderDaySchedule();
+  renderAppointmentsHub();if(typeof renderClientsTab==='function')renderClientsTab();
+  if(typeof showToast==='function')showToast('خدمت انجام‌شده ثبت شد و در تاریخچه مشتری باقی می‌ماند 🌸');
+ };
+ window.archiveCompletedAppointment=function(a){
+  if(!a||a.status!=='done')return '';
+  const key=typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'';
+  if(!key)return '';
+  const p=getClientProfile(key);if(!Array.isArray(p.records))p.records=[];
+  const archiveId='done_'+String(a.id);
+  if(!p.records.some(r=>r.id===archiveId)){
+   p.records.unshift({id:archiveId,dateKey:a.dateKey||'',time:a.time||'',service:a.service||'خدمت ثبت‌نشده',notes:a.notes||'',customValues:{},photoRef:'',beforePhotoRef:'',afterPhotoRef:'',createdAt:a.completedAt||a.updatedAt||Date.now(),sourceAppointmentId:a.id,immutable:true,recordType:'completed-appointment'});
+  }
+  return key;
+ };
+ window.deleteAppointment=function(id){
+  const a=(appData.appointments||[]).find(x=>x.id===id);if(!a)return;
+  const completed=a.status==='done';
+  if(!confirm(completed?'این نوبت از فهرست نوبت‌ها حذف شود؟ سابقه انجام‌شده در پرونده مشتری حفظ می‌شود.':'این نوبت حذف شود؟'))return;
+  const key=completed?archiveCompletedAppointment(a):'';
+  appData.appointments=appData.appointments.filter(x=>x.id!==id);
+  if(typeof saveData==='function')saveData();
+  if(typeof renderCalendar==='function')renderCalendar();if(typeof renderDaySchedule==='function')renderDaySchedule();
+  if(typeof renderClientsTab==='function')renderClientsTab();if(typeof renderClientBirthdays==='function')renderClientBirthdays();
+  if(key&&document.getElementById('clientRecordKey')?.value===key){renderClientHistory(key);renderClientScheduledAppointments(key);}
+  renderAppointmentsHub();
+  if(typeof updateDashboardStats==='function')updateDashboardStats();
+  if(typeof showToast==='function')showToast(completed?'نوبت حذف شد؛ سابقه خدمت در تاریخچه مشتری ماندگار شد 💗':'نوبت حذف شد؛ پرونده مشتری حفظ شد.');
+ };
+ window.deleteClientHistoryItem=function(encodedKey,encodedId,source){
+  const key=decodeURIComponent(encodedKey),id=decodeURIComponent(encodedId);
+  if(!confirm('این سابقه از تاریخچه مشتری حذف شود؟ این عملیات قابل بازگشت نیست.'))return;
+  const p=getClientProfile(key);
+  if(source==='appointment'){
+   const a=(appData.appointments||[]).find(x=>x.id===id&&x.status==='done');
+   if(a)appData.appointments=appData.appointments.filter(x=>x.id!==id);
+  }else{
+   p.records=(p.records||[]).filter(r=>r.id!==id);
+  }
+  saveData();renderClientHistory(key);renderClientsTab();renderAppointmentsHub();
+  if(typeof showToast==='function')showToast('سابقه انتخاب‌شده حذف شد.');
+ };
+ const originalSwitch=window.switchTab;
+ if(typeof originalSwitch==='function'){
+  window.switchTab=function(tab,btn){originalSwitch(tab,btn);if(tab==='appointments')renderAppointmentsHub();};
+ }
+ document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(document.getElementById('appointmentHubList'))renderAppointmentsHub();},250);});
+})();
+</script>
 </body>
 </html>
