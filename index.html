@@ -1317,10 +1317,7 @@
             <div class="section-title" id="selectedDateLabel">برنامه روز انتخاب‌شده</div>
             <div style="font-size:0.74rem; color:var(--text-secondary);" id="selectedDaySummary">مشتریان و خدمات ثبت‌شده در این روز</div>
           </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button class="btn-secondary" id="toggleFollowupFilterBtn" onclick="toggleFollowupOnlyView()">🔁 نوبت‌های ترمیم</button>
-            <button class="btn-primary" onclick="openApptModal()">➕ ثبت نوبت</button>
-          </div>
+          <button class="btn-secondary" id="toggleFollowupFilterBtn" onclick="toggleFollowupOnlyView()">🔁 نوبت‌های ترمیم</button>
         </div>
 
         <div class="holiday-banner" id="selectedDayHolidayBanner"></div>
@@ -1361,19 +1358,6 @@
 
     <!-- ==================== TAB 2: NOTEBOOK & DAILY CHECKLIST ==================== -->
     <section id="tab-notebook" class="tab-section">
-      <div class="card" id="personalRemindersCard"><div class="section-head"><div class="section-title">🔔 هشدارهای شخصی من</div><span style="font-size:.72rem;color:var(--text-secondary);">مستقل از نوبت مشتری</span></div><div class="form-grid"><div class="form-group"><label>تاریخ هشدار</label><input type="date" id="personalReminderDate" class="form-control"></div><div class="form-group"><label>ساعت دقیق هشدار</label><input type="time" id="personalReminderTime" class="form-control" step="60"></div><div class="form-group full"><label>متن یادآوری</label><textarea id="personalReminderText" class="form-control" rows="2" placeholder="مثلاً: ساعت ۲ باید برم سالن"></textarea></div><div class="form-group full" style="display:flex;flex-direction:row;gap:8px"><button class="btn-primary" id="savePersonalReminderBtn" style="flex:1" onclick="savePersonalReminder()">🔔 ثبت هشدار</button><button class="btn-secondary" id="cancelPersonalReminderEditBtn" style="display:none" onclick="resetPersonalReminderForm()">انصراف از ویرایش</button></div></div><div style="font-size:.73rem;color:var(--text-secondary);line-height:1.7;margin:2px 0 10px">برای اعلان، اجازه اعلان برنامه را فعال کن. هشدارها پس از بستن و باز کردن برنامه باقی می‌مانند.</div><div id="personalReminderList" style="display:flex;flex-direction:column;gap:8px"></div></div>
-      <!-- Daily Quick To-Do Checklist -->
-      <div class="card">
-        <div class="section-head">
-          <div class="section-title">☑️ چک‌لیست کارهای روزانه</div>
-        </div>
-        <div style="display:flex; gap:6px; margin-bottom:10px;">
-          <input type="text" id="newTodoInput" class="form-control" placeholder="کار جدید (مثلاً: خرید لوازم، تماس با مشتری)..." onkeydown="if(event.key==='Enter') addTodoItem()" />
-          <button class="btn-primary" onclick="addTodoItem()">➕</button>
-        </div>
-        <div id="todoListContainer" style="display:flex; flex-direction:column; gap:7px;"></div>
-      </div>
-
       <!-- Full Notebook -->
       <div class="card">
         <div class="section-head">
@@ -1397,6 +1381,23 @@
       </div>
     </section>
 
+      <!-- Daily Quick To-Do Checklist -->
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title">☑️ چک‌لیست کارهای روزانه</div>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+          <input type="text" id="newTodoInput" class="form-control" placeholder="کار جدید (مثلاً: خرید لوازم، تماس با مشتری)..." onkeydown="if(event.key==='Enter') addTodoItem()" />
+          <button class="btn-primary" onclick="addTodoItem()">➕</button>
+        </div>
+        <div id="todoListContainer" style="display:flex; flex-direction:column; gap:7px;"></div>
+      </div>
+
+      
+
+      <div class="card" id="personalRemindersCard"><div class="section-head"><div class="section-title">🔔 هشدارهای شخصی من</div><span style="font-size:.72rem;color:var(--text-secondary);">مستقل از نوبت مشتری</span></div><div class="form-grid"><div class="form-group"><label>تاریخ هشدار</label><input type="date" id="personalReminderDate" class="form-control"></div><div class="form-group"><label>ساعت دقیق هشدار</label><input type="time" id="personalReminderTime" class="form-control" step="60"></div><div class="form-group full"><label>متن یادآوری</label><textarea id="personalReminderText" class="form-control" rows="2" placeholder="مثلاً: ساعت ۲ باید برم سالن"></textarea></div><div class="form-group full" style="display:flex;flex-direction:row;gap:8px"><button class="btn-primary" id="savePersonalReminderBtn" style="flex:1" onclick="savePersonalReminder()">🔔 ثبت هشدار</button><button class="btn-secondary" id="cancelPersonalReminderEditBtn" style="display:none" onclick="resetPersonalReminderForm()">انصراف از ویرایش</button></div></div><div style="font-size:.73rem;color:var(--text-secondary);line-height:1.7;margin:2px 0 10px">برای اعلان، اجازه اعلان برنامه را فعال کن. هشدارها پس از بستن و باز کردن برنامه باقی می‌مانند.</div><div id="personalReminderList" style="display:flex;flex-direction:column;gap:8px"></div></div>
+      
+
     <!-- ==================== TAB 4: CLIENTS & CUSTOM SERVICES ==================== -->
     <section id="tab-clients" class="tab-section">
       <div class="card">
@@ -1404,14 +1405,14 @@
           <div class="section-title">👥 پرونده مشتریان و سوابق</div>
           <button class="btn-primary" type="button" onclick="openAddClientModal()">➕ افزودن مشتری</button>
         </div>
-        <div class="card" id="clientBirthdaysCard" style="margin:0 0 12px;box-shadow:none;border-color:var(--accent);">
-          <div class="section-head"><div class="section-title">🎂 تولد مشتریان</div><span id="clientBirthdayCount" style="font-size:.72rem;color:var(--text-secondary);"></span></div>
-          <div id="clientBirthdaysList" style="display:flex;flex-direction:column;gap:8px;"></div>
-        </div>
         <div class="form-group">
           <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
         </div>
-        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:9px;"></div>
+        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:9px;"></div><div class="card" id="clientBirthdaysCard" style="margin:0 0 12px;box-shadow:none;border-color:var(--accent);">
+          <div class="section-head"><div class="section-title">🎂 تولد مشتریان</div><span id="clientBirthdayCount" style="font-size:.72rem;color:var(--text-secondary);"></span></div>
+          <div id="clientBirthdaysList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        
       </div>
 
       <div class="card">
@@ -1712,13 +1713,6 @@
     </section>
 
   </main>
-
-  <!-- Floating Quick Action Button -->
-  <div class="fab-menu" id="fabMenu">
-    <button class="btn-primary" onclick="toggleFabMenu(); openApptModal();">📅 ثبت نوبت سریع</button>
-    <button class="btn-primary" onclick="toggleFabMenu(); openNoteModal();">📒 یادداشت سریع</button>
-  </div>
-  <button class="fab-btn" onclick="toggleFabMenu()" title="دسترسی سریع">+</button>
 
   <!-- Six-section primary navigation: every main section is directly visible. -->
   <nav class="bottom-nav" aria-label="منوی اصلی">
@@ -5021,7 +5015,6 @@
         showToast('کپی ایمیل انجام نشد؛ لطفاً دوباره تلاش کن');
       }
     }
-    function toggleFabMenu() { document.getElementById('fabMenu').classList.toggle('open'); }
     let handlingAppPopState = false;
     let lastRootBackAt = 0;
     // No hidden "More" menu remains; this no-op keeps older internal calls safe.
@@ -5034,7 +5027,7 @@
       // Old browser history entries may still point to the removed duplicate appointments page.
       if (tabName === 'appointments') tabName = 'calendar';
       closeMoreMenu();
-      document.getElementById('fabMenu').classList.remove('open');
+      document.getElementById('fabMenu')?.classList.remove('open');
       document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
       const targetTab = document.getElementById('tab-' + tabName);
       if (!targetTab) return;
@@ -5070,11 +5063,6 @@
       const activeModal = document.querySelector('.modal-backdrop.open');
       if (activeModal) {
         activeModal.classList.remove('open');
-        return;
-      }
-      const fab = document.getElementById('fabMenu');
-      if (fab && fab.classList.contains('open')) {
-        fab.classList.remove('open');
         return;
       }
       if (state.dastyareAppTab) {
