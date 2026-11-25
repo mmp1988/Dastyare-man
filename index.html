@@ -7482,7 +7482,9 @@
  window.markAppointmentDone=function(id){
   const a=(appData.appointments||[]).find(x=>x.id===id);if(!a)return;
   if(!confirm('این خدمت انجام‌شده ثبت شود؟ سابقه آن در پرونده مشتری باقی می‌ماند.'))return;
-  a.status='done';a.completedAt=Date.now();if(typeof saveData==='function')saveData();
+  a.status='done';a.completedAt=Date.now();
+  if(typeof window.archiveCompletedAppointment==='function')window.archiveCompletedAppointment(a);
+  if(typeof saveData==='function')saveData();
   if(typeof renderCalendar==='function')renderCalendar();if(typeof renderDaySchedule==='function')renderDaySchedule();
   renderAppointmentsHub();if(typeof renderClientsTab==='function')renderClientsTab();
   if(typeof showToast==='function')showToast('خدمت انجام‌شده ثبت شد و در تاریخچه مشتری باقی می‌ماند 🌸');
