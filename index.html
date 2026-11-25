@@ -7584,7 +7584,12 @@
           const results = parts.map((part, index) => {
             let timedPart = part;
             const previousClock = index > 0 ? minaParsePersonalReminderClock(parts[index - 1]) : null;
-            const currentClock = minaParsePersonalReminderClock(part);
+            // A later clause may say only «ساعت ۹»; inherit the evening period
+            // from the preceding explicit evening time instead of rejecting the batch.
+            const bareHour = part.match(/ساعت\\s*(\\d{1,2})(?![\\d:])/u);
+            const currentClock = minaParsePersonalReminderClock(part) ||
+              (bareHour && Number(bareHour[1]) >= 1 && Number(bareHour[1]) <= 12
+                ? pad2(Number(bareHour[1])) + ':00' : null);
             const hasExplicitPeriod = /صبح|ظهر|بعدازظهر|عصر|شب/u.test(part);
             // If a later stop follows an explicitly evening time, infer evening for
             // an unqualified 1–11 o'clock time (e.g. 7 PM, then 9).
