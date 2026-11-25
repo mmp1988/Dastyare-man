@@ -683,20 +683,20 @@ const assert = require('assert');
         minaPersianNumberValue('پنجاه و نه')===59 &&
         minaParseReminderClock('ساعت سه و صفر دقیقه')==='03:00' &&
         minaParseReminderClock('ساعت سه و پنجاه و نه دقیقه')==='03:59';
+      const beforeRelative59Ids=new Set((appData.reminders||[]).map(x=>x.id));
       const relative59ExpectedAt=Math.ceil((Date.now()+59*60000)/60000)*60000;
-      const relative59CreatedAfter=Date.now();
       const relative59Reply=minaTrySetPersonalReminder('برای پنجاه و نه دقیقه دیگه آلارم تنظیم کن');
-      const relative59Saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=relative59CreatedAfter&&x.id!==saved?.id&&x.id!==relativeSaved?.id);
+      const relative59Saved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!beforeRelative59Ids.has(x.id));
       const relative59ActualAt=relative59Saved?iranDateTimeToEpoch(relative59Saved.date,relative59Saved.time):NaN;
+      const beforeRelativeHourIds=new Set((appData.reminders||[]).map(x=>x.id));
       const relativeHourExpectedAt=Math.ceil((Date.now()+81*60000)/60000)*60000;
-      const relativeHourCreatedAfter=Date.now();
       const relativeHourReply=minaTrySetPersonalReminder('یادم بنداز یک ساعت و بیست و یک دقیقه دیگه پیگیری کنم');
-      const relativeHourSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=relativeHourCreatedAfter);
+      const relativeHourSaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!beforeRelativeHourIds.has(x.id));
       const relativeHourActualAt=relativeHourSaved?iranDateTimeToEpoch(relativeHourSaved.date,relativeHourSaved.time):NaN;
+      const beforeRelativeDayIds=new Set((appData.reminders||[]).map(x=>x.id));
       const relativeDayExpectedAt=Math.ceil((Date.now()+2*86400000)/60000)*60000;
-      const relativeDayCreatedAfter=Date.now();
       const relativeDayReply=minaTrySetPersonalReminder('یادم بنداز دو روز دیگه');
-      const relativeDaySaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&x.createdAt>=relativeDayCreatedAfter);
+      const relativeDaySaved=(appData.reminders||[]).find(x=>x&&x.source==='mina'&&!beforeRelativeDayIds.has(x.id));
       const relativeDayActualAt=relativeDaySaved?iranDateTimeToEpoch(relativeDaySaved.date,relativeDaySaved.time):NaN;
       const expectedDate=jalaliKeyToGregorianDate(tomorrowKey);
       const expectedEpoch=Date.UTC(...expectedDate.split('-').map(Number).map((v,i)=>i===1?v-1:v),15,43)-210*60000;
