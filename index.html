@@ -6479,6 +6479,13 @@
         return;
       }
 
+      // Customer visit-date arithmetic is deterministic and reads only saved local history.
+      const customerDateCalculationReply = minaTryCalculateCustomerDate(message);
+      if (customerDateCalculationReply) {
+        addMinaMessage(minaFormatReplyForMode(customerDateCalculationReply), 'assistant');
+        return;
+      }
+
       // Personal reminders are deterministic local actions, not cloud-chat suggestions.
       // Parse the user's original wording before cloud routing so relative requests such as
       // «دو دقیقه دیگه آلارمو تنظیم کن» are saved and scheduled immediately, online or offline.
@@ -7107,6 +7114,109 @@
       presentAppointmentAlarm(appt,'یادآوری مینا 💗');
     }
     let minaPendingPersonalReminder = null;
+    function minaTryCalculateCustomerDate(raw) {
+      const text = minaCleanText(minaNormalizePersianTypos(minaNormalizeDigits(String(raw || ''))))
+        .replace(/[يى]/g, 'ی').toLocaleLowerCase('fa');
+      if (!/(?:بعدش|بعد از|چند روز|چه روزی|چه تاریخی|کی میشه|کی می‌شه|حساب کن|محاسبه کن)/u.test(text)) return null;
+      const numberWords = '(?:\\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)';
+      const offsetMatch = text.match(new RegExp('(' + numberWords + ')\\s*(روز|هفته)\\s*(?:بعدش|بعد|بعد\\s*از)', 'u'));
+      if (!offsetMatch) return null;
+      const amount = minaPersianNumberValue(offsetMatch[1]);
+      if (!Number.isFinite(amount) || amount < 0 || amount > 3650) return 'تعداد روز یا هفته رو دقیق متوجه نشدم؛ لطفاً عددش رو دوباره بگو عزیزم 💗';
+      const days = amount * (offsetMatch[2] === 'هفته' ? 7 : 1);
+      const today = getTodayKey();
+      let baseKey = '';
+      let baseLabel = '';
+
+      const numericDate = text.match(/(?:تاریخ\\s*)?(1[2345]\\d{2})[\\/.-](\\d{1,2})[\\/.-](\\d{1,2})/u);
+      if (numericDate) {
+        const y=Number(numericDate[1]),m=Number(numericDate[2]),d=Number(numericDate[3]);
+        if(m>=1&&m<=12&&d>=1&&d<=jalaliMonthDays(y,m)) baseKey=y+'-'+pad2(m)+'-'+pad2(d);
+      }
+      if (!baseKey) {
+        const months = '(فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)';
+        const explicit = text.match(new RegExp('(\\d{1,2})\\s*' + months + '(?:\\s*(1[2345]\\d{2}))?', 'u'));
+        if (explicit) {
+          const month = JALALI_MONTHS.findIndex(x => x===explicit[2] || (x==='آذر'&&explicit[2]==='اذر'))+1;
+          let year = Number(explicit[3] || today.slice(0,4));
+          const day = Number(explicit[1]);
+          if (month && day>=1 && day<=jalaliMonthDays(year,month)) {
+            baseKey=year+'-'+pad2(month)+'-'+pad2(day);
+            // A month/day without a year in a clearly past-visit sentence belongs to
+            // the previous Jalali year when that date has not happened yet this year.
+            if (!explicit[3] && /(?:قبلی|گذشته|مراجعه\\s*کرده|اومده|آمده|بوده)/u.test(text) && baseKey>today) {
+              year--; if(day<=jalaliMonthDays(year,month)) baseKey=year+'-'+pad2(month)+'-'+pad2(day);
+            }
+          }
+        }
+      }
+      if (baseKey) baseLabel = 'تاریخ گفته‌شده';
+
+      if (!baseKey) {
+        const ago = text.match(new RegExp('(' + numberWords + ')\\s*روز\\s*پیش', 'u'));
+        if (ago) {
+          const n=minaPersianNumberValue(ago[1]);
+          if(Number.isFinite(n)&&n<=3650){baseKey=addDaysToJalaliKey(today,-n);baseLabel='تاریخ مراجعه محاسبه‌شده از عبارت «'+ago[1]+' روز پیش»';}
+        }
+      }
+
+      if (!baseKey) {
+        const profiles=appData.clientProfiles||{};
+        const names=[];
+        Object.entries(profiles).forEach(([key,p])=>{
+          const name=String(p&&p.name||key).trim();
+          if(name.length>1) names.push({key,name,aliases:Array.isArray(p&&p.aliases)?p.aliases:[]});
+        });
+        (appData.appointments||[]).forEach(a=>{
+          const name=String(a&&a.clientName||'').trim();
+          if(name.length>1&&!names.some(x=>x.name.toLocaleLowerCase('fa')===name.toLocaleLowerCase('fa'))) names.push({key:'',name,aliases:[]});
+        });
+        const matches=names.filter(x=>[x.name,...x.aliases].some(n=>n&&text.includes(String(n).toLocaleLowerCase('fa'))))
+          .sort((a,b)=>b.name.length-a.name.length);
+        if(matches.length>1 && matches[0].name.length===matches[1].name.length &&
+           matches[0].name.toLocaleLowerCase('fa')!==matches[1].name.toLocaleLowerCase('fa')) {
+          return 'چند مشتری با این توضیح ممکنه؛ اسم دقیق مشتری رو بگو تا تاریخ مراجعه اشتباه نشه 💗';
+        }
+        let chosen=matches[0]||null;
+        const historical=[];
+        if(chosen && chosen.key) {
+          const profile=getClientProfile(chosen.key);
+          (profile.records||[]).forEach(record=>{if(record&&record.dateKey)historical.push({dateKey:record.dateKey,time:record.time||'',name:chosen.name});});
+          (appData.appointments||[]).filter(a=>clientMatchesAppointment(chosen.key,a)&&a.status==='done'&&a.dateKey)
+            .forEach(a=>historical.push({dateKey:a.dateKey,time:a.time||'',name:chosen.name}));
+        } else if(chosen) {
+          (appData.appointments||[]).filter(a=>a&&a.status==='done'&&a.dateKey&&String(a.clientName||'').toLocaleLowerCase('fa')===chosen.name.toLocaleLowerCase('fa'))
+            .forEach(a=>historical.push({dateKey:a.dateKey,time:a.time||'',name:chosen.name}));
+        } else if (/(?:مشتری\\s*(?:قبلی|آخر)|آخرین\\s*مراجعه|مراجعه\\s*قبلی)/u.test(text)) {
+          // «مشتری قبلیم» is resolved only when there is one unambiguous latest completed visit.
+          (appData.appointments||[]).filter(a=>a&&a.status==='done'&&a.dateKey)
+            .forEach(a=>historical.push({dateKey:a.dateKey,time:a.time||'',name:a.clientName||'مشتری'}));
+          Object.entries(profiles).forEach(([key,p])=>(p&&p.records||[]).forEach(record=>{
+            if(record&&record.dateKey)historical.push({dateKey:record.dateKey,time:record.time||'',name:p.name||key});
+          }));
+        }
+        const valid=historical.filter(x=>/^1[2345]\\d{2}-\\d{2}-\\d{2}$/.test(x.dateKey)&&x.dateKey<=today)
+          .sort((a,b)=>(b.dateKey+b.time).localeCompare(a.dateKey+a.time));
+        if(valid.length) {
+          const latest=valid[0];
+          const tied=valid.filter(x=>x.dateKey===latest.dateKey&&x.time===latest.time&&x.name!==latest.name);
+          if(tied.length) return 'آخرین مراجعه برای چند مشتری در یک زمان ثبت شده؛ لطفاً اسم مشتری رو مشخص کن عزیزم 💗';
+          baseKey=latest.dateKey;
+          baseLabel='آخرین مراجعه ثبت‌شده '+latest.name;
+        }
+      }
+
+      if (!baseKey) {
+        if (/(?:مشتری|مراجعه|ترمیم|پرونده)/u.test(text)) return 'تاریخ مراجعه یا اسم مشتری رو بگو تا سوابق ثبت‌شده رو بررسی کنم؛ نمی‌خوام تاریخ اشتباهی بهت بدم 💗';
+        return null;
+      }
+      const target=addDaysToJalaliKey(baseKey,days);
+      const dayText=days===1?'یک روز':days+' روز';
+      return 'حتماً عزیزم 🌸\\n'+baseLabel+': '+formatJalaliFull(baseKey)+
+        '\\n'+dayText+' بعدش می‌شه: '+formatJalaliFull(target)+
+        '\\nاین فقط محاسبه تاریخه؛ هنوز هیچ نوبت یا یادآوری‌ای ثبت نکردم 💗';
+    }
+
     function minaReminderDateKey(raw) {
       const text=minaCleanText(minaNormalizeDigits(String(raw||''))).toLocaleLowerCase('fa');
       const today=getTodayKey();
