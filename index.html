@@ -6211,7 +6211,7 @@
       if (typeof switchTab === 'function') switchTab('clients');
       if (typeof openClientRecord === 'function') openClientRecord(key);
       return (existing ? (updated ? 'پرونده قبلی مشتری رو با شماره جدید تکمیل و به‌روزرسانی کردم' : 'این مشتری از قبل ثبت شده بود و پرونده تکراری نساختم') : 'پرونده مشتری جدید رو با موفقیت در بخش مشتریان ساختم') +
-        ' ✅\n👤 نام: ' + cleanName + '\n📞 شماره: ' + phone + '\n📅 هیچ تاریخ یا نوبتی ثبت نکردم؛ هر وقت خواستی جداگانه نوبت می‌ذاریم. 💗';
+        ' ✅\n👤 نام: ' + cleanName + (phone ? '\n📞 شماره: ' + phone : '\n📞 شماره تماس: ثبت نشده') + '\n📅 هیچ تاریخ یا نوبتی ثبت نکردم؛ هر وقت خواستی جداگانه نوبت می‌ذاریم. 💗';
     }
 
     async function sendMinaMessage() {
