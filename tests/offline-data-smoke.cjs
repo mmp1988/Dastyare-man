@@ -172,8 +172,14 @@ const assert = require('assert');
         const values = selectors.map(sel => position(root, sel));
         return values.every((v,i) => v >= 0 && (i === 0 || v > values[i-1]));
       };
+      switchTab('settings', document.getElementById('navSettings'));
+      const settingsOpensAtContact = settings.classList.contains('active') &&
+        !home.classList.contains('active') && settings.firstElementChild?.id === 'officialContactCard' &&
+        !settings.contains(document.getElementById('allAppointmentsPanel'));
+      switchTab('calendar', document.getElementById('navCalendar'));
       return {
         pageOrder:ids.join(',') === 'calendar,clients,mina,notebook,messages,settings',
+        settingsOpensAtContact,
         navCount:nav.length === 6 && ['خانه','مشتریان','مینا','یادداشت‌ها','پیام‌ها','شخصی‌سازی'].every((label,i) => nav[i].includes(label)),
         noDuplicateAppointmentsPage:!document.getElementById('tab-appointments') && !!home?.contains(document.getElementById('allAppointmentsPanel')),
         homePriority:ordered(home,['#homeWelcomeCard','.home-appointment-stats','.cal-header','#smartDashboard','#selectedDateLabel','#allAppointmentsPanel']),
