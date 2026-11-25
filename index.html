@@ -6630,7 +6630,8 @@
         .replace(/(?:امروز|فردا|پس\s*فردا|پسفردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه)/gu,' ')
         .replace(/(?:تاریخ\s*)?(?:1[2345]\d{2}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)(?:\s*1[2345]\d{2})?)/gu,' ')
         .replace(/(?:ساعت\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s*و\s*\d{1,2}\s*دقیقه|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی|چهل|پنجاه|شصت|\d{1,2})(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|\d{1,2}))?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/gu,' ')
-        .replace(/(?:در\s*)?(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\s*دقیقه\s*(?:دیگه|دیگر|بعد(?:تر)?)/gu,' ')
+        .replace(new RegExp('(?:در\\s*)?(?:'+spokenNumber+')\\s*(?:ساعت|روز|دقیقه)(?:\\s*و\\s*(?:'+spokenNumber+')\\s*دقیقه)?\\s*(?:دیگه|دیگر|بعد(?:تر)?)','gu'),' ')
+        .replace(/(?:نیم|نصف)\s*ساعت\s*(?:دیگه|دیگر|بعد(?:تر)?)|(?:یک\s*)?ربع\s*ساعت\s*(?:دیگه|دیگر|بعد(?:تر)?)/gu,' ')
         .replace(/(?:برام|برای من|لطفا|لطفاً|بزاری|بذار|بزار|بذارم|بزارم|بگذاری|تنظیم کن|تنظیمش کن|کن|بکن)/gu,' ').replace(/\s+/g,' ').trim();
       if(!message||/^(?:امروز|فردا|ساعت|برام|من)$/u.test(message))message='یادآوری شخصی';
       const id='mina_rem_'+Date.now();
@@ -7128,26 +7129,30 @@
 
     let nativeContentUpdateResult=null;
     let nativeApkUpdateResult=null;
+    let nativeApkUpdateDetails={installed:null,latest:null};
     function finishNativeUpdateCheckIfReady(){
       if(nativeContentUpdateResult===null||nativeApkUpdateResult===null)return;
       const button=document.querySelector('.header-actions button[title="بررسی و دریافت آخرین نسخه"]');
       if(button){button.disabled=false;button.textContent='🔄 بروزرسانی';}
       if(nativeContentUpdateResult==='error'||nativeApkUpdateResult==='error'){
-        showToast('بخشی از بررسی بروزرسانی ناموفق بود؛ وضعیت کامل نسخه قابل تأیید نیست.');
+        showToast('بررسی نسخه کامل نشد؛ وضعیت به‌روز بودن قابل تأیید نیست.');
       }else if(nativeApkUpdateResult==='available'){
-        showToast('بروزرسانی داخلی بررسی شد؛ نسخه جدید APK هم دانلود و آماده نصب است.');
+        showToast('نسخه نصب‌شده: '+nativeApkUpdateDetails.installed+' | نسخه جدید: '+nativeApkUpdateDetails.latest+' — دانلود شد و آماده نصب است.');
+      }else if(nativeApkUpdateResult==='latest'){
+        showToast('نسخه نصب‌شده: '+nativeApkUpdateDetails.installed+' | آخرین نسخه منتشرشده: '+nativeApkUpdateDetails.latest+' — برنامه به‌روز است ✅');
       }else if(nativeContentUpdateResult==='updated'){
-        showToast('بروزرسانی داخلی با موفقیت دریافت و اعمال شد؛ نسخه APK هم بررسی شد ✅');
+        showToast('محتوای داخلی به‌روزرسانی شد؛ نسخه APK نصب‌شده: '+nativeApkUpdateDetails.installed+' | آخرین نسخه: '+nativeApkUpdateDetails.latest+' ✅');
       }else{
-        showToast('بررسی آنلاین کامل شد؛ محتوای داخلی و نسخه نصب اپ به‌روز هستند ✅');
+        showToast('نسخه نصب‌شده: '+nativeApkUpdateDetails.installed+' | نسخه منتشرشده: '+nativeApkUpdateDetails.latest+' — محتوای داخلی هم به‌روز است ✅');
       }
     }
     window.onNativeContentCheckResult=function(result){
       nativeContentUpdateResult=result;
       finishNativeUpdateCheckIfReady();
     };
-    window.onNativeUpdateCheckResult=function(result){
+    window.onNativeUpdateCheckResult=function(result,installed,latest){
       nativeApkUpdateResult=result;
+      nativeApkUpdateDetails={installed:Number(installed)||null,latest:Number(latest)||null};
       finishNativeUpdateCheckIfReady();
     };
     async function checkAllAppUpdates(){
