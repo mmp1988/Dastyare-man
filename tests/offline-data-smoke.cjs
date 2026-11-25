@@ -30,6 +30,30 @@ const assert = require('assert');
     await page.waitForTimeout(1500);
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
+    // Mina cloud/local routing must reserve cloud calls for complex salon reasoning,
+    // keep straightforward appointment entry local, and never expose client PII.
+    const minaHybridRoutingQA = await page.evaluate(async () => {
+      const previousProfiles = appData.clientProfiles;
+      appData.clientProfiles = { 'qa-client': { name:'سارا محمدی', phone:'09123456789', records:[] } };
+      const safe = minaBuildCloudSafeCommand('برای سارا محمدی فردا ساعت ۱۵:۴۳ نوبت کاشت ناخن ثبت کن');
+      const privateDataHidden = !safe.message.includes('سارا') && !safe.message.includes('09123456789') &&
+        safe.message.includes('[CLIENT_1]') && safe.message.includes('[PHONE_1]');
+      const restored = safe.restore(safe.message);
+      const restoreWorks = restored.includes('سارا محمدی') && restored.includes('09123456789');
+      const simpleLocal = minaIsClearlyLocalAction('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن') &&
+        !minaNeedsCloudUnderstanding('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن');
+      const complexCloud = minaIsClearlyLocalAction('نوبت قبلی سارا رو به فردا ساعت ۱۵:۴۳ جابه‌جا کن و یادآوری هم براش فعال کن') &&
+        minaNeedsCloudUnderstanding('نوبت قبلی سارا رو به فردا ساعت ۱۵:۴۳ جابه‌جا کن و یادآوری هم براش فعال کن');
+      localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 60000));
+      const quotaCooldown = minaCloudQuotaCooldownActive();
+      localStorage.removeItem('mina_cloud_quota_retry_at');
+      appData.clientProfiles = previousProfiles;
+      return { privateDataHidden, restoreWorks, simpleLocal, complexCloud, quotaCooldown };
+    });
+    assert(Object.values(minaHybridRoutingQA).every(Boolean),
+      'Mina hybrid AI routing must mask private data, preserve local execution, use cloud for complex salon commands, and respect quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
+    console.log('Mina hybrid AI routing:', JSON.stringify(minaHybridRoutingQA));
+
     // The redesigned appointment form must expose and persist an editable Jalali visit date.
     const appointmentDateFormQA = await page.evaluate(() => {
       selectedDateKey = getTodayKey();
