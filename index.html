@@ -1082,7 +1082,32 @@
       .calendar-insight span { font-size:.61rem; }
     }
 
-  </style>
+      /* Compact, touch-friendly customer appointment panel shared by web and Android WebView. */
+    #clientScheduledAppointments { gap:6px !important; margin:0 0 9px !important; }
+    #clientScheduledAppointments > section { padding:8px !important; border-radius:10px !important; }
+    #clientScheduledAppointments > section > div:first-child { font-size:.78rem !important; margin-bottom:4px !important; }
+    .client-appointment-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 8px; margin:4px 0; border:1px solid var(--border-subtle); border-right:3px solid var(--client-appt-color); border-radius:9px; background:var(--bg-input); min-width:0; }
+    .client-appointment-main { display:flex; flex:1 1 auto; flex-wrap:wrap; align-items:center; gap:3px 8px; min-width:0; }
+    .client-appointment-main strong { font-size:.76rem; line-height:1.5; }
+    .client-appointment-main strong span { color:var(--accent); white-space:nowrap; }
+    .client-appointment-service { font-size:.72rem; color:var(--text-secondary); overflow-wrap:anywhere; }
+    .client-appointment-status { font-size:.66rem; color:var(--text-muted); white-space:nowrap; }
+    .client-appointment-actions { display:flex; flex:0 0 auto; gap:5px; }
+    .client-appointment-actions .btn-secondary { min-height:34px; padding:5px 9px; font-size:.68rem; }
+    .client-appointment-form { gap:7px !important; }
+    .client-appointment-form .form-group { margin-bottom:2px !important; }
+    .client-appointment-form .form-control { min-height:40px !important; padding:7px 9px !important; }
+    .client-appointment-form .client-date-group > div { gap:5px !important; }
+    .client-appointment-form .client-date-group > div > button { padding:7px 9px !important; font-size:.72rem; }
+    .client-appointment-form .client-date-group small { display:none; }
+    .client-appointment-form textarea { min-height:58px !important; }
+    @media(max-width:420px) {
+      .client-appointment-row { align-items:flex-start; }
+      .client-appointment-main { flex-direction:column; align-items:flex-start; gap:1px; }
+      .client-appointment-actions { flex-direction:column; }
+      .client-appointment-actions .btn-secondary { min-width:52px; min-height:32px; }
+    }
+\n</style>
 </head>
 <body>
 
@@ -1669,8 +1694,15 @@
             <div id="clientFollowupAppointmentList"></div>
           </section>
         </div>
-        <div class="form-grid">
-          <div class="form-group full client-date-group">
+        <div class="form-grid client-appointment-form">
+          <div class="form-group full">
+            <label for="clientNextAppointmentType">نوع نوبت</label>
+            <select id="clientNextAppointmentType" class="form-control" aria-label="نوع نوبت">
+              <option value="primary">📅 نوبت اصلی</option>
+              <option value="followup">🔁 نوبت بعدی ترمیم</option>
+            </select>
+          </div>
+          <div class="form-group client-date-group">
             <label>تاریخ شمسی نوبت</label>
             <div style="display:flex;gap:7px;align-items:center;">
               <input type="text" id="clientNextDate" class="form-control" placeholder="انتخاب تاریخ از تقویم" dir="ltr" style="flex:1;cursor:pointer;" readonly onclick="toggleClientJalaliPicker()" aria-label="انتخاب تاریخ شمسی از تقویم" />
@@ -1688,7 +1720,7 @@
               <button type="button" class="btn-secondary" style="width:100%;margin-top:9px;" onclick="selectClientJalaliToday()">امروز</button>
             </div>
           </div>
-          <div class="form-group full client-time-group">
+          <div class="form-group client-time-group">
             <label>ساعت نوبت</label>
             <input type="time" id="clientNextTime" class="form-control" value="10:00" />
           </div>
@@ -1705,7 +1737,7 @@
             <textarea id="clientNextNotes" class="form-control" rows="2" placeholder="توضیحات یا نکات لازم برای مراجعه بعدی..."></textarea>
           </div>
           <div class="form-group full">
-            <small style="color:var(--text-secondary);">تاریخ و ساعت نوبت بعدی را وارد کن؛ با زدن «ثبت کار»، نوبت به‌صورت خودکار در تقویم ثبت می‌شود.</small>
+            <small style="color:var(--text-secondary);">تاریخ، ساعت و نوع نوبت را انتخاب کن؛ با «ثبت کار» در پرونده مشتری و تقویم اصلی ذخیره می‌شود.</small>
           </div>
         </div>
         <div id="clientNextAppointmentInfo" style="font-size:0.8rem;color:var(--accent);line-height:1.8;"></div>
@@ -3503,6 +3535,10 @@
         : 'نوبت آینده‌ای ثبت نشده؛ متن پیام را می‌توانی دستی تنظیم کنی.';
       document.getElementById('clientNextDate').value = '';
       document.getElementById('clientNextTime').value = '10:00';
+      const typeField = document.getElementById('clientNextAppointmentType');
+      if (typeField) typeField.value = appointments.some(a => !isFollowupAppointment(a) && a.status !== 'canceled') ? 'followup' : 'primary';
+      const saveClientButton = document.querySelector('#clientShareActions button.btn-primary');
+      if (saveClientButton) saveClientButton.textContent = '💾 ثبت کار';
       document.getElementById('clientNextService').value = '';
       document.getElementById('clientNextAppointmentInfo').textContent = future
         ? 'نوبت آینده فعلی: '+formatJalaliFull(future.dateKey)+' ساعت '+toPersianDigits(future.time || '')+' — '+(future.service || '')+'. برای افزودن نوبت جداگانه، تاریخ و ساعت جدید را وارد کن.'
@@ -3926,32 +3962,42 @@
         const followup = isFollowupAppointment(a);
         const status = a.status === 'done' ? 'انجام‌شده' : a.status === 'canceled' ? 'لغوشده' : 'در انتظار';
         const color = followup ? '#d97706' : '#3b82f6';
-        return `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:9px;margin:6px 0;border:1px solid var(--border-subtle);border-right:3px solid ${color};border-radius:10px;background:var(--bg-input);">
-          <div style="min-width:0;flex:1;">
-            <span style="display:block;font-size:.78rem;font-weight:800;">${escapeClientText(formatJalaliFull(a.dateKey))} • 🕒 ${toPersianDigits(a.time || 'ثبت نشده')}</span>
-            <small style="display:block;color:var(--text-secondary);">${escapeClientText(a.service || 'خدمت ثبت نشده')} • ${status}</small>
+        return `<article class="client-appointment-row" style="--client-appt-color:${color};">
+          <div class="client-appointment-main">
+            <strong>${escapeClientText(formatJalaliFull(a.dateKey))} <span>ساعت ${toPersianDigits(a.time || 'ثبت نشده')}</span></strong>
+            <span class="client-appointment-service">${escapeClientText(a.service || 'خدمت ثبت نشده')}</span>
+            <small class="client-appointment-status">${status}</small>
           </div>
-          <div style="display:flex;gap:5px;flex-shrink:0;">
-            <button type="button" class="mini-btn" data-client-appt-edit="${escapeClientText(a.id)}" aria-label="ویرایش نوبت">✏️</button>
-            <button type="button" class="mini-btn del" data-client-appt-delete="${escapeClientText(a.id)}" aria-label="حذف نوبت">🗑️</button>
+          <div class="client-appointment-actions">
+            <button type="button" class="btn-secondary" data-client-appt-edit="${escapeClientText(a.id)}" aria-label="ویرایش نوبت">ویرایش</button>
+            <button type="button" class="btn-secondary" data-client-appt-delete="${escapeClientText(a.id)}" aria-label="حذف نوبت">حذف</button>
           </div>
-        </div>`;
+        </article>`;
       }).join('') : `<div style="font-size:.78rem;color:var(--text-secondary);padding:7px 0;">${emptyText}</div>`;
       primaryBox.innerHTML = renderGroup(appointments.filter(a => !isFollowupAppointment(a)), 'هنوز نوبت اصلی ثبت نشده است.');
       followupBox.innerHTML = renderGroup(appointments.filter(isFollowupAppointment), 'هنوز نوبت بعدی ترمیم ثبت نشده است.');
-      box.querySelectorAll('[data-client-appt-edit]').forEach(btn => btn.addEventListener('click', () => {
-        const appt = appData.appointments.find(x => x.id === btn.dataset.clientApptEdit);
-        if (!appt) return;
-        selectedDateKey = appt.dateKey;
-        viewYear = Number(appt.dateKey.slice(0,4));
-        viewMonth = Number(appt.dateKey.slice(5,7));
-        showFollowupOnly = false;
-        closeModal('clientProfileModal');
-        switchTab('calendar');
-        renderCalendar(); renderDaySchedule();
-        openApptModal(appt.id);
-      }));
+      box.querySelectorAll('[data-client-appt-edit]').forEach(btn => btn.addEventListener('click', () => editClientAppointmentInline(btn.dataset.clientApptEdit)));
       box.querySelectorAll('[data-client-appt-delete]').forEach(btn => btn.addEventListener('click', () => deleteAppointment(btn.dataset.clientApptDelete)));
+    }
+
+    function editClientAppointmentInline(id) {
+      const appt = (appData.appointments || []).find(item => item.id === id && item.status !== 'canceled');
+      if (!appt) { showToast('این نوبت دیگر در دسترس نیست.'); return; }
+      clientEditingNextAppointmentId = appt.id;
+      const date = document.getElementById('clientNextDate');
+      date.value = toPersianDigits(String(appt.dateKey || '').replace(/-/g, '/'));
+      document.getElementById('clientNextTime').value = appt.time || '10:00';
+      document.getElementById('clientNextService').value = appt.service || '';
+      document.getElementById('clientNextAlarm').value = appt.alarm === 'none' ? '0' : String(Number(appt.alarm) || 0);
+      document.getElementById('clientNextNotes').value = appt.notes || '';
+      const typeField = document.getElementById('clientNextAppointmentType');
+      if (typeField) typeField.value = isFollowupAppointment(appt) ? 'followup' : 'primary';
+      const saveButton = document.querySelector('#clientShareActions button.btn-primary');
+      if (saveButton) saveButton.textContent = '💾 ذخیره تغییر نوبت';
+      const info = document.getElementById('clientNextAppointmentInfo');
+      if (info) info.textContent = 'در حال ویرایش ' + getAppointmentKindLabel(appt) + '؛ پس از تغییر، «ذخیره تغییر نوبت» را بزن.';
+      date.scrollIntoView({ behavior:'smooth', block:'center' });
+      document.getElementById('clientNextTime').focus({ preventScroll:true });
     }
 
     function saveClientNextAppointment() {
@@ -3962,7 +4008,14 @@
       const time = document.getElementById('clientNextTime').value;
       const existingPrimary = getClientAppointments(key, false).find(a => !isFollowupAppointment(a) && a.status !== 'canceled');
       const editing = clientEditingNextAppointmentId ? appData.appointments.find(a => a.id === clientEditingNextAppointmentId && a.status !== 'canceled') : null;
-      const appointmentType = editing ? (isFollowupAppointment(editing) ? 'followup' : 'primary') : (existingPrimary ? 'followup' : 'primary');
+      const typeField = document.getElementById('clientNextAppointmentType');
+      const appointmentType = editing
+        ? (isFollowupAppointment(editing) ? 'followup' : 'primary')
+        : (typeField?.value === 'followup' ? 'followup' : 'primary');
+      if (appointmentType === 'followup' && !existingPrimary) {
+        showToast('برای ثبت نوبت ترمیم، ابتدا باید نوبت اصلی این مشتری ثبت شده باشد.');
+        return;
+      }
       const serviceInput = document.getElementById('clientNextService').value.trim();
       const service = serviceInput || (appointmentType === 'followup' ? 'ترمیم' : 'مراجعه اصلی');
       const dateKey = parseClientJalaliDate(dateValue);
