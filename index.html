@@ -6329,6 +6329,17 @@
       if (/(?:12|دوازده)\s*شب/u.test(rawValue) || /(?:12|دوازده)\s*شب/u.test(value)) return '00:00';
       const numberWord = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       const relative = value.match(new RegExp('(' + numberWord + '\\s*دقیقه|یک\\s*ربع|ربع|نیم\\s*ساعت|نیم\\s*ربع)\\s*(به|مونده\\s*به|مانده\\s*به|قبل\\s*از|بعد\\s*از|گذشته\\s*از)\\s*(' + numberWord + ')(?:\\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
+      const spokenExactParts = rawValue.replace(/^ساعت\\s*/u, '').match(/^(.+?)\\s+و\\s+(.+?)\\s*دقیقه$/u);
+      if (spokenExactParts) {
+        let exactHour = minaPersianNumberValue(spokenExactParts[1]);
+        const exactMinute = minaPersianNumberValue(spokenExactParts[2]);
+        const period = rawValue.match(/صبح|ظهر|بعدازظهر|عصر|شب/u)?.[0] || '';
+        if (Number.isFinite(exactHour) && Number.isFinite(exactMinute) && exactHour >= 0 && exactHour <= 23 && exactMinute >= 0 && exactMinute <= 59) {
+          if (/(?:ظهر|بعدازظهر|عصر|شب)/u.test(period) && exactHour < 12) exactHour += 12;
+          if (/(?:صبح|شب)/u.test(period) && exactHour === 12) exactHour = 0;
+          return pad2(exactHour) + ':' + pad2(exactMinute);
+        }
+      }
       const expandedExactMinutes = value.match(/(?:ساعت\\s*)?(\\d{1,2})\\s+و\\s+(\\d{1,2})\\s*دقیقه/u);
       if (expandedExactMinutes) {
         let exactHour = Number(expandedExactMinutes[1]);
