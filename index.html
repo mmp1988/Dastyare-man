@@ -5733,6 +5733,16 @@
       );
     }
 
+    async function minaUnderstandLocalCommand(message) {
+      if (!navigator.onLine || !minaIsClearlyLocalAction(message)) return null;
+      try {
+        const response = await fetch(MINA_SMART_BRAIN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'understand', message }), cache: 'no-store' });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data && data.success && typeof data.command === 'string' ? data.command : null;
+      } catch (error) { return null; }
+    }
+
     async function minaAskSmartBrain(message) {
       // Only general conversation is sent to the model. Customer, appointment,
       // phone, date/time and other salon records stay on this device.
