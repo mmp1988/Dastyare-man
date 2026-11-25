@@ -6238,7 +6238,9 @@
       }
       if (minaConversationBooking && hasClock &&
           !/(?:نوبت|رزرو|وقت|یادداشت|لغو|کنسل|برنامه)/.test(normalized)) {
-        const continuation = minaConversationBooking.original + ' ' + expandedRaw;
+        const continuationTime = minaParseReminderClock(expandedRaw);
+        const continuation = minaConversationBooking.original + ' ' +
+          (continuationTime ? 'ساعت ' + continuationTime : expandedRaw);
         minaConversationBooking = null;
         return minaBuildReplyCore(continuation);
       }
