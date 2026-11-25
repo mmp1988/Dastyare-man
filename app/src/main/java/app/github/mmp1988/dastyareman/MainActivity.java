@@ -748,7 +748,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 if (manual) runOnUiThread(() -> {
                     Toast.makeText(this, "نتیجه بررسی مشخص نشد؛ اتصال یا انتشار GitHub در دسترس نیست. نمی‌توان گفت برنامه به‌روز است.", Toast.LENGTH_LONG).show();
-                    notifyWebUpdateCheckResult("error");
+                    notifyWebUpdateCheckResult("error", 0L, 0L);
                 });
             } finally {
                 if (connection != null) connection.disconnect();
