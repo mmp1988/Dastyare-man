@@ -46,6 +46,39 @@ const assert = require('assert');
       'Mina must answer local clock/date questions and accept questions about all app features');
     console.log('Mina date/time and app scope:', JSON.stringify(minaDateTimeQA));
 
+    // Customer memory must resolve saved aliases, retain useful service/conversation context,
+    // and avoid adding phone numbers to the model context.
+    const minaCustomerMemoryQA = await page.evaluate(() => {
+      const oldProfiles = appData.clientProfiles;
+      const oldAppointments = appData.appointments;
+      const oldContextKey = minaConversationContextClientKey;
+      appData.clientProfiles = {
+        'qa-memory-client': {
+          name: 'مینا موسوی',
+          phone: '09123456789',
+          aliases: ['مامان مینا'],
+          records: [{ dateKey: '1405-09-01', service: 'کاشت مژه', notes: 'فرم طبیعی' }],
+          conversations: [{ role: 'user', text: 'مژه‌های والیوم دوست دارم', timestamp: Date.now() }]
+        }
+      };
+      appData.appointments = [];
+      minaConversationContextClientKey = null;
+      const aliasResolved = minaResolveConversationClientKey('برای مامان مینا نوبت ثبت کن') === 'qa-memory-client';
+      const memory = minaBuildCustomerMemoryContext('برای مامان مینا نوبت ثبت کن');
+      const memoryHasIdentity = memory.includes('مینا موسوی') && memory.includes('مامان مینا');
+      const memoryHasHistory = memory.includes('کاشت مژه') && memory.includes('والیوم');
+      const memoryHidesPhone = !memory.includes('09123456789');
+      const safe = minaBuildCloudSafeCommand(memory);
+      const cloudMasksIdentity = !safe.message.includes('مینا موسوی') && !safe.message.includes('مامان مینا');
+      appData.clientProfiles = oldProfiles;
+      appData.appointments = oldAppointments;
+      minaConversationContextClientKey = oldContextKey;
+      return { aliasResolved, memoryHasIdentity, memoryHasHistory, memoryHidesPhone, cloudMasksIdentity };
+    });
+    assert(Object.values(minaCustomerMemoryQA).every(Boolean),
+      'Mina must resolve saved aliases, include the right client history, and mask identity before cloud requests: ' + JSON.stringify(minaCustomerMemoryQA));
+    console.log('Mina customer memory:', JSON.stringify(minaCustomerMemoryQA));
+
     // Mina cloud/local routing must reserve cloud calls for complex salon reasoning,
     // keep straightforward appointment entry local, and never expose client PII.
     const minaHybridRoutingQA = await page.evaluate(async () => {
