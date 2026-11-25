@@ -5838,8 +5838,17 @@
         !!minaPendingBooking || !!minaConversationBooking;
     }
 
+    function minaAppendInstagram(reply) {
+      return String(reply || '').trim() + '\n\nاینستاگرام: @lash_by_mina.m\nhttps://www.instagram.com/lash_by_mina.m/';
+    }
+
     function minaOutOfScopeReply() {
-      return 'من مینا هستم؛ دستیار تخصصی امور سالن زیبایی. فقط در زمینه نوبت‌ها، مشتریان، خدمات و مدیریت سالن کمک می‌کنم و برای گفت‌وگوی عمومی طراحی نشده‌ام. برای اطلاعات و ارتباط بیشتر، صفحه اینستاگرام را ببینید: @lash_by_mina.m\nhttps://www.instagram.com/lash_by_mina.m/';
+      return minaAppendInstagram('من مینا هستم، دستیار هوشمند و تخصصی سالن زیبایی؛ برای مدیریت نوبت‌ها، مشتریان، خدمات، تبلیغات و امور سالن در خدمتم.');
+    }
+
+    function minaIsAbusiveMessage(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      return /(?:^|[\\s،,.!?؟])(?:احمق|بی\\s*شعور|بی\\s*ادب|خفه\\s*شو|گمشو|گم\\s*شو|کثافت|حرومزاده|لعنتی|مادرجنده|جنده|فحش|توهین)(?=$|[\\s،,.!?؟])/u.test(text);
     }
 
     async function sendMinaMessage() {
@@ -5849,6 +5858,12 @@
       if (!message) return;
       addMinaMessage(message, 'user');
       input.value = '';
+
+      // Abusive language is handled locally; never spend cloud AI quota arguing.
+      if (minaIsAbusiveMessage(message)) {
+        addMinaMessage(minaAppendInstagram('با این لحن نمی‌تونم گفتگوی مفیدی داشته باشم. هر وقت برای انجام کارهای سالن آماده بودی، در خدمتم.'), 'assistant');
+        return;
+      }
 
       // Friendly greetings are handled locally and do not consume AI quota.
       const greetingSource = minaTransliterateFinglish(message);
@@ -5863,7 +5878,7 @@
         return;
       }
       if (/^(?:خوبی|چطوری|سلام خوبی|سلام چطوری|درود|صبح بخیر|عصر بخیر|سلام)$/u.test(normalizedForGreeting) || /^(?:سلام|درود|صبح بخیر|عصر بخیر)$/u.test(greetingRaw)) {
-        addMinaMessage('سلام عزیزم 🌸 من مینا هستم؛ برای نوبت‌ها، مشتری‌ها و کارهای سالن در خدمتم. بگو چه کاری برات انجام بدم؟', 'assistant');
+        addMinaMessage(minaAppendInstagram('سلام عزیزم 🌸 من مینا هستم، دستیار هوشمند سالن زیبایی؛ برای نوبت‌ها، مشتری‌ها و کارهای سالن در خدمتم. بگو چه کاری برات انجام بدم؟'), 'assistant');
         return;
       }
 
