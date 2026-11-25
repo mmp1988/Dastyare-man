@@ -5887,14 +5887,13 @@
     }
 
     function minaNeedsCloudUnderstanding(message) {
+      // Every salon action is interpreted by the connected language model when online,
+      // not only messages that a brittle local heuristic labels as "complex".
+      // Names, digits and exact times are masked/restored by minaBuildCloudSafeCommand;
+      // the model interprets intent while the local engine alone executes and stores records.
       if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
       if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
-      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      const multiIntent = /(?:؛|\n|همزمان|بعدش|بعد از اون|همراه با|علاوه بر|همچنین|و بعد)/u.test(text) ||
-        (text.match(/(?:ثبت|رزرو|تغییر|ویرایش|جابجا|حذف|لغو|یادآوری|نمایش|پیدا کن)/gu) || []).length > 1;
-      const conversationalAmbiguity = /(?:همون|همان|قبلی|بعدی|اون یکی|این یکی|مثل دفعه قبل|یادم رفت|یادم نیست|منظورم|یعنی|اگه|اگر|ولی|اما|به جز|غیر از|هر کدوم|هرچی|هر وقت|هر ساعتی|یه جوری|جوری که)/u.test(text);
-      const complexNaturalLanguage = text.length > 105 && /(?:میخوام|می‌خوام|می خواهم|میشه|میتونی|می‌تونی|لطفا|لطفاً|برام|واسم|یه|یکم|بعدش)/u.test(text);
-      return multiIntent || conversationalAmbiguity || complexNaturalLanguage;
+      return true;
     }
 
     async function minaAskSmartBrain(message, mode = 'reply') {
