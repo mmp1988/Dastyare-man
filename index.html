@@ -7458,7 +7458,10 @@
               <div class="form-group" style="margin:0;"><label>جستجو بر اساس نوع خدمت</label><input id="advancedClientService" class="form-control" placeholder="مثلاً والیوم، لیفت..." oninput="renderClientsTab()" /></div>
               <div class="form-group" style="margin:0;"><label>گروه مشتری</label><select id="advancedClientSegment" class="form-control" onchange="renderClientsTab()"><option value="all">همه مشتریان</option><option value="vip">مشتریان VIP 💎</option><option value="loyal">مشتریان وفادار (۵ مراجعه به بالا)</option><option value="new">مشتریان جدید (حداکثر یک مراجعه)</option><option value="inactive">بدون مراجعه بیش از ۹۰ روز</option><option value="photos">دارای گالری عکس</option></select></div>
             </div>
-            <button class="btn-secondary" style="margin-top:8px;" onclick="document.getElementById('globalSearchInput').value='';document.getElementById('advancedClientService').value='';document.getElementById('advancedClientSegment').value='all';renderClientsTab();">پاک‌کردن فیلترها</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+              <button type="button" class="btn-primary" style="flex:1;min-width:120px;" onclick="renderClientsTab();" aria-label="اعمال جستجو و فیلتر مشتریان">🔎 جستجو</button>
+              <button type="button" class="btn-secondary" onclick="document.getElementById('globalSearchInput').value='';document.getElementById('advancedClientService').value='';document.getElementById('advancedClientSegment').value='all';renderClientsTab();">پاک‌کردن فیلترها</button>
+            </div>
           </div>`);
       }
       const history = document.getElementById('clientHistoryList');
