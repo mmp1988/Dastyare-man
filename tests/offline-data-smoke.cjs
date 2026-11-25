@@ -62,17 +62,28 @@ const assert = require('assert');
         id:'qa-mina-reschedule-minute', dateKey:addDaysToJalaliKey(getTodayKey(), 90),
         time:'15:00', clientName:'شیما', service:'اصلاح مو', status:'pending'
       };
+      const shortFormAppointment = {
+        id:'qa-mina-short-form-reschedule', dateKey:addDaysToJalaliKey(getTodayKey(), 91),
+        time:'19:00', clientName:'مینا', service:'اصلاح مو', status:'pending'
+      };
       try {
-        appData.appointments = [testAppointment];
+        appData.appointments = [testAppointment, shortFormAppointment];
         minaLastReferencedAppointmentId = null;
         const firstReply = minaTryManageAppointment('نوبت شیما رو بکن ۶ عصر');
         const firstTime = testAppointment.time;
         minaLastReferencedAppointmentId = testAppointment.id;
         const followupReply = minaTryManageAppointment('۱۸:۱۷');
         const followupTime = testAppointment.time;
+        minaLastReferencedAppointmentId = null;
+        const shortFormRoutedLocally = minaIsClearlyLocalAction('نوبت مینا بکن ۳ ظهر') && !minaNeedsCloudUnderstanding('نوبت مینا بکن ۳ ظهر');
+        const shortFormReply = minaTryManageAppointment('نوبت مینا بکن ۳ ظهر');
+        const shortFormTime = shortFormAppointment.time;
         return {
           firstChangedToSixPM:firstTime === '18:00',
           standaloneMinuteChanged:followupTime === '18:17',
+          shortFormRoutedLocally,
+          shortFormChangedToThreePM:shortFormTime === '15:00',
+          shortFormReply,
           firstReply, followupReply
         };
       } finally {
@@ -83,8 +94,9 @@ const assert = require('assert');
         renderDaySchedule();
       }
     });
-    assert(appointmentRescheduleQA.firstChangedToSixPM && appointmentRescheduleQA.standaloneMinuteChanged,
-      'Mina must reschedule the named appointment and then accept a standalone exact minute: ' + JSON.stringify(appointmentRescheduleQA));
+    assert(appointmentRescheduleQA.firstChangedToSixPM && appointmentRescheduleQA.standaloneMinuteChanged &&
+      appointmentRescheduleQA.shortFormRoutedLocally && appointmentRescheduleQA.shortFormChangedToThreePM,
+      'Mina must reschedule named appointments from both full and short Persian commands, route short forms locally, and accept exact-minute follow-ups: ' + JSON.stringify(appointmentRescheduleQA));
     console.log('Mina appointment reschedule:', JSON.stringify(appointmentRescheduleQA));
 
     // The redesigned appointment form must expose and persist an editable Jalali visit date.
