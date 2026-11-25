@@ -74,7 +74,7 @@
       color: var(--text-primary);
       min-height: 100vh;
       padding-top: var(--safe-top);
-      padding-bottom: calc(96px + var(--safe-bottom));
+      padding-bottom: calc(154px + var(--safe-bottom));
       transition: background 0.3s ease, color 0.3s ease;
     }
 
@@ -527,22 +527,14 @@
       background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid var(--border-color); padding: 6px 5px calc(6px + var(--safe-bottom));
     }
-    .nav-inner { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-    .nav-item {
-      min-width: 0; min-height: 52px; background: transparent; border: none; color: var(--text-secondary);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-      padding: 5px 2px; border-radius: 13px; font-size: 0.72rem; line-height: 1.25; font-weight: 650; cursor: pointer;
-      white-space: nowrap;
-    }
-    .nav-item.active { color: var(--accent); background: var(--accent-glow); font-weight: 850; }
-    .nav-icon { font-size: 1.2rem; line-height: 1.2; }
-    .more-menu-backdrop { position:fixed; inset:0; z-index:80; display:none; align-items:flex-end; justify-content:center; padding:12px 12px calc(82px + var(--safe-bottom)); background:rgba(0,0,0,.38); backdrop-filter:blur(3px); }
-    .more-menu-backdrop.open { display:flex; }
-    .more-menu-panel { width:100%; max-width:520px; padding:15px; border:1px solid var(--border-color); border-radius:22px; background:var(--bg-card-solid); box-shadow:var(--shadow-lg); }
-    .more-menu-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
-    .more-menu-link { min-height:78px; border:1px solid var(--border-subtle); border-radius:15px; background:var(--bg-input); color:var(--text-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; font:inherit; font-size:.78rem; font-weight:750; cursor:pointer; }
-    .more-menu-link span:first-child { font-size:1.35rem; }
-    @media (max-width:360px) { .nav-item { font-size:.66rem; } .nav-inner { gap:2px; } }
+    /* Six primary destinations: two calm rows on phones, one row on wider screens. */
+    .nav-inner { max-width:900px; margin:0 auto; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:minmax(52px,auto); gap:5px 7px; }
+    .nav-item { min-width:0; min-height:52px; background:transparent; border:1px solid transparent; color:var(--text-secondary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:6px 3px; border-radius:15px; font-size:.72rem; line-height:1.25; font-weight:700; cursor:pointer; white-space:nowrap; transition:background .18s ease,color .18s ease,border-color .18s ease,transform .18s ease; }
+    .nav-item:active { transform:scale(.97); }
+    .nav-item.active { color:var(--accent); background:var(--accent-glow); border-color:var(--border-color); font-weight:900; box-shadow:inset 0 1px 0 rgba(255,255,255,.32); }
+    .nav-icon { font-size:1.3rem; line-height:1.15; }
+    @media (min-width:600px) { body { padding-bottom:calc(92px + var(--safe-bottom)); } .bottom-nav { padding:7px 12px calc(7px + var(--safe-bottom)); } .nav-inner { grid-template-columns:repeat(6,minmax(0,1fr)); grid-auto-rows:60px; gap:8px; } .nav-item { min-height:58px; font-size:.76rem; } .nav-icon { font-size:1.35rem; } }
+    @media (max-width:360px) { .nav-inner { gap:3px 4px; } .nav-item { font-size:.66rem; min-height:49px; } .nav-icon { font-size:1.18rem; } }
 
     /* Modal */
     .modal-backdrop {
@@ -1059,7 +1051,7 @@
     html[data-theme="dark"] .mina-compose textarea{color:var(--text-primary)}
     html[data-theme="dark"] .mina-suggestions button{background:var(--bg-input);color:var(--text-primary);border-color:var(--border-color)}
     html[data-theme="dark"] .mina-personalize-card{background:var(--bg-card)}
-    @media(max-width:380px){.nav-item{font-size:.59rem}.nav-icon{font-size:1rem}.mina-suggestions{grid-template-columns:1fr}}
+    @media(max-width:380px){.mina-suggestions{grid-template-columns:1fr}}
   
     /* ===== Professional UI refinement ===== */
     .card { border-color: color-mix(in srgb, var(--accent) 20%, var(--border-subtle)); box-shadow: 0 10px 28px rgba(0,0,0,.16); }
@@ -1194,8 +1186,8 @@
 .btn-primary,.fab{background:linear-gradient(135deg,#f18bc2,#c879e8)!important;color:#fff!important;box-shadow:0 8px 20px rgba(218,105,174,.22)}
 .bottom-nav{border-top-color:var(--border-color);background:color-mix(in srgb,var(--bg-card) 92%,transparent)}
 .nav-item.active{color:var(--accent);background:rgba(232,95,168,.09);border-radius:13px}
-.nav-item{min-width:0;font-size:.67rem}
-.nav-icon{font-size:1.12rem}
+.nav-item{min-width:0}
+.nav-icon{line-height:1.15}
 .appointment-hub-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;margin:8px 0 12px;border-radius:22px;color:#fff;background:linear-gradient(125deg,#ed83b9 0%,#c18ae8 55%,#9a9be9 100%);box-shadow:0 12px 28px rgba(202,112,178,.22)}
 .appointment-hub-kicker{font-size:.7rem;opacity:.88}.appointment-hub-hero h2{font-size:1.22rem;margin:4px 0}.appointment-hub-hero p{font-size:.73rem;opacity:.9}
 .appointment-hub-add{border:0;border-radius:14px;background:#fff;color:#c64e98;padding:11px 13px;font-weight:900;white-space:nowrap}
@@ -1351,23 +1343,22 @@
       </div>
     </section>
 
-    <!-- ==================== APPOINTMENTS HUB ==================== -->
-    <section id="tab-appointments" class="tab-section">
-      <div class="appointment-hub-hero">
-        <div><span class="appointment-hub-kicker">برنامه سالن من</span><h2>نوبت‌های من 🌷</h2><p>همه مراجعه‌ها، مرتب و همیشه در دسترس</p></div>
-        <button type="button" class="appointment-hub-add" onclick="openApptModal()">＋ ثبت نوبت</button>
-      </div>
-      <div class="appointment-hub-stats" id="appointmentHubStats"></div>
-      <div class="card appointment-hub-card">
-        <div class="appointment-hub-toolbar">
-          <input id="appointmentHubSearch" class="form-control" type="search" placeholder="جستجوی نام مشتری یا نوع خدمت…" oninput="renderAppointmentsHub()" />
-          <select id="appointmentHubFilter" class="form-control" onchange="renderAppointmentsHub()" aria-label="فیلتر نوبت‌ها">
-            <option value="upcoming">نوبت‌های پیش‌رو</option><option value="today">امروز</option><option value="all">همه نوبت‌ها</option><option value="done">انجام‌شده</option><option value="canceled">لغوشده</option>
-          </select>
+      <details class="card appointment-hub-embedded" id="allAppointmentsPanel" style="margin-top:14px;">
+        <summary style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:850;list-style:none;">
+          <span>🔎 جستجو و فیلتر همه نوبت‌ها</span><span aria-hidden="true" style="color:var(--accent);font-size:1.1rem;">＋</span>
+        </summary>
+        <div style="margin-top:12px;">
+          <div class="appointment-hub-stats" id="appointmentHubStats"></div>
+          <div class="appointment-hub-toolbar">
+            <input id="appointmentHubSearch" class="form-control" type="search" placeholder="جستجوی نام مشتری یا نوع خدمت…" oninput="renderAppointmentsHub()" />
+            <select id="appointmentHubFilter" class="form-control" onchange="renderAppointmentsHub()" aria-label="فیلتر نوبت‌ها">
+              <option value="upcoming">نوبت‌های پیش‌رو</option><option value="today">امروز</option><option value="all">همه نوبت‌ها</option><option value="done">انجام‌شده</option><option value="canceled">لغوشده</option>
+            </select>
+          </div>
+          <div id="appointmentHubList" class="appointment-hub-list" aria-live="polite"></div>
+          <div class="appointment-hub-tip">برای دیدن جزئیات و سوابق هر مراجعه، روی پرونده مشتری بزن. نوبت انجام‌شده پس از حذف از برنامه، در تاریخچه مشتری باقی می‌ماند. 💕</div>
         </div>
-        <div id="appointmentHubList" class="appointment-hub-list" aria-live="polite"></div>
-      </div>
-      <div class="appointment-hub-tip">برای دیدن جزئیات و سوابق هر مراجعه، روی نام مشتری بزن. نوبت انجام‌شده پس از حذف از برنامه، در تاریخچه مشتری باقی می‌ماند. 💕</div>
+      </details>
     </section>
 
     <!-- ==================== TAB 2: NOTEBOOK & DAILY CHECKLIST ==================== -->
@@ -1732,24 +1723,15 @@
   </div>
   <button class="fab-btn" onclick="toggleFabMenu()" title="دسترسی سریع">+</button>
 
-  <!-- Bottom Navigation -->
-  <div class="more-menu-backdrop" id="moreMenuBackdrop" onclick="closeMoreMenu()">
-    <div class="more-menu-panel" role="dialog" aria-modal="true" aria-label="امکانات بیشتر" onclick="event.stopPropagation()">
-      <div class="section-head"><div><div class="section-title">امکانات بیشتر</div><small style="color:var(--text-secondary)">بخش‌های کم‌استفاده‌تر، بدون شلوغ‌کردن منوی اصلی</small></div><button class="icon-btn" type="button" onclick="closeMoreMenu()" aria-label="بستن">✕</button></div>
-      <div class="more-menu-grid">
-        <button class="more-menu-link" type="button" onclick="openMoreSection('notebook')"><span>📒</span><span>یادداشت‌ها</span></button>
-        <button class="more-menu-link" type="button" onclick="openMoreSection('messages')"><span>💌</span><span>پیام‌ها</span></button>
-        <button class="more-menu-link" type="button" onclick="openMoreSection('settings')"><span>🎨</span><span>شخصی‌سازی</span></button>
-      </div>
-    </div>
-  </div>
+  <!-- Six-section primary navigation: every main section is directly visible. -->
   <nav class="bottom-nav" aria-label="منوی اصلی">
     <div class="nav-inner">
-      <button class="nav-item active" type="button" onclick="switchTab('calendar', this)"><span class="nav-icon">🏡</span><span>خانه</span></button>
-      <button class="nav-item" type="button" onclick="switchTab('appointments', this)"><span class="nav-icon">💗</span><span>نوبت‌ها</span></button>
-      <button class="nav-item" type="button" onclick="switchTab('clients', this)"><span class="nav-icon">👥</span><span>مشتریان</span></button>
-      <button class="nav-item" type="button" onclick="switchTab('mina', this)"><span class="nav-icon">🌸</span><span>مینا</span></button>
-      <button class="nav-item" id="moreNavButton" type="button" onclick="openMoreMenu(this)"><span class="nav-icon">☰</span><span>بیشتر</span></button>
+      <button class="nav-item active" id="navCalendar" type="button" onclick="switchTab('calendar', this)" aria-label="خانه و تقویم"><span class="nav-icon" aria-hidden="true">🏡</span><span>خانه</span></button>
+      <button class="nav-item" id="navClients" type="button" onclick="switchTab('clients', this)"><span class="nav-icon" aria-hidden="true">👥</span><span>مشتریان</span></button>
+      <button class="nav-item" id="navMina" type="button" onclick="switchTab('mina', this)"><span class="nav-icon" aria-hidden="true">🌸</span><span>مینا</span></button>
+      <button class="nav-item" id="navNotebook" type="button" onclick="switchTab('notebook', this)"><span class="nav-icon" aria-hidden="true">📒</span><span>یادداشت‌ها</span></button>
+      <button class="nav-item" id="navMessages" type="button" onclick="switchTab('messages', this)"><span class="nav-icon" aria-hidden="true">💌</span><span>پیام‌ها</span></button>
+      <button class="nav-item" id="navSettings" type="button" onclick="switchTab('settings', this)"><span class="nav-icon" aria-hidden="true">🎨</span><span>شخصی‌سازی</span></button>
     </div>
   </nav>
 
@@ -4943,22 +4925,15 @@
     function toggleFabMenu() { document.getElementById('fabMenu').classList.toggle('open'); }
     let handlingAppPopState = false;
     let lastRootBackAt = 0;
-    function closeMoreMenu() {
-      const menu=document.getElementById('moreMenuBackdrop');
-      if(menu) menu.classList.remove('open');
-    }
-    function openMoreMenu(btnEl) {
-      const menu=document.getElementById('moreMenuBackdrop');
-      if(menu) menu.classList.add('open');
-      document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-      if(btnEl) btnEl.classList.add('active');
-    }
+    // No hidden "More" menu remains; this no-op keeps older internal calls safe.
+    function closeMoreMenu() {}
     function openMoreSection(tabName) {
-      closeMoreMenu();
-      switchTab(tabName, document.getElementById('moreNavButton'));
+      switchTab(tabName, document.querySelector('.nav-item[onclick*="' + tabName + '"]'));
     }
 
     function switchTab(tabName, btnEl) {
+      // Old browser history entries may still point to the removed duplicate appointments page.
+      if (tabName === 'appointments') tabName = 'calendar';
       closeMoreMenu();
       document.getElementById('fabMenu').classList.remove('open');
       document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
@@ -4972,14 +4947,12 @@
       document.body.scrollTop = 0;
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       if (btnEl) btnEl.classList.add('active');
-      else if (['notebook','messages','settings'].includes(tabName)) document.getElementById('moreNavButton')?.classList.add('active');
       if (!handlingAppPopState && window.history && window.history.pushState) {
         const current = window.history.state || {};
         if (current.dastyareAppTab !== tabName) {
           window.history.pushState({ dastyareAppTab: tabName }, '', window.location.href);
         }
       }
-      if (tabName === 'appointments') { renderAppointmentsHub(); }
       if (tabName === 'notebook') { renderTodos(); renderNotebook(); }
       if (tabName === 'clients') { renderClientsTab(); renderClientBirthdays(); renderServicesTab(); }
       if (tabName === 'settings') { syncShareUrls(); }
@@ -5998,7 +5971,7 @@
             <div class="home-welcome-subtitle">نوبت‌ها، مشتریان و برنامه سالن را یک‌جا و مرتب مدیریت کن.</div>
             <div class="home-quick-actions">
               <button type="button" class="btn-primary" onclick="openApptModal()">➕ ثبت نوبت جدید</button>
-              <button type="button" class="btn-secondary" onclick="switchTab('clients',document.querySelectorAll('.nav-item')[3])">👥 پرونده مشتریان</button>
+              <button type="button" class="btn-secondary" onclick="switchTab('clients',document.getElementById('navClients'))">👥 پرونده مشتریان</button>
               <button type="button" class="btn-secondary" onclick="goToday();document.getElementById('selectedDateLabel').scrollIntoView({behavior:'smooth',block:'center'});">📅 برنامه امروز</button>
             </div>
           </section>`);
@@ -6283,7 +6256,7 @@
  };
  const originalSwitch=window.switchTab;
  if(typeof originalSwitch==='function'){
-  window.switchTab=function(tab,btn){originalSwitch(tab,btn);if(tab==='appointments')renderAppointmentsHub();};
+  window.switchTab=function(tab,btn){originalSwitch(tab==='appointments'?'calendar':tab,btn);};
  }
  document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(document.getElementById('appointmentHubList'))renderAppointmentsHub();},250);});
 })();
