@@ -2653,8 +2653,8 @@
           '<td><div class="action-row">'+
             (phone?'<a class="mini-btn call" href="tel:'+phone+'">📞</a>':'')+
             '<button class="mini-btn wa" data-appointment-id="'+appt.id+'" onclick="openCustomerMessageForAppointment(this.dataset.appointmentId)">💬 پیام</button>'+
-            '<button class="mini-btn" onclick="openApptModal(\''+appt.id+'\')">✏️</button>'+
-            '<button class="mini-btn del" onclick="deleteAppointment(\''+appt.id+'\')">🗑️</button>'+
+            '<button class="mini-btn" title="ویرایش نوبت" aria-label="ویرایش نوبت" onclick="openApptModal(\''+appt.id+'\')">✏️</button>'+
+            '<button class="mini-btn del" title="حذف نوبت" aria-label="حذف نوبت" onclick="deleteAppointment(\''+appt.id+'\')">🗑️</button>'+
           '</div></td></tr>';
       }).join('');
     }
@@ -2890,7 +2890,7 @@
     // One salon time slot can belong to only one active appointment, regardless of entry path.
     function normalizeAppointmentSlotTime(value) {
       const raw = String(value || '').replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).trim();
-      const match = raw.match(/^(\\d{1,2}):(\\d{2})$/);
+      const match = raw.match(/^(\d{1,2}):(\d{2})$/);
       if (!match) return raw;
       return String(Number(match[1])).padStart(2,'0') + ':' + match[2];
     }
@@ -2922,7 +2922,8 @@
       panel.style.display=opening?'block':'none';
       if(opening){
         const parsed=parseClientJalaliDate(document.getElementById('apptNextFollowupDate').value);
-        const base=parsed||selectedDateKey||getTodayKey();
+        const primaryDate=parseClientJalaliDate(document.getElementById('apptDate').value);
+        const base=parsed||primaryDate||getTodayKey();
         [nextFollowupPickerYear,nextFollowupPickerMonth]=base.split('-').map(Number);
         renderNextFollowupPicker();
       }
@@ -3008,7 +3009,7 @@
       var selectedTypeBeforeValidation = document.getElementById('apptType')?.value === 'followup' ? 'followup' : 'primary';
       var service = document.getElementById('apptService').value.trim() || (selectedTypeBeforeValidation === 'followup' ? 'ترمیم' : '');
       if (!clientName) { showToast('نام مشتری را وارد کن ⚠️'); return; }
-      if (!time) { showToast('ساعت نوبت را مشخص کن ⚠️'); return; }
+      if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time || '')) { showToast('ساعت نوبت را دقیق و معتبر انتخاب کن ⚠️'); return; }
       if (!service) { showToast('نوع خدمت یا کاری که قرار است انجام شود را بنویس ⚠️'); return; }
       if (!updateAppointmentDate(true)) return;
       var editId = document.getElementById('editApptId').value;
@@ -3115,6 +3116,8 @@
         if(existingFollowup)Object.assign(existingFollowup,followupData);
         else appData.appointments.push(followupData);
         followupCreatedOrUpdated=true;
+      } else if (selectedAppointmentType === 'primary' && editId && existingFollowup && !nextDateRaw) {
+        appData.appointments = appData.appointments.filter(a => a.id !== existingFollowup.id);
       }
       saveData(); if (hasBirthdayInput && appointmentProfileKey) renderClientBirthdays(); closeModal('apptModal'); renderCalendar(); renderDaySchedule();
       renderClientsTab(); updateDashboardStats();
@@ -6051,7 +6054,11 @@
       const expanded = minaExpandSpokenTime(minaNormalizeDigits(raw));
       const text = minaCleanText(expanded).toLowerCase();
       const hasAppointmentWord = /(?:نوبت|رزرو|وقت|مراجعه)/u.test(text);
-      const contextualFollowup = !hasAppointmentWord && /(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|ساعت|دقیقه|فردا|پس\\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text);
+      const hasClockLikeValue = /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|یک\s*ربع|ربع|نیم\s*ساعت)/u.test(text);
+      const contextualFollowup = !hasAppointmentWord && (
+        (/(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|ساعت|دقیقه|فردا|پس\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text)) ||
+        (!!minaLastReferencedAppointmentId && hasClockLikeValue && /(?:باشه|بشه|بذار|بزار|درسته|اوکی|نه)/u.test(text))
+      );
       if (!hasAppointmentWord && !contextualFollowup) return null;
 
       const isDelete = /(?:حذف|پاک(?:\s*کردن|\s*کن|ش\s*کن)?|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
@@ -6539,7 +6546,7 @@
    const kind=appointmentHubType==='followup'?'نوبت بعدی':'نوبت اصلی';
    const date=typeof formatJalaliFull==='function'?formatJalaliFull(a.dateKey):a.dateKey||'';
    const key=typeof findClientProfileKeyForAppointment==='function'?findClientProfileKeyForAppointment(a):'';
-   return '<article class="appointment-hub-item" data-appointment-id="'+esc(a.id)+'"><div class="appointment-hub-item-top"><div><strong>'+esc(a.clientName||'مشتری بدون نام')+'</strong><small>'+esc(a.service||'خدمت ثبت نشده')+'</small></div><span class="appointment-hub-time">'+esc(toPersianDigits(a.time||''))+'</span></div><div class="appointment-hub-tags"><span class="appointment-hub-tag">📅 '+esc(date)+'</span><span class="appointment-hub-tag">'+kind+'</span><span class="appointment-hub-tag">'+status+'</span></div><div class="appointment-hub-actions">'+(key?'<button class="mini-btn" onclick="openClientRecord(\''+esc(key).replace(/'/g,'&#39;')+'\')">پرونده مشتری</button>':'')+'<button class="mini-btn" onclick="openApptModal(\''+esc(a.id)+'\')">✏️ ویرایش</button>'+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="markAppointmentDone(\''+esc(a.id)+'\')">ثبت انجام‌شدن</button>':'')+'<button class="mini-btn del" onclick="deleteAppointment(\''+esc(a.id)+'\')">🗑️ حذف نوبت</button></div></article>';
+   return '<article class="appointment-hub-item" data-appointment-id="'+esc(a.id)+'"><div class="appointment-hub-item-top"><div><strong>'+esc(a.clientName||'مشتری بدون نام')+'</strong><small>'+esc(a.service||'خدمت ثبت نشده')+'</small></div><span class="appointment-hub-time">'+esc(toPersianDigits(a.time||''))+'</span></div><div class="appointment-hub-tags"><span class="appointment-hub-tag">📅 '+esc(date)+'</span><span class="appointment-hub-tag">'+kind+'</span><span class="appointment-hub-tag">'+status+'</span></div><div class="appointment-hub-actions">'+(key?'<button class="mini-btn" onclick="openClientRecord(\''+esc(key).replace(/'/g,'&#39;')+'\')">پرونده مشتری</button>':'')+'<button class="mini-btn" onclick="openApptModal(\''+esc(a.id)+'\')" title="ویرایش نوبت" aria-label="ویرایش نوبت">✏️</button>'+(a.status!=='done'&&a.status!=='canceled'?'<button class="mini-btn" onclick="markAppointmentDone(\''+esc(a.id)+'\')">ثبت انجام‌شدن</button>':'')+'<button class="mini-btn del" onclick="deleteAppointment(\''+esc(a.id)+'\')" title="حذف نوبت" aria-label="حذف نوبت">🗑️</button></div></article>';
   }).join('');
  };
  window.markAppointmentDone=function(id){
