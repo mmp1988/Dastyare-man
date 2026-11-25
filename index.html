@@ -5775,6 +5775,16 @@
       }
     }
 
+    function minaIsSalonScopeRequest(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
+      return minaIsClearlyLocalAction(message) ||
+        /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
+    }
+
+    function minaOutOfScopeReply() {
+      return 'من مینا هستم؛ دستیار تخصصی امور سالن زیبایی. فقط در زمینه نوبت‌ها، مشتریان، خدمات و مدیریت سالن کمک می‌کنم و برای گفت‌وگوی عمومی طراحی نشده‌ام. برای اطلاعات و ارتباط بیشتر، صفحه اینستاگرام را ببینید: @lash_by_mina.m\nhttps://www.instagram.com/lash_by_mina.m/';
+    }
+
     async function sendMinaMessage() {
       const input = document.getElementById('minaInput');
       if (!input) return;
@@ -5783,8 +5793,13 @@
       addMinaMessage(message, 'user');
       input.value = '';
 
-      // Operational requests always stay in the validated offline-first engine.
-      // General conversation uses the real Workers AI model when online.
+      // Strict scope gate: unrelated messages are answered locally and never sent to AI.
+      if (!minaIsSalonScopeRequest(message)) {
+        addMinaMessage(minaOutOfScopeReply(), 'assistant');
+        return;
+      }
+
+      // Salon operations remain offline-first; only in-scope, non-operational questions may use AI.
       let reply = null;
       if (!minaIsClearlyLocalAction(message)) {
         addMinaMessage('دارم به حرفت فکر می‌کنم…', 'assistant');
