@@ -6157,13 +6157,13 @@
     const minaBuildReplyCore = minaBuildReply;
     let minaConversationBooking = null;
     function minaPersianNumberValue(value) {
-      const word = minaCleanText(value).replace(/\s+/g, ' ').trim();
+      const word = minaCleanText(value).replace(/[‌ـ]/g, ' ').replace(/\s+/g, ' ').trim();
       if (/^\d{1,2}$/.test(word)) return Number(word);
       const units = { 'صفر':0,'یک':1,'یه':1,'يك':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'شیش':6,'هفت':7,'هشت':8,'نه':9 };
       const direct = { 'ده':10,'یازده':11,'دوازده':12,'سیزده':13,'چهارده':14,'پانزده':15,'شانزده':16,'هفده':17,'هجده':18,'نوزده':19,'بیست':20,'سی':30,'چهل':40,'پنجاه':50,'شصت':60 };
       if (Object.prototype.hasOwnProperty.call(units, word)) return units[word];
       if (Object.prototype.hasOwnProperty.call(direct, word)) return direct[word];
-      const compound = word.match(/^(بیست|سی|چهل|پنجاه)\s+و\s+(یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه)$/);
+      const compound = word.match(/^(بیست|سی|چهل|پنجاه)\s*و\s*(یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه)$/);
       if (compound) return ({ 'بیست':20,'سی':30,'چهل':40,'پنجاه':50 }[compound[1]]) + units[compound[2]];
       return NaN;
     }
@@ -6576,13 +6576,33 @@
       if(/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text))return null;
       const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
       const combinedText=minaCleanText(minaNormalizeDigits(combined)).toLocaleLowerCase('fa');
-      // Relative durations are resolved locally from the real clock; they never need cloud AI.
-      const durationMatch=combinedText.match(/(?:در\s*)?(\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\s*دقیقه\s*(?:دیگه|دیگر|بعد(?:تر)?)/u);
+      // Relative durations are resolved locally (offline-first), including colloquial hours and days.
+      const spokenNumber='(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       let relativeTargetAt=null;
+      let durationMs=0;
+      let durationMatch=combinedText.match(new RegExp('(?:در\\s*)?('+spokenNumber+')\\s*ساعت(?:\\s*و\\s*('+spokenNumber+')\\s*دقیقه)?\\s*(?:دیگه|دیگر|بعد(?:تر)?)','u'));
       if(durationMatch){
-        const minutes=/^\\d+$/u.test(durationMatch[1])?Number(durationMatch[1]):minaPersianNumberValue(durationMatch[1]);
-        if(Number.isFinite(minutes)&&minutes>=1&&minutes<=10080)relativeTargetAt=Math.ceil((Date.now()+minutes*60000)/60000)*60000;
+        const hours=minaPersianNumberValue(durationMatch[1]);
+        const minutes=durationMatch[2]?minaPersianNumberValue(durationMatch[2]):0;
+        if(Number.isFinite(hours)&&Number.isFinite(minutes)&&hours>=0&&hours<=23&&minutes>=0&&minutes<=59)durationMs=(hours*60+minutes)*60000;
+      }else if(/(?:نیم|نصف)\\s*ساعت\\s*(?:دیگه|دیگر|بعد(?:تر)?)/u.test(combinedText)){
+        durationMs=30*60000;
+      }else if(/(?:یک\\s*)?ربع\\s*ساعت\\s*(?:دیگه|دیگر|بعد(?:تر)?)/u.test(combinedText)||/یک\\s*ربع\\s*(?:دیگه|دیگر|بعد(?:تر)?)/u.test(combinedText)){
+        durationMs=15*60000;
+      }else{
+        durationMatch=combinedText.match(new RegExp('(?:در\\s*)?('+spokenNumber+')\\s*دقیقه\\s*(?:دیگه|دیگر|بعد(?:تر)?)','u'));
+        if(durationMatch){
+          const minutes=minaPersianNumberValue(durationMatch[1]);
+          if(Number.isFinite(minutes)&&minutes>=0&&minutes<=59)durationMs=minutes*60000;
+        }else{
+          durationMatch=combinedText.match(new RegExp('(?:در\\s*)?('+spokenNumber+')\\s*روز\\s*(?:دیگه|دیگر|بعد(?:تر)?)','u'));
+          if(durationMatch){
+            const days=minaPersianNumberValue(durationMatch[1]);
+            if(Number.isFinite(days)&&days>=0&&days<=365)durationMs=days*86400000;
+          }
+        }
       }
+      if(durationMs>0)relativeTargetAt=Math.ceil((Date.now()+durationMs)/60000)*60000;
       let clock=relativeTargetAt?null:minaParseReminderClock(combined);
       let dateKey=relativeTargetAt?null:minaReminderDateKey(combined);
       let gregorianDate=null;
