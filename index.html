@@ -5432,6 +5432,11 @@
           notified: false
         };
         appData.appointments.push(appointment);
+        minaLastReferencedAppointmentId = appointment.id;
+        selectedDateKey = appointment.dateKey;
+        viewYear = Number(appointment.dateKey.slice(0,4));
+        viewMonth = Number(appointment.dateKey.slice(5,7));
+        showFollowupOnly = false;
         saveData();
         if (typeof renderCalendar === 'function') renderCalendar();
         if (typeof renderDaySchedule === 'function') renderDaySchedule();
@@ -6112,6 +6117,14 @@
       const expandedRaw = minaExpandSpokenTime(raw);
       const normalized = minaCleanText(expandedRaw).toLowerCase();
 
+      // Appointment edits and calendar status must be resolved against local records first.
+      const appointmentMutationReply = minaTryManageAppointment(expandedRaw);
+      if (appointmentMutationReply) return appointmentMutationReply;
+      const appointmentLookupReply = minaTryLookupAppointment(expandedRaw);
+      if (appointmentLookupReply) return appointmentLookupReply;
+      const calendarStatusReply = minaTryCalendarStatus(expandedRaw);
+      if (calendarStatusReply) return calendarStatusReply;
+
       if (/(?:این هفته|هفت روز (?:آینده|اینده))/u.test(normalized)) {
         const from = getTodayKey(), to = addDaysToJalaliKey(from, 6);
         const upcoming = (appData.appointments || []).filter(a => a.status !== 'canceled' && a.dateKey >= from && a.dateKey <= to)
@@ -6264,6 +6277,31 @@
     };
 
 
+    function minaTryCalendarStatus(raw) {
+      const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
+      if (!/(?:تقویم|نوبت|رزرو)/u.test(text) ||
+          !/(?:چرا|کجا|نشد|نکردی|ثبت\s*نکرد|نمایش|نشون|نمی.?بینم|نیومد|نیامد|پیدا\s*نمی)/u.test(text)) return null;
+      const all = (appData.appointments || []).filter(a => a);
+      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
+      let target = minaLastReferencedAppointmentId ? all.find(a => a.id === minaLastReferencedAppointmentId) : null;
+      if (nameMatch) {
+        const named = all.filter(a => minaCleanText(a.clientName || '').toLowerCase().includes(nameMatch[1]));
+        if (named.length === 1) target = named[0];
+        else if (named.length > 1) return 'برای «' + nameMatch[1] + '» چند نوبت دارم؛ تاریخش رو هم بگو تا دقیق بررسی کنم 💗';
+      }
+      if (!target) {
+        const latest = all.filter(a => a.status !== 'canceled').slice()
+          .sort((a,b) => (b.dateKey + (b.time || '')).localeCompare(a.dateKey + (a.time || '')));
+        target = latest[0] || null;
+      }
+      if (!target) return 'تقویم و فهرست نوبت‌ها رو بررسی کردم؛ هنوز نوبتی برای نمایش ثبت نشده. اگر بخوای همین الان ثبتش می‌کنیم 🌷';
+      return 'بررسی کردم عزیزم 🌸 نوبت «' + (target.clientName || 'بدون نام') +
+        '» در اطلاعات برنامه ذخیره شده و در تقویم قرار دارد.\n📅 ' + formatJalaliFull(target.dateKey) +
+        '، ساعت ' + (target.time || 'بدون ساعت') + '\n💅 ' + (target.service || 'خدمت ثبت‌نشده') +
+        (target.status === 'canceled' ? '\nوضعیت: لغوشده' : target.status === 'done' ? '\nوضعیت: انجام‌شده' : '\nوضعیت: فعال') +
+        '\nاگر روز دیگری در تقویم باز است، تاریخ ' + formatJalaliFull(target.dateKey) + ' را انتخاب کن تا همان روز را ببینی 💗';
+    }
+
     // Persian conversational reminder layer: bind follow-up requests to the appointment
     // already being discussed, without asking the user to repeat its date or service.
     function minaParseReminderClock(raw) {
@@ -6394,10 +6432,10 @@
       const text = minaCleanText(expanded).toLowerCase();
       const hasAppointmentWord = /(?:نوبت|رزرو|وقت|مراجعه)/u.test(text);
       const hasClockLikeValue = /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|یک\s*ربع|ربع|نیم\s*ساعت)/u.test(text);
-      const contextualFollowup = !hasAppointmentWord && (
+      const contextualFollowup = (!hasAppointmentWord && (
         (/(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|ساعت|دقیقه|فردا|پس\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text)) ||
         (!!minaLastReferencedAppointmentId && hasClockLikeValue)
-      );
+      )) || (/(?:نوبتشو|نوبت\s*ش\s*رو|نوبتش\s*رو|نوبت\s*رو)/u.test(text) && hasClockLikeValue);
       if (!hasAppointmentWord && !contextualFollowup) return null;
 
       const isDelete = /(?:حذف|پاک(?:\s*کردن|\s*کن|ش\s*کن)?|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
@@ -6407,7 +6445,7 @@
       // as an explicit new time, not as another request for clarification.
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب))/u.test(text);
       const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
-      const isMove = contextualFollowup || /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار)|(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو\s*)?بکن(?:ش)?)/u.test(text);
+      const isMove = contextualFollowup || /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار)|نوبت(?:ش)?(?:و|\s*رو|\s*را)?\s*(?:بکن|بسه|بذار|بزار|بده)|(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:(?:رو|را)\s*)?(?:بکن|بسه|بذار|بزار|بده))/u.test(text);
       const serviceTail = text.match(/(?:به|برای)\s+(.+?)\s+(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)/u) ||
         text.match(/(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)\s+(?:به\s+)?(.+)$/u);
       let requestedService = serviceTail ? serviceTail[1].trim() : '';
@@ -6424,7 +6462,7 @@
       if (!selectable.length) return 'عزیزم هیچ نوبتی برای این کار پیدا نکردم 🌷';
 
       // Resolve the customer against the same set that the requested action may affect.
-      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو\s*)?بکن(?:ش)?/u) ||
+      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:(?:رو|را)\s*)?(?:بکن|بسه|بذار|بزار|بده)/u) ||
         text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به|انجام|حذف|پاک|کنسل|لغو|تموم)/u) ||
         text.match(/(?:کنسل|لغو|حذف|پاک)\s+(?:کردن\s+)?(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})/u) ||
         text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
