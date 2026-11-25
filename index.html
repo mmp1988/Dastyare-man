@@ -5233,46 +5233,58 @@
       return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
     }
     function minaNormalizePersianTypos(value) {
-      // Persian conversational normalization: spelling, colloquial verbs, ASR variants.
-      // Keep this deterministic and local so core booking commands also work offline.
+      // Offline Persian language cleanup for fast typing, colloquial spelling and speech-to-text noise.
+      // Fuzzy correction is restricted to command vocabulary; names and arbitrary service descriptions are preserved.
       const aliases = {
-        'بزای':'برای','بزاری':'برای','واسه':'برای','واسه‌ی':'برای','فزدا':'فردا','فرداا':'فردا',
-        'فرد':'فردا','پسفردا':'پس فردا','پسفردای':'پس فردا','امروذ':'امروز','امروزز':'امروز',
-        'نوبط':'نوبت','نوپت':'نوبت','نوبتت':'نوبت','رزروو':'رزرو','رزرف':'رزرو',
-        'دفیقه':'دقیقه','دقیفه':'دقیقه','دقیگقه':'دقیقه','دقیغقه':'دقیقه',
-        'میناا':'مینا','میخام':'می‌خوام','میخوام':'می‌خوام','میخاستم':'می‌خواستم',
-        'ثبتشکن':'ثبتش کن','ثبتکن':'ثبت کن','بزار':'بذار','بذارم':'بذار',
-        'کنسل':'لغو','کنسلش':'لغوش','لغوشکن':'لغوش کن','پاکشکن':'پاکش کن',
-        'حذفشکن':'حذفش کن','عوضشکن':'عوضش کن','تغییرش بده':'تغییرش بده',
-        'جابجا':'جابه‌جا','جابجاش':'جابه‌جاش','جابهجایی':'جابه‌جایی',
-        'یه':'یک','ی': 'یک','ساعتو':'ساعت','ساعته':'ساعت'
+        'بزای':'برای','بزاری':'برای','برایه':'برای','برایِ':'برای','واسه':'برای','واسه‌ی':'برای','واسهء':'برای',
+        'فزدا':'فردا','فرداا':'فردا','فردااا':'فردا','فرد':'فردا','پسفردا':'پس فردا','پسفردای':'پس فردا',
+        'امروذ':'امروز','امروزز':'امروز','امرو':'امروز','دیروزز':'دیروز',
+        'نوبط':'نوبت','نوپت':'نوبت','نوبتت':'نوبت','نوبتم':'نوبت','نوبتا':'نوبت',
+        'رزروو':'رزرو','رزرف':'رزرو','رزو':'رزرو','رزرو':'رزرو',
+        'دفیقه':'دقیقه','دقیفه':'دقیقه','دقیگقه':'دقیقه','دقیغقه':'دقیقه','دقیه':'دقیقه','دققیقه':'دقیقه',
+        'میناا':'مینا','میخام':'می‌خوام','میخوام':'می‌خوام','میخاستم':'می‌خواستم','میخاست':'می‌خواست',
+        'ثبتشکن':'ثبتش کن','ثبتکن':'ثبت کن','ثبت کنن':'ثبت کن','ثبث':'ثبت','سبت':'ثبت','ثببت':'ثبت',
+        'بزار':'بذار','بذارم':'بذار','بذارین':'بذار','بزارین':'بذار','بزارش':'بذارش',
+        'کنسل':'لغو','کنسلی':'لغو','کنسلش':'لغوش','لغوشکن':'لغوش کن','لغوکن':'لغو کن',
+        'پاکشکن':'پاکش کن','حذفشکن':'حذفش کن','عوضشکن':'عوضش کن','جابجا':'جابه‌جا','جابجاش':'جابه‌جاش',
+        'جابهجایی':'جابه‌جایی','مشتریی':'مشتری','مشتریه':'مشتری','ساعتو':'ساعت','ساعته':'ساعت',
+        'یه':'یک','يک':'یک','تایید':'تأیید','تائید':'تأیید','تغیر':'تغییر','تغییرر':'تغییر',
+        'ویرایشش':'ویرایش','ویرایس':'ویرایش','حزف':'حذف','حظف':'حذف','لغوئ':'لغو'
       };
       const distance = (a, b) => {
+        // Damerau-Levenshtein: also tolerates two adjacent letters typed in reverse order.
         if (Math.abs(a.length-b.length)>2) return 99;
-        let prev=Array.from({length:b.length+1},(_,i)=>i);
-        for(let i=1;i<=a.length;i++){
-          const row=[i]; let min=i;
-          for(let j=1;j<=b.length;j++){
-            row[j]=Math.min(row[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
-            min=Math.min(min,row[j]);
-          }
-          if(min>2)return 99;
-          prev=row;
+        const d = Array.from({length:a.length+1},()=>Array(b.length+1).fill(0));
+        for(let i=0;i<=a.length;i++)d[i][0]=i;
+        for(let j=0;j<=b.length;j++)d[0][j]=j;
+        for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){
+          d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+          if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])
+            d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);
         }
-        return prev[b.length];
+        return d[a.length][b.length];
       };
-      const intentWords = ['برای','فردا','امروز','نوبت','رزرو','ساعت','دقیقه','ثبت','بذار','بده','بگیر','لغو','حذف','تغییر','عوض','جابجا','جابه‌جا','کنسل','وقت','پس','مشتری','تأیید','تایید','یادداشت','یادآوری'];
-      const normalized=String(value||'').replace(/[\u064B-\u065F\u0670\u0640]/g,'')
+      const commandWords = [
+        'برای','فردا','امروز','دیروز','نوبت','رزرو','ساعت','دقیقه','ثبت','بذار','بده','بگیر',
+        'لغو','حذف','تغییر','عوض','جابجا','جابه‌جا','کنسل','وقت','پس','مشتری','تأیید',
+        'یادداشت','یادآوری','ویرایش','تقویم','برنامه','انجام','تمام','منتقل','ببر','اضافه'
+      ];
+      const normalized=String(value||'').replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+        .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+        .replace(/[\u064B-\u065F\u0670\u0640]/g,'')
         .replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[أإآ]/g,'ا').replace(/ۀ/g,'ه')
-        .replace(/[،؛؟?!,.]/g,' ').replace(/\s+/g,' ').trim();
+        .replace(/[،؛؟?!,.]/g,' ').replace(/[\s\u200c]+/g,' ').trim();
       return normalized.split(/\s+/).map(word=>{
         if(aliases[word])return aliases[word];
-        if(word.length<4||/^[0-9:/.٫-]+$/.test(word))return word;
-        const candidates=intentWords.map(target=>({target,d:distance(word,target)}))
-          .filter(x=>x.d<=((word.length>=7)?2:1))
-          .sort((a,b)=>a.d-b.d);
-        // Require a clear best match; do not rewrite ambiguous customer names.
-        return candidates.length && (!candidates[1]||candidates[1].d>candidates[0].d) ? candidates[0].target : word;
+        // Collapse accidental key repeats, e.g. "فردداا" -> "فردا".
+        const compact=word.replace(/(.)\1{2,}/g,'$1$1');
+        if(aliases[compact])return aliases[compact];
+        if(compact.length<4||/^[0-9:/.٫-]+$/.test(compact))return compact;
+        const limit=compact.length>=8?2:1;
+        const ranked=commandWords.map(target=>({target,d:distance(compact,target)}))
+          .filter(x=>x.d<=limit).sort((x,y)=>x.d-y.d);
+        // Correct only a unique closest command word; don't "correct" client names.
+        return ranked.length && (!ranked[1]||ranked[1].d>ranked[0].d) ? ranked[0].target : compact;
       }).join(' ').replace(/^\s*(?:سلام|درود|صبح بخیر|عصر بخیر)\s*/,'').replace(/\s+/g,' ').trim();
     }
     function minaBuildReply(raw) {
@@ -5716,7 +5728,7 @@
       return NaN;
     }
     function minaExpandSpokenTime(value) {
-      let result = minaNormalizeDigits(value).replace(/بعد\s*از\s*ظهر/g, 'بعدازظهر');
+      let result = minaNormalizePersianTypos(minaNormalizeDigits(value)).replace(/بعد\s*از\s*ظهر/g, 'بعدازظهر');
       result = result
         .replace(/پنج\s*و\s*نیم/g, '5:30').replace(/چهار\s*و\s*نیم/g, '4:30')
         .replace(/سه\s*و\s*نیم/g, '3:30').replace(/شش\s*و\s*نیم/g, '6:30')
