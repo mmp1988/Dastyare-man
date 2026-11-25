@@ -745,6 +745,11 @@ public class MainActivity extends Activity {
         super.onResume();
         // Re-arm pending reminders after the user returns from exact-alarm settings.
         PersonalReminderReceiver.rescheduleAll(this);
+        // Recheck the web bundle whenever the app returns to foreground. This is
+        // independent of APK releases and only reloads if a validated newer page exists.
+        if (webView != null && !isFinishing() && !isDestroyed()) {
+            performContentUpdate(true, false);
+        }
     }
 
     private static final String APPOINTMENT_CHANNEL_ID = "dastyare_appointments_v1";
