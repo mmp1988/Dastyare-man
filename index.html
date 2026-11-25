@@ -1807,6 +1807,12 @@
         <div style="flex:1;min-width:0;">
           <div id="clientProfileName" style="font-weight:900;font-size:1.02rem;"></div>
           <div id="clientProfilePhone" style="color:var(--text-secondary);font-size:0.78rem;margin-top:4px;"></div>
+          <div style="margin-top:9px;padding:9px;border:1px solid var(--border-subtle);border-radius:11px;background:var(--bg-secondary);">
+            <label for="clientProfileAliases" style="display:block;font-size:.74rem;font-weight:800;margin-bottom:5px;">اسم‌های دیگر و اسم مستعار</label>
+            <input id="clientProfileAliases" class="form-control" type="text" placeholder="مثلاً مامان مینا، خانم احمدی" />
+            <small style="display:block;color:var(--text-secondary);font-size:.67rem;line-height:1.6;margin-top:4px;">با ویرگول جدا کن؛ مینا این نام‌ها را هم برای پیدا کردن همین پرونده می‌شناسد.</small>
+            <button type="button" class="btn-secondary" style="width:100%;margin-top:7px;" onclick="saveClientAliases()">ذخیره اسم‌های مستعار</button>
+          </div>
           <div class="client-profile-card" style="margin-top:10px;padding:10px;border:1px solid var(--border-color);border-radius:13px;background:var(--bg-secondary);">
             <div style="font-weight:800;font-size:.82rem;margin-bottom:7px;">🎂 تاریخ تولد مشتری</div>
             <div style="margin:0 0 8px;">
@@ -3725,7 +3731,13 @@
         if (byPhone) return byPhone;
       }
       if (apptName && !/^(?:—|نام درج نشده|⚠️ نام درج نشده \(قابل تکمیل\))$/u.test(apptName)) {
-        const byName = Object.keys(profiles).find(k => String(profiles[k]?.name || '').trim().replace(/\s+/g, ' ') === apptName || String(k).trim().replace(/\s+/g, ' ') === apptName);
+        const normalizeClientLabel = value => String(value || '').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\u064B-\u065F]/g,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fa');
+        const wantedName = normalizeClientLabel(apptName);
+        const byName = Object.keys(profiles).find(k =>
+          normalizeClientLabel(profiles[k]?.name) === wantedName ||
+          normalizeClientLabel(k) === wantedName ||
+          (Array.isArray(profiles[k]?.aliases) && profiles[k].aliases.some(alias => normalizeClientLabel(alias) === wantedName))
+        );
         if (byName) return byName;
       }
       const legacyKey = clientKeyFromFields(a && a.phone, a && a.clientName);
@@ -3761,6 +3773,35 @@
       if (!p.clientId) p.clientId = 'client_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
       if (!Array.isArray(p.records)) p.records = [];
       return p;
+    }
+
+    function saveClientAliases() {
+      const key = String(document.getElementById('clientRecordKey')?.value || '');
+      if (!key || !appData.clientProfiles?.[key]) return;
+      const raw = String(document.getElementById('clientProfileAliases')?.value || '');
+      const normalizeAlias = value => String(value || '').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\u064B-\u065F]/g,'').replace(/\s+/g,' ').trim();
+      const primaryName = normalizeAlias(appData.clientProfiles[key].name);
+      const seen = new Set(primaryName ? [primaryName.toLocaleLowerCase('fa')] : []);
+      const aliases = raw.split(/[،,؛;\n]+/u).map(normalizeAlias).filter(alias => {
+        const normalized = alias.toLocaleLowerCase('fa');
+        if (alias.length < 2 || alias.length > 60 || seen.has(normalized)) return false;
+        seen.add(normalized);
+        return true;
+      });
+      const conflict = aliases.find(alias => Object.entries(appData.clientProfiles || {}).some(([otherKey, profile]) =>
+        otherKey !== key && [profile?.name, ...(Array.isArray(profile?.aliases) ? profile.aliases : [])]
+          .some(existing => normalizeAlias(existing).toLocaleLowerCase('fa') === alias.toLocaleLowerCase('fa'))
+      ));
+      if (conflict) {
+        showToast('اسم «' + conflict + '» قبلاً به پرونده مشتری دیگری وصل شده؛ برای جلوگیری از اشتباه، ذخیره نشد.');
+        return;
+      }
+      const profile = getClientProfile(key);
+      profile.aliases = aliases;
+      profile.aliasesUpdatedAt = Date.now();
+      saveData();
+      renderClientsTab();
+      showToast(aliases.length ? 'اسم‌های مستعار ذخیره شد؛ مینا از این به بعد این نام‌ها را هم می‌شناسد. 💗' : 'اسم‌های مستعار پاک شد.');
     }
     function gregorianInputToJalali(value) {
       if (!value) return getTodayKey();
@@ -3998,6 +4039,7 @@
       document.getElementById('clientRecordKey').value = key;
       document.getElementById('clientProfileName').textContent = p.name;
       document.getElementById('clientProfilePhone').textContent = p.phone || 'شماره تماس ثبت نشده';
+      document.getElementById('clientProfileAliases').value = (Array.isArray(p.aliases) ? p.aliases : []).join('، ');
       const birthdayParts=String(p.birthDate||'').split('-');
       document.getElementById('clientBirthdayYear').value=birthdayParts[0]||'';
       document.getElementById('clientBirthdayMonth').value=birthdayParts[1]||'';
