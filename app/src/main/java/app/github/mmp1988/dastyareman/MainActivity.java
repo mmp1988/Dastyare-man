@@ -849,6 +849,8 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        // Re-arm pending reminders after the user returns from exact-alarm settings.
+        PersonalReminderReceiver.rescheduleAll(this);
         if (Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls()) {
             installPendingApkIfAllowed();
         }
