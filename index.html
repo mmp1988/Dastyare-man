@@ -6228,11 +6228,26 @@
       let key;
       let updated = false;
       if (existing) {
-        key = existing[0];
-        const profile = getClientProfile(key);
+        const oldKey = existing[0];
+        key = oldKey;
+        const profile = getClientProfile(oldKey);
         updated = profile.name !== cleanName || (!!phone && normalizeDigits(profile.phone || '') !== phone);
         profile.name = cleanName;
         if (phone) profile.phone = phone;
+        const newKey = clientKeyFromFields(profile.phone, cleanName);
+        if (newKey !== oldKey) {
+          if (profiles[newKey] && profiles[newKey] !== profile) return 'این شماره یا شناسه قبلاً برای مشتری دیگری ثبت شده؛ لطفاً اطلاعات رو بررسی کن 💗';
+          profiles[newKey] = profile; delete profiles[oldKey]; key = newKey;
+          if (appData.clientNotes && Object.prototype.hasOwnProperty.call(appData.clientNotes, oldKey)) {
+            appData.clientNotes[newKey] = appData.clientNotes[oldKey]; delete appData.clientNotes[oldKey];
+          }
+          (appData.appointments || []).forEach(a => {
+            const apptPhone = normalizeDigits(a.phone || '');
+            if ((profile.clientId && a.clientId === profile.clientId) || normalizeName(a.clientName) === normalizeName(existing[1]?.name || cleanName) || (phone && apptPhone === phone)) {
+              a.clientName = cleanName; a.phone = profile.phone || a.phone || ''; if (profile.clientId) a.clientId = profile.clientId;
+            }
+          });
+        }
       } else {
         key = clientKeyFromFields(phone, cleanName);
         const profile = getClientProfile(key);
@@ -6436,15 +6451,23 @@
         else if (phone.startsWith('98') && phone.length===12) phone='0'+phone.slice(2);
         else if (phone.length===10 && phone.startsWith('9')) phone='0'+phone;
         if (!/^09\d{9}$/.test(phone)) return 'شماره تلفن کامل نیست؛ لطفاً هر ۱۱ رقم رو دوباره بفرست 💗';
-        const oldKey=target.key, profile=getClientProfile(oldKey), oldPhone=profile.phone||'';
+        const oldKey=target.key, profile=getClientProfile(oldKey), oldPhone=String(profile.phone||'').replace(/\D/g,''), displayName=profile.name||target.alias;
         const duplicate=entries.find(([key,p])=>key!==oldKey && String(p?.phone||'').replace(/\D/g,'')===phone);
         if (duplicate) return 'این شماره قبلاً برای مشتری دیگری ثبت شده؛ برای جلوگیری از جابه‌جایی اشتباه، تغییری ندادم 💗';
+        const newKey=clientKeyFromFields(phone,displayName);
         profile.phone=phone;
-        (appData.appointments||[]).forEach(a=>{ if(clientMatchesAppointment(oldKey,a)){a.phone=phone; if(profile.clientId)a.clientId=profile.clientId;} });
+        if(newKey!==oldKey){profiles[newKey]=profile;delete profiles[oldKey];
+          if(appData.clientNotes && Object.prototype.hasOwnProperty.call(appData.clientNotes,oldKey)){appData.clientNotes[newKey]=appData.clientNotes[oldKey];delete appData.clientNotes[oldKey];}}
+        (appData.appointments||[]).forEach(a=>{
+          const apptPhone=String(a.phone||'').replace(/\D/g,'');
+          if((profile.clientId && a.clientId===profile.clientId) || apptPhone===oldPhone || normalize(a.clientName)===normalize(displayName)){
+            a.phone=phone;if(profile.clientId)a.clientId=profile.clientId;
+          }
+        });
         saveData();
         if (typeof renderClientsTab==='function') renderClientsTab();
-        if (typeof openClientRecord==='function') openClientRecord(oldKey);
-        return 'شماره تماس «'+(profile.name||target.alias)+'» به‌روزرسانی شد ✅\n📞 '+phone+' 💗';
+        if (typeof openClientRecord==='function') openClientRecord(newKey);
+        return 'شماره تماس «'+displayName+'» به‌روزرسانی شد و پرونده و نوبت‌ها به همان مشتری متصل موندند ✅\n📞 '+phone+' 💗';
       }
 
       const renameMatch = source.match(/(?:اسم|نام)\s+(.+?)\s+(?:رو|را)\s+(?:بکن|بذار|بزار|تغییر\s*بده|عوض\s*کن)\s+(.+?)\s*$/u) ||
