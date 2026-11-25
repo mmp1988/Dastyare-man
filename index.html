@@ -7584,6 +7584,12 @@
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') checkForAppUpdate(false);
         });
+        // Check while the site remains open, and immediately when connectivity returns.
+        // The service worker installs updates in the background and activates them silently.
+        window.addEventListener('online', () => checkForAppUpdate(false));
+        setInterval(() => {
+          if (document.visibilityState === 'visible' && navigator.onLine) checkForAppUpdate(false);
+        }, 5 * 60 * 1000);
       }
     });
   
