@@ -5486,6 +5486,14 @@
           !servicePattern.test(name)
         );
         let clientName = clientCandidates.length ? clientCandidates[clientCandidates.length - 1] : '';
+        // If the customer is mentioned without "برای"، match an exact saved client name.
+        if (!clientName) {
+          const savedNames = Object.values(appData.clientProfiles || {})
+            .map(profile => String(profile && profile.name || '').trim())
+            .filter(name => name.length >= 2 && t.includes(name.toLowerCase()))
+            .sort((a,b) => b.length-a.length);
+          if (savedNames.length) clientName = savedNames[0];
+        }
         if (/^(?:امروز|فردا|پس|پس\s*فردا|لیفت|لیفت مژه|لیفت ابرو|کاشت مژه|کاشت ابرو|اکستنشن|مژه|نوبت|رزرو|وقت)$/u.test(clientName) ||
             /(?:پس\s*فردا|فردا|امروز|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|ظهر|شب|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
