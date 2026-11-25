@@ -124,6 +124,7 @@ jobs:
               headers: { Origin: origin, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 mode: 'route',
+                enableReview: true,
                 message: 'کاربر: سلام مینا، امروز واقعاً خسته‌ام، میشه یکم باهام حرف بزنی؟'
               }),
               signal: AbortSignal.timeout(60000),
@@ -145,6 +146,7 @@ jobs:
               headers: { Origin: origin, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 mode: 'route',
+                enableReview: true,
                 message: 'کاربر: برای فردا ساعت ۳ بعدازظهر بهم خبر بده، آلارمو ست کن'
               }),
               signal: AbortSignal.timeout(60000),
@@ -170,6 +172,7 @@ jobs:
               headers: { Origin: origin, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 mode: 'route',
+                enableReview: true,
                 message: 'کاربر: نوبت آزمایشی را برای فردا ساعت ۱۸:۱۷ جابه‌جا کن'
               }),
               signal: AbortSignal.timeout(60000),
@@ -193,6 +196,7 @@ jobs:
               headers: { Origin: origin, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 mode: 'route',
+                enableReview: true,
                 message: 'مکالمه اخیر: کاربر گفت برای مشتری جدید «مامان مینا» پرونده بساز. مینا گفت پرونده ساخته شد. کاربر گفت شماره تماس مامان مینا را جداگانه می‌فرستم. حالا کاربر می‌گوید: برای همون مشتری فردا ساعت ۱۷:۳۰ نوبت لیفت مژه ثبت کن.'
               }),
               signal: AbortSignal.timeout(60000),
@@ -214,6 +218,7 @@ jobs:
               headers: { Origin: origin, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 mode: 'route',
+                enableReview: true,
                 message: 'مکالمه اخیر: کاربر برای مامان مینا فردا ساعت ۱۷:۳۰ نوبت لیفت مژه ثبت کرد. مینا تأیید کرد که نوبت ذخیره شده است. کاربر حالا می‌گوید: همونو تغییر بده و ساعتش رو بذار ۱۸:۲۰.'
               }),
               signal: AbortSignal.timeout(60000),
