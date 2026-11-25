@@ -1060,6 +1060,47 @@ const assert = require('assert');
     });
     assert(clientResult.exists && clientResult.duplicateBlocked && clientResult.edited && clientResult.deleted, 'Client create/edit/delete or duplicate prevention failed');
 
+    // Mina natural-language customer operations: rename, change phone, preserve the same appointment identity, and delete.
+    const minaCustomerLanguageQA = await page.evaluate(() => {
+      appData.clientProfiles = {};
+      appData.clientNotes = {};
+      appData.appointments = [];
+      const originalKey = '09120000001';
+      const profile = getClientProfile(originalKey);
+      profile.name = 'مینا';
+      profile.phone = originalKey;
+      profile.clientId = 'qa-mina-stable-client';
+      appData.appointments.push({
+        id:'qa-mina-stable-appointment', clientId:profile.clientId, clientName:'مینا',
+        phone:originalKey, dateKey:getTodayKey(), time:'14:00', service:'لیفت مژه', status:'pending'
+      });
+      const renameReply = minaTryManageClientFromMessage('اسم مینا رو بکن مینا جون');
+      const renamed = profile.name === 'مینا جون' &&
+        appData.appointments[0].clientName === 'مینا جون' &&
+        profile.aliases.includes('مینا');
+      const phoneReply = minaTryManageClientFromMessage('شماره تلفن مینا جون رو تغییر بده به 09120000002');
+      const newKey = '09120000002';
+      const phoneChanged = !!appData.clientProfiles[newKey] &&
+        !appData.clientProfiles[originalKey] &&
+        appData.clientProfiles[newKey].phone === newKey &&
+        appData.appointments[0].phone === newKey &&
+        appData.appointments[0].clientId === 'qa-mina-stable-client';
+      window.confirm = () => true;
+      const deleteReply = minaTryManageClientFromMessage('پرونده مینا جون رو حذف کن');
+      const deleted = !appData.clientProfiles[newKey] &&
+        !appData.appointments.some(a => a.id === 'qa-mina-stable-appointment');
+      const before = Object.keys(appData.clientProfiles).length;
+      const appointmentWasNotTreatedAsProfile = minaTryAddClientFromMessage('برای مینا نوبت فردا ساعت ۱۴ ثبت کن') === null &&
+        Object.keys(appData.clientProfiles).length === before;
+      return { renamed, phoneChanged, deleted, appointmentWasNotTreatedAsProfile,
+        replies:[renameReply,phoneReply,deleteReply] };
+    });
+    assert(minaCustomerLanguageQA.renamed, 'Natural-language customer rename did not preserve the appointment link and offline alias');
+    assert(minaCustomerLanguageQA.phoneChanged, 'Changing a customer phone number did not migrate the profile key and appointment identity');
+    assert(minaCustomerLanguageQA.deleted, 'Natural-language customer deletion did not remove the matching profile and appointment');
+    assert(minaCustomerLanguageQA.appointmentWasNotTreatedAsProfile, 'An appointment request was incorrectly parsed as customer creation');
+
+
     // A customer without a phone number must still have a stable profile identity,
     // show the next appointment in the directory, and appear in the main calendar.
     const noPhoneAppointmentQA = await page.evaluate(() => {
