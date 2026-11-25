@@ -125,6 +125,16 @@ export default {
         temperature: understandMode ? 0.05 : 0.25
       });
 
+      // Some Workers AI failures are returned in the result object instead of being thrown.
+      if (result?.success === false || (Array.isArray(result?.errors) && result.errors.length)) {
+        const detail = JSON.stringify(result.errors || result).toLowerCase();
+        const quotaExceeded = /(?:quota|rate.?limit|too many requests|429|exceeded.*(?:request|token|limit)|daily limit|resource exhausted)/i.test(detail);
+        if (quotaExceeded) {
+          return json({ success: false, code: "AI_QUOTA_EXHAUSTED", error: "سهمیه رایگان هوش ابری فعلاً به پایان رسیده است." }, 429, headers);
+        }
+        return json({ success: false, code: "AI_TEMPORARILY_UNAVAILABLE", error: "سرویس هوش مصنوعی فعلاً در دسترس نیست." }, 503, headers);
+      }
+
       const reply = result?.response ?? result?.choices?.[0]?.message?.content ?? "";
       if (typeof reply !== "string" || !reply.trim()) {
         return json({ success: false, error: "پاسخ معتبری از مدل دریافت نشد." }, 502, headers);
