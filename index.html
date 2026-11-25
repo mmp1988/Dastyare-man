@@ -1939,11 +1939,7 @@
             <option value="custom">زمان دلخواه (دقیقه قبل)</option>
           </select>
         </div>
-        <div class="form-group" id="customAlarmMinutesBox" style="display:none;">
-          <label>چند دقیقه قبل از نوبت هشدار بدهم؟</label>
-          <input type="number" id="apptCustomAlarmMinutes" class="form-control" min="0" max="43200" step="1" value="15" placeholder="مثلاً ۴۵ یا ۱۲۰" />
-        </div>
-        <div class="form-group full appointment-birthday-box">
+        <div class="form-group appointment-birthday-box">
           <label>🎂 تاریخ تولد مشتری (اختیاری)</label>
           <div class="appointment-birthday-fields">
             <input type="text" id="apptBirthdayYear" class="form-control" inputmode="numeric" maxlength="4" placeholder="سال شمسی" aria-label="سال تولد مشتری" />
@@ -1951,6 +1947,10 @@
             <input type="text" id="apptBirthdayDay" class="form-control" inputmode="numeric" maxlength="2" placeholder="روز" aria-label="روز تولد مشتری" />
           </div>
           <small>با ذخیره نوبت، تولد در بخش «تولد مشتریان» هم ثبت می‌شود. اگر خالی بماند، تاریخ قبلی تغییر نمی‌کند.</small>
+        </div>
+        <div class="form-group" id="customAlarmMinutesBox" style="display:none;">
+          <label>چند دقیقه قبل از نوبت هشدار بدهم؟</label>
+          <input type="number" id="apptCustomAlarmMinutes" class="form-control" min="0" max="43200" step="1" value="15" placeholder="مثلاً ۴۵ یا ۱۲۰" />
         </div>
         <div class="form-group full">
           <label>یادداشت و توضیحات نوبت</label>
