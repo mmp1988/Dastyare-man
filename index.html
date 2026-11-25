@@ -5871,7 +5871,7 @@
       }
       // Also mask a newly supplied customer name after "برای/واسه", even if it is not saved yet.
       const nonNames = /^(?:امروز|فردا|پسفردا|پس فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|صبح|ظهر|عصر|شب|ساعت|نوبت|رزرو|کاشت|لیفت|ترمیم|مژه|ابرو|ناخن|مو|رنگ|فیشیال|شینیون|کراتین|مشتری|من|خودم)$/u;
-      safeMessage = safeMessage.replace(/((?:برای|واسه|واسه‌ی|مشتری)s+)([آ-یءئؤإأ‌\-]{2,24})/gu, (whole, prefix, candidate) => {
+      safeMessage = safeMessage.replace(/((?:برای|واسه|واسه‌ی|مشتری)\s+)([آ-یءئؤإأ‌\-]{2,24})/gu, (whole, prefix, candidate) => {
         if (nonNames.test(candidate) || /^\d+$/u.test(candidate)) return whole;
         return prefix + mask(candidate, 'CLIENT');
       });
