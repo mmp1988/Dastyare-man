@@ -5468,11 +5468,11 @@
         if (knownService) service = knownService.name;
         // Generic service support: accept any user-described profession/service, not only a fixed beauty list.
         if (!service) {
-          const explicitService = q.match(/(?:نوع\s*خدمت|خدمت|برای)\s+(.+?)(?=\s+(?:نوبت|رزرو|وقت|ثبت\s*کن|بذار|بزار|بده|بگیر)|$)/i);
+          const explicitService = q.match(/(?:نوع\s*خدمت|خدمت)\s+(.+?)(?=\s+(?:نوبت|رزرو|وقت|ثبت\s*کن|بذار|بزار|بده|بگیر|فیکس(?:ش)?\s*کن|قطعی\s*کن|نگه\s*دار|جورش\s*کن|اوکی\s*کن|هماهنگ\s*کن|اختصاص\s*بده|تعیین\s*کن|ردیف\s*کن|بچین|جا\s*بده)|$)/i);
           if (explicitService) {
             let candidate = explicitService[1].trim();
             if (candidate.includes('برای')) candidate = candidate.split('برای').pop().trim();
-            candidate = candidate.replace(/\s*(?:ثبت\s*کن|نوبت\s*ثبت\s*کن|بذار|بزار|بده|بگیر)\s*$/i, '').trim();
+            candidate = candidate.replace(/\s*(?:ثبت\s*کن|نوبت\s*ثبت\s*کن|بذار|بزار|بده|بگیر|فیکس(?:ش)?\s*کن|قطعی\s*کن|نگه\s*دار|جورش\s*کن|اوکی\s*کن|هماهنگ\s*کن|اختصاص\s*بده|تعیین\s*کن|ردیف\s*کن|بچین|جا\s*بده)\s*$/i, '').trim();
             if (candidate && candidate.length <= 80) service = candidate;
           }
         }
