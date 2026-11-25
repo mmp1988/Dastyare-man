@@ -6689,9 +6689,11 @@
       // Cloud-first interaction: every online message reaches the same semantic router.
       // The router receives recent turns and relevant customer facts; local code only executes
       // an action after the model explicitly classifies it as an action.
-      let reply = null;
+      // Explicit first-person plans with reminder language are personal alarms,
+      // not salon appointments; execute them before cloud routing can misclassify them.
+      let reply = minaTrySetPersonalReminder(message);
       let routedCommand = null;
-      if (navigator.onLine) {
+      if (!reply && navigator.onLine) {
         const root = document.getElementById('minaChatMessages');
         const recent = root ? Array.from(root.querySelectorAll('.mina-message')).slice(-12).map(row => {
           const role = row.classList.contains('user') ? 'کاربر' : 'مینا';
@@ -7569,7 +7571,22 @@
       }
       try { return minaParseReminderClock(raw); } catch (error) { return null; }
     }
-    function minaTrySetPersonalReminder(raw) {
+    function minaTrySetPersonalReminder(raw, batchChild = false) {
+      // A single natural-language message may contain several personal plans.
+      // Split only explicit sequential clauses with their own clock times.
+      if (!batchChild) {
+        const source = String(raw || '').trim();
+        const parts = source.split(/\\s+بعدش\\s+(?=(?:ساعت\\s*)?(?:\\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)\\b)/u).map(x => x.trim()).filter(Boolean);
+        if (parts.length > 1 && parts.every(part => !!minaParsePersonalReminderClock(part))) {
+          const dateHint = source.match(/پس\\s*فردا|پسفردا|فردا|امروز|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه|(?:1[2345]\\d{2}[\\/.-]\\d{1,2}[\\/.-]\\d{1,2})|(?:\\d{1,2}\\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند))/u)?.[0] || '';
+          const results = parts.map(part => {
+            const clause = (dateHint && !/(?:فردا|امروز|پس\\s*فردا|شنبه|یکشنبه|سه‌شنبه|سه شنبه|دوشنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه|1[2345]\\d{2}[\\/.-]|\\d{1,2}\\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند))/u.test(part) ? dateHint + ' ' : '') + part + ' یادآوری کن';
+            return minaTrySetPersonalReminder(clause, true);
+          });
+          if (results.every(Boolean)) return results.join('\\n\\n');
+          return results.filter(Boolean).join('\\n\\n') || null;
+        }
+      }
       const text=minaCleanText(minaNormalizeDigits(String(raw||''))).toLocaleLowerCase('fa');
       const reminderIntent=/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری|یاداور|هشدار|آلارم|الارم|زنگ\s*هشدار|خبرم\s*کن|(?:بهم\s*)?خبر\s*(?:بده|بدی|بدین)|به\s*من\s*اطلاع\s*بده)/u.test(text);
       if(!reminderIntent && !minaPendingPersonalReminder)return null;
@@ -7577,7 +7594,7 @@
       // not to a new personal reminder measured from today.
       if(typeof minaLastReferencedAppointmentId !== 'undefined' && minaLastReferencedAppointmentId &&
           /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت)\s*روز\s*بعدش/u.test(text)) return null;
-      if(/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text))return null;
+      if(/(?:نوبت\\s*(?:مشتری|سالن)|رزرو\\s*مشتری|مراجعه\\s*مشتری)/u.test(text))return null;
       const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
       const combinedText=minaCleanText(minaNormalizeDigits(combined)).toLocaleLowerCase('fa');
       // Relative durations are resolved locally (offline-first), including colloquial hours and days.
@@ -7639,7 +7656,7 @@
         .replace(/(?:ساعت\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s*و\s*\d{1,2}\s*دقیقه|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی|چهل|پنجاه|شصت|\d{1,2})(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|\d{1,2}))?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/gu,' ')
         .replace(new RegExp('(?:در\\s*)?(?:'+spokenNumber+')\\s*(?:ساعت|روز|دقیقه)(?:\\s*و\\s*(?:'+spokenNumber+')\\s*دقیقه)?\\s*(?:دیگه|دیگر|بعد(?:تر)?)','gu'),' ')
         .replace(/(?:نیم|نصف)\s*ساعت\s*(?:دیگه|دیگر|بعد(?:تر)?)|(?:یک\s*)?ربع\s*ساعت\s*(?:دیگه|دیگر|بعد(?:تر)?)/gu,' ')
-        .replace(/(?:برام|برای من|لطفا|لطفاً|بزاری|بذار|بزار|بذارم|بزارم|بگذاری|تنظیم کن|تنظیمش کن|کن|بکن)/gu,' ')
+        .replace(/(?:می\\s*خوام|می\\s*خواهم|میخام)\\s+(?:برم|بروم)/gu,'رفتن به ').replace(/(?:برام|برای من|لطفا|لطفاً|بزاری|بذار|بزار|بذارم|بزارم|بگذاری|تنظیم کن|تنظیمش کن|ثبت|اونم|اون\\s*هم|بعدش|کن|بکن)/gu,' ')
         .replace(/\\[nr]|[\r\n]+/gu,' ')
         .replace(/[A-Za-z][A-Za-z0-9_-]*/gu,' ')
         .replace(/[{}\[\]"]/gu,' ')
