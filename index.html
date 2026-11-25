@@ -6306,10 +6306,18 @@
     // already being discussed, without asking the user to repeat its date or service.
     function minaParseReminderClock(raw) {
       const value = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
-      const rawValue = minaCleanText(minaNormalizeDigits(raw)).toLowerCase();
+      const rawValue = minaCleanText(minaNormalizePersianTypos(minaNormalizeDigits(raw))).toLowerCase();
       if (/(?:12|دوازده)\s*شب/u.test(rawValue) || /(?:12|دوازده)\s*شب/u.test(value)) return '00:00';
       const numberWord = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       const relative = value.match(new RegExp('(' + numberWord + '\\s*دقیقه|یک\\s*ربع|ربع|نیم\\s*ساعت|نیم\\s*ربع)\\s*(به|مونده\\s*به|مانده\\s*به|قبل\\s*از|بعد\\s*از|گذشته\\s*از)\\s*(' + numberWord + ')(?:\\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
+      const exactSpokenMinutes = rawValue.match(new RegExp('(?:ساعت\\s*)?(' + numberWord + ')\\s+و\\s+(' + numberWord + ')\\s*دقیقه', 'u'));
+      if (exactSpokenMinutes) {
+        const exactHour = minaPersianNumberValue(exactSpokenMinutes[1]);
+        const exactMinute = minaPersianNumberValue(exactSpokenMinutes[2]);
+        if (Number.isFinite(exactHour) && Number.isFinite(exactMinute) && exactHour >= 0 && exactHour <= 23 && exactMinute >= 0 && exactMinute <= 59) {
+          return pad2(exactHour) + ':' + pad2(exactMinute);
+        }
+      }
       if (relative) {
         const amountText = relative[1].replace(/\s*دقیقه\s*/g, '').trim();
         const amount = /ربع/u.test(amountText) ? (/نیم/u.test(amountText) ? 7 : 15) :
