@@ -5860,7 +5860,7 @@
           clientName: clientName || '⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing: !clientName,
           phone: phoneMatch ? phoneMatch[0] : '', service,
           notes: '',
-          alarm: '15', status: /(?:انجام\s*شد|انجام\s*داده\s*شد|کار\s*(?:رو|را)?\s*کردم|خدمت\s*(?:رو|را)?\s*انجام)/u.test(t) ? 'done' : 'pending', notified: false
+          alarm: '15', status: /(?:انجام\s*شد|انجام\s*شده|انجام\s*داده\s*شد|کار\s*(?:رو|را)?\s*(?:انجام\s*دادم|انجام\s*شده|کردم)|خدمت\s*(?:رو|را)?\s*(?:انجام\s*دادم|انجام\s*شده|انجام))/u.test(t) ? 'done' : 'pending', notified: false
         };
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
@@ -6923,7 +6923,7 @@
           : 'تقویمت رو بررسی کردم؛ تداخل زمانی ثبت‌شده‌ای پیدا نکردم عزیزم 💗';
       }
 
-      if (/(?:حذف|پاک|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر|عوض|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized)) && !(/(?:انجام\s*شد|انجام\s*داده\s*شد|تکمیل\s*شد)/u.test(normalized) && /\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(normalized))) {
+      if (/(?:حذف|پاک|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر|عوض|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized)) && !(/(?:انجام\s*شد|انجام\s*شده|انجام\s*داده\s*شد|تکمیل\s*شد)/u.test(normalized) && /\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(normalized))) {
         return 'عزیزم برای اینکه هیچ نوبتی بدون تصمیم خودت تغییر نکنه، من فقط می‌تونم نوبت جدید ثبت کنم و برنامه رو نشون بدم 💗 برای ویرایش، لغو یا حذف، خودت از بخش تقویم روی دکمه ویرایش یا حذف بزن. همه‌چیز دست خودته 🌷';
       }
       return minaBuildReplyCore(expandedRaw);
