@@ -5777,8 +5777,8 @@
 
     function minaIsSalonScopeRequest(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
-      return minaIsClearlyLocalAction(message) ||
-        /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
+      return /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|قیمت|تعرفه|هزینه|ساعت\s*کاری|یادآوری|بیعانه|پرداخت|رنگ\s*مو|وقت|ساعت|تاریخ|دقیقه|تایم|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text) ||
+        !!minaPendingBooking || !!minaConversationBooking;
     }
 
     function minaOutOfScopeReply() {
