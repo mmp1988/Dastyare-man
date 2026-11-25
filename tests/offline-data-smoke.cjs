@@ -705,6 +705,9 @@ const assert = require('assert');
       set('apptNotes', 'نوبت اصلی تست');
       set('apptAlarm', '15');
       set('apptStatus', 'pending');
+      set('apptBirthdayYear', '1375');
+      set('apptBirthdayMonth', '08');
+      set('apptBirthdayDay', '12');
       set('apptNextFollowup', 'custom');
       set('apptFollowupCustomDays', '14');
       saveAppointment();
@@ -754,6 +757,8 @@ const assert = require('assert');
       return {
         primaryCreated:!!primary,
         followupCreated:!!followup,
+        birthdaySavedFromAppointment:!!key && appData.clientProfiles[key]?.birthDate === '1375-08-12',
+        birthdayAppearsInBirthdayList:!!key && (() => { renderClientBirthdays(); return [...document.querySelectorAll('#clientBirthdaysList [data-client-birthday-key]')].some(row => row.dataset.clientBirthdayKey === encodeURIComponent(key)); })(),
         linkedToPrimary:!!followup && followup.parentAppointmentId === primary.id,
         followupHasOwnDateAndTime:!!followup && followup.dateKey === addDaysToJalaliKey(primary.dateKey,14) && followup.time === '10:17',
         cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('ترمیم'),
@@ -775,6 +780,8 @@ const assert = require('assert');
     assert(primaryFollowupQA.primaryCreated && primaryFollowupQA.followupCreated &&
       primaryFollowupQA.linkedToPrimary && primaryFollowupQA.followupHasOwnDateAndTime,
       'Primary and follow-up must be separately stored with a stable parent link and exact date/time');
+    assert(primaryFollowupQA.birthdaySavedFromAppointment && primaryFollowupQA.birthdayAppearsInBirthdayList,
+      'Birthday entered in the appointment form must be saved to the customer profile and birthday list');
     assert(primaryFollowupQA.cardShowsBoth && primaryFollowupQA.profileShowsBoth && primaryFollowupQA.profileHasEditDelete,
       'Customer card and profile must show both appointment types with edit/delete actions');
     assert(primaryFollowupQA.inlineEditWorks && primaryFollowupQA.compactAppointmentUI,
