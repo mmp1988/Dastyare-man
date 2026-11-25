@@ -5809,7 +5809,7 @@
     function minaIsClearlyLocalAction(message) {
       const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa');
       const hasSalonRecord = /(?:نوبت|رزرو|مشتری|پرونده|تولد|یادداشت|خدمت|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|رنگ مو|شماره تماس|تلفن)/u.test(text);
-      const hasMutation = /(?:ثبت|رزرو کن|ایجاد|اضافه|افزودن|وارد کن|ذخیره|ویرایش|تغییر|عوض|جابجا|جابه‌جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید|انجام شد|یادآوری|یادم بنداز)/u.test(text);
+      const hasMutation = /(?:ثبت|رزرو کن|ایجاد|اضافه|افزودن|وارد کن|ذخیره|ویرایش|تغییر|عوض|جابجا|جابه‌جا|انتقال|حذف|پاک|لغو|کنسل|تأیید|تایید|انجام شد|یادآوری|یادم بنداز)/u.test(text) || /(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو\s*)?بکن(?:ش)?\b/u.test(text);
       const hasLookup = /(?:نمایش بده|نشون بده|لیست کن|فهرست|برنامه.*بگو|چند تا|چندتا|چه کسانی|کدوم مشتری|آخرین نوبت|نوبت بعدی|سوابق|پرونده.*باز کن)/u.test(text);
       const implicitCompleteBooking = /(?:فردا|امروز|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text) &&
         /\d|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|عصر|شب)?/u.test(text) &&
@@ -5893,6 +5893,9 @@
       // Names, digits and exact times are masked/restored by minaBuildCloudSafeCommand;
       // the model interprets intent while the local engine alone executes and stores records.
       if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
+      // A direct named-appointment time command is deterministic and must execute locally.
+      // Avoid sending this short form to the chat model, which can mistake it for general conversation.
+      if (/(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو\s*)?بکن(?:ش)?\s+(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)\s*(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/u.test(minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))))) return false;
       if (!minaIsClearlyLocalAction(message) || minaIsSalonContentRequest(message)) return false;
       // A short follow-up is resolved against the appointment already selected locally.
       // Do not send context-free fragments like «۶ عصر» to a stateless cloud endpoint.
@@ -6404,7 +6407,7 @@
       // as an explicit new time, not as another request for clarification.
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب))/u.test(text);
       const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
-      const isMove = contextualFollowup || /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار))/u.test(text);
+      const isMove = contextualFollowup || /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار)|(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو\s*)?بکن(?:ش)?)/u.test(text);
       const serviceTail = text.match(/(?:به|برای)\s+(.+?)\s+(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)/u) ||
         text.match(/(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)\s+(?:به\s+)?(.+)$/u);
       let requestedService = serviceTail ? serviceTail[1].trim() : '';
@@ -6421,7 +6424,8 @@
       if (!selectable.length) return 'عزیزم هیچ نوبتی برای این کار پیدا نکردم 🌷';
 
       // Resolve the customer against the same set that the requested action may affect.
-      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به|انجام|حذف|پاک|کنسل|لغو|تموم)/u) ||
+      const nameMatch = text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو\s*)?بکن(?:ش)?/u) ||
+        text.match(/(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})\s+(?:رو|را|و|به|انجام|حذف|پاک|کنسل|لغو|تموم)/u) ||
         text.match(/(?:کنسل|لغو|حذف|پاک)\s+(?:کردن\s+)?(?:نوبت|رزرو|وقت)\s+([آ-یءئؤإأ‌\-]{2,30})/u) ||
         text.match(/(?:برای|مشتری)\s+([آ-یءئؤإأ‌\-]{2,30})/u);
       let candidates = selectable.slice();
