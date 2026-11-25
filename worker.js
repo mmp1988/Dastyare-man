@@ -3,7 +3,7 @@ const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
 function normalizeScopeText(value) {
-  return String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\\u064B-\\u065F\\u0670]/g, "").replace(/\\s+/g, " ").trim();
+  return String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ").trim();
 }
 
 function hasSalonAnchor(value) {
@@ -11,7 +11,7 @@ function hasSalonAnchor(value) {
 }
 
 function extractSalonOnlyMessage(value) {
-  const clauses = String(value || "").split(/(?:[؟?!؛;\\n]+|\\s+(?:راستی|ضمناً|ضمنًا|در ضمن|یه سؤال دیگه|یک سؤال دیگر)\\s+)/u).map(part => part.trim()).filter(Boolean);
+  const clauses = String(value || "").split(/(?:[؟?!؛;\n]+|\s+(?:راستی|ضمناً|ضمنًا|در ضمن|یه سؤال دیگه|یک سؤال دیگر)\s+)/u).map(part => part.trim()).filter(Boolean);
   const relevant = clauses.filter(hasSalonAnchor);
   return relevant.join("؛ ");
 }
@@ -76,6 +76,13 @@ export default {
       if (!rawMessage || rawMessage.length > 4000) {
         return json({ success: false, error: "متن درخواست خالی یا بیش از حد طولانی است." }, 400, headers);
       }
+      // Preserve a simple self-introduction request, but never let it suppress a real salon task.
+      const asksIdentityOnly = /(?:تو\s*(?:کی|چی)\s*هستی|اسمت\s*چیه|نامت\s*چیه|خودت\s*رو\s*معرفی\s*کن|who\s+are\s+you|what\s+is\s+your\s+name)/i.test(rawMessage);
+      const asksConnectionOnly = /(?:به\s*(?:چی|چه\s*(?:چیزی|هوش|مدل|سرویسی|جایی))\s*(?:وصل|متصل)|چه\s*هوش\s*مصنوعی\s*ای\s*هستی|چه\s*مدلی\s*هستی|which\s+model\s+are\s+you\s+using)/i.test(rawMessage);
+      if (!hasSalonAnchor(rawMessage) && (asksIdentityOnly || asksConnectionOnly)) {
+        return json({ success: true, reply: "من مینا هستم، دستیار هوشمند و تخصصی سالن زیبایی. برای امور سالن، نوبت‌ها و مشتریان در خدمتم." }, 200, headers);
+      }
+
       // Treat every user message as untrusted input. Keep only explicit salon-related clauses.
       const message = extractSalonOnlyMessage(rawMessage);
       if (!message) {
@@ -87,7 +94,7 @@ export default {
       // Curiosity about the underlying connection is redirected to the public Instagram shown on the site.
       const identityQuestion = /(?:تو\s*(?:کی|چی)\s*هستی|اسمت\s*چیه|نامت\s*چیه|خودت\s*رو\s*معرفی\s*کن|who\s+are\s+you|what\s+is\s+your\s+name)/i.test(message);
       const connectionQuestion = /(?:به\s*(?:چی|چه\s*(?:چیزی|هوش|مدل|سرویسی|جایی))\s*(?:وصل|متصل)\s*(?:هستی|ی|شدی)?|به\s*کجا\s*(?:وصلی|متصلی|وصل\s*هستی)|از\s*چه\s*(?:هوش|مدل|سرویس|شرکت|پلتفرم)\s*(?:استفاده\s*می\s*کنی|استفاده\s*میکنی)|چه\s*هوش\s*مصنوعی\s*ای\s*هستی|چه\s*مدلی\s*هستی|سازنده\s*ات\s*کیه|کجا\s*اجرا\s*می\s*شی|what\s+are\s+you\s+connected\s+to|which\s+model\s+are\s+you\s+using|what\s+ai\s+are\s+you)/i.test(message);
-      if (identityQuestion || connectionQuestion) {
+      if ((identityQuestion || connectionQuestion) && !salonDomainMessage) {
         const reply = "من مینا هستم، دستیار هوشمند امور سالن زیبایی. صفحه رسمی اینستاگرام: @lash_by_mina.m";
         return json({ success: true, reply }, 200, headers);
       }
