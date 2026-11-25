@@ -7544,6 +7544,31 @@
       if(wanted){const now=getIranNow();const delta=(wanted[1]-now.getDay()+7)%7;return addDaysToJalaliKey(today,delta);}
       return null;
     }
+    function minaParsePersonalReminderClock(raw) {
+      // Robust Persian clock extraction for reminders, including «۳ بعد از ظهر».
+      const normalized = minaCleanText(
+        minaNormalizePersianTypos(minaNormalizeDigits(String(raw || '')))
+          .replace(/بعد\s*از\s*ظهر/gu, 'بعدازظهر')
+      );
+      const periodPattern = '(صبح|بعدازظهر|ظهر|عصر|شب)';
+      let match = normalized.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})/u);
+      if (match) {
+        let hour = Number(match[1]), minute = Number(match[2]);
+        const period = normalized.match(/بعدازظهر|ظهر|عصر|شب|صبح/u)?.[0] || '';
+        if (/(?:ظهر|عصر|شب)/u.test(period) && hour < 12) hour += 12;
+        if (/(?:صبح|شب)/u.test(period) && hour === 12) hour = 0;
+        if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) return pad2(hour) + ':' + pad2(minute);
+      }
+      match = normalized.match(new RegExp('(?:ساعت\\s*)?(\\d{1,2})\\s*' + periodPattern, 'u'));
+      if (match) {
+        let hour = Number(match[1]);
+        const period = match[2];
+        if (/(?:ظهر|عصر|شب)/u.test(period) && hour < 12) hour += 12;
+        if ((period === 'صبح' || period === 'شب') && hour === 12) hour = 0;
+        if (hour >= 0 && hour <= 23) return pad2(hour) + ':00';
+      }
+      try { return minaParseReminderClock(raw); } catch (error) { return null; }
+    }
     function minaTrySetPersonalReminder(raw) {
       const text=minaCleanText(minaNormalizeDigits(String(raw||''))).toLocaleLowerCase('fa');
       const reminderIntent=/(?:یادم\s*(?:بنداز|بیار|بمونه|نره)|یادآوری|یاداور|هشدار|آلارم|الارم|زنگ\s*هشدار|خبرم\s*کن|(?:بهم\s*)?خبر\s*(?:بده|بدی|بدین)|به\s*من\s*اطلاع\s*بده)/u.test(text);
@@ -7584,7 +7609,7 @@
       // Preserve the exact relative instant; rounding up to the next minute can add
       // almost 60 seconds to a short alarm (e.g. «دو دقیقه دیگه»).
       if(durationMs>0)relativeTargetAt=Date.now()+durationMs;
-      let clock=relativeTargetAt?null:minaParseReminderClock(combined);
+      let clock=relativeTargetAt?null:minaParsePersonalReminderClock(combined);
       let dateKey=relativeTargetAt?null:minaReminderDateKey(combined);
       let gregorianDate=null;
       if(relativeTargetAt){
@@ -7614,7 +7639,11 @@
         .replace(/(?:ساعت\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s*و\s*\d{1,2}\s*دقیقه|(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی|چهل|پنجاه|شصت|\d{1,2})(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|\d{1,2}))?\s*(?:صبح|ظهر|بعدازظهر|عصر|شب))/gu,' ')
         .replace(new RegExp('(?:در\\s*)?(?:'+spokenNumber+')\\s*(?:ساعت|روز|دقیقه)(?:\\s*و\\s*(?:'+spokenNumber+')\\s*دقیقه)?\\s*(?:دیگه|دیگر|بعد(?:تر)?)','gu'),' ')
         .replace(/(?:نیم|نصف)\s*ساعت\s*(?:دیگه|دیگر|بعد(?:تر)?)|(?:یک\s*)?ربع\s*ساعت\s*(?:دیگه|دیگر|بعد(?:تر)?)/gu,' ')
-        .replace(/(?:برام|برای من|لطفا|لطفاً|بزاری|بذار|بزار|بذارم|بزارم|بگذاری|تنظیم کن|تنظیمش کن|کن|بکن)/gu,' ').replace(/\s+/g,' ').trim();
+        .replace(/(?:برام|برای من|لطفا|لطفاً|بزاری|بذار|بزار|بذارم|بزارم|بگذاری|تنظیم کن|تنظیمش کن|کن|بکن)/gu,' ')
+        .replace(/\\[nr]|[\r\n]+/gu,' ')
+        .replace(/[A-Za-z][A-Za-z0-9_-]*/gu,' ')
+        .replace(/[{}\[\]"]/gu,' ')
+        .replace(/\s+/gu,' ').trim();
       if(!message||/^(?:امروز|فردا|ساعت|برام|من)$/u.test(message))message='یادآوری شخصی';
       const id='mina_rem_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
       const reminder={id,date:gregorianDate,time:clock,message,notified:false,enabled:true,createdAt:Date.now(),timezone:'Asia/Tehran',source:'mina'};
