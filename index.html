@@ -5852,14 +5852,15 @@
              a.clientName === 'نام درج نشده' || a.clientName === '⚠️ نام درج نشده (قابل تکمیل)')) &&
           String(a.service || '') === service);
         if (duplicate) return 'این نوبت با همین مشخصات از قبل ثبت شده عزیزم؛ تکراری ثبتش نکردم 💗';
-        const conflict = hasAppointmentSlotConflict(dateKey, time, null);
+        const historicalCompleted = appointment.status === 'done';
+        const conflict = !historicalCompleted && hasAppointmentSlotConflict(dateKey, time, null);
         if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
           id: 'appt_mina_' + Date.now(), createdBy: 'mina', source: 'mina', dateKey, time,
           clientName: clientName || '⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing: !clientName,
           phone: phoneMatch ? phoneMatch[0] : '', service,
           notes: '',
-          alarm: '15', status: 'pending', notified: false
+          alarm: '15', status: /(?:انجام\s*شد|انجام\s*داده\s*شد|کار\s*(?:رو|را)?\s*کردم|خدمت\s*(?:رو|را)?\s*انجام)/u.test(t) ? 'done' : 'pending', notified: false
         };
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
@@ -6863,12 +6864,11 @@
         ((hasClock || /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized)) && hasAppointmentContext) ||
         (/(?:برای|واسه|واسه‌ی)/u.test(normalized) && /(?:خدمت|کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین)/u.test(normalized))
       );
-      const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized);
-      const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized) &&
+      const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized);
+      const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(normalized) &&
         /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
       // Multi-turn booking: preserve details when the user supplies date/time separately.
-      if (minaConversationBooking && hasDateOnly && !hasClock &&
-          /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(normalized)) {
+      if (minaConversationBooking && hasDateOnly && !hasClock) {
         const continuation = minaConversationBooking.original + ' ' + expandedRaw;
         minaConversationBooking = null;
         return minaBuildReplyCore(continuation);
@@ -6923,7 +6923,7 @@
           : 'تقویمت رو بررسی کردم؛ تداخل زمانی ثبت‌شده‌ای پیدا نکردم عزیزم 💗';
       }
 
-      if (/(?:حذف|پاک|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر|عوض|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized))) {
+      if (/(?:حذف|پاک|بردار|لغو|کنسل|جابجا|جابه.?جا|منتقل|تغییر|عوض|انجام\s*شد|تکمیل\s*شد)/u.test(normalized) && (/(?:نوبت|وقت|رزرو|مشتری)/u.test(normalized) || /(?:انجام\s*شد|تکمیل\s*شد)/u.test(normalized)) && !(/(?:انجام\s*شد|انجام\s*داده\s*شد|تکمیل\s*شد)/u.test(normalized) && /\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(normalized))) {
         return 'عزیزم برای اینکه هیچ نوبتی بدون تصمیم خودت تغییر نکنه، من فقط می‌تونم نوبت جدید ثبت کنم و برنامه رو نشون بدم 💗 برای ویرایش، لغو یا حذف، خودت از بخش تقویم روی دکمه ویرایش یا حذف بزن. همه‌چیز دست خودته 🌷';
       }
       return minaBuildReplyCore(expandedRaw);
