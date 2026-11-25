@@ -6117,9 +6117,17 @@
         return;
       }
 
-      // Execute alarms and personal reminders before any cloud/scope routing.
-      // This path works offline in the browser and uses Android AlarmManager in the APK.
-      const directPersonalReminderReply = minaTrySetPersonalReminder(message);
+      // Let cloud AI interpret natural-language reminders whenever internet and AI quota are available.
+      // The cloud only clarifies the user's wording; actual scheduling remains local and offline-capable.
+      // If cloud AI is unavailable or quota is exhausted, the local parser handles the original message.
+      let reminderCommand = message;
+      if (navigator.onLine) {
+        const cloudReminderCommand = await minaAskSmartBrain(message, 'understand');
+        if (cloudReminderCommand) reminderCommand = cloudReminderCommand;
+      }
+      const directPersonalReminderReply =
+        minaTrySetPersonalReminder(reminderCommand) ||
+        (reminderCommand !== message ? minaTrySetPersonalReminder(message) : null);
       if (directPersonalReminderReply) {
         addMinaMessage(minaFormatReplyForMode(directPersonalReminderReply), 'assistant');
         return;
