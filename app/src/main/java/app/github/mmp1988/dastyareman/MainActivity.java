@@ -66,6 +66,7 @@ public class MainActivity extends Activity {
     private static final String LATEST_RELEASE_API = "https://api.github.com/repos/mmp1988/Dastyare-man/releases/tags/latest";
     private static final String EXPECTED_PACKAGE = "app.github.mmp1988.dastyareman";
     private volatile boolean apkUpdateCheckRunning = false;
+    private volatile boolean apkUpdateManualRequested = false;
     private boolean apkInstallDialogVisible = false;
 
     private WebView webView;
@@ -637,8 +638,15 @@ public class MainActivity extends Activity {
     // Checks the signed APK release independently from the offline-first web bundle.
     // Android always asks the user to approve installation through the system installer.
     private void checkForApkUpdate(boolean manual) {
-        if (apkUpdateCheckRunning) return;
+        if (apkUpdateCheckRunning) {
+            if (manual) {
+                apkUpdateManualRequested = true;
+                runOnUiThread(() -> Toast.makeText(this, "درخواست بروزرسانی ثبت شد؛ بررسی فعلی تمام شود، دانلود شروع می‌شود…", Toast.LENGTH_LONG).show());
+            }
+            return;
+        }
         apkUpdateCheckRunning = true;
+        if (manual) runOnUiThread(() -> Toast.makeText(this, "در حال بررسی نسخه جدید و آماده‌سازی دانلود…", Toast.LENGTH_SHORT).show());
         io.execute(() -> {
             HttpURLConnection connection = null;
             try {
@@ -733,6 +741,10 @@ public class MainActivity extends Activity {
             } finally {
                 if (connection != null) connection.disconnect();
                 apkUpdateCheckRunning = false;
+                if (apkUpdateManualRequested) {
+                    apkUpdateManualRequested = false;
+                    checkForApkUpdate(true);
+                }
             }
         });
     }
