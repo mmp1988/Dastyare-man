@@ -701,7 +701,8 @@ const assert = require('assert');
       set('apptNotes', 'یادداشت تست نوبت');
       set('apptAlarm', '15');
       set('apptStatus', 'pending');
-      set('apptNextFollowup', '0');
+      set('apptNextFollowupDate', '');
+      set('apptNextFollowupTime', '10:00');
       saveAppointment();
       const created = appData.appointments.find(a => a.clientName === 'مشتری تست');
       if (!created) return { created:false };
@@ -875,8 +876,11 @@ const assert = require('assert');
       set('apptBirthdayYear', '1375');
       set('apptBirthdayMonth', '08');
       set('apptBirthdayDay', '12');
-      set('apptNextFollowup', 'custom');
-      set('apptFollowupCustomDays', '14');
+      const expectedNextDate=addDaysToJalaliKey(selectedDateKey,14);
+      toggleNextFollowupPicker();
+      const nextCalendarOpened=document.getElementById('nextFollowupJalaliPicker').style.display!=='none';
+      selectNextFollowupDate(expectedNextDate);
+      set('apptNextFollowupTime', '09:42');
       saveAppointment();
       const primary = appData.appointments.find(a => a.clientName === clientName && !isFollowupAppointment(a));
       const followup = appData.appointments.find(a => a.parentAppointmentId === primary?.id);
@@ -927,7 +931,8 @@ const assert = require('assert');
         birthdaySavedFromAppointment:!!key && appData.clientProfiles[key]?.birthDate === '1375-08-12',
         birthdayAppearsInBirthdayList:!!key && (() => { renderClientBirthdays(); return [...document.querySelectorAll('#clientBirthdaysList [data-client-birthday-key]')].some(row => row.dataset.clientBirthdayKey === encodeURIComponent(key)); })(),
         linkedToPrimary:!!followup && followup.parentAppointmentId === primary.id,
-        followupHasOwnDateAndTime:!!followup && followup.dateKey === addDaysToJalaliKey(primary.dateKey,14) && followup.time === '10:17',
+        followupHasOwnDateAndTime:!!followup && followup.dateKey === expectedNextDate && followup.time === '09:42',
+        nextAppointmentCalendarOpens:nextCalendarOpened,
         cardShowsBoth:cardText.includes('نوبت اصلی') && cardText.includes('نوبت بعدی'),
         profileShowsBoth:profileText.includes('نوبت اصلی') && profileText.includes('نوبت بعدی'),
         profileHasEditDelete:!!document.querySelector('#clientScheduledAppointments [data-client-appt-edit]') && !!document.querySelector('#clientScheduledAppointments [data-client-appt-delete]'),
@@ -945,8 +950,9 @@ const assert = require('assert');
       };
     });
     assert(primaryFollowupQA.primaryCreated && primaryFollowupQA.followupCreated &&
-      primaryFollowupQA.linkedToPrimary && primaryFollowupQA.followupHasOwnDateAndTime,
-      'Primary and follow-up must be separately stored with a stable parent link and exact date/time');
+      primaryFollowupQA.linkedToPrimary && primaryFollowupQA.followupHasOwnDateAndTime &&
+      primaryFollowupQA.nextAppointmentCalendarOpens,
+      'Primary and next appointment must use a separate Jalali calendar and independently selected exact time, then be stored with a stable parent link');
     assert(primaryFollowupQA.birthdaySavedFromAppointment && primaryFollowupQA.birthdayAppearsInBirthdayList,
       'Birthday entered in the appointment form must be saved to the customer profile and birthday list');
     assert(primaryFollowupQA.cardShowsBoth && primaryFollowupQA.profileShowsBoth && primaryFollowupQA.profileHasEditDelete,
