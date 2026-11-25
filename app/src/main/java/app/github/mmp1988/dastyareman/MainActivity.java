@@ -529,74 +529,104 @@ public class MainActivity extends Activity {
     }
 
     private void performContentUpdate(boolean force) {
+        performContentUpdate(force, false);
+    }
+
+    private void performContentUpdate(boolean force, boolean manual) {
         io.execute(() -> {
-    HttpURLConnection connection = null;
-                    try {
-                        android.content.SharedPreferences prefs = getSharedPreferences("content_updates", MODE_PRIVATE);
-                        long lastSuccess = prefs.getLong("last_success_ms", 0L);
-                        // Check at most every six hours after a successful connection; failed/offline checks are retried.
-                        if (!force && System.currentTimeMillis() - lastSuccess < 6L * 60L * 60L * 1000L) return;
-    
-                        connection = (HttpURLConnection)new URL(UPDATE_URL + "?refresh=" + System.currentTimeMillis()).openConnection();
-                        connection.setConnectTimeout(4500);
-                        connection.setReadTimeout(6500);
-                        connection.setRequestProperty("Cache-Control", "no-cache");
-                        connection.setRequestProperty("Pragma", "no-cache");
-                        if (connection.getResponseCode() != 200) return;
-    
-                        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                        try (InputStream in = new BufferedInputStream(connection.getInputStream())) {
-                            byte[] buffer = new byte[8192]; int n;
-                            while ((n = in.read(buffer)) > 0) bytes.write(buffer, 0, n);
-                        }
-                        String html = bytes.toString("UTF-8");
-                        String lowerHtml = html.toLowerCase(Locale.ROOT);
-                        // Reject truncated GitHub/error pages before they can replace the working offline copy.
-                        if (bytes.size() < 50_000 || bytes.size() > 10 * 1024 * 1024
-                                || !lowerHtml.contains("<html") || !lowerHtml.contains("</html>")
-                                || !lowerHtml.contains("<script") || !lowerHtml.contains("</script>")
-                                || !html.contains("STORAGE_KEY")) return;
-    
-                        File dir = new File(getFilesDir(), "content"); dir.mkdirs();
-                        File current = new File(dir, "index.html");
-                        boolean unchanged = false;
-                        if (current.exists() && current.length() == bytes.size()) {
-                            try (InputStream old = new java.io.FileInputStream(current);
-                                 ByteArrayOutputStream oldBytes = new ByteArrayOutputStream()) {
-                                byte[] buffer = new byte[8192]; int n;
-                                while ((n = old.read(buffer)) > 0) oldBytes.write(buffer, 0, n);
-                                unchanged = java.util.Arrays.equals(oldBytes.toByteArray(), bytes.toByteArray());
-                            }
-                        }
-                        if (unchanged) {
-                            prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
-                            return;
-                        }
-    
-                        File temp = new File(dir, "index.html.new");
-                        try (FileOutputStream out = new FileOutputStream(temp)) {
-                            out.write(bytes.toByteArray()); out.getFD().sync();
-                        }
-                        File previous = new File(dir, "index.html.previous");
-                        if (current.exists()) {
-                            if (previous.exists()) previous.delete();
-                            if (!current.renameTo(previous)) throw new Exception("Cannot stage current app page");
-                        }
-                        if (!temp.renameTo(current)) {
-                            if (previous.exists()) previous.renameTo(current);
-                            throw new Exception("Atomic update failed");
-                        }
-                        // Only throttle future checks after the new content is safely installed.
-                        prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
-                        runOnUiThread(() -> {
-                            Toast.makeText(MainActivity.this, "بخش‌های جدید دریافت شد؛ اطلاعات ذخیره‌شده حفظ شد", Toast.LENGTH_LONG).show();
-                            if (webView != null) webView.loadUrl(APP_ORIGIN + "/content/index.html");
-                        });
-                    } catch (Exception ignored) {
-                        // No network, blocked GitHub, or invalid response: keep running the installed offline copy.
-                    } finally {
-                        if (connection != null) connection.disconnect();
+            HttpURLConnection connection = null;
+            try {
+                android.content.SharedPreferences prefs = getSharedPreferences("content_updates", MODE_PRIVATE);
+                long lastSuccess = prefs.getLong("last_success_ms", 0L);
+                if (!force && System.currentTimeMillis() - lastSuccess < 6L * 60L * 60L * 1000L) return;
+
+                connection = (HttpURLConnection)new URL(UPDATE_URL + "?refresh=" + System.currentTimeMillis()).openConnection();
+                connection.setConnectTimeout(7000);
+                connection.setReadTimeout(10000);
+                connection.setRequestProperty("Cache-Control", "no-cache, no-store");
+                connection.setRequestProperty("Pragma", "no-cache");
+                if (connection.getResponseCode() != 200) throw new Exception("Content update request failed");
+
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                try (InputStream in = new BufferedInputStream(connection.getInputStream())) {
+                    byte[] buffer = new byte[8192]; int n;
+                    while ((n = in.read(buffer)) > 0) bytes.write(buffer, 0, n);
+                }
+                String html = bytes.toString("UTF-8");
+                String lowerHtml = html.toLowerCase(Locale.ROOT);
+                // Reject truncated or incomplete pages before touching the working offline copy.
+                if (bytes.size() < 50_000 || bytes.size() > 10 * 1024 * 1024
+                        || !lowerHtml.contains("<html") || !lowerHtml.contains("</html>")
+                        || !lowerHtml.contains("<script") || !lowerHtml.contains("</script>")
+                        || !html.contains("STORAGE_KEY")) {
+                    throw new Exception("Downloaded app page failed validation");
+                }
+
+                File dir = new File(getFilesDir(), "content");
+                if (!dir.exists() && !dir.mkdirs()) throw new Exception("Cannot create content directory");
+                File current = new File(dir, "index.html");
+                boolean unchanged = false;
+                if (current.exists() && current.length() == bytes.size()) {
+                    try (InputStream old = new java.io.FileInputStream(current);
+                         ByteArrayOutputStream oldBytes = new ByteArrayOutputStream()) {
+                        byte[] buffer = new byte[8192]; int n;
+                        while ((n = old.read(buffer)) > 0) oldBytes.write(buffer, 0, n);
+                        unchanged = java.util.Arrays.equals(oldBytes.toByteArray(), bytes.toByteArray());
                     }
+                }
+
+                if (!unchanged) {
+                    File temp = new File(dir, "index.html.new");
+                    try (FileOutputStream out = new FileOutputStream(temp)) {
+                        out.write(bytes.toByteArray());
+                        out.getFD().sync();
+                    }
+                    File previous = new File(dir, "index.html.previous");
+                    if (current.exists()) {
+                        if (previous.exists()) previous.delete();
+                        if (!current.renameTo(previous)) throw new Exception("Cannot stage current app page");
+                    }
+                    if (!temp.renameTo(current)) {
+                        if (previous.exists()) previous.renameTo(current);
+                        throw new Exception("Atomic content update failed");
+                    }
+                }
+
+                prefs.edit().putLong("last_success_ms", System.currentTimeMillis()).apply();
+                if (manual) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this,
+                                unchanged ? "برنامه به‌روز است؛ صفحه با نسخه ذخیره‌شده دوباره بارگذاری می‌شود." : "نسخه جدید دریافت شد؛ در حال اعمال تغییرات…",
+                                Toast.LENGTH_LONG).show();
+                        reloadContentPage();
+                    });
+                } else if (!unchanged) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "بخش‌های جدید دریافت شد؛ اطلاعات ذخیره‌شده حفظ شد", Toast.LENGTH_LONG).show();
+                        reloadContentPage();
+                    });
+                }
+            } catch (Exception e) {
+                if (manual) runOnUiThread(() ->
+                        Toast.makeText(MainActivity.this,
+                                "بروزرسانی محتوای برنامه انجام نشد؛ اتصال اینترنت را بررسی کن. نسخه فعلی و اطلاعاتت محفوظ هستند.",
+                                Toast.LENGTH_LONG).show());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        });
+    }
+
+    // A unique URL bypasses WebView's document cache without clearing localStorage,
+    // IndexedDB, customer photos, or the app's offline data.
+    private void reloadContentPage() {
+        WebView currentWebView = webView;
+        if (currentWebView == null) return;
+        currentWebView.post(() -> {
+            WebView activeWebView = webView;
+            if (activeWebView == null || isFinishing() || isDestroyed()) return;
+            activeWebView.clearCache(false);
+            activeWebView.loadUrl(APP_ORIGIN + "/content/index.html?bundle_refresh=" + System.currentTimeMillis());
         });
     }
 
@@ -922,10 +952,10 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return ""; }
         }
         @JavascriptInterface public void updateApp() {
-            performContentUpdate(true);
+            performContentUpdate(true, false);
         }
         @JavascriptInterface public void checkForUpdates() {
-            performContentUpdate(true);
+            performContentUpdate(true, true);
             checkForApkUpdate(true);
         }
     }
