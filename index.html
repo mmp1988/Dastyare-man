@@ -3061,6 +3061,18 @@
           return;
         }
       }
+      var nextDateRaw=document.getElementById('apptNextFollowupDate').value.trim();
+      var nextDateKey=nextDateRaw?parseClientJalaliDate(nextDateRaw):'';
+      var nextTime=document.getElementById('apptNextFollowupTime').value;
+      var existingFollowup=appData.appointments.find(a=>a.parentAppointmentId===(existingAppointment?.id || (editId || ('appt_'+Date.now())))&&a.status!=='canceled');
+      var followupConflict=false;
+      if(selectedAppointmentType==='primary'&&nextDateRaw){
+        if(!nextDateKey){showToast('تاریخ نوبت بعدی را از تقویم شمسی انتخاب کن.');return;}
+        if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(nextTime||'')){showToast('ساعت نوبت بعدی را دقیق انتخاب کن.');return;}
+        if(nextDateKey<selectedDateKey){showToast('تاریخ نوبت بعدی نمی‌تواند قبل از نوبت اصلی باشد.');return;}
+        followupConflict=hasAppointmentSlotConflict(nextDateKey,nextTime,existingFollowup&&existingFollowup.id);
+        if(followupConflict){showToast('ساعت انتخابی نوبت بعدی با یک نوبت دیگر تداخل دارد؛ زمان دیگری انتخاب کن. ⛔');return;}
+      }
       var birthdayYear = String(document.getElementById('apptBirthdayYear')?.value || '').trim();
       var birthdayMonth = String(document.getElementById('apptBirthdayMonth')?.value || '').trim();
       var birthdayDay = String(document.getElementById('apptBirthdayDay')?.value || '').trim();
@@ -3116,18 +3128,8 @@
         var idx = appData.appointments.findIndex(function(a){return a.id === editId;});
         if (idx > -1) appData.appointments[idx] = Object.assign({},appData.appointments[idx],payload);
       } else appData.appointments.push(payload);
-      var nextDateRaw=document.getElementById('apptNextFollowupDate').value.trim();
-      var nextDateKey=nextDateRaw?parseClientJalaliDate(nextDateRaw):'';
-      var nextTime=document.getElementById('apptNextFollowupTime').value;
       var followupCreatedOrUpdated=false;
-      var followupConflict=false;
-      var existingFollowup=appData.appointments.find(a=>a.parentAppointmentId===payload.id&&a.status!=='canceled');
       if(selectedAppointmentType==='primary'&&nextDateRaw){
-        if(!nextDateKey){showToast('تاریخ نوبت بعدی را از تقویم شمسی انتخاب کن.');return;}
-        if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(nextTime||'')){showToast('ساعت نوبت بعدی را دقیق انتخاب کن.');return;}
-        if(nextDateKey<selectedDateKey){showToast('تاریخ نوبت بعدی نمی‌تواند قبل از نوبت اصلی باشد.');return;}
-        followupConflict=hasAppointmentSlotConflict(nextDateKey,nextTime,existingFollowup&&existingFollowup.id);
-        if(followupConflict){showToast('ساعت انتخابی نوبت بعدی با یک نوبت دیگر تداخل دارد؛ زمان دیگری انتخاب کن. ⛔');return;}
         var followupData={
           id:existingFollowup?existingFollowup.id:'appt_fu_'+payload.id,
           dateKey:nextDateKey,time:nextTime,clientName:clientName,
