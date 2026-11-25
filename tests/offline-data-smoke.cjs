@@ -459,6 +459,19 @@ const assert = require('assert');
       const namedOk = !!named && named.clientName === 'مینا' &&
         named.time === '14:00' && named.service.includes('کاشت مژه') && !minaPendingBooking;
       appData.appointments = [];
+      minaPendingBooking = null;
+      minaConversationBooking = null;
+      const fullNameBookingReply = minaBuildReply('برای فردا ساعت ۱۸:۴۵ دقیقه نوبت کاشت مژه را به مینا موسوی مطلق بده');
+      const fullNameBooking = appData.appointments[0];
+      const fullNameBookingOk = !!fullNameBooking &&
+        fullNameBooking.clientName === 'مینا موسوی مطلق' &&
+        fullNameBooking.time === '18:45' &&
+        fullNameBooking.service.includes('کاشت مژه') &&
+        fullNameBooking.dateKey > getTodayKey() &&
+        /نوبتت ثبت شد/.test(fullNameBookingReply) &&
+        !minaPendingBooking;
+
+      appData.appointments = [];
       const naturalTomorrowReply = minaBuildReply('برای فردا ساعت ۴ بعد از ظهر نوبت لیفت مژه انجام بده');
       const naturalTomorrow = appData.appointments[0];
       const naturalTomorrowOk = !!naturalTomorrow &&
@@ -512,11 +525,12 @@ const assert = require('assert');
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply) && !!minaConversationBooking;
-      return { contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { fullNameBookingOk, fullNameBookingReply, fullNameBooking, contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
+    assert(minaBookingResult.fullNameBookingOk, 'Mina must immediately save a full-name lash booking for tomorrow at 18:45 from the exact natural Persian phrasing');
     assert(minaBookingResult.naturalTomorrowOk, 'Mina must understand “انجام بده” and save tomorrow 4 PM lash-lift booking without a client name');
     assert(minaBookingResult.spokenTimeOk, 'Mina must parse Persian spoken half-hour times and tag the appointment as assistant-created');
     assert(minaBookingResult.exactUserCommandOk, 'Mina must parse the exact natural-language command with 5:30 PM and client name after the date');
