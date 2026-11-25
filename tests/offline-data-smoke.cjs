@@ -134,7 +134,9 @@ const assert = require('assert');
           noCustomerAppointment: appData.appointments.length === 0,
           bothTomorrow: reminders.length === 2 && reminders.every(r => toJalali(r.date) === expectedJalali),
           eveningTimes: reminders.map(r => r.time).sort().join(',') === '19:00,21:00',
-          successReply: typeof reply === 'string' && /دکتر/u.test(reply) && /آرایشگاه/u.test(reply)
+          successReply: typeof reply === 'string' && /دکتر/u.test(reply) && /آرایشگاه/u.test(reply),
+          debugTitles: reminders.map(r => r.message),
+          debugReply: reply
         };
       } finally {
         appData.reminders = previousReminders;
