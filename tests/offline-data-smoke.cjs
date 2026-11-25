@@ -921,7 +921,9 @@ const assert = require('assert');
       const calendarText = document.getElementById('calendarGrid').textContent || '';
       const scheduleText = document.getElementById('dayAppointmentsBody').textContent || '';
       const calendarShowsFollowup = calendarText.includes('نوبت بعدی');
+      const calendarShowsPrimary = calendarText.includes('نوبت اصلی');
       const scheduleShowsFollowup = scheduleText.includes('نوبت بعدی');
+      const scheduleShowsPrimary = scheduleText.includes('نوبت اصلی');
       if (primary) cycleStatus(primary.id);
       const cardAfterDone = [...document.querySelectorAll('#clientsListContainer > div')].find(el => el.textContent.includes(clientName));
       const followupStillShownAfterDone = !!cardAfterDone && cardAfterDone.textContent.includes('نوبت بعدی');
@@ -943,7 +945,9 @@ const assert = require('assert');
           appData.appointments.some(a => a.id === followup.id) &&
           extraAppointment.dateKey === extraDate && extraAppointment.time === '11:33',
         calendarShowsFollowup,
+        calendarShowsPrimary,
         scheduleShowsFollowup,
+        scheduleShowsPrimary,
         followupStillShownAfterDone,
         primaryDate,
         followupDate
@@ -961,7 +965,7 @@ const assert = require('assert');
       'Customer appointment controls must be compact and edit directly inside the customer profile');
     assert(primaryFollowupQA.profileFormAddsNewWithoutOverwriting,
       'Adding another appointment from the customer profile must create a new record without overwriting the primary or follow-up');
-    assert(primaryFollowupQA.calendarShowsFollowup && primaryFollowupQA.scheduleShowsFollowup,
+    assert(primaryFollowupQA.calendarShowsFollowup && primaryFollowupQA.calendarShowsPrimary && primaryFollowupQA.scheduleShowsFollowup && primaryFollowupQA.scheduleShowsPrimary,
       'Main calendar and day schedule must visibly distinguish follow-up appointments');
     assert(primaryFollowupQA.followupStillShownAfterDone,
       'Marking the primary appointment done must not hide or remove its future follow-up');
@@ -994,6 +998,7 @@ const assert = require('assert');
       document.getElementById('apptType').value = 'followup';
       updateAppointmentTypeUI();
       const calendarOpened = document.getElementById('apptJalaliPicker').style.display === 'block';
+      const todayShortcutsPresent = !!document.querySelector('#apptJalaliPicker button[onclick="selectAppointmentJalaliToday()"]') && !!document.querySelector('#nextFollowupJalaliPicker button[onclick="selectNextFollowupToday()"]');
       const autoScheduleHidden = document.getElementById('autoFollowupSection').style.display === 'none';
       selectAppointmentJalaliDate(targetDate);
       saveAppointment();
@@ -1002,6 +1007,7 @@ const assert = require('assert');
       const linkedFollowups = appData.appointments.filter(a => a.parentAppointmentId === 'qa-direct-followup-primary');
       return {
         calendarOpened,
+        todayShortcutsPresent,
         autoScheduleHidden,
         saved:!!created,
         exactDate:!!created && created.dateKey === targetDate,
@@ -1011,7 +1017,7 @@ const assert = require('assert');
         pickerClosedAfterSelection:document.getElementById('apptJalaliPicker').style.display === 'none'
       };
     });
-    assert(directFollowupModalQA.calendarOpened && directFollowupModalQA.autoScheduleHidden &&
+    assert(directFollowupModalQA.calendarOpened && directFollowupModalQA.todayShortcutsPresent && directFollowupModalQA.autoScheduleHidden &&
       directFollowupModalQA.saved && directFollowupModalQA.exactDate && directFollowupModalQA.exactTime &&
       directFollowupModalQA.linkedToPrimary && directFollowupModalQA.noDuplicateFollowup &&
       directFollowupModalQA.pickerClosedAfterSelection,
