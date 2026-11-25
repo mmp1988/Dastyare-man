@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dastyare-man-final-v82';
+const CACHE_NAME = 'dastyare-man-final-v83';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -25,6 +25,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+    return;
+  }
+  if (event.data && event.data.type === 'GET_VERSION' && event.source) {
+    event.source.postMessage({ type: 'APP_VERSION', version: CACHE_NAME });
   }
 });
 
