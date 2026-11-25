@@ -5768,8 +5768,7 @@
           const parts = sharedClock.split(':');
           clock = [sharedClock, parts[0], parts[1], ''];
         }
-        if (!clock) return 'حتماً عزیزم 💗 ساعت رو به هر شکلی که راحتی بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر».';
-        let hour = Number(clock[1]), minute = Number(clock[2] || 0);
+        let hour = clock ? Number(clock[1]) : 0, minute = clock ? Number(clock[2] || 0) : 0;
         const period = clock[3] || (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(t) ? 'بعدازظهر' : /صبح/.test(t) ? 'صبح' : '');
         if (/(?:بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب)/.test(period) && hour < 12) hour += 12;
         if ((/صبح/.test(period) || /شب/.test(period)) && hour === 12) hour = 0;
@@ -5821,7 +5820,7 @@
           if (delta === 0 && !/(?:امروز|فردا|پس\s*فردا)/.test(t)) delta = 7;
           dateKey = addDaysToJalaliKey(dateKey, delta);
         }
-        const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*(?:صورت|پوست)|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
+        if (!clock && dateKey >= todayKey) return 'حتماً عزیزم 💗 ساعت رو هم بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر».\n        const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*(?:صورت|پوست)|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
         const serviceMatch = t.match(servicePattern);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
         const knownService = (appData.services || []).find(s => s.name && t.includes(String(s.name).toLowerCase()));
@@ -5858,7 +5857,7 @@
             /(?:پس\s*فردا|فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|ظهر|شب|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
-          const time = pad2(hour) + ':' + pad2(minute);
+          const time = clock ? pad2(hour) + ':' + pad2(minute) : '';
         if (!service) service = '';
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === time && a.status !== 'canceled' &&
@@ -6905,7 +6904,8 @@
         minaConversationBooking = { original: expandedRaw };
         return 'حتماً عزیزم 💗 فقط تاریخ نوبت رو هم بگو؛ مثلاً «فردا» یا «پنجشنبه».';
       }
-      if (isBookingIntent && hasDateAndService && !hasClock) {
+      const hasHistoricalMonthDate = /\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(normalized);
+      if (isBookingIntent && hasDateAndService && !hasClock && !hasHistoricalMonthDate) {
         minaConversationBooking = { original: expandedRaw };
         return 'حتماً عزیزم 💗 فقط ساعت نوبت رو هم بگو؛ مثلاً «۵ و نیم بعدازظهر» یا «۴ عصر».';
       }
