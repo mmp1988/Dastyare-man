@@ -3106,11 +3106,11 @@
       const reminderJalaliDate = addDaysToJalaliKey(appointment.dateKey, days);
       const gregorianDate = jalaliKeyToGregorianDate(reminderJalaliDate);
       if (!gregorianDate) return;
-      const message = '📞 زمان تماس برای نوبت ترمیم مشتری\\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
-        (appointment.phone ? '\\n📱 تلفن: ' + appointment.phone : '') +
-        '\\n💅 خدمت قبلی: ' + (appointment.service || 'ثبت نشده') +
-        '\\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
-        '\\n🔔 پیگیری ترمیم: ' + formatJalaliFull(reminderJalaliDate);
+      const message = '📞 زمان تماس برای نوبت ترمیم مشتری\n👩🏻 مشتری: ' + (appointment.clientName || 'مشتری') +
+        (appointment.phone ? '\n📱 تلفن: ' + appointment.phone : '') +
+        '\n💅 خدمت قبلی: ' + (appointment.service || 'ثبت نشده') +
+        '\n📅 تاریخ مراجعه: ' + formatJalaliFull(appointment.dateKey) +
+        '\n🔔 پیگیری ترمیم: ' + formatJalaliFull(reminderJalaliDate);
       const targetAt = iranDateTimeToEpoch(gregorianDate, time);
       const item = { id, date: gregorianDate, time, message, notified: false, enabled: true,
         createdAt: old?.createdAt || Date.now(), timezone: 'Asia/Tehran', kind: 'automatic-repair',
@@ -4863,7 +4863,7 @@
       const days = Number(document.getElementById('settingRepairReminderDays')?.value);
       const time = document.getElementById('settingRepairReminderTime')?.value || '10:00';
       if (!Number.isInteger(days) || days < 1 || days > 365) { showToast('تعداد روز باید بین ۱ تا ۳۶۵ باشد.'); applySettingsUI(); return; }
-      if (!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(time)) { showToast('ساعت هشدار معتبر نیست.'); applySettingsUI(); return; }
+      if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) { showToast('ساعت هشدار معتبر نیست.'); applySettingsUI(); return; }
       appData.settings.repairReminderDays = days;
       appData.settings.repairReminderTime = time;
       appData.settings.repairReminderEnabled = !!document.getElementById('settingRepairReminderEnabled')?.checked;
@@ -5156,7 +5156,7 @@
       const mode=panel.dataset.mode==='month'?'month':'today';
       const today=getTodayKey(), monthPrefix=today.slice(0,7)+'-';
       const timeValue=value=>{
-        const match=String(value||'').match(/^(\\d{1,2}):(\\d{1,2})$/);
+        const match=String(value||'').match(/^(\d{1,2}):(\d{1,2})$/);
         return match?Number(match[1])*60+Number(match[2]):1440;
       };
       const timeSort=(a,b)=>timeValue(a.time)-timeValue(b.time)||String(a.clientName||'').localeCompare(String(b.clientName||''),'fa');
@@ -6548,7 +6548,7 @@
         .replace(/یک\s*و\s*نیم/g, '1:30').replace(/هشت\s*و\s*نیم/g, '8:30')
         .replace(/نه\s*و\s*نیم/g, '9:30').replace(/ده\s*و\s*نیم/g, '10:30')
         .replace(/یازده\s*و\s*نیم/g, '11:30').replace(/دوازده\s*و\s*نیم/g, '12:30');
-      const spokenNumber = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?)';
+      const spokenNumber = '(?:\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s+و\\s+(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?)';
       const spokenMinutes = new RegExp('(?:ساعت\\s*)?(' + spokenNumber + ')\\s+و\\s+(' + spokenNumber + ')\\s*دقیقه', 'g');
       result = result.replace(spokenMinutes, (match, hourWord, minuteWord) => {
         const h = minaPersianNumberValue(hourWord), m = minaPersianNumberValue(minuteWord);
@@ -6915,7 +6915,7 @@
       const value = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
       const rawValue = minaCleanText(minaNormalizeDigits(raw)).toLowerCase();
       if (/(?:12|دوازده)\s*شب/u.test(rawValue) || /(?:12|دوازده)\s*شب/u.test(value)) return '00:00';
-      const numberWord = '(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
+      const numberWord = '(?:\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\s*و\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       const relative = value.match(new RegExp('(' + numberWord + '\\s*دقیقه|یک\\s*ربع|ربع|نیم\\s*ساعت|نیم\\s*ربع)\\s*(به|مونده\\s*به|مانده\\s*به|قبل\\s*از|بعد\\s*از|گذشته\\s*از)\\s*(' + numberWord + ')(?:\\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
       const spokenExactParts = rawValue.replace(/^ساعت\s*/u, '').match(/^(.+?)\s+و\s+(.+?)\s*دقیقه$/u);
       if (spokenExactParts) {
@@ -7080,7 +7080,7 @@
       const combined=minaPendingPersonalReminder?minaPendingPersonalReminder.raw+' '+String(raw||''):String(raw||'');
       const combinedText=minaCleanText(minaNormalizeDigits(combined)).toLocaleLowerCase('fa');
       // Relative durations are resolved locally (offline-first), including colloquial hours and days.
-      const spokenNumber='(?:\\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
+      const spokenNumber='(?:\d{1,2}|صفر|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|سی(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|چهل(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|پنجاه(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه))?|شصت)';
       let relativeTargetAt=null;
       let durationMs=0;
       let durationMatch=combinedText.match(new RegExp('(?:در\\s*)?('+spokenNumber+')\\s*ساعت(?:\\s*و\\s*('+spokenNumber+')\\s*دقیقه)?\\s*(?:دیگه|دیگر|بعد(?:تر)?)','u'));
@@ -7309,7 +7309,7 @@
         if (typeof renderClientsTab === 'function') renderClientsTab();
         if (typeof renderClientBirthdays === 'function') renderClientBirthdays();
         if (typeof updateDashboardStats === 'function') updateDashboardStats();
-        return 'انجام شد عزیزم 🌸 فقط نوبت ' + (appt.clientName || 'بدون نام') + ' از تقویم حذف شد و پرونده و تاریخ تولد مشتری باقی ماند.\\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\\n💅 ' + (appt.service || 'خدمت') + '\\nاطلاعات تولد و پرونده دست‌نخورده ماند 💗';
+        return 'انجام شد عزیزم 🌸 فقط نوبت ' + (appt.clientName || 'بدون نام') + ' از تقویم حذف شد و پرونده و تاریخ تولد مشتری باقی ماند.\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\n💅 ' + (appt.service || 'خدمت') + '\nاطلاعات تولد و پرونده دست‌نخورده ماند 💗';
       }
       if (isCancel) {
         if (minaLastReferencedAppointmentId === appt.id) minaLastReferencedAppointmentId = null;
@@ -7318,7 +7318,7 @@
         appt.reminderEnabled = false;
         saveData(); renderCalendar(); renderDaySchedule();
         if (typeof updateDashboardStats === 'function') updateDashboardStats();
-        return 'چشم عزیزم 🌸 نوبت ' + (appt.clientName || 'بدون نام') + ' لغو شد و از نوبت‌های فعال خارج شد.\\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\\nاطلاعاتش برای سوابق حفظ شد 💗';
+        return 'چشم عزیزم 🌸 نوبت ' + (appt.clientName || 'بدون نام') + ' لغو شد و از نوبت‌های فعال خارج شد.\n📅 ' + formatJalaliFull(appt.dateKey) + '، ⏰ ' + (appt.time || 'بدون ساعت') + '\nاطلاعاتش برای سوابق حفظ شد 💗';
       }
       if (isDone) {
         appt.status = 'done';
@@ -7382,9 +7382,9 @@
       appt.reminderNotified = false;
       saveData(); renderCalendar(); renderDaySchedule();
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
-      return 'انجام شد عزیزم 🌸 همان نوبت رو ویرایش کردم؛ نوبت تکراری نساختم.\\n👩🏻 مشتری: ' + (appt.clientName || 'بدون نام') +
-        '\\n📅 تاریخ: ' + formatJalaliFull(appt.dateKey) + '\\n⏰ ساعت: ' + (appt.time || 'بدون ساعت') +
-        '\\n💅 خدمت: ' + (appt.service || 'خدمت ثبت‌نشده') + '\\nتغییر: ' + changed.join('؛ ') + '\\nاطلاعات دیگه نوبت حفظ شد 💗';
+      return 'انجام شد عزیزم 🌸 همان نوبت رو ویرایش کردم؛ نوبت تکراری نساختم.\n👩🏻 مشتری: ' + (appt.clientName || 'بدون نام') +
+        '\n📅 تاریخ: ' + formatJalaliFull(appt.dateKey) + '\n⏰ ساعت: ' + (appt.time || 'بدون ساعت') +
+        '\n💅 خدمت: ' + (appt.service || 'خدمت ثبت‌نشده') + '\nتغییر: ' + changed.join('؛ ') + '\nاطلاعات دیگه نوبت حفظ شد 💗';
     }
     function minaTryLookupAppointment(raw) {
       const text = minaCleanText(minaExpandSpokenTime(raw)).toLowerCase();
@@ -7551,7 +7551,7 @@
       const uniqueClients=new Set(todays.map(a=>String(a.phone||a.clientName||'').trim().toLocaleLowerCase()).filter(Boolean)).size;
       const futureLimit=addDaysToJalaliKey(today,7);
       const upcoming=valid.filter(a=>String(a.dateKey||'')>today&&String(a.dateKey||'')<=futureLimit).sort((a,b)=>(String(a.dateKey||'')+(a.time||'')).localeCompare(String(b.dateKey||'')+(b.time||'')));
-      const nextToday=pending.find(a=>{const m=String(a.time||'').match(/^(\\d{1,2}):(\\d{2})$/);return m&&Number(m[1])*60+Number(m[2])>=nowMin;});
+      const nextToday=pending.find(a=>{const m=String(a.time||'').match(/^(\d{1,2}):(\d{2})$/);return m&&Number(m[1])*60+Number(m[2])>=nowMin;});
       const date=document.getElementById('smartDashDate');
       if(date)date.textContent=formatJalaliFull(today);
       const list=document.getElementById('smartUpcomingList');if(!list)return;
