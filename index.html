@@ -5249,7 +5249,9 @@
         'پاکشکن':'پاکش کن','حذفشکن':'حذفش کن','عوضشکن':'عوضش کن','جابجا':'جابه‌جا','جابجاش':'جابه‌جاش',
         'جابهجایی':'جابه‌جایی','مشتریی':'مشتری','ساعتو':'ساعت',
         'یه':'یک','يک':'یک','تایید':'تأیید','تائید':'تأیید','تغیر':'تغییر','تغییرر':'تغییر',
-        'ویرایشش':'ویرایش','ویرایس':'ویرایش','حزف':'حذف','حظف':'حذف','لغوئ':'لغو'
+        'ویرایشش':'ویرایش','ویرایس':'ویرایش','حزف':'حذف','حظف':'حذف','لغوئ':'لغو',
+        'مزه':'مژه','مژهه':'مژه','مژ':'مژه','ناخون':'ناخن','ناخنن':'ناخن','ابروو':'ابرو','لیفتت':'لیفت','کاشتت':'کاشت',
+        'اکستنشنن':'اکستنشن','رنگگ':'رنگ','کوتاهیی':'کوتاهی','ترمیمم':'ترمیم','فیشال':'فیشیال'
       };
       const distance = (a, b) => {
         // Damerau-Levenshtein: also tolerates two adjacent letters typed in reverse order.
@@ -5277,7 +5279,8 @@
       return normalized.split(/\s+/).map(word=>{
         if(aliases[word])return aliases[word];
         // Collapse accidental key repeats, e.g. "فردداا" -> "فردا".
-        const compact=word.replace(/(.)\1{2,}/g,'$1$1');
+        const collapsed=word.replace(/(.)\1/g,'$1');
+        const compact=commandWords.includes(collapsed) ? collapsed : word;
         if(aliases[compact])return aliases[compact];
         if(compact.length<4||/^[0-9:/.٫-]+$/.test(compact))return compact;
         const limit=compact.length>=8?2:1;
