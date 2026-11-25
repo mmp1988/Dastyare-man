@@ -5895,7 +5895,11 @@
     function minaNeedsCloudUnderstanding(message) {
       // Cloud AI is for salon knowledge, writing and genuinely ambiguous multi-step reasoning.
       // Deterministic appointment CRUD must run locally so it works instantly and offline.
-      if (!navigator.onLine || !minaIsSalonScopeRequest(message)) return false;
+      if (!navigator.onLine) return false;
+      const rawMessage = String(message || '');
+      const rawMultiAction = /(?:و\s*(?:یادآوری|حذف|لغو|ثبت|تغییر|عوض|جابجا|جابه.?جا|فعال|غیرفعال)|همزمان|هم\s*این)/u.test(rawMessage);
+      if (rawMultiAction && /(?:نوبت|رزرو|وقت|مشتری|تقویم)/u.test(rawMessage)) return true;
+      if (!minaIsSalonScopeRequest(message)) return false;
       const normalized = minaCleanText(minaExpandSpokenTime(String(message || ''))).toLocaleLowerCase('fa');
       // Multi-action salon requests must reach the reasoning model even if local CRUD
       // heuristics do not recognize every colloquial mutation verb in the sentence.
