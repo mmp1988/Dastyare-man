@@ -5988,7 +5988,10 @@
       // Mask customer names from both profiles and appointment history before cloud routing.
       // Tokens are restored only on this device, so the model can understand references without receiving names.
       const privateClientNames = new Set([
-        ...Object.values(appData.clientProfiles || {}).map(profile => profile && String(profile.name || '').trim()),
+        ...Object.values(appData.clientProfiles || {}).flatMap(profile => [
+          profile && String(profile.name || '').trim(),
+          ...(Array.isArray(profile?.aliases) ? profile.aliases.map(alias => String(alias || '').trim()) : [])
+        ]),
         ...(appData.appointments || []).map(appointment => appointment && String(appointment.clientName || '').trim())
       ].filter(name => name && name.length > 1));
       for (const name of privateClientNames) {
@@ -6034,7 +6037,7 @@
           response = await fetch(MINA_SMART_BRAIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...(mode === 'understand' ? { mode: 'understand' } : {}), message: safe.message }),
+            body: JSON.stringify({ ...(mode !== 'reply' ? { mode } : {}), message: safe.message }),
             signal: controller.signal,
             cache: 'no-store'
           });
@@ -6156,6 +6159,8 @@
     function minaTryAddClientFromMessage(raw) {
       const normalized = minaNormalizePersianTypos(minaNormalizeDigits(String(raw || ''))).replace(/[يى]/g, 'ی').trim();
       const text = normalized.toLocaleLowerCase('fa');
+      // Appointment requests must never be interpreted as customer-profile creation.
+      if (/(?:نوبت|رزرو|وقت|مراجعه)/u.test(text)) return null;
       const addIntent = /(?:اضافه|افزودن|ثبت|وارد\s*کن|بساز|ایجاد|ذخیره)/u.test(text);
       const customerIntent = /(?:مشتری|مشتریان|پرونده)/u.test(text);
       const phoneMatch = normalized.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
@@ -6448,7 +6453,7 @@
         let newName=renameMatch[2].replace(/[،,:؛.!؟]+$/u,'').trim();
         newName=newName.replace(/^(?:اسم|نام)\s+/u,'').trim();
         if (newName.length<2 || newName.length>60 || /(?:شماره|تلفن|نوبت|فردا|امروز|ساعت)/u.test(newName)) return 'اسم جدید رو دقیق متوجه نشدم؛ لطفاً فقط نام جدید رو بگو 💗';
-        const oldKey=target.key, profile=getClientProfile(oldKey), oldName=profile.name||target.alias;
+        const oldKey=target.key, profile=getClientProfile(oldKey), oldName=profile.name||target.alias, oldPhone=String(profile.phone||'').replace(/\D/g,'');
         const duplicate=entries.find(([key,p])=>key!==oldKey && normalize(p?.name||key)===normalize(newName));
         if (duplicate) return 'مشتری دیگری با این نام وجود داره؛ لطفاً نام دقیق‌تری انتخاب کن تا پرونده‌ها قاطی نشن 💗';
         profile.aliases=Array.from(new Set([...(profile.aliases||[]),oldName,newName])).filter(Boolean).slice(-12);
@@ -6456,7 +6461,13 @@
         profile.name=newName;
         if(newKey!==oldKey){profiles[newKey]=profile;delete profiles[oldKey];
           if(appData.clientNotes && Object.prototype.hasOwnProperty.call(appData.clientNotes,oldKey)){appData.clientNotes[newKey]=appData.clientNotes[oldKey];delete appData.clientNotes[oldKey];}}
-        (appData.appointments||[]).forEach(a=>{if((profile.clientId && a.clientId===profile.clientId)||clientMatchesAppointment(oldKey,a)){a.clientName=newName;if(profile.phone)a.phone=profile.phone;if(profile.clientId)a.clientId=profile.clientId;}});
+        (appData.appointments||[]).forEach(a=>{
+          const apptPhone=String(a.phone||'').replace(/\D/g,'');
+          const sameClient=(profile.clientId && a.clientId===profile.clientId) ||
+            normalize(a.clientName)===normalize(oldName) ||
+            (oldPhone && apptPhone===oldPhone);
+          if(sameClient){a.clientName=newName;if(profile.phone)a.phone=profile.phone;if(profile.clientId)a.clientId=profile.clientId;}
+        });
         saveData();
         if(typeof renderClientsTab==='function')renderClientsTab();
         if(typeof openClientRecord==='function')openClientRecord(newKey);
