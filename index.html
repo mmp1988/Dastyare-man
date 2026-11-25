@@ -6294,7 +6294,20 @@
           .sort((a,b) => (b.dateKey + (b.time || '')).localeCompare(a.dateKey + (a.time || '')));
         target = latest[0] || null;
       }
+      if (!target && minaPendingBooking) {
+        return 'درخواست نوبت هنوز به‌صورت پیش‌نویس منتظر تأیید توست و به تقویم اضافه نشده. مشخصاتش رو بررسی کن و «تأیید» بفرست تا ذخیره و در تقویم نمایش داده بشه 💗';
+      }
+      if (!target && minaConversationBooking) {
+        return 'جزئیات درخواست قبلی کامل نشده بود؛ به همین دلیل نوبتی ذخیره نشده. لطفاً فقط اطلاعاتی رو که مینا پرسیده (تاریخ یا ساعت) بگو تا ثبت رو کامل کنم 🌷';
+      }
       if (!target) return 'تقویم و فهرست نوبت‌ها رو بررسی کردم؛ هنوز نوبتی برای نمایش ثبت نشده. اگر بخوای همین الان ثبتش می‌کنیم 🌷';
+      // Navigate to the exact saved appointment so the user can immediately see it in the calendar.
+      selectedDateKey = target.dateKey;
+      viewYear = Number(String(target.dateKey || '').slice(0,4));
+      viewMonth = Number(String(target.dateKey || '').slice(5,7));
+      showFollowupOnly = false;
+      if (typeof renderCalendar === 'function') renderCalendar();
+      if (typeof renderDaySchedule === 'function') renderDaySchedule();
       return 'بررسی کردم عزیزم 🌸 نوبت «' + (target.clientName || 'بدون نام') +
         '» در اطلاعات برنامه ذخیره شده و در تقویم قرار دارد.\n📅 ' + formatJalaliFull(target.dateKey) +
         '، ساعت ' + (target.time || 'بدون ساعت') + '\n💅 ' + (target.service || 'خدمت ثبت‌نشده') +
@@ -6312,9 +6325,12 @@
       const relative = value.match(new RegExp('(' + numberWord + '\\s*دقیقه|یک\\s*ربع|ربع|نیم\\s*ساعت|نیم\\s*ربع)\\s*(به|مونده\\s*به|مانده\\s*به|قبل\\s*از|بعد\\s*از|گذشته\\s*از)\\s*(' + numberWord + ')(?:\\s*(صبح|ظهر|بعدازظهر|عصر|شب))?', 'u'));
       const exactSpokenMinutes = rawValue.match(new RegExp('(?:ساعت\\s*)?(' + numberWord + ')\\s+و\\s+(' + numberWord + ')\\s*دقیقه', 'u'));
       if (exactSpokenMinutes) {
-        const exactHour = minaPersianNumberValue(exactSpokenMinutes[1]);
+        let exactHour = minaPersianNumberValue(exactSpokenMinutes[1]);
         const exactMinute = minaPersianNumberValue(exactSpokenMinutes[2]);
+        const period = rawValue.match(/صبح|ظهر|بعدازظهر|عصر|شب/u)?.[0] || '';
         if (Number.isFinite(exactHour) && Number.isFinite(exactMinute) && exactHour >= 0 && exactHour <= 23 && exactMinute >= 0 && exactMinute <= 59) {
+          if (/(?:ظهر|بعدازظهر|عصر|شب)/u.test(period) && exactHour < 12) exactHour += 12;
+          if (/(?:صبح|شب)/u.test(period) && exactHour === 12) exactHour = 0;
           return pad2(exactHour) + ':' + pad2(exactMinute);
         }
       }
@@ -6453,7 +6469,9 @@
       // as an explicit new time, not as another request for clarification.
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب))/u.test(text);
       const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند))/u.test(text);
-      const isMove = contextualFollowup || /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار)|نوبت(?:ش)?(?:و|\s*رو|\s*را)?\s*(?:بکن|بسه|بذار|بزار)|(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:(?:رو|را)\s*)?(?:بکن|بسه|بذار|بزار))/u.test(text);
+      const terminalDestinationPhrase = /(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو|را)\s+(?:(?:برای)\s*)?(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)).*(?:\s)(?:کن|بکن|بشه|باشه)$/u.test(text);
+      const namedSlotChange = /(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو|را)\s+(?:(?:ساعت|روز|تاریخ)\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text);
+      const isMove = contextualFollowup || terminalDestinationPhrase || namedSlotChange || /(?:تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|ببرش|بکنش|بچرخون|بنداز|جا\s*به\s*جا|جابجاش|(?:رو|را)\s+(?:بکن|بذار|بزار)|نوبت(?:ش)?(?:و|\s*رو|\s*را)?\s*(?:بکن|بسه|بذار|بزار)|(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:(?:رو|را)\s*)?(?:بکن|بسه|بذار|بزار))/u.test(text);
       const serviceTail = text.match(/(?:به|برای)\s+(.+?)\s+(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)/u) ||
         text.match(/(?:تغییر\s*بده|عوض\s*کن|بذار|بزار|قرار\s*بده)\s+(?:به\s+)?(.+)$/u);
       let requestedService = serviceTail ? serviceTail[1].trim() : '';
@@ -6513,7 +6531,7 @@
       // A date after a move verb is the destination, not the identity of the old booking.
       const dateMatch = text.match(/پس\s*فردا|پسفردا|فردا|امروز/u);
       const moveVerb = text.match(/تغییر|عوض|منتقل|جابجا|جابه.?جا|ببر|بنداز|بکنش|بچرخون/u);
-      const dateIdentifiesOldBooking = dateMatch && (!isMove || !moveVerb || dateMatch.index < moveVerb.index);
+      const dateIdentifiesOldBooking = dateMatch && !terminalDestinationPhrase && (!isMove || !moveVerb || dateMatch.index < moveVerb.index);
       if (dateIdentifiesOldBooking) {
         const key = /پس\s*فردا|پسفردا/u.test(dateMatch[0])
           ? addDaysToJalaliKey(getTodayKey(),2)
