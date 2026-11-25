@@ -86,16 +86,26 @@ const assert = require('assert');
         minaLastReferencedAppointmentId = null;
         const colloquialReply = minaBuildReply('نوبت سارا بسه ۶ عصر');
         const colloquialTime = colloquialAppointment.time;
-        minaLastReferencedAppointmentId = colloquialAppointment.id;
-        const calendarStatusReply = minaBuildReply('چرا توی تقویم ثبت نکردی');
+        minaLastReferencedAppointmentId = null;
+        const naturalRescheduleReply = minaBuildReply('نوبت مینا رو فردا ساعت سه و هفت دقیقه بعدازظهر کن');
+        const naturalRescheduleDate = shortFormAppointment.dateKey;
+        const naturalRescheduleTime = shortFormAppointment.time;
+        minaLastReferencedAppointmentId = shortFormAppointment.id;
+        const calendarStatusReply = minaBuildReply('چرا نوبت توی تقویم نیست؟');
+        const calendarNavigatedToAppointment = selectedDateKey === shortFormAppointment.dateKey &&
+          viewYear === Number(shortFormAppointment.dateKey.slice(0,4)) &&
+          viewMonth === Number(shortFormAppointment.dateKey.slice(5,7));
         return {
           firstChangedToSixPM:firstTime === '18:00',
           standaloneMinuteChanged:followupTime === '18:17',
           shortFormRoutedLocally,
           shortFormChangedToSixPM:shortFormTime === '18:00',
           colloquialChangedToSixPM:colloquialTime === '18:00',
+          naturalRescheduleDateCorrect:naturalRescheduleDate === addDaysToJalaliKey(getTodayKey(),1),
+          naturalRescheduleTimeCorrect:naturalRescheduleTime === '15:07',
           calendarStatusVerified:calendarStatusReply.includes('در اطلاعات برنامه ذخیره شده'),
-          shortFormReply, colloquialReply, calendarStatusReply,
+          calendarNavigatedToAppointment,
+          shortFormReply, colloquialReply, naturalRescheduleReply, calendarStatusReply,
           firstReply, followupReply
         };
       } finally {
@@ -108,8 +118,10 @@ const assert = require('assert');
     });
     assert(appointmentRescheduleQA.firstChangedToSixPM && appointmentRescheduleQA.standaloneMinuteChanged &&
       appointmentRescheduleQA.shortFormRoutedLocally && appointmentRescheduleQA.shortFormChangedToSixPM &&
-      appointmentRescheduleQA.colloquialChangedToSixPM && appointmentRescheduleQA.calendarStatusVerified,
-      'Mina must route short and colloquial Persian appointment edits through the local record engine and accurately verify calendar persistence: ' + JSON.stringify(appointmentRescheduleQA));
+      appointmentRescheduleQA.colloquialChangedToSixPM && appointmentRescheduleQA.naturalRescheduleDateCorrect &&
+      appointmentRescheduleQA.naturalRescheduleTimeCorrect && appointmentRescheduleQA.calendarStatusVerified &&
+      appointmentRescheduleQA.calendarNavigatedToAppointment,
+      'Mina must route short and colloquial Persian appointment edits, parse spoken hour/minute with afternoon correctly, move the exact named appointment, and navigate the calendar to its saved date: ' + JSON.stringify(appointmentRescheduleQA));
     console.log('Mina appointment reschedule:', JSON.stringify(appointmentRescheduleQA));
 
     // The redesigned appointment form must expose and persist an editable Jalali visit date.
