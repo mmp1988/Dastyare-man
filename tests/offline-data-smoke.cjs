@@ -40,18 +40,18 @@ const assert = require('assert');
         safe.message.includes('[CLIENT_1]') && safe.message.includes('[PHONE_1]');
       const restored = safe.restore(safe.message);
       const restoreWorks = restored.includes('سارا محمدی') && restored.includes('09123456789');
-      const simpleCloud = minaIsClearlyLocalAction('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن') &&
-        minaNeedsCloudUnderstanding('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن');
+      const simpleBookingLocal = minaIsClearlyLocalAction('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن') &&
+        !minaNeedsCloudUnderstanding('برای سارا فردا ساعت ۵ نوبت کاشت ناخن ثبت کن');
       const complexCloud = minaIsClearlyLocalAction('نوبت قبلی سارا رو به فردا ساعت ۱۵:۴۳ جابه‌جا کن و یادآوری هم براش فعال کن') &&
         minaNeedsCloudUnderstanding('نوبت قبلی سارا رو به فردا ساعت ۱۵:۴۳ جابه‌جا کن و یادآوری هم براش فعال کن');
       localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 60000));
       const quotaCooldown = minaCloudQuotaCooldownActive();
       localStorage.removeItem('mina_cloud_quota_retry_at');
       appData.clientProfiles = previousProfiles;
-      return { privateDataHidden, restoreWorks, simpleCloud, complexCloud, quotaCooldown };
+      return { privateDataHidden, restoreWorks, simpleBookingLocal, complexCloud, quotaCooldown };
     });
     assert(Object.values(minaHybridRoutingQA).every(Boolean),
-      'Mina hybrid AI routing must mask private data, preserve private data, route online salon commands to cloud, and respect quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
+      'Mina hybrid AI routing must mask private data, preserve private data, keep complete appointment booking local/offline and route multi-step reasoning to cloud, and respect quota cooldown: ' + JSON.stringify(minaHybridRoutingQA));
     console.log('Mina hybrid AI routing:', JSON.stringify(minaHybridRoutingQA));
 
     // Regression: update the exact appointment and accept a standalone minute-level follow-up.
