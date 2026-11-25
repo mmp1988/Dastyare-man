@@ -5232,9 +5232,22 @@
     function minaStripPrefix(value) {
       return String(value || '').replace(/^\s*مینا[،,\s]*/i, '').trim();
     }
+    function minaNormalizePersianTypos(value) {
+      // Normalize common salon-floor typing and speech-to-text mistakes before intent parsing.
+      const aliases = {
+        'بزای':'برای','بزاری':'برای','فزدا':'فردا','فرداا':'فردا','پسفردا':'پس فردا',
+        'امروذ':'امروز','امروزز':'امروز','نوبط':'نوبت','نوپت':'نوبت','رزروو':'رزرو',
+        'دفیقه':'دقیقه','دقیفه':'دقیقه','میناا':'مینا','میخام':'می‌خوام'
+      };
+      return String(value || '').replace(/[\u064B-\u065F\u0670\u0640]/g,'')
+        .replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[أإآ]/g,'ا').replace(/ۀ/g,'ه')
+        .split(/\s+/).map(word => aliases[word] || word).join(' ')
+        .replace(/^\s*(?:سلام|درود|صبح بخیر|عصر بخیر)\s*/,'')
+        .replace(/\s+/g,' ').trim();
+    }
     function minaBuildReply(raw) {
       const original = String(raw || '').trim();
-      const q = minaStripPrefix(minaNormalizeDigits(original));
+      const q = minaNormalizePersianTypos(minaStripPrefix(minaNormalizeDigits(original)));
       const t = minaCleanText(q).toLowerCase();
       const todayKey = getTodayKey();
       const today = minaTodayAppointments();
@@ -5255,6 +5268,20 @@
             '\n📅 تاریخ: ' + formatJalaliFull(minaPendingBooking.dateKey) +
             '\n⏰ ساعت: ' + minaPendingBooking.time +
             '\n💅 نوع خدمت: ' + (minaPendingBooking.service || 'خدمت ثبت‌نشده') +
+            '\n\nاگر درسته «تأیید» رو بفرست تا ذخیره‌اش کنم 💗';
+        }
+      }
+      if (minaPendingBooking && minaPendingBooking.clientName && !minaPendingBooking.service &&
+          !/^(?:نه|لغو|بیخیال|بی خیال|منصرف شدم)$/.test(t)) {
+        const suppliedService = q.replace(/^(?:نوع خدمت|خدمت|برای)\s*/i,'')
+          .replace(/\s*(?:ثبت کن|نوبت ثبت کن)$/i,'').trim();
+        if (suppliedService && suppliedService.length <= 80 &&
+            !/(?:فردا|امروز|پس فردا|ساعت|نوبت|رزرو|ثبت کن)/.test(suppliedService)) {
+          minaPendingBooking.service = suppliedService;
+          return 'عالیه عزیزم 🌸 مشخصات نوبت رو چک کنیم؟\n👩🏻 مشتری: ' + minaPendingBooking.clientName +
+            '\n📅 تاریخ: ' + formatJalaliFull(minaPendingBooking.dateKey) +
+            '\n⏰ ساعت: ' + minaPendingBooking.time +
+            '\n💅 نوع خدمت: ' + suppliedService +
             '\n\nاگر درسته «تأیید» رو بفرست تا ذخیره‌اش کنم 💗';
         }
       }
@@ -5413,7 +5440,6 @@
             if (candidate && candidate.length <= 80) service = candidate;
           }
         }
-        if (!service) return 'نوع خدمت رو متوجه نشدم عزیزم؛ اسم هر خدمتی رو که می‌خوای ثبت کنم بگو 💗';
         const nameMatches = Array.from(t.matchAll(/(?:برای|واسه)\s+(.+?)(?=\s+(?:برای|ساعت|\d{1,2}(?::\d{1,2})?|امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|با هزینه|هزینه|به مبلغ|بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح|نوبت|رزرو|وقت|رو|را|ثبت|کوتاهی|اصلاح|رنگ|مش|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین|بوتاکس|پروتئین|احیا|شینیون|براشینگ|سشوار|بافت|اکستنشن|فر|صافی|کاشت|لیفت|لمینت|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|ژلیش|مانیکور|پدیکور|طراحی|فیشیال|پاکسازی|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|میکاپ|گریم|کلاسیک|والیوم|ترمیم)|$)/g));
         const clientCandidates = nameMatches.map(m => m[1].trim()).filter(name =>
           name && !/^(?:امروز|فردا|پس|پس\s*فردا|صبح|ظهر|بعدازظهر|عصر|شب|ساعت|ساعتش|نوبت|رزرو|وقت)$/u.test(name) &&
@@ -5428,6 +5454,12 @@
             /(?:پس\s*فردا|فردا|امروز|بعد\s*از\s*ظهر|بعدازظهر|صبح|عصر|ظهر|شب|نوبت|رزرو)/u.test(clientName)) clientName = '';
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
+        if (!service) {
+          if (!clientName) return 'حتماً عزیزم 💗 تاریخ و ساعت رو متوجه شدم؛ اسم مشتری رو هم بگو تا نوبت رو کامل کنم.';
+          minaPendingBooking = { dateKey, time, clientName, phone: phoneMatch ? phoneMatch[0] : '', service: '', notes: '', alarm: '15' };
+          return 'حتماً عزیزم 💗 نوبت ' + clientName + ' برای ' + formatJalaliFull(dateKey) +
+            ' ساعت ' + time + ' رو در نظر گرفتم. چه خدمتی براش انجام بدم؟';
+        }
           const time = pad2(hour) + ':' + pad2(minute);
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === time && a.status !== 'canceled' &&
