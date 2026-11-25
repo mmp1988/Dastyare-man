@@ -521,7 +521,13 @@ const assert = require('assert');
       startVoiceInput('minaInput', 'minaVoiceBtn');
       const buttonActive = document.getElementById('minaVoiceBtn').classList.contains('recording');
       window.receiveNativeSpeechResult('minaInput', 'برای پس فردا ۲ بعد از ظهر نوبت کاشت مژه رو ثبت کن');
-      await new Promise(resolve => setTimeout(resolve, 350));
+      // The voice bridge starts the async cloud-assisted command path; wait for the local record,
+      // not an arbitrary 350 ms that can expire before the model returns.
+      const deadline = Date.now() + 15000;
+      while (Date.now() < deadline && !appData.appointments.some(a => a && a.service && a.service.includes('کاشت مژه'))) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
       const appointment = appData.appointments[0];
       const result = {
         bridgeCalled: nativeCall?.targetInputId === 'minaInput' && nativeCall?.buttonId === 'minaVoiceBtn',
