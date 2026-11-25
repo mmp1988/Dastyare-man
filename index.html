@@ -548,6 +548,10 @@
       background: var(--bg-card-solid); border: 1px solid var(--border-color);
       border-radius: 24px; padding: 17px; box-shadow: var(--shadow-lg);
     }
+    #alarmRingingModal { align-items: center; padding: 18px; }
+    #alarmRingingModal .alarm-ringing-box { max-width: 430px; padding: 22px; border-radius: 25px; }
+    #alarmRingingModal .alarm-acknowledge-btn { width: 100%; min-height: 60px; margin: 8px 0 16px; font-size: 1.02rem; font-weight: 900; border-radius: 16px; box-shadow: 0 9px 24px var(--accent-glow); }
+    #alarmRingingModal #alarmRingingText { padding: 12px 14px; border-radius: 14px; background: var(--bg-input); border: 1px solid var(--border-subtle); }
     /* Appointment form: keep the last controls and action buttons above Android's system navigation area. */
     #apptModal.modal-backdrop {
       align-items: flex-end;
@@ -1707,6 +1711,8 @@
               <option value="gentle">ملایم و آرام</option>
               <option value="digital">دیجیتال</option>
               <option value="bell">ناقوس</option>
+              <option value="short">زنگ کوتاه و سریع</option>
+              <option value="long">زنگ بلند و ممتد</option>
               <option value="custom">آهنگ دلخواه من</option>
             </select>
             <label style="display:block; font-size:0.82rem; margin:10px 0 5px;">یا آهنگ دلخواه خودت را انتخاب کن (MP3 / WAV / M4A، حداکثر ۱ مگابایت)</label>
@@ -2183,11 +2189,11 @@
 
   <!-- Alarm Ringing Modal -->
   <div class="modal-backdrop" id="alarmRingingModal" style="z-index:200;">
-    <div class="modal-box" style="text-align:center; border:2px solid var(--accent);">
-      <div style="font-size:2.6rem; margin-bottom:8px;">⏰</div>
-      <div class="modal-title" style="font-size:1.15rem; margin-bottom:6px;">یادآور نوبت مشتری</div>
-      <div id="alarmRingingText" style="font-size:0.92rem; line-height:1.7; margin-bottom:15px;"></div>
-      <button class="btn-primary" style="width:100%;" onclick="stopAlarm()">باشه، متوجه شدم</button>
+    <div class="modal-box alarm-ringing-box" style="text-align:center; border:2px solid var(--accent);">
+      <div style="font-size:2.8rem; margin-bottom:8px;">⏰</div>
+      <div class="modal-title" style="font-size:1.18rem; margin-bottom:4px;">یادآور نوبت مشتری</div>
+      <button class="btn-primary alarm-acknowledge-btn" type="button" onclick="stopAlarm()">✓ باشه، متوجه شدم</button>
+      <div id="alarmRingingText" style="font-size:0.95rem; line-height:1.8; margin-bottom:2px;"></div>
     </div>
   </div>
 
@@ -2956,6 +2962,10 @@
       selectedDateKey = parsed;
       viewYear = Number(parsed.slice(0,4));
       viewMonth = Number(parsed.slice(5,7));
+      if (!document.getElementById('editApptId')?.value && parsed < getTodayKey()) {
+        const statusField = document.getElementById('apptStatus');
+        if (statusField) statusField.value = 'done';
+      }
       if (!document.getElementById('editApptId')?.value) {
         const title = document.getElementById('apptModalTitle');
         if (title) title.textContent = 'ثبت نوبت برای ' + formatJalaliFull(parsed);
@@ -2983,7 +2993,7 @@
     }
     function hasAppointmentSlotConflict(dateKey, time, excludeId) {
       const slot = normalizeAppointmentSlotTime(time);
-      if (!dateKey || !slot) return false;
+      if (!dateKey || !slot || dateKey < getTodayKey()) return false;
       return (appData.appointments || []).some(function(a) {
         return a && a.id !== excludeId && a.dateKey === dateKey &&
           a.status !== 'canceled' && normalizeAppointmentSlotTime(a.time) === slot;
@@ -4594,7 +4604,7 @@
       const notes = (document.getElementById('clientNextNotes')?.value || '').trim();
       const data = {
         dateKey, time, clientName:p.name || key, phone:p.phone || (key.match(/^\d/) ? key : ''),
-        clientId:p.clientId || '', service, notes, alarm:String(alarmMinutes), status:'pending', notified:false,
+        clientId:p.clientId || '', service, notes, alarm:String(alarmMinutes), status:dateKey < getTodayKey() ? 'done' : 'pending', notified:false,
         appointmentType,
         parentAppointmentId: appointmentType === 'followup' ? (editing?.parentAppointmentId || existingPrimary?.id || '') : ''
       };
@@ -5052,18 +5062,22 @@
           classic: [523.25,659.25,783.99,1046.5],
           gentle: [440,554.37,659.25],
           digital: [880,0,880,0,1174.66],
-          bell: [784,659.25,523.25,659.25]
+          bell: [784,659.25,523.25,659.25],
+          short: [880,1174.66],
+          long: [523.25,659.25,783.99,1046.5,783.99,1046.5]
         };
         const notes = patterns[kind] || patterns.classic;
+        const noteDuration = kind === 'short' ? 0.2 : kind === 'long' ? 0.78 : 0.42;
+        const spacing = kind === 'short' ? 0.13 : kind === 'long' ? 0.34 : kind === 'gentle' ? 0.24 : 0.17;
         notes.forEach((freq,i) => {
           if (!freq) return;
           const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
           osc.type = kind === 'digital' ? 'square' : 'sine';
-          const start=audioCtx.currentTime+i*(kind==='gentle'?0.24:0.17);
+          const start=audioCtx.currentTime+i*spacing;
           osc.frequency.setValueAtTime(freq,start);
-          gain.gain.setValueAtTime(kind==='gentle'?0.11:0.17,start);
-          gain.gain.exponentialRampToValueAtTime(0.001,start+0.42);
-          osc.connect(gain);gain.connect(audioCtx.destination);osc.start(start);osc.stop(start+0.45);
+          gain.gain.setValueAtTime(kind==='gentle'?0.11:0.18,start);
+          gain.gain.exponentialRampToValueAtTime(0.001,start+noteDuration);
+          osc.connect(gain);gain.connect(audioCtx.destination);osc.start(start);osc.stop(start+noteDuration+0.03);
         });
       } catch(e) {}
     }
@@ -5651,7 +5665,8 @@
           a.dateKey === p.dateKey && a.time === p.time &&
           String(a.clientName || '').trim() === p.clientName && a.status !== 'canceled');
         if (exists) return 'این نوبت با همین مشخصات از قبل ثبت شده بود؛ دوباره ثبتش نکردم 💗';
-        const conflict = hasAppointmentSlotConflict(p.dateKey, p.time, null);
+        const historicalPendingDate = p.dateKey < getTodayKey();
+        const conflict = !historicalPendingDate && hasAppointmentSlotConflict(p.dateKey, p.time, null);
         if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
           id: 'appt_mina_' + Date.now(),
@@ -5672,7 +5687,7 @@
           service: p.service || 'خدمت ثبت‌نشده',
           notes: p.notes || '',
           alarm: p.alarm || '15',
-          status: 'pending',
+          status: historicalPendingDate ? 'done' : 'pending',
           notified: false
         };
         const ensuredClientKey = ensureClientProfileForAppointment(appointment);
@@ -5852,15 +5867,18 @@
              a.clientName === 'نام درج نشده' || a.clientName === '⚠️ نام درج نشده (قابل تکمیل)')) &&
           String(a.service || '') === service);
         if (duplicate) return 'این نوبت با همین مشخصات از قبل ثبت شده عزیزم؛ تکراری ثبتش نکردم 💗';
-        const historicalCompleted = appointment.status === 'done';
-        const conflict = !historicalCompleted && hasAppointmentSlotConflict(dateKey, time, null);
+        const historicalCompleted = dateKey < todayKey;
+        const explicitlyNotCompleted = /(?:انجام\s*نشده|انجام\s*نگرفته|مراجعه\s*نکرد|نرفته|در\s*انتظار)/u.test(t);
+        const explicitlyCompleted = /(?:انجام\s*شد|انجام\s*شده|انجام\s*داده\s*شد|کار\s*(?:رو|را)?\s*(?:انجام\s*دادم|انجام\s*شده|کردم)|خدمت\s*(?:رو|را)?\s*(?:انجام\s*دادم|انجام\s*شده|انجام))/u.test(t);
+        const appointmentStatus = explicitlyCompleted || (historicalCompleted && !explicitlyNotCompleted) ? 'done' : 'pending';
+        const conflict = appointmentStatus !== 'done' && hasAppointmentSlotConflict(dateKey, time, null);
         if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
           id: 'appt_mina_' + Date.now(), createdBy: 'mina', source: 'mina', dateKey, time,
           clientName: clientName || '⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing: !clientName,
           phone: phoneMatch ? phoneMatch[0] : '', service,
           notes: '',
-          alarm: '15', status: /(?:انجام\s*شد|انجام\s*شده|انجام\s*داده\s*شد|کار\s*(?:رو|را)?\s*(?:انجام\s*دادم|انجام\s*شده|کردم)|خدمت\s*(?:رو|را)?\s*(?:انجام\s*دادم|انجام\s*شده|انجام))/u.test(t) ? 'done' : 'pending', notified: false
+          alarm: appointmentStatus === 'done' ? 'none' : '15', status: appointmentStatus, notified: false
         };
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
