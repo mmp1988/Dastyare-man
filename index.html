@@ -5879,10 +5879,20 @@
       return /(?:نوبت|رزرو|مشتری|پرونده|تولد(?: مشتری)?|یادداشت(?: مشتری)?|خدمت(?: سالن)?|تقویم|ترمیم|لیفت|کاشت|مژه|ابرو|ناخن|آرایش|سالن|متخصص|تعرفه|قیمت خدمات|هزینه خدمات|ساعت کاری|یادآوری نوبت|بیعانه|رنگ مو|کپشن سالن|استوری سالن|تبلیغ سالن|تبلیغات سالن|کمپین سالن|جذب مشتری|پاسخ به مشتری|مدیریت سالن|appointment|booking|client|customer|lash|salon|service|calendar)/iu.test(text);
     }
 
+    function minaIsPendingSalonFollowUp(message) {
+      const text = minaNormalizePersianTypos(minaNormalizeDigits(String(message || ''))).toLocaleLowerCase('fa').trim();
+      if (!minaPendingBooking && !minaConversationBooking) return false;
+      // Never let an unrelated topic masquerade as a pending booking answer.
+      if (/(?:هواشناسی|وضعیت هوا|باران|بارون|رابطه|دوست.?پسر|دوست.?دختر|عاشق|ماشین|خودرو|موتور|پزشک|دکتر|دارو|سردرد|دل.?درد|سیاست|اخبار)/u.test(text)) return false;
+      if (/^(?:(?:بله|آره|اره|نه|لغو|بیخیال|بی خیال|منصرف شدم|تایید|تأیید|اوکی|باشه|درسته|ثبت کن)\s*)+$/u.test(text)) return true;
+      if (/(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|صبح|ظهر|عصر|بعدازظهر|بعد\s*از\s*ظهر|شب|نیمه.?شب|ساعت|دقیقه)/u.test(text) || /\d/.test(minaNormalizeDigits(text))) return true;
+      // A plain short name is accepted only when Mina is explicitly waiting for the customer's name.
+      return !!(minaPendingBooking && !minaPendingBooking.clientName && text.length > 1 && text.length <= 60 && !/[؟?!]/u.test(text));
+    }
+
     function minaIsSalonScopeRequest(message) {
       // Generic words such as "time", "text", "question" or "hello" never grant salon scope by themselves.
-      // A pending salon workflow may accept a short follow-up such as "5 PM".
-      return minaHasSalonDomainAnchor(message) || !!minaPendingBooking || !!minaConversationBooking;
+      return minaHasSalonDomainAnchor(message) || minaIsPendingSalonFollowUp(message);
     }
 
     function minaExtractSalonOnlyMessage(message) {
