@@ -627,7 +627,32 @@ const assert = require('assert');
       deleteAppointment(created.id);
       return { created:true, editOk, notesSaved:edited?.notes === 'یادداشت تست نوبت', deleted:!appData.appointments.some(a => a.id === created.id) };
     });
+
     assert(appointmentResult.created && appointmentResult.editOk && appointmentResult.notesSaved && appointmentResult.deleted, 'Appointment create/edit/delete/notes failed');
+
+    // The new dedicated appointments hub and completed-work archive must survive removal of a finished appointment.
+    const completedArchiveQA = await page.evaluate(() => {
+      const hasHub = !!document.getElementById('tab-appointments') && !!document.getElementById('appointmentHubList');
+      switchTab('appointments', document.querySelector('.nav-item[onclick*="appointments"]'));
+      const hubRendered = !!document.querySelector('#appointmentHubStats .appointment-hub-stat');
+      const item = { id:'qa-completed-archive', dateKey:getTodayKey(), time:'15:27', clientName:'مشتری تاریخچه', phone:'09127778899', service:'لیفت مژه', notes:'سابقه ثابت', status:'done', completedAt:Date.now() };
+      appData.appointments.push(item);
+      const key = findClientProfileKeyForAppointment(item) || clientKeyFromFields(item.phone,item.clientName);
+      getClientProfile(key);
+      window.confirm = () => true;
+      deleteAppointment(item.id);
+      const archived = (appData.clientProfiles[key]?.records || []).find(r => r.id === 'done_'+item.id);
+      const appointmentRemoved = !appData.appointments.some(a => a.id === item.id);
+      const archivedImmutable = archived?.immutable === true && archived?.service === 'لیفت مژه' && archived?.notes === 'سابقه ثابت';
+      if (archived) deleteClientHistoryItem(encodeURIComponent(key), encodeURIComponent(archived.id), 'record');
+      const explicitHistoryDelete = !(appData.clientProfiles[key]?.records || []).some(r => r.id === 'done_'+item.id);
+      return { hasHub, hubRendered, appointmentRemoved, archivedImmutable, explicitHistoryDelete };
+    });
+    assert(completedArchiveQA.hasHub && completedArchiveQA.hubRendered, 'Dedicated appointments hub must render');
+    assert(completedArchiveQA.appointmentRemoved && completedArchiveQA.archivedImmutable, 'Deleting a completed appointment must archive an immutable history record');
+    assert(completedArchiveQA.explicitHistoryDelete, 'History records must be deletable only through the explicit history action');
+    console.log('Completed appointment archive:', JSON.stringify(completedArchiveQA));
+
 
     // Salon-wide exclusivity: two different customers/services cannot share one date and time.
     const duplicateResult = await page.evaluate(() => {
