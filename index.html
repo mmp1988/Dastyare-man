@@ -6909,9 +6909,17 @@
           routedCommand = cloudResult.command + (explicitCustomerOnly ? ' فقط در قسمت مشتریان' : explicitCalendar ? ' در تقویم' : '');
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
           // A cloud clarification/rejection for an operation must never fall through to a local mutation.
-          const explicitCustomerOnlyBooking = /(?:نوبت|رزرو|وقت)/u.test(message) && /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(message) && /(?:ثبت|بذار|بزار|اضافه|ذخیره|انجام)/u.test(message);
-          if (minaIsClearlyLocalAction(message) && !explicitCustomerOnlyBooking) cloudOperationBlocked = true;
-          if (explicitCustomerOnlyBooking) { cloudOperationBlocked = false; reply = ''; } else reply = cloudResult.reply;
+          if (minaIsClearlyLocalAction(message)) {
+            // A cloud reply is not an executable action. Never let a natural-language
+            // success claim fall through to local heuristics or be shown as completed.
+            cloudOperationBlocked = true;
+            const falseSuccessClaim = /(?:ثبت\s*کردم|ثبت\s*شد|ذخیره\s*کردم|ذخیره\s*شد|رزرو\s*کردم|رزرو\s*شد|انجام\s*شد|قرار\s*دادم|اضافه\s*کردم)/u.test(cloudResult.reply);
+            reply = falseSuccessClaim
+              ? 'هنوز هیچ نوبتی ثبت یا تغییری ذخیره نشده است؛ هسته هوشمند درخواست را به عملیات قابل اجرا تبدیل نکرد. برای جلوگیری از ثبت اشتباه، لطفاً دوباره درخواست را بفرست.'
+              : cloudResult.reply;
+          } else {
+            reply = cloudResult.reply;
+          }
         }
       }
 
