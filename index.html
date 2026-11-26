@@ -3822,9 +3822,11 @@
       const recordsCount = (profile && profile.records ? profile.records.length : 0) + appointments.length;
       const name = (profile && profile.name) || appointments[0]?.clientName || key;
       if (!confirm('مشتری «' + name + '» و پرونده، یادداشت‌ها، سوابق خدمات و نوبت‌های مرتبط حذف شوند؟ این کار برگشت‌پذیر نیست.')) return;
-      // Archive while the customer profile still exists, preserving its canonical identity.
+      // Preserve a complete immutable profile snapshot and all linked work records before removing the live profile.
+      if(profile)archiveCustomerProfile(key,profile);
       appointments.forEach(a => archiveCustomerAppointment(a,'deleted'));
-      if (profile) await deleteClientPhotoRefs(profile);
+      // Photo blobs are intentionally retained: archived work snapshots still reference them.
+      // Do not deleteClientPhotoRefs(profile) here.
       delete appData.clientProfiles[key];
       if (appData.clientNotes) delete appData.clientNotes[key];
       const removedClientAppointments = appData.appointments.filter(a => clientMatchesAppointment(key, a) || clientKeyFromFields(a.phone, a.clientName) === key);
@@ -9029,15 +9031,68 @@
         dateKey:String(a.dateKey||''), time:String(a.time||''), notes:String(a.notes||''),
         appointmentType:a.appointmentType || (typeof isFollowupAppointment==='function'&&isFollowupAppointment(a)?'followup':'primary'),
         status, lastAppointmentStatus:forcedStatus==='deleted' ? (a.status==='done'?'done':a.status==='canceled'?'canceled':'pending') : status,
+        appointmentSnapshot:customerHistoryClone(a),
         createdAt:item?.createdAt || a.createdAt || a.updatedAt || now, updatedAt:now,
         deletedFromSchedule:forcedStatus==='deleted' || !!item?.deletedFromSchedule
       };
       if(item) Object.assign(item,snapshot); else appData.customerHistory.unshift(snapshot);
       return item;
     }
+    function customerHistoryClone(value) {
+      try { return JSON.parse(JSON.stringify(value == null ? null : value)); } catch(e) { return null; }
+    }
+    function customerHistoryHash(value) {
+      const input=JSON.stringify(value||{});
+      let hash=2166136261;
+      for(let i=0;i<input.length;i++){hash^=input.charCodeAt(i);hash=Math.imul(hash,16777619);}
+      return (hash>>>0).toString(36);
+    }
+    function archiveCustomerProfile(key, profile) {
+      if(!key||!profile||typeof profile!=='object')return;
+      if(!Array.isArray(appData.customerHistory))appData.customerHistory=[];
+      if(!Array.isArray(appData.customerHistoryDeletedIds))appData.customerHistoryDeletedIds=[];
+      const clientId=String(profile.clientId||key);
+      const identity={key,clientId,name:String(profile.name||key||'مشتری بدون نام'),phone:String(profile.phone||'')};
+      const profileData=customerHistoryClone(profile)||{};
+      const profileHash=customerHistoryHash(profileData);
+      const profileId='profile_'+encodeURIComponent(clientId)+'_'+profileHash;
+      if(!appData.customerHistoryDeletedIds.includes(profileId)){
+        const old=appData.customerHistory.find(x=>x&&x.id===profileId);
+        const now=Date.now();
+        const reminders=(appData.reminders||[]).filter(r=>r&&(r.clientId===clientId||r.clientKey===key||r.birthdayClientKey===key));
+        const snapshot={
+          id:profileId,recordType:'profile',clientKey:key,clientId,
+          clientName:identity.name,phone:identity.phone,service:'اطلاعات پرونده مشتری',
+          notes:String(profile.notes||''),birthDate:String(profile.birthDate||''),
+          aliases:customerHistoryClone(profile.aliases||[]),customFields:customerHistoryClone(profile.customFields||[]),
+          profileSnapshot:profileData,relatedReminders:customerHistoryClone(reminders),
+          dateKey:String(profile.updatedDateKey||getTodayKey()),time:'',
+          status:'profile',createdAt:old?.createdAt||profile.createdAt||now,updatedAt:now
+        };
+        if(old)Object.assign(old,snapshot);else appData.customerHistory.unshift(snapshot);
+      }
+      (Array.isArray(profile.records)?profile.records:[]).forEach(record=>{
+        if(!record||!record.id)return;
+        const id='work_'+String(record.id);
+        if(appData.customerHistoryDeletedIds.includes(id))return;
+        const old=appData.customerHistory.find(x=>x&&x.id===id);
+        const now=Date.now();
+        const snapshot={
+          id,recordType:'work',clientKey:key,clientId,
+          clientName:identity.name,phone:identity.phone,
+          service:String(record.service||'کار ثبت‌شده'),
+          notes:String(record.notes||''),dateKey:String(record.dateKey||''),
+          time:String(record.time||''),customValues:customerHistoryClone(record.customValues||{}),
+          workSnapshot:customerHistoryClone(record),
+          status:'done',createdAt:old?.createdAt||record.createdAt||now,updatedAt:now
+        };
+        if(old)Object.assign(old,snapshot);else appData.customerHistory.unshift(snapshot);
+      });
+    }
     function syncCustomerHistoryArchive() {
       if (!Array.isArray(appData.customerHistory)) appData.customerHistory=[];
       (appData.appointments||[]).forEach(a=>archiveCustomerAppointment(a));
+      Object.entries(appData.clientProfiles||{}).forEach(([key,profile])=>archiveCustomerProfile(key,profile));
     }
     function deleteCustomerHistoryItem(encodedId) {
       const id=decodeURIComponent(encodedId);
@@ -9052,6 +9107,7 @@
       if(typeof showToast==='function')showToast('سابقه انتخاب‌شده از آرشیو حذف شد.');
     }
     function clearCustomerHistoryArchive() {
+      syncCustomerHistoryArchive();
       const all=Array.isArray(appData.customerHistory)?appData.customerHistory:[];
       const live=Array.isArray(appData.appointments)?appData.appointments:[];
       if(!all.length && !live.length){if(typeof showToast==='function')showToast('تاریخچه خالی است.');return;}
@@ -9072,10 +9128,10 @@
       const period=document.getElementById('customerHistoryPeriod')?.value||'all';
       const sort=document.getElementById('customerHistorySort')?.value||'newest';
       const rows=all.filter(x=>x&&!x.deletedByUser).filter(x=>{
-        const hay=[x.clientName,x.phone,x.service,x.notes].join(' ').toLocaleLowerCase('fa');
+        const hay=[x.clientName,x.phone,x.service,x.notes,x.birthDate,JSON.stringify(x.profileSnapshot||{}),JSON.stringify(x.workSnapshot||{}),JSON.stringify(x.customValues||{}),JSON.stringify(x.relatedReminders||[])].join(' ').toLocaleLowerCase('fa');
         return (!q||hay.includes(q))&&(status==='all'||(status==='deleted'?(x.deletedFromSchedule===true):x.status===status));
       }).sort((a,b)=>{
-        const aa=String(a.dateKey||'')+String(a.time||''),bb=String(b.dateKey||'')+String(b.time||'');
+        const aa=String(a.dateKey||'')+String(a.time||'')+String(a.createdAt||''),bb=String(b.dateKey||'')+String(b.time||'')+String(b.createdAt||'');
         return sort==='oldest'?aa.localeCompare(bb):bb.localeCompare(aa);
       });
       const count=document.getElementById('customerHistoryArchiveCount');
@@ -9092,14 +9148,36 @@
         (period==='all'?'':'<div style="font-weight:900;color:var(--accent);padding:6px 2px;">'+escapeClientText(label(g))+'</div>')+
         items.map(x=>{
           const prior=x.lastAppointmentStatus==='done'?'انجام‌شده':x.lastAppointmentStatus==='canceled'?'لغوشده':'در انتظار';
-          const state=x.deletedFromSchedule?'حذف‌شده از نوبت‌ها • '+prior:x.status==='done'?'انجام‌شده':x.status==='canceled'?'لغوشده':'در انتظار';
+          const state=x.recordType==='profile'?'نسخه اطلاعات پرونده':x.recordType==='work'?'کار انجام‌شده':(x.deletedFromSchedule?'حذف‌شده از نوبت‌ها • '+prior:x.status==='done'?'انجام‌شده':x.status==='canceled'?'لغوشده':'در انتظار');
           const date=x.dateKey&&typeof formatJalaliFull==='function'?formatJalaliFull(x.dateKey):'تاریخ ثبت نشده';
+          const detailRows=[];
+          const addDetail=(label,value)=>{if(value!==undefined&&value!==null&&String(value).trim()!=='')detailRows.push('<div style="margin-top:4px;"><b>'+escapeClientText(label)+' : </b>'+escapeClientText(typeof value==='object'?JSON.stringify(value):value)+'</div>');};
+          if(x.recordType==='profile'){
+            const p=x.profileSnapshot||{};
+            addDetail('نام و نام خانوادگی',p.name);addDetail('شماره تماس',p.phone);addDetail('اسم‌های مستعار',(p.aliases||[]).join('، '));
+            addDetail('تاریخ تولد',p.birthDate);addDetail('یادداشت پرونده',p.notes);
+            (p.customFields||[]).forEach(f=>addDetail(f.label,f.value));
+            addDetail('تعداد سوابق خدمات',(p.records||[]).length);
+            addDetail('عکس پروفایل',p.photoRef?'عکس ذخیره‌شده':'');
+            addDetail('یادآوری‌های مرتبط',(x.relatedReminders||[]).map(r=>r.message||r.title||'یادآوری').join('، '));
+          }
+          if(x.recordType==='work'){
+            const w=x.workSnapshot||{};
+            addDetail('تاریخ انجام کار',date);addDetail('ساعت انجام کار',w.time||x.time);addDetail('توضیحات',w.notes);
+            Object.values(w.customValues||{}).forEach(v=>addDetail(v?.label||'جزئیات',v?.value||v));
+            addDetail('عکس کار',w.photoRef?'عکس پیوست‌شده':'');addDetail('عکس قبل',w.beforePhotoRef?'عکس قبل پیوست‌شده':'');addDetail('عکس بعد',w.afterPhotoRef?'عکس بعد پیوست‌شده':'');
+          }
+          if(x.recordType!=='profile'&&x.recordType!=='work'){
+            const a=x.appointmentSnapshot||{};
+            addDetail('ساعت',x.time);addDetail('وضعیت',state);addDetail('توضیحات نوبت',x.notes);
+            Object.entries(a).forEach(([k,v])=>{if(!['id','clientId','clientName','phone','service','dateKey','time','notes','status','createdAt','updatedAt','notified'].includes(k)&&v!==''&&v!==null&&v!==undefined)addDetail(k,v);});
+          }
           return '<article style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:12px;padding:10px;">'+
             '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><div style="min-width:0;"><strong>'+escapeClientText(x.clientName||'مشتری بدون نام')+'</strong><div style="font-size:.77rem;color:var(--accent);margin-top:3px;">'+escapeClientText(x.service||'خدمت ثبت‌نشده')+'</div></div>'+
             '<button class="mini-btn del" type="button" onclick="deleteCustomerHistoryItem(\''+encodeURIComponent(x.id)+'\')">🗑 حذف سابقه</button></div>'+
             '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:.7rem;color:var(--text-secondary);"><span>📅 '+escapeClientText(date)+'</span><span>⏰ '+escapeClientText(toPersianDigits(x.time||'ثبت‌نشده'))+'</span><span>• '+state+'</span></div>'+
             (x.phone?'<small style="display:block;color:var(--text-secondary);margin-top:4px;">📞 '+escapeClientText(x.phone)+'</small>':'')+
-            (x.notes?'<div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.74rem;color:var(--text-secondary);margin-top:6px;">'+escapeClientText(x.notes)+'</div>':'')+
+            (detailRows.length?'<div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.73rem;color:var(--text-secondary);margin-top:7px;border-top:1px solid var(--border-subtle);padding-top:6px;">'+detailRows.join('')+'</div>':'')+
           '</article>';
         }).join('')
       ).join('');
