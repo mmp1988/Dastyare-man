@@ -655,18 +655,18 @@ console.log('Android alarm integration contract: PASS');
     }, appointmentReloadQA.id);
     assert(afterEditReload, 'Edited appointment and reminder link must survive a second reload');
 
-    const deleteReloadQA = await page.evaluate(id => {
+    const deleteReloadQA = await page.evaluate(({ id, previousSettings }) => {
       window.confirm = () => true;
       deleteAppointment(id);
       const a = appData.appointments.find(x => x.id === id);
       const r = appData.reminders.find(x => x.id === 'repair_' + id);
-      appData.settings = { ...appData.settings, ...appointmentReloadQA.previousSettings };
+      appData.settings = { ...appData.settings, ...previousSettings };
       saveData();
       return {
         appointmentRemoved: !a,
         reminderCancelled: !!r && r.cancelled === true && r.enabled === false
       };
-    }, appointmentReloadQA.id);
+    }, { id: appointmentReloadQA.id, previousSettings: appointmentReloadQA.previousSettings });
     assert(deleteReloadQA.appointmentRemoved && deleteReloadQA.reminderCancelled,
       'Deleting an appointment must cancel only its linked repair reminder');
     await page.reload({ waitUntil: 'domcontentloaded' });
