@@ -1377,7 +1377,25 @@
         <div class="form-group">
           <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
         </div>
-        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:9px;"></div><div class="card" id="clientBirthdaysCard" style="margin:0 0 12px;box-shadow:none;border-color:var(--accent);">
+        <div id="clientsListContainer" style="display:flex; flex-direction:column; gap:9px;"></div>
+        <details id="customerHistoryArchivePanel" class="card" style="margin:12px 0;box-shadow:none;border-color:var(--accent);" ontoggle="if(this.open)renderCustomerHistoryArchive()">
+          <summary style="cursor:pointer;font-weight:900;color:var(--accent);padding:4px 2px;">🗂️ تاریخچه کامل مشتریان <small id="customerHistoryArchiveCount" style="color:var(--text-secondary);font-weight:600;"></small></summary>
+          <p style="font-size:.73rem;color:var(--text-secondary);line-height:1.8;margin:8px 0;">تمام نوبت‌های ثبت‌شده، انجام‌شده، لغوشده و حذف‌شده اینجا باقی می‌مانند؛ حذف پرونده مشتری یا نوبت، این سوابق را پاک نمی‌کند.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0;">
+            <input id="customerHistorySearch" class="form-control" type="search" placeholder="🔎 جستجوی نام مشتری یا خدمت..." oninput="renderCustomerHistoryArchive()" />
+            <select id="customerHistoryStatus" class="form-control" onchange="renderCustomerHistoryArchive()">
+              <option value="all">همه وضعیت‌ها</option><option value="pending">در انتظار</option><option value="done">انجام‌شده</option><option value="canceled">لغوشده</option><option value="deleted">حذف‌شده از نوبت‌ها</option>
+            </select>
+            <select id="customerHistoryPeriod" class="form-control" onchange="renderCustomerHistoryArchive()">
+              <option value="all">همه تاریخ‌ها</option><option value="month">گروه‌بندی ماهانه</option><option value="year">گروه‌بندی سالانه</option>
+            </select>
+            <select id="customerHistorySort" class="form-control" onchange="renderCustomerHistoryArchive()">
+              <option value="newest">جدیدترین اول</option><option value="oldest">قدیمی‌ترین اول</option>
+            </select>
+          </div>
+          <div id="customerHistoryArchiveList" style="display:flex;flex-direction:column;gap:8px;max-height:520px;overflow:auto;"></div>
+        </details>
+        <div class="card" id="clientBirthdaysCard" style="margin:0 0 12px;box-shadow:none;border-color:var(--accent);">
           <div class="section-head"><div class="section-title">🎂 تولد مشتریان</div><span id="clientBirthdayCount" style="font-size:.72rem;color:var(--text-secondary);"></span></div>
           <div id="clientBirthdaysList" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
@@ -2010,6 +2028,13 @@
             <input type="file" id="clientWorkPhotoInput" class="form-control" accept="image/*" onchange="handleClientPhoto(event,'work')" />
             <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.</small>
           </div>
+          <div class="form-group full" style="border:1px solid var(--border-subtle);border-radius:12px;padding:10px;background:var(--bg-secondary);">
+            <label>🖼️ آرشیو عکس مشتری</label>
+            <input id="clientArchivePhotoCaption" class="form-control" type="text" maxlength="100" placeholder="عنوان عکس یا توضیح دلخواه (اختیاری)" />
+            <input type="file" id="clientArchivePhotoInput" class="form-control" accept="image/*" onchange="handleClientArchivePhoto(event)" />
+            <small style="color:var(--text-secondary);">عکس‌های دلخواه را مستقل از عکس‌های قبل و بعد جلسه نگه دار؛ می‌توانی چندین عکس اضافه کنی.</small>
+            <div id="clientPhotoArchiveList" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px;"></div>
+          </div>
           <div class="form-group full">
             <small style="color:var(--text-secondary);">پس از تکمیل اطلاعات، از دکمه «ثبت کار» در پایین پرونده استفاده کن.</small>
           </div>
@@ -2403,6 +2428,7 @@
       services: [],
       clientNotes: {},
       clientProfiles: {},
+      customerHistory: [],
       minaConversationHistory: [],
       settings: {
         brandName: 'دستیار من',
@@ -2455,8 +2481,10 @@
           services: Array.isArray(parsed.services) ? parsed.services : [],
           clientNotes: parsed.clientNotes && typeof parsed.clientNotes === 'object' ? parsed.clientNotes : {},
           clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles === 'object' ? parsed.clientProfiles : {},
+          customerHistory: Array.isArray(parsed.customerHistory) ? parsed.customerHistory : [],
           settings: { ...appData.settings, ...(parsed.settings || {}) }
         };
+        if (!Array.isArray(parsed.customerHistory)) { try { const historyRaw=localStorage.getItem('dastyare_man_customer_history_v1'); const historyParsed=historyRaw?JSON.parse(historyRaw):[]; appData.customerHistory=Array.isArray(historyParsed)?historyParsed:[]; } catch(e) { appData.customerHistory=[]; } }
         // Restore birthday fields from their independent durable snapshot. This prevents
         // appointment deletion, stale app snapshots, or WebView restarts from erasing birthdays.
         try {
@@ -2537,7 +2565,9 @@
     let lastVerifiedAppDataSnapshot = null;
 
     function saveData() {
+      syncCustomerHistoryArchive();
       const serialized = JSON.stringify(appData);
+      const customerHistorySnapshot = JSON.stringify(appData.customerHistory || []);
       const appointmentSnapshot = JSON.stringify(appData.appointments || []);
       const birthdaySnapshot = {};
       Object.entries(appData.clientProfiles || {}).forEach(([key, profile]) => {
@@ -2551,7 +2581,7 @@
         };
       });
       const birthdaySerialized = JSON.stringify(birthdaySnapshot);
-      const keys = [STORAGE_KEY, 'dastyare_man_appointments_v1', 'dastyare_man_client_birthdays_v1'];
+      const keys = [STORAGE_KEY, 'dastyare_man_appointments_v1', 'dastyare_man_client_birthdays_v1', 'dastyare_man_customer_history_v1'];
       const previous = {};
       try {
         keys.forEach(key => { previous[key] = localStorage.getItem(key); });
@@ -2571,6 +2601,8 @@
         if (localStorage.getItem('dastyare_man_appointments_v1') !== appointmentSnapshot) throw new Error('Appointment read-back mismatch');
         localStorage.setItem('dastyare_man_client_birthdays_v1', birthdaySerialized);
         if (localStorage.getItem('dastyare_man_client_birthdays_v1') !== birthdaySerialized) throw new Error('Birthday read-back mismatch');
+        localStorage.setItem('dastyare_man_customer_history_v1', customerHistorySnapshot);
+        if (localStorage.getItem('dastyare_man_customer_history_v1') !== customerHistorySnapshot) throw new Error('Customer history read-back mismatch');
       } catch (writeError) {
         // Best-effort storage rollback: do not leave a partially written set of snapshots.
         keys.forEach(key => {
@@ -3349,6 +3381,7 @@
       const a=appData.appointments.find(x=>x.id===id); if(!a)return;
       if(!confirm(a.status==='done'?'قبل از حذف، مطمئنی می‌خوای این نوبت انجام‌شده از برنامه پاک بشه؟ سابقه خدمت در پرونده مشتری باقی می‌مونه.':'قبل از حذف، مطمئنی می‌خوای این نوبت پاک بشه؟'))return;
       const key=a.status==='done'&&typeof archiveCompletedAppointment==='function'?archiveCompletedAppointment(a):'';
+      archiveCustomerAppointment(a,'deleted');
       appData.appointments=appData.appointments.filter(x=>x.id!==id);
       cancelAutomaticRepairReminder(id);
       saveData();renderPersonalReminders();renderCalendar();renderDaySchedule();updateDashboardStats();
@@ -3740,6 +3773,7 @@
       (profile.records || []).forEach(record => {
         [record.photoRef, record.beforePhotoRef, record.afterPhotoRef].forEach(ref => { if (ref) refs.add(ref); });
       });
+      (profile.photoArchive || []).forEach(item => { if (item && item.photoRef) refs.add(item.photoRef); });
       if (!refs.size) return;
       try {
         const db = await openClientPhotoDB();
@@ -3762,7 +3796,7 @@
       delete appData.clientProfiles[key];
       if (appData.clientNotes) delete appData.clientNotes[key];
       const removedClientAppointments = appData.appointments.filter(a => clientMatchesAppointment(key, a) || clientKeyFromFields(a.phone, a.clientName) === key);
-      removedClientAppointments.forEach(a => cancelAutomaticRepairReminder(a.id));
+      removedClientAppointments.forEach(a => { archiveCustomerAppointment(a,'deleted'); cancelAutomaticRepairReminder(a.id); });
       appData.appointments = appData.appointments.filter(a => !clientMatchesAppointment(key, a) && clientKeyFromFields(a.phone, a.clientName) !== key);
       saveData();
       renderClientsTab();
@@ -4159,6 +4193,7 @@
         : 'هنوز نوبت آینده‌ای ثبت نشده است.';
       renderClientConversationHistory(key);
       renderClientHistory(key);
+      renderClientPhotoArchive(key);
       renderClientScheduledAppointments(key);
       renderClientSmartOverview(key);
       renderClientLoyaltyAndGallery(key);
@@ -8883,6 +8918,122 @@
 
 
 
+
+
+    // Permanent customer history is independent from customer profiles and live appointments.
+    // It is updated before every verified save and also written to its own local snapshot.
+    function customerHistoryIdentity(a) {
+      const key = (typeof findClientProfileKeyForAppointment==='function' ? findClientProfileKeyForAppointment(a) : '') ||
+        (typeof clientKeyFromFields==='function' ? clientKeyFromFields(a.phone,a.clientName) : '');
+      const profile = key && appData.clientProfiles ? appData.clientProfiles[key] : null;
+      return { key:key||'', clientId:a.clientId || profile?.clientId || '', name:String(profile?.name || a.clientName || 'مشتری بدون نام'), phone:String(profile?.phone || a.phone || '') };
+    }
+    function archiveCustomerAppointment(a, forcedStatus) {
+      if (!a || !a.id || a.customerOnly === true) return null;
+      if (!Array.isArray(appData.customerHistory)) appData.customerHistory=[];
+      const identity=customerHistoryIdentity(a);
+      const id='appointment_'+String(a.id);
+      let item=appData.customerHistory.find(x=>x && x.id===id);
+      if (item && item.deletedByUser) return item;
+      const now=Date.now();
+      const status=forcedStatus || (a.status==='done'?'done':a.status==='canceled'?'canceled':'pending');
+      const snapshot={
+        id, appointmentId:String(a.id), clientKey:identity.key, clientId:identity.clientId,
+        clientName:identity.name, phone:identity.phone, service:String(a.service||'خدمت ثبت‌نشده'),
+        dateKey:String(a.dateKey||''), time:String(a.time||''), notes:String(a.notes||''),
+        appointmentType:a.appointmentType || (typeof isFollowupAppointment==='function'&&isFollowupAppointment(a)?'followup':'primary'),
+        status, createdAt:item?.createdAt || a.createdAt || a.updatedAt || now, updatedAt:now,
+        deletedFromSchedule:forcedStatus==='deleted' || !!item?.deletedFromSchedule
+      };
+      if(item) Object.assign(item,snapshot); else appData.customerHistory.unshift(snapshot);
+      return item;
+    }
+    function syncCustomerHistoryArchive() {
+      if (!Array.isArray(appData.customerHistory)) appData.customerHistory=[];
+      (appData.appointments||[]).forEach(a=>archiveCustomerAppointment(a));
+    }
+    function deleteCustomerHistoryItem(encodedId) {
+      const id=decodeURIComponent(encodedId);
+      const item=(appData.customerHistory||[]).find(x=>x && x.id===id);
+      if(!item)return;
+      if(!confirm('این سابقه برای همیشه از تاریخچه مشتریان حذف شود؟ فقط خود کاربر می‌تواند این کار را انجام دهد و قابل بازگشت نیست.'))return;
+      item.deletedByUser=true;
+      appData.customerHistory=appData.customerHistory.filter(x=>x.id!==id);
+      saveData();
+      renderCustomerHistoryArchive();
+      if(typeof showToast==='function')showToast('سابقه انتخاب‌شده از آرشیو حذف شد.');
+    }
+    function renderCustomerHistoryArchive() {
+      const root=document.getElementById('customerHistoryArchiveList'); if(!root)return;
+      const all=Array.isArray(appData.customerHistory)?appData.customerHistory:[];
+      const q=String(document.getElementById('customerHistorySearch')?.value||'').trim().toLocaleLowerCase('fa');
+      const status=document.getElementById('customerHistoryStatus')?.value||'all';
+      const period=document.getElementById('customerHistoryPeriod')?.value||'all';
+      const sort=document.getElementById('customerHistorySort')?.value||'newest';
+      const rows=all.filter(x=>x&&!x.deletedByUser).filter(x=>{
+        const hay=[x.clientName,x.phone,x.service,x.notes].join(' ').toLocaleLowerCase('fa');
+        return (!q||hay.includes(q))&&(status==='all'||(status==='deleted'?(x.deletedFromSchedule===true):x.status===status));
+      }).sort((a,b)=>{
+        const aa=String(a.dateKey||'')+String(a.time||''),bb=String(b.dateKey||'')+String(b.time||'');
+        return sort==='oldest'?aa.localeCompare(bb):bb.localeCompare(aa);
+      });
+      const count=document.getElementById('customerHistoryArchiveCount');
+      if(count)count.textContent='('+toPersianDigits(rows.length)+' سابقه)';
+      if(!rows.length){root.innerHTML='<div style="padding:18px;text-align:center;color:var(--text-secondary);font-size:.8rem;">سابقه‌ای با این جستجو یا فیلتر پیدا نشد.</div>';return;}
+      const groups=new Map();
+      rows.forEach(x=>{
+        const k=period==='year'?(String(x.dateKey||'').slice(0,4)||'بدون تاریخ'):period==='month'?(String(x.dateKey||'').slice(0,7)||'بدون تاریخ'):'همه سوابق';
+        if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x);
+      });
+      const monthNames=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+      const label=k=>{const p=String(k).split('-');return p.length>1?(monthNames[Number(p[1])-1]||'')+' '+p[0]:k;};
+      root.innerHTML=Array.from(groups.entries()).map(([g,items])=>
+        (period==='all'?'':'<div style="font-weight:900;color:var(--accent);padding:6px 2px;">'+escapeClientText(label(g))+'</div>')+
+        items.map(x=>{
+          const state=x.deletedFromSchedule?'حذف‌شده از نوبت‌ها':x.status==='done'?'انجام‌شده':x.status==='canceled'?'لغوشده':'در انتظار';
+          const date=x.dateKey&&typeof formatJalaliFull==='function'?formatJalaliFull(x.dateKey):'تاریخ ثبت نشده';
+          return '<article style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:12px;padding:10px;">'+
+            '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><div style="min-width:0;"><strong>'+escapeClientText(x.clientName||'مشتری بدون نام')+'</strong><div style="font-size:.77rem;color:var(--accent);margin-top:3px;">'+escapeClientText(x.service||'خدمت ثبت‌نشده')+'</div></div>'+
+            '<button class="mini-btn del" type="button" onclick="deleteCustomerHistoryItem(\''+encodeURIComponent(x.id)+'\')">🗑 حذف سابقه</button></div>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:.7rem;color:var(--text-secondary);"><span>📅 '+escapeClientText(date)+'</span><span>⏰ '+escapeClientText(toPersianDigits(x.time||'ثبت‌نشده'))+'</span><span>• '+state+'</span></div>'+
+            (x.phone?'<small style="display:block;color:var(--text-secondary);margin-top:4px;">📞 '+escapeClientText(x.phone)+'</small>':'')+
+            (x.notes?'<div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.74rem;color:var(--text-secondary);margin-top:6px;">'+escapeClientText(x.notes)+'</div>':'')+
+          '</article>';
+        }).join('')
+      ).join('');
+    }
+    async function handleClientArchivePhoto(event) {
+      const input=event.target,file=input.files&&input.files[0];if(!file)return;
+      if(!file.type.startsWith('image/')){showToast('لطفاً یک عکس انتخاب کن.');input.value='';return;}
+      if(file.size>30*1024*1024){showToast('حجم عکس بیشتر از ۳۰ مگابایت است.');input.value='';return;}
+      const key=String(document.getElementById('clientRecordKey')?.value||'');if(!key){showToast('ابتدا پرونده مشتری را باز کن.');return;}
+      try{
+        const ref=await saveClientPhotoBlob(file),p=getClientProfile(key);
+        if(!Array.isArray(p.photoArchive))p.photoArchive=[];
+        p.photoArchive.unshift({id:'archive_photo_'+Date.now(),photoRef:ref,caption:String(document.getElementById('clientArchivePhotoCaption')?.value||'').trim(),createdAt:Date.now(),dateKey:getTodayKey()});
+        saveData();input.value='';document.getElementById('clientArchivePhotoCaption').value='';
+        renderClientPhotoArchive(key);showToast('عکس به آرشیو مستقل مشتری اضافه شد 🖼️');
+      }catch(e){showToast('ذخیره عکس در آرشیو انجام نشد؛ فضای گوشی را بررسی کن.');}
+    }
+    function renderClientPhotoArchive(key) {
+      const root=document.getElementById('clientPhotoArchiveList');if(!root)return;
+      const p=(appData.clientProfiles||{})[key]||{},items=Array.isArray(p.photoArchive)?p.photoArchive:[];
+      if(!items.length){root.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--text-secondary);font-size:.73rem;padding:8px;">هنوز عکسی به آرشیو اضافه نشده است.</div>';return;}
+      root.innerHTML=items.map(x=>'<div style="border:1px solid var(--border-subtle);border-radius:10px;padding:6px;min-width:0;">'+
+        '<img data-client-archive-ref="'+escapeClientText(x.photoRef)+'" alt="عکس آرشیو مشتری" style="width:100%;height:130px;object-fit:cover;border-radius:7px;background:var(--bg-secondary);" />'+
+        '<div style="font-size:.72rem;margin-top:5px;overflow-wrap:anywhere;">'+escapeClientText(x.caption||'عکس آرشیوی')+'</div>'+
+        '<small style="color:var(--text-secondary);">'+escapeClientText(x.dateKey&&typeof formatJalaliFull==='function'?formatJalaliFull(x.dateKey):'')+'</small>'+
+        '<button type="button" class="mini-btn del" style="width:100%;margin-top:5px;" onclick="deleteClientArchivePhoto(\''+encodeURIComponent(key)+'\',\''+encodeURIComponent(x.id)+'\')">حذف عکس</button></div>').join('');
+      root.querySelectorAll('img[data-client-archive-ref]').forEach(async img=>{try{const url=await getClientPhotoUrl(img.dataset.clientArchiveRef);if(url)img.src=url;}catch(e){}});
+    }
+    async function deleteClientArchivePhoto(encodedKey,encodedId) {
+      const key=decodeURIComponent(encodedKey),id=decodeURIComponent(encodedId),p=(appData.clientProfiles||{})[key];if(!p)return;
+      const item=(p.photoArchive||[]).find(x=>x.id===id);if(!item)return;
+      if(!confirm('این عکس از آرشیو مشتری حذف شود؟'))return;
+      p.photoArchive=(p.photoArchive||[]).filter(x=>x.id!==id);
+      try{const db=await openClientPhotoDB();await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(item.photoRef);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();}catch(e){}
+      saveData();renderClientPhotoArchive(key);showToast('عکس از آرشیو حذف شد.');
+    }
 
 </script>
 </body>
