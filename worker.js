@@ -2,7 +2,7 @@
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v18-safe-local-fallback";
+const WORKER_VERSION = "mina-ai-response-v19-safe-local-fallback";
 const requestWindows = new Map();
 
 function isRequestRateLimited(ip, now = Date.now()) {
