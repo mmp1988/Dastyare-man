@@ -3395,6 +3395,7 @@
         else appData.appointments.push(followupData);
         followupCreatedOrUpdated=true;
       } else if (selectedAppointmentType === 'primary' && editId && existingFollowup && !nextDateRaw) {
+        archiveCustomerAppointment(existingFollowup,'deleted');
         appData.appointments = appData.appointments.filter(a => a.id !== existingFollowup.id);
       }
       syncAutomaticRepairReminder(payload);
@@ -8984,7 +8985,7 @@
   const p=getClientProfile(key);
   if(source==='appointment'){
    const a=(appData.appointments||[]).find(x=>x.id===id&&x.status==='done');
-   if(a){appData.appointments=appData.appointments.filter(x=>x.id!==id);if(typeof cancelAutomaticRepairReminder==='function')cancelAutomaticRepairReminder(id);}
+   if(a){archiveCustomerAppointment(a,'deleted');appData.appointments=appData.appointments.filter(x=>x.id!==id);if(typeof cancelAutomaticRepairReminder==='function')cancelAutomaticRepairReminder(id);}
   }else{
    p.records=(p.records||[]).filter(r=>r.id!==id);
   }
