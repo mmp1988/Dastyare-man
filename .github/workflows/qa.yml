@@ -115,14 +115,16 @@ jobs:
             const response = await fetch(base, {
               method: 'POST',
               headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ mode: 'understand', message: 'برای ۵ روز دیگر یک نوبت به نام آزمایشی ثبت کن' }),
+              body: JSON.stringify({ mode: 'route', enableReview: true, message: 'برای ۵ روز دیگر یک نوبت به نام آزمایشی ثبت کن' }),
               signal: AbortSignal.timeout(60000),
               cache: 'no-store'
             });
             const data = await response.json().catch(() => ({}));
             assert.equal(response.status, 200, 'Live AI request must succeed: ' + JSON.stringify(data));
             assert.equal(data.success, true, 'Live AI response must report success');
-            assert.ok(typeof data.command === 'string' && /[آ-ی]/u.test(data.command), 'Live AI must return a Persian command');
+            assert.ok(data.route && typeof data.route === 'object', 'Live AI must return a route object');
+            assert.equal(data.route.type, 'action', 'Booking request must be classified as an executable action: ' + JSON.stringify(data.route));
+            assert.ok(typeof data.route.command === 'string' && /[آ-ی]/u.test(data.route.command), 'Live AI route must return a Persian command');
             console.log('Live provider:', JSON.stringify(data.provider || null));
             console.log('Provider fallback diagnostics:', JSON.stringify(data.provider?.fallbacks || []));
             console.log('AI response fields:', JSON.stringify({command:data.command, reply:data.reply, route:data.route}));
