@@ -6949,7 +6949,20 @@
         } else if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           const explicitCustomerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(message);
           const explicitCalendar = /(?:توی|تو|در|داخل)?\s*تقویم/u.test(message);
-          routedCommand = cloudResult.command + (explicitCustomerOnly ? ' فقط در قسمت مشتریان' : explicitCalendar ? ' در تقویم' : '');
+          routedCommand = String(cloudResult.command || '').trim();
+          // Keep an executable booking verb at the END of the canonical command.
+          // minaBuildReply intentionally strips leading command prefixes; without this
+          // trailing verb, a valid AI route like «ثبت نوبت برای نام ... در تاریخ ...»
+          // is reduced to a fragment and the local executor cannot recognize it.
+          const normalizedUserRequest = minaNormalizePersianTypos(minaNormalizeDigits(message));
+          const isNewBookingRequest =
+            /(?:نوبت|رزرو|وقت)/u.test(normalizedUserRequest) &&
+            /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|هماهنگ\s*کن|اختصاص\s*بده)/u.test(normalizedUserRequest) &&
+            !/(?:تغییر|ویرایش|اصلاح|حذف|لغو|جابجا|جابه.?جا)/u.test(normalizedUserRequest);
+          if (isNewBookingRequest && !/(?:ثبت\s*نوبت\s*کن|نوبت\s*ثبت\s*کن)$/u.test(routedCommand)) {
+            routedCommand += ' ثبت نوبت کن';
+          }
+          routedCommand += explicitCustomerOnly ? ' فقط در قسمت مشتریان' : explicitCalendar ? ' در تقویم' : '';
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
           // A cloud clarification/rejection for an operation must never fall through to a local mutation.
           if (minaIsClearlyLocalAction(message)) {
