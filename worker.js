@@ -112,7 +112,7 @@ async function runMinaModel(env, cloudflareModel, input) {
       const result = await runGeminiModel(env, input);
       const failure = modelResultError(result);
       if (failure) throw failure;
-      return result;
+      return { ...result, _minaProvider: "gemini", _minaModel: GEMINI_MODEL };
     } catch (error) {
       const quota = coolDownProvider("gemini:primary", error, 10 * 60 * 1000);
       if (quota) quotaFailures++;
@@ -142,7 +142,7 @@ async function runMinaModel(env, cloudflareModel, input) {
       const result = await Promise.race([env.AI.run(provider.model, input, { signal: controller.signal }), timeoutPromise]);
       const failure = modelResultError(result);
       if (failure) throw failure;
-      return result;
+      return { ...result, _minaProvider: provider.key, _minaModel: provider.model };
     } catch (error) {
       const quota = coolDownProvider(provider.key, error, 5 * 60 * 1000);
       if (quota) {
@@ -189,7 +189,7 @@ async function runMinaModel(env, cloudflareModel, input) {
       }
       const content = payload?.choices?.[0]?.message?.content;
       if (typeof content !== "string" || !content.trim()) throw new Error("Groq returned an empty response");
-      return { response: content.trim() };
+      return { response: content.trim(), _minaProvider: "groq", _minaModel: env.GROQ_MODEL || "qwen/qwen3.8-27b" };
     } catch (error) {
       const quota = coolDownProvider("groq:qwen", error, 10 * 60 * 1000);
       if (quota) quotaFailures++;
@@ -413,6 +413,11 @@ export default {
         ...((understandMode || routeMode) ? { response_format: { type: "json_schema", json_schema: routeMode ? { name: "mina_route", strict: true, schema: { type: "object", properties: { type: { type: "string", enum: ["action", "personal_reminder", "reply"] }, command: { type: "string" }, reply: { type: "string" } }, required: ["type", "command", "reply"], additionalProperties: false } } : { name: "mina_command", strict: true, schema: { type: "object", properties: { command: { type: "string" } }, required: ["command"], additionalProperties: false } } } } : {})
       });
 
+      const providerMeta = {
+        provider: result?._minaProvider || "unknown",
+        model: result?._minaModel || GEMINI_MODEL
+      };
+
       // Some Workers AI failures are returned in the result object instead of being thrown.
       if (result?.success === false || (Array.isArray(result?.errors) && result.errors.length)) {
         const detail = JSON.stringify(result.errors || result).toLowerCase();
@@ -495,7 +500,7 @@ export default {
           }, 200, headers);
         }
 
-        return json({ success: true, route: { type, command: "", reply: routedReply, review: { reviewed: false } } }, 200, headers);
+        return json({ success: true, route: { type, command: "", reply: routedReply, review: { reviewed: false } }, provider: providerMeta }, 200, headers);
       }
 
       if (understandMode) {
@@ -514,10 +519,10 @@ export default {
         // Preserve the user's original salon instruction when the model returns a code or label.
         const safeCommand = command.length >= 5 && /[آ-ی]/u.test(command) && !/^[a-z0-9_ -]+$/iu.test(command)
           ? command : message;
-        return json({ success: true, command: safeCommand }, 200, headers);
+        return json({ success: true, command: safeCommand, provider: providerMeta }, 200, headers);
       }
 
-      return json({ success: true, reply }, 200, headers);
+      return json({ success: true, reply, provider: providerMeta }, 200, headers);
     } catch (error) {
       const detail = String(error && (error.message || error.cause || error) || "").toLowerCase();
       const quotaExceeded = /(?:quota|rate.?limit|too many requests|429|exceeded.*(?:request|token|limit)|daily limit|resource exhausted)/i.test(detail);
