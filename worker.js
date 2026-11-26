@@ -112,7 +112,7 @@ async function runMinaModel(env, cloudflareModel, input) {
       const result = await runGeminiModel(env, input);
       const failure = modelResultError(result);
       if (failure) throw failure;
-      return { ...result, _minaProvider: "gemini", _minaModel: GEMINI_MODEL };
+      return { ...result, _minaProvider: "gemini", _minaModel: GEMINI_MODEL, _minaFallbacks: [] };
     } catch (error) {
       const quota = coolDownProvider("gemini:primary", error, 10 * 60 * 1000);
       if (quota) quotaFailures++;
@@ -142,7 +142,7 @@ async function runMinaModel(env, cloudflareModel, input) {
       const result = await Promise.race([env.AI.run(provider.model, input, { signal: controller.signal }), timeoutPromise]);
       const failure = modelResultError(result);
       if (failure) throw failure;
-      return { ...result, _minaProvider: provider.key, _minaModel: provider.model };
+      return { ...result, _minaProvider: provider.key, _minaModel: provider.model, _minaFallbacks: failures.map(item => item.slice(0, 260)) };
     } catch (error) {
       const quota = coolDownProvider(provider.key, error, 5 * 60 * 1000);
       if (quota) {
@@ -189,7 +189,7 @@ async function runMinaModel(env, cloudflareModel, input) {
       }
       const content = payload?.choices?.[0]?.message?.content;
       if (typeof content !== "string" || !content.trim()) throw new Error("Groq returned an empty response");
-      return { response: content.trim(), _minaProvider: "groq", _minaModel: env.GROQ_MODEL || "qwen/qwen3.8-27b" };
+      return { response: content.trim(), _minaProvider: "groq", _minaModel: env.GROQ_MODEL || "qwen/qwen3.8-27b", _minaFallbacks: failures.map(item => item.slice(0, 260)) };
     } catch (error) {
       const quota = coolDownProvider("groq:qwen", error, 10 * 60 * 1000);
       if (quota) quotaFailures++;
@@ -415,7 +415,8 @@ export default {
 
       const providerMeta = {
         provider: result?._minaProvider || "unknown",
-        model: result?._minaModel || GEMINI_MODEL
+        model: result?._minaModel || GEMINI_MODEL,
+        fallbacks: Array.isArray(result?._minaFallbacks) ? result._minaFallbacks : []
       };
 
       // Some Workers AI failures are returned in the result object instead of being thrown.
