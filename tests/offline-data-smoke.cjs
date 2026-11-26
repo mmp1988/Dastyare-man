@@ -574,6 +574,101 @@ const assert = require('assert');
     console.log('Customer booking and VIP:', JSON.stringify(customerBookingAndVipQA));
 
 
+    // End-to-end browser persistence: create an appointment through the real form,
+    // reload, edit it, reload, then delete it and reload again. Its linked repair
+    // reminder must be recalculated on edit and cancelled on deletion.
+    const appointmentReloadQA = await page.evaluate(() => {
+      const previousSettings = { ...appData.settings };
+      const targetDate = addDaysToJalaliKey(getTodayKey(), 10);
+      appData.settings = { ...appData.settings, repairReminderDays: 7, repairReminderTime: '10:15', repairReminderEnabled: true };
+      selectedDateKey = targetDate;
+      openApptModal();
+      document.getElementById('apptClientName').value = 'مشتری پایداری پس از بارگذاری';
+      document.getElementById('apptPhone').value = '09120000077';
+      document.getElementById('apptTime').value = '09:30';
+      document.getElementById('apptService').value = 'کاشت مژه';
+      document.getElementById('apptNotes').value = 'آزمایش ماندگاری';
+      document.getElementById('apptAlarm').value = '15';
+      document.getElementById('apptStatus').value = 'pending';
+      saveAppointment();
+      const created = appData.appointments.find(a => a.clientName === 'مشتری پایداری پس از بارگذاری');
+      const reminder = created && appData.reminders.find(r => r.id === 'repair_' + created.id);
+      return {
+        created: !!created,
+        id: created?.id || '',
+        dateKey: created?.dateKey || '',
+        initialReminder: !!reminder && reminder.appointmentDateKey === targetDate &&
+          reminder.daysAfter === 7 && reminder.time === '10:15' && reminder.enabled === true,
+        previousSettings
+      };
+    });
+    assert(appointmentReloadQA.created && appointmentReloadQA.initialReminder,
+      'Appointment form must create a linked repair reminder before reload: ' + JSON.stringify(appointmentReloadQA));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(id => !!appData.appointments?.some(a => a.id === id), appointmentReloadQA.id, { timeout: 15000 });
+    const afterCreateReload = await page.evaluate(id => {
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      return !!a && !!r && a.clientName === 'مشتری پایداری پس از بارگذاری' &&
+        a.dateKey === r.appointmentDateKey && r.daysAfter === 7 && r.time === '10:15' && r.enabled === true;
+    }, appointmentReloadQA.id);
+    assert(afterCreateReload, 'Created appointment and its reminder must survive a full page reload');
+
+    const editReloadQA = await page.evaluate(id => {
+      openApptModal(id);
+      document.getElementById('apptTime').value = '11:42';
+      document.getElementById('apptService').value = 'لیفت مژه';
+      document.getElementById('apptNotes').value = 'ویرایش بعد از بارگذاری';
+      saveAppointment();
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      return {
+        edited: !!a && a.time === '11:42' && a.service === 'لیفت مژه' && a.notes === 'ویرایش بعد از بارگذاری',
+        reminderStillLinked: !!r && r.appointmentId === id && r.appointmentDateKey === a?.dateKey &&
+          r.daysAfter === 7 && r.time === '10:15' && r.enabled === true
+      };
+    }, appointmentReloadQA.id);
+    assert(editReloadQA.edited && editReloadQA.reminderStillLinked,
+      'Editing an appointment must update only requested fields and preserve its linked repair reminder');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(id => appData.appointments?.some(a => a.id === id && a.time === '11:42'), appointmentReloadQA.id, { timeout: 15000 });
+    const afterEditReload = await page.evaluate(id => {
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      return !!a && a.time === '11:42' && a.service === 'لیفت مژه' &&
+        !!r && r.appointmentId === id && r.enabled === true;
+    }, appointmentReloadQA.id);
+    assert(afterEditReload, 'Edited appointment and reminder link must survive a second reload');
+
+    const deleteReloadQA = await page.evaluate(id => {
+      window.confirm = () => true;
+      deleteAppointment(id);
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      return {
+        appointmentRemoved: !a,
+        reminderCancelled: !!r && r.cancelled === true && r.enabled === false
+      };
+    }, appointmentReloadQA.id);
+    assert(deleteReloadQA.appointmentRemoved && deleteReloadQA.reminderCancelled,
+      'Deleting an appointment must cancel only its linked repair reminder');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!document.querySelector('#calendarGrid'));
+    const afterDeleteReload = await page.evaluate(id => ({
+      appointmentStillAbsent: !appData.appointments.some(a => a.id === id),
+      reminderStillCancelled: appData.reminders.some(r => r.id === 'repair_' + id && r.cancelled && !r.enabled)
+    }), appointmentReloadQA.id);
+    assert(afterDeleteReload.appointmentStillAbsent && afterDeleteReload.reminderStillCancelled,
+      'Deleted appointment and cancelled reminder state must remain consistent after reload');
+    console.log('Appointment create/edit/delete reload lifecycle:', JSON.stringify({
+      created: appointmentReloadQA.created,
+      afterCreateReload,
+      edited: editReloadQA.edited,
+      afterEditReload,
+      deleted: deleteReloadQA.appointmentRemoved,
+      afterDeleteReload
+    }));
+
     // Seed local data, then prove the installed Service Worker can reopen the app offline.
     await page.evaluate(() => {
       appData.appointments = [{ id:'qa-offline-seed', dateKey:getTodayKey(), time:'09:00', clientName:'آزمایش آفلاین', phone:'09120000000', service:'تست', price:0, deposit:0, status:'pending' }];
