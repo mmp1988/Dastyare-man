@@ -6568,7 +6568,7 @@
         // Never fall back to online local NLP; only the cloud may interpret online requests.
         for (let attempt = 0; attempt < 2; attempt++) {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 60000);
+          const timeout = setTimeout(() => controller.abort(), 90000);
           try {
             response = await fetch(MINA_SMART_BRAIN_URL, {
               method: 'POST',
