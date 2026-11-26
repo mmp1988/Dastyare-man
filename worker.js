@@ -2,7 +2,7 @@
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v19-safe-local-fallback";
+const WORKER_VERSION = "mina-ai-response-v20-groq-ready";
 const requestWindows = new Map();
 
 function isRequestRateLimited(ip, now = Date.now()) {
@@ -23,6 +23,43 @@ function isRequestRateLimited(ip, now = Date.now()) {
 }
 
 async function runMinaModel(env, cloudflareModel, input) {
+  // Preferred free external inference provider for Mina's short Persian salon commands.
+  // Install GROQ_API_KEY as a Worker secret; no key is ever exposed to the browser.
+  if (env.GROQ_API_KEY) {
+    const model = env.GROQ_MODEL || "qwen/qwen3.8-27b";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model,
+          messages: input.messages,
+          max_tokens: Math.min(Number(input.max_tokens) || 700, 1200),
+          temperature: input.temperature ?? 0.1,
+          ...(input.response_format ? { response_format: input.response_format } : {})
+        }),
+        signal: controller.signal
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = payload?.error?.message || payload?.message || `HTTP ${response.status}`;
+        throw new Error(`Groq ${response.status}: ${String(detail).slice(0, 500)}`);
+      }
+      const content = payload?.choices?.[0]?.message?.content;
+      if (typeof content !== "string" || !content.trim()) throw new Error("Groq returned an empty response");
+      return { response: content.trim() };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // Optional OpenRouter compatibility path; Cloudflare remains the final fallback.
+
   // If configured, OpenRouter is the independent provider; Cloudflare AI remains
   // a compatibility fallback until the external key is installed as a Worker secret.
   const apiKey = env.OPENROUTER_API_KEY;
