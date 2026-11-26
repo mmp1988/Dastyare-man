@@ -1,0 +1,1990 @@
+{
+  "version": 1,
+  "language": "fa-IR",
+  "blind": true,
+  "caseCount": 60,
+  "scoringTotal": 6,
+  "notes": "Freshly authored benchmark prompts. These are not app instructions and must not be used as training examples or runtime rules. Each case is a multi-turn exchange with a short natural setup before the unseen target request.",
+  "cases": [
+    {
+      "id": "blind-01",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "یه پرونده تازه باز کن به اسم نرگس شریفی"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-02",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "مشتری جدیدم رو با اسم آوا کریمی اضافه کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-03",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای خانم الهام نادری یه پروفایل مشتری بساز"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-04",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "اسم مشتری جدید ترانه محسنیه، توی مشتریا نگهش دار"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-05",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "یه مشتری دارم به اسم یلدا رستگار، پرونده‌شو ایجاد کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-06",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "پرونده‌ی بهاره توکلی رو برام ثبت کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-07",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "مشتری تازه: سحر احمدی؛ تو لیست مشتریا اضافه‌ش کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-08",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "اسمش مهسا فرهمنده، به عنوان مشتری جدید ذخیره کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-09",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای نازنین حیدری پرونده درست کن لطفا"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-10",
+      "category": "customer_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام پرونده یه مشتری جدید رو کامل کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً عزیزم، اطلاعاتش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "میشه مشتری جدیدی به نام شیوا یوسفی ثبت کنی؟"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت پرونده مشتری",
+        "operation": "create_customer"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-11",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "شماره ۰۹۱۲۳۴۵۶۷۸۹ رو برای نرگس شریفی ذخیره کن"
+        }
+      ],
+      "expected": {
+        "goal": "افزودن تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-12",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "تلفن آوا کریمی اینه 09135551234، تو پرونده‌ش بزن"
+        }
+      ],
+      "expected": {
+        "goal": "افزودن تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-13",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "شماره الهام نادری رو عوض کن به ۰۹۳۵۱۲۳۴۵۶۷"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-14",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "برای ترانه محسنی شماره ۰۹۱۷۰۰۰۱۲۳۴ ثبت کن"
+        }
+      ],
+      "expected": {
+        "goal": "افزودن تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-15",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "شماره جدید یلدا رستگار: ۰۹۱۲۲۲۲۲۲۲۲"
+        }
+      ],
+      "expected": {
+        "goal": "افزودن تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-16",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "بهاره توکلی رو با این شماره به‌روز کن 09361234567"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-17",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "شماره سحر احمدی رو بذار ۰۹۱۹۸۸۸۷۷۶۶"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-18",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "تلفن مهسا فرهمند 09141112233 هست، ذخیره‌ش کن"
+        }
+      ],
+      "expected": {
+        "goal": "افزودن تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-19",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "برای نازنین حیدری این شماره رو اضافه کن ۰۹۳۰۱۲۳۴۵۶۷"
+        }
+      ],
+      "expected": {
+        "goal": "افزودن تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-20",
+      "category": "customer_phone",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "دارم اطلاعات تماس یکی از مشتری‌هام رو به‌روز می‌کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو شماره و اسم مشتری چیه."
+        },
+        {
+          "role": "user",
+          "text": "شماره شیوا یوسفی رو اصلاح کن؛ شماره درست 09176665544"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش تلفن مشتری مشخص",
+        "operation": "update_customer_phone"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-21",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای نرگس شریفی فردا ساعت ۱۰:۱۵ ترمیم مژه نوبت بذار"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-22",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "آوا کریمی پنجشنبه ساعت ۴ عصر برای لیفت مژه میاد، ثبتش کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-23",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "یه وقت برای الهام نادری شنبه ساعت ۱۲:۳۰ جهت والیوم رزرو کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-24",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "ترانه محسنی رو دوشنبه ساعت ۱۷ برای اکستنشن مژه بنویس"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-25",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای یلدا رستگار پس‌فردا ساعت ۹ صبح لیفت ابرو بذار"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-26",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "بهاره توکلی جمعه ساعت ۱۴:۲۰ کاشت مژه داره؛ تو تقویم ثبت کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-27",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "سحر احمدی رو برای سه‌شنبه ساعت ۶ و ربع عصر نوبت کلاسیک بده"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-28",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "چهارشنبه ساعت ۱۱ برای مهسا فرهمند ترمیم ثبت کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-29",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "نازنین حیدری فردا ۱۵:۴۵ برای لیفت مژه وقت می‌خواد، بزن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-30",
+      "category": "appointment_create",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام برنامه نوبت‌های سالن رو تنظیم کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، مشخصات نوبت رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "شیوا یوسفی رو یکشنبه ساعت ۱۳ برای مدل والیوم رزرو کن"
+        }
+      ],
+      "expected": {
+        "goal": "ثبت نوبت مشتری مشخص",
+        "operation": "create_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-31",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "نوبت نرگس شریفی رو از فردا ببر پس‌فردا، ساعتش همون بمونه"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش تاریخ نوبت مشخص",
+        "operation": "edit_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-32",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "وقت آوا کریمی رو نیم ساعت دیرتر کن، بقیه اطلاعات تغییر نکنه"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش ساعت نوبت مشخص",
+        "operation": "edit_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-33",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "خدمت نوبت الهام نادری رو از لیفت به ترمیم مژه تغییر بده"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش خدمت نوبت مشخص",
+        "operation": "edit_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-34",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "نوبت ترانه محسنی رو لغو کن، پرونده مشتریش بمونه"
+        }
+      ],
+      "expected": {
+        "goal": "حذف/لغو نوبت مشخص",
+        "operation": "cancel_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-35",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "وقت یلدا رستگار رو به ساعت ۱۸:۲۰ تغییر بده"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش ساعت نوبت مشخص",
+        "operation": "edit_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-36",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "نوبت بهاره توکلی رو پاک کن ولی سوابق قبلیش رو حذف نکن"
+        }
+      ],
+      "expected": {
+        "goal": "حذف/لغو نوبت مشخص",
+        "operation": "cancel_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-37",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "برای سحر احمدی فقط تاریخ نوبت رو عوض کن؛ ساعت و خدمت دست نخوره"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش محدود نوبت مشخص",
+        "operation": "edit_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-38",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "نوبت مهسا فرهمند رو کنسل کن"
+        }
+      ],
+      "expected": {
+        "goal": "حذف/لغو نوبت مشخص",
+        "operation": "cancel_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-39",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "ساعت نازنین حیدری رو از ۱۵:۴۵ بکن ۱۶:۱۰"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش ساعت نوبت مشخص",
+        "operation": "edit_appointment"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-40",
+      "category": "appointment_edit_delete",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه نوبت از قبل توی تقویم دارم و باید اصلاحش کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "باشه، بگو کدوم نوبت و چه تغییری لازم داره."
+        },
+        {
+          "role": "user",
+          "text": "نوبت شیوا یوسفی رو به هفته بعد منتقل کن؛ اگر تاریخ دقیق معلوم نیست بپرس"
+        }
+      ],
+      "expected": {
+        "goal": "نیازمند روشن‌سازی تاریخ",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-41",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "فردا ساعت ۸ صبح یادم بنداز به مشتری زنگ بزنم"
+        }
+      ],
+      "expected": {
+        "goal": "هشدار شخصی مستقل از نوبت",
+        "operation": "create_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-42",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "امشب ساعت ۹ آلارم بذار قبض رو پرداخت کنم"
+        }
+      ],
+      "expected": {
+        "goal": "هشدار شخصی مستقل از نوبت",
+        "operation": "create_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-43",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای شنبه ساعت ۱۱ یادآوری کن مواد مژه سفارش بدم"
+        }
+      ],
+      "expected": {
+        "goal": "هشدار شخصی مستقل از نوبت",
+        "operation": "create_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-44",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "یادآور تماس با تأمین‌کننده رو بذار پس‌فردا ساعت ۱۴"
+        }
+      ],
+      "expected": {
+        "goal": "هشدار شخصی مستقل از نوبت",
+        "operation": "create_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-45",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "ساعت هشدار خرید چسب رو از ۱۰ به ۱۲ تغییر بده"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش هشدار شخصی ارجاع‌شده",
+        "operation": "edit_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-46",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "همون آلارم قبلی رو لغو کن"
+        }
+      ],
+      "expected": {
+        "goal": "لغو هشدار با ارجاع روشن در سابقه",
+        "operation": "cancel_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-47",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای امروز ساعت ۲۰ یادم بنداز عکس‌ها رو مرتب کنم"
+        }
+      ],
+      "expected": {
+        "goal": "هشدار شخصی مستقل از نوبت",
+        "operation": "create_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-48",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "جمعه ساعت ۷ شب یادآوری کن با سارا تماس بگیرم"
+        }
+      ],
+      "expected": {
+        "goal": "هشدار شخصی مستقل از نوبت",
+        "operation": "create_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-49",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "هشدار فردا رو نیم ساعت جلوتر بیار"
+        }
+      ],
+      "expected": {
+        "goal": "ویرایش هشدار با مرجع یکتا",
+        "operation": "edit_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-50",
+      "category": "personal_reminder",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "یه کار شخصی دارم که نباید یادم بره."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، زمان و موضوعش رو بگو."
+        },
+        {
+          "role": "user",
+          "text": "دیگه یادآوری سفارش رنگ رو نمی‌خوام، حذفش کن"
+        }
+      ],
+      "expected": {
+        "goal": "لغو هشدار شخصی مشخص",
+        "operation": "cancel_personal_reminder"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-51",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای مشتری به اسم مریم نوبت ثبت کن"
+        }
+      ],
+      "expected": {
+        "goal": "ابهام دو پرونده هم‌نام",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-52",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "مامان مینا رو پیدا کن و شماره‌ش رو تغییر بده"
+        }
+      ],
+      "expected": {
+        "goal": "ابهام نام مستعار مشترک",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-53",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "آخرین مراجعه‌ش کی بوده؟"
+        }
+      ],
+      "expected": {
+        "goal": "ضمیر بدون مرجع یکتا",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-54",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "اون نوبتو حذف کن"
+        }
+      ],
+      "expected": {
+        "goal": "چند نوبت محتمل، نیاز به سؤال",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-55",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای سارا وقت بذار؛ دو سارا تو پرونده‌ها هستن"
+        }
+      ],
+      "expected": {
+        "goal": "ابهام مشتری هم‌نام",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-56",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "همونو ساعت ۶ کن"
+        }
+      ],
+      "expected": {
+        "goal": "ارجاع مبهم بدون سابقه کافی",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-57",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "پرونده مشتری جدید رو بساز"
+        }
+      ],
+      "expected": {
+        "goal": "نام مشتری ارائه نشده",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-58",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "شماره‌ش رو ذخیره کن: 09120001122"
+        }
+      ],
+      "expected": {
+        "goal": "مرجع مشتری مشخص نیست",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-59",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "نوبت قبلی رو جابه‌جا کن"
+        }
+      ],
+      "expected": {
+        "goal": "چند نوبت قبلی ممکن است",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    },
+    {
+      "id": "blind-60",
+      "category": "ambiguous_context_history",
+      "conversation": [
+        {
+          "role": "user",
+          "text": "می‌خوام یکی از پرونده‌ها یا نوبت‌های قبلی رو پیدا کنم."
+        },
+        {
+          "role": "assistant",
+          "text": "حتماً، هر اطلاعاتی از مورد موردنظر داری بگو."
+        },
+        {
+          "role": "user",
+          "text": "برای فردا ساعت ۵ ثبت کن"
+        }
+      ],
+      "expected": {
+        "goal": "نوع عملیات و مشتری نامشخص",
+        "operation": "clarify"
+      },
+      "scoring": {
+        "intent": 1,
+        "entity_resolution": 1,
+        "operation": 1,
+        "persistence": 2,
+        "truthful_confirmation": 1
+      },
+      "isolation": {
+        "synthetic_data_only": true,
+        "allow_production_mutation": false
+      }
+    }
+  ]
+}

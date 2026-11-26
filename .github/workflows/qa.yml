@@ -35,6 +35,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Validate blind Persian conversation benchmark
+        run: node tests/validate-mina-blind-benchmark.cjs
       - name: Check Worker JavaScript syntax
         run: node --check worker.js
       - name: Check inline JavaScript syntax
