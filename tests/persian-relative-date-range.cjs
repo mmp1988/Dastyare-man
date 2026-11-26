@@ -69,6 +69,8 @@ const assert = require('node:assert/strict');
         const expectedCombinedDate = expectedJ[0] + '-' + pad2(expectedJ[1]) + '-' + pad2(expectedJ[2]);
         const expectedCombinedTime = pad2(expectedDate.getHours()) + ':' + pad2(expectedDate.getMinutes());
         const combinedReply = minaBuildReply('برای آزمون ترکیبی نوبت دو روز و سه ساعت دیگه در قسمت مشتریان ثبت کن');
+        const debugText = minaCleanText(minaNormalizePersianTypos(minaStripPrefix(minaNormalizeDigits('برای آزمون ترکیبی نوبت دو روز و سه ساعت دیگه در قسمت مشتریان ثبت کن')))).toLowerCase();
+        const debug = { text: debugText, expanded: minaExpandSpokenTime(debugText), reminderClock: minaParseReminderClock(debugText), relativeOffsetMatch: /(?:\\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد|یکصد|دویست|سیصد|چهارصد|پانصد|ششصد|هفتصد|هشتصد|نهصد)\\s*(?:ساعت|دقیقه)\\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)/u.test(debugText) };
         const combined = appData.appointments[0];
 
         appData.appointments = [];
@@ -83,7 +85,8 @@ const assert = require('node:assert/strict');
             expectedTime: expectedCombinedTime,
             reply: combinedReply
           },
-          writtenNumber
+          writtenNumber,
+          debug
         };
       } finally {
         appData.appointments = original.appointments;
@@ -96,6 +99,7 @@ const assert = require('node:assert/strict');
       }
     });
 
+    console.log('Relative date diagnostic:', JSON.stringify({combined:result.combined,debug:result.debug}));
     assert.equal(result.checked, 730, 'All 365 day offsets must be checked in both directions');
     assert.deepEqual(result.failures, [], 'At least one relative day offset was parsed incorrectly');
     assert.equal(result.combined.date, result.combined.expectedDate, 'Combined day + hour phrase produced the wrong Jalali date');
