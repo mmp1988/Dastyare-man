@@ -39,7 +39,7 @@ async function runMinaModel(env, cloudflareModel, input) {
         body: JSON.stringify({
           model,
           messages: input.messages,
-          max_tokens: Math.min(Number(input.max_tokens) || 700, 1200),
+          max_completion_tokens: Math.min(Number(input.max_tokens) || 700, 1200),
           temperature: input.temperature ?? 0.1,
           ...(input.response_format ? { response_format: input.response_format } : {})
         }),
