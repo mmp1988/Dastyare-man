@@ -97,6 +97,21 @@ console.log('Android alarm integration contract: PASS');
       'Persistent conversation context must preserve intent while masking customer names and phone numbers before cloud transmission: ' + JSON.stringify(minaMemoryPrivacyQA));
     console.log('Mina memory privacy:', JSON.stringify(minaMemoryPrivacyQA));
 
+    const minaWorkspaceCapabilityQA = await page.evaluate(() => {
+      const context = minaBuildWorkspaceCapabilityContext();
+      return {
+        calendar: context.includes('تقویم/نوبت'),
+        clients: context.includes('پرونده مشتری'),
+        personalAndAppointmentReminders: context.includes('یادآوری شخصی') && context.includes('هشدار متصل به نوبت'),
+        automaticRepair: context.includes('پیگیری خودکار ترمیم'),
+        notebookAndTodos: context.includes('دفتر کار') && context.includes('چک‌لیست'),
+        messagesAndSettings: context.includes('پیام‌ها') && context.includes('تنظیمات'),
+        liveCounts: context.includes('مشتریان=') && context.includes('نوبت‌های فعال=')
+      };
+    });
+    assert(Object.values(minaWorkspaceCapabilityQA).every(Boolean),
+      'Mina must receive a live map of the actual salon workspace and distinguish reminder types: ' + JSON.stringify(minaWorkspaceCapabilityQA));
+    console.log('Mina workspace capability map:', JSON.stringify(minaWorkspaceCapabilityQA));
     const minaDateTimeQA = await page.evaluate(() => {
       const clock = minaTryAnswerDateTimeQuestion('الان ساعت چنده؟');
       const weekday = minaTryAnswerDateTimeQuestion('امروز چند شنبه است؟');
