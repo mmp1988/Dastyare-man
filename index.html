@@ -8886,6 +8886,7 @@
   const completed=a.status==='done';
   if(!confirm(completed?'این نوبت از فهرست نوبت‌ها حذف شود؟ سابقه انجام‌شده در پرونده مشتری حفظ می‌شود.':'این نوبت حذف شود؟'))return;
   const key=completed?archiveCompletedAppointment(a):'';
+  archiveCustomerAppointment(a,'deleted');
   appData.appointments=appData.appointments.filter(x=>x.id!==id);
   if(typeof cancelAutomaticRepairReminder==='function')cancelAutomaticRepairReminder(id);
   if(typeof saveData==='function')saveData();
