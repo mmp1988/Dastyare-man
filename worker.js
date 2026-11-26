@@ -4,11 +4,14 @@ const MODEL = "@cf/zai-org/glm-4.7-flash";
 const FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 const QWEN_FALLBACK_MODEL = "@cf/qwen/qwen3.8-27b";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v26-neuron-quota-failover";
+const WORKER_VERSION = "mina-ai-response-v27-daily-quota-circuit-breaker";
 const requestWindows = new Map();
 // Per-isolate circuit breakers prevent repeated calls to a provider that is known to be failing.
 const providerCooldowns = new Map();
-const CLOUDFLARE_QUOTA_COOLDOWN_MS = 30 * 60 * 1000;
+function millisecondsUntilUtcMidnight(now = Date.now()) {
+  const date = new Date(now);
+  return Math.max(60 * 1000, Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1) - now + 5000);
+}
 
 function providerCoolingDown(name, now = Date.now()) {
   const until = providerCooldowns.get(name) || 0;
@@ -84,7 +87,11 @@ async function runMinaModel(env, cloudflareModel, input) {
         quotaFailures++;
         // Workers AI daily Neurons are shared across models: don't waste another call
         // against a second model after the account-level daily allocation is exhausted.
-        providerCooldowns.set("cloudflare:quota", Date.now() + CLOUDFLARE_QUOTA_COOLDOWN_MS);
+        const detail = String(error && (error.message || error) || "").toLowerCase();
+        if (/(?:daily free allocation|free allocation|4006|neurons?)/i.test(detail)) {
+          // Workers AI free Neurons reset at 00:00 UTC; don't keep probing a daily-exhausted account.
+          providerCooldowns.set("cloudflare:quota", Date.now() + millisecondsUntilUtcMidnight());
+        }
       }
       failures.push(provider.key + ": " + String(error?.message || error).slice(0, 240));
     } finally {
