@@ -5885,6 +5885,7 @@
       const todayKey = getTodayKey();
       const today = minaTodayAppointments();
       const greeting = appData.settings.personalGreeting || 'عزیزم';
+      const customerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(t);
 
       if (/(?:الان|همین الان).*(?:ساعت|صبح|ظهر|عصر|شب)|(?:ساعت چنده|الان چه ساعتی|الان صبحه|الان ظهره|الان شبه)/.test(t)) {
         const now = getIranNow();
@@ -6162,7 +6163,6 @@
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
           const time = clock ? pad2(hour) + ':' + pad2(minute) : '';
-        const customerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(t);
         if (!service) service = '';
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === time && Boolean(a.customerOnly) === customerOnly && a.status !== 'canceled' &&
