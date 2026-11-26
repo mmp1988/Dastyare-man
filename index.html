@@ -2016,17 +2016,17 @@
           <div class="form-group full">
             <label>📸 عکس قبل از انجام خدمت (اختیاری)</label>
             <input type="file" id="clientBeforePhotoInput" class="form-control" accept="image/*" onchange="handleClientPhoto(event,'before')" />
-            <small id="clientBeforePhotoStatus" style="color:var(--text-secondary);">با دوربین پشت، قبل از شروع کار عکس بگیر.</small>
+            <small id="clientBeforePhotoStatus" style="color:var(--text-secondary);">با دوربین پشت، قبل از شروع کار عکس بگیر.</small><div id="clientBeforePhotoPreview" class="client-upload-photo-preview" style="display:none;margin-top:8px;"><img alt="پیش‌نمایش عکس قبل" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--bg-secondary);" /></div>
           </div>
           <div class="form-group full">
             <label>✨ عکس بعد از انجام خدمت (اختیاری)</label>
             <input type="file" id="clientAfterPhotoInput" class="form-control" accept="image/*" onchange="handleClientPhoto(event,'after')" />
-            <small id="clientAfterPhotoStatus" style="color:var(--text-secondary);">بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.</small>
+            <small id="clientAfterPhotoStatus" style="color:var(--text-secondary);">بعد از اتمام کار، عکس نتیجه را با همان زاویه و نور ثبت کن.</small><div id="clientAfterPhotoPreview" class="client-upload-photo-preview" style="display:none;margin-top:8px;"><img alt="پیش‌نمایش عکس بعد" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--bg-secondary);" /></div>
           </div>
           <div class="form-group full">
             <label>عکس تکمیلی جلسه (اختیاری)</label>
             <input type="file" id="clientWorkPhotoInput" class="form-control" accept="image/*" onchange="handleClientPhoto(event,'work')" />
-            <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.</small>
+            <small id="clientWorkPhotoStatus" style="color:var(--text-secondary);">عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.</small><div id="clientWorkPhotoPreview" class="client-upload-photo-preview" style="display:none;margin-top:8px;"><img alt="پیش‌نمایش عکس تکمیلی" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--bg-secondary);" /></div>
           </div>
           <div class="form-group full" style="border:1px solid var(--border-subtle);border-radius:12px;padding:10px;background:var(--bg-secondary);">
             <label>🖼️ آرشیو عکس مشتری</label>
@@ -3704,9 +3704,7 @@
           </div>
         `;
       }).join('');
-      c.querySelectorAll('img[data-client-photo-ref]').forEach(async img => {
-        try { const url=await getClientPhotoUrl(img.dataset.clientPhotoRef); if(url) img.src=url; } catch(e) {}
-      });
+      c.querySelectorAll('img[data-client-photo-ref]').forEach(img => { setClientPhotoImage(img,img.dataset.clientPhotoRef); });
     }
 
     function toggleClientAppointmentPeek(key) {
@@ -4164,6 +4162,7 @@
       document.querySelectorAll('[data-work-field]').forEach(el=>el.value='');
       document.getElementById('clientWorkPhotoInput').value = '';
       document.getElementById('clientWorkPhotoStatus').textContent = 'عکس‌های اصلی بدون فشرده‌سازی ذخیره می‌شوند.';
+      ['clientWorkPhotoPreview','clientBeforePhotoPreview','clientAfterPhotoPreview'].forEach(id=>{const box=document.getElementById(id);if(box){box.style.display='none';const img=box.querySelector('img');if(img){const old=img.dataset.previewUrl;if(old){try{URL.revokeObjectURL(old);}catch(e){}}img.removeAttribute('src');img.dataset.previewUrl='';}}});
       document.getElementById('clientBeforePhotoInput').value = '';
       document.getElementById('clientAfterPhotoInput').value = '';
       document.getElementById('clientBeforePhotoStatus').textContent = 'با دوربین پشت، قبل از شروع کار عکس بگیر.';
@@ -4247,6 +4246,52 @@
       const j = gregorianToJalali(d.getFullYear(),d.getMonth()+1,d.getDate());
       return toPersianDigits(j[0]+'/'+pad2(j[1])+'/'+pad2(j[2])+' • '+pad2(d.getHours())+':'+pad2(d.getMinutes()));
     }
+    // One resilient image hydrator for every customer-photo surface (profile, archive, before/after and work history).
+    const clientPhotoObjectUrls = new Map();
+    async function setClientPhotoImage(img, photoRef) {
+      if (!img || !photoRef) return false;
+      const ref=String(photoRef);
+      try {
+        let url=clientPhotoObjectUrls.get(ref)||'';
+        if (!url) {
+          const blob=await getClientPhotoBlob(ref);
+          if (!blob) throw new Error('عکس در حافظه محلی پیدا نشد');
+          url=URL.createObjectURL(blob);
+          clientPhotoObjectUrls.set(ref,url);
+        }
+        if (!img.isConnected) return false;
+        img.onerror=async()=>{
+          img.onerror=null;
+          try {
+            const blob=await getClientPhotoBlob(ref);
+            if (!blob || !img.isConnected) return;
+            const reader=new FileReader();
+            reader.onload=()=>{ if(img.isConnected) img.src=String(reader.result||''); };
+            reader.readAsDataURL(blob);
+          } catch(e) { img.dataset.photoLoadError='true'; }
+        };
+        img.src=url;
+        img.style.display='block';
+        return true;
+      } catch(e) {
+        if (img.isConnected) {
+          img.dataset.photoLoadError='true';
+          img.alt=img.alt||'تصویر در حافظه محلی پیدا نشد';
+        }
+        return false;
+      }
+    }
+    function showClientUploadPreview(target,file) {
+      const ids={before:'clientBeforePhotoPreview',after:'clientAfterPhotoPreview',work:'clientWorkPhotoPreview'};
+      const box=document.getElementById(ids[target]||'');
+      if(!box||!file)return;
+      const img=box.querySelector('img');
+      if(!img)return;
+      const old=img.dataset.previewUrl;
+      if(old){try{URL.revokeObjectURL(old);}catch(e){}}
+      const url=URL.createObjectURL(file);
+      img.dataset.previewUrl=url;img.src=url;box.style.display='block';
+    }
     async function handleClientPhoto(event, target) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
@@ -4267,14 +4312,17 @@
           document.getElementById('clientProfilePhotoEmpty').style.display = 'none';
           showToast('عکس اصلی با کیفیت دوربین ذخیره شد 📷');
         } else if (target === 'before') {
+          showClientUploadPreview('before',file);
           pendingClientBeforePhoto = photoRef;
           document.getElementById('clientBeforePhotoStatus').textContent = 'عکس قبل از کار با کیفیت اصلی آماده ثبت است.';
           showToast('عکس قبل از کار آماده شد 📷');
         } else if (target === 'after') {
+          showClientUploadPreview('after',file);
           pendingClientAfterPhoto = photoRef;
           document.getElementById('clientAfterPhotoStatus').textContent = 'عکس بعد از کار با کیفیت اصلی آماده ثبت است.';
           showToast('عکس بعد از کار آماده شد 📷');
         } else {
+          showClientUploadPreview('work',file);
           pendingClientWorkPhoto = photoRef;
           document.getElementById('clientWorkPhotoStatus').textContent = 'عکس تکمیلی با کیفیت کامل آماده ثبت است.';
           showToast('عکس تکمیلی جلسه آماده شد 📷');
@@ -4666,9 +4714,7 @@
           <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px;">${groupItems.map(renderHistoryItem).join('')}</div>
         </details>`;
       }).join('');
-      box.querySelectorAll('img[data-photo-ref]').forEach(async img=>{
-        try { const url=await getClientPhotoUrl(img.getAttribute('data-photo-ref')); if(url)img.src=url; } catch(e) {}
-      });
+      box.querySelectorAll('img[data-photo-ref]').forEach(img=>{ setClientPhotoImage(img,img.getAttribute('data-photo-ref')); });
     }
 
     function renderClientScheduledAppointments(key) {
@@ -9027,7 +9073,7 @@
         '<div style="font-size:.72rem;margin-top:5px;overflow-wrap:anywhere;">'+escapeClientText(x.caption||'عکس آرشیوی')+'</div>'+
         '<small style="color:var(--text-secondary);">'+escapeClientText(x.dateKey&&typeof formatJalaliFull==='function'?formatJalaliFull(x.dateKey):'')+'</small>'+
         '<button type="button" class="mini-btn del" style="width:100%;margin-top:5px;" onclick="deleteClientArchivePhoto(\''+encodeURIComponent(key)+'\',\''+encodeURIComponent(x.id)+'\')">حذف عکس</button></div>').join('');
-      root.querySelectorAll('img[data-client-archive-ref]').forEach(async img=>{try{const url=await getClientPhotoUrl(img.dataset.clientArchiveRef);if(url)img.src=url;}catch(e){}});
+      root.querySelectorAll('img[data-client-archive-ref]').forEach(img=>{ setClientPhotoImage(img,img.dataset.clientArchiveRef); });
     }
     async function deleteClientArchivePhoto(encodedKey,encodedId) {
       const key=decodeURIComponent(encodedKey),id=decodeURIComponent(encodedId),p=(appData.clientProfiles||{})[key];if(!p)return;
