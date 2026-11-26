@@ -6891,7 +6891,7 @@
         /(?:ثبت|ذخیره|اضافه|بذار|بزار|بده|اختصاص\s*بده)/u.test(minaNormalizePersianTypos(message)) &&
         /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*روز\s*(?:بعد|دیگه|دیگر)/u.test(minaNormalizePersianTypos(minaNormalizeDigits(message))) &&
         /(?:به\s*)?(?:اسم|نام)\s+[آ-یءئؤإأ‌\-]{2,40}/u.test(minaNormalizePersianTypos(message));
-      if (!navigator.onLine && !reply && directCustomerOnlyBooking) {
+      if (navigator.onLine && !reply && directCustomerOnlyBooking) {
         const beforeIds = new Set((appData.appointments || []).map(item => item && item.id));
         const normalizedDirect = minaNormalizePersianTypos(minaNormalizeDigits(message));
         const relativeDayMatch = normalizedDirect.match(/(\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*روز\s*(?:بعد|دیگه|دیگر)/u);
