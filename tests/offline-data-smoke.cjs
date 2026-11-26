@@ -1193,6 +1193,8 @@ const minaAppointmentMutationFlow = await page.evaluate(async () => {
       minaPendingBooking = null;
       const input = document.getElementById('minaInput');
       input.value = '';
+      const originalFetch = window.fetch;
+      window.fetch = async () => new Response(JSON.stringify({ success: true, route: { type: 'action', command: 'برای پس فردا ساعت ۱۴ بعدازظهر نوبت کاشت مژه ثبت کن', reply: '', review: { decision: 'approve', reviewed: true } } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       let nativeCall = null;
       window.AndroidApp = {
         startOfflineSpeechRecognition: (targetInputId, buttonId) => {
@@ -1218,6 +1220,7 @@ const minaAppointmentMutationFlow = await page.evaluate(async () => {
         inputCleared: input.value === ''
       };
       delete window.AndroidApp;
+      window.fetch = originalFetch;
       return result;
     });
     assert(speechBridgeResult.bridgeCalled && speechBridgeResult.buttonActive &&
