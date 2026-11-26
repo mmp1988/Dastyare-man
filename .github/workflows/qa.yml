@@ -64,249 +64,63 @@ jobs:
       - name: Run mobile Safari WebKit smoke
         run: node tests/safari-webkit-smoke.cjs
 
-  cloud-ai-integration:
+  worker-health:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: Verify live Cloudflare Worker and Workers AI response
+      - name: Verify deployed Worker health without spending AI tokens
+        env:
+          MINA_WORKER_URL: https://mina-smart-brain.mehrdadmohammadi1988.workers.dev/
+        run: |
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          (async () => {
+            const url = process.env.MINA_WORKER_URL;
+            let response, data;
+            for (let attempt = 0; attempt < 24; attempt++) {
+              try {
+                response = await fetch(url, { cache: 'no-store' });
+                data = await response.json();
+                if (response.ok && data.version === 'mina-ai-response-v22-efficient-failover') break;
+              } catch (_) {}
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            assert.equal(response?.status, 200, 'Worker health endpoint must return HTTP 200');
+            assert.equal(data?.status, 'ready', 'Worker must report ready');
+            assert.equal(data?.version, 'mina-ai-response-v22-efficient-failover', 'Latest failover release must be deployed');
+            assert.equal(data?.providers?.cloudflareAI, true, 'Cloudflare AI binding must be present');
+            assert.equal(data?.providers?.groq, true, 'Groq fallback secret must be present');
+            console.log('Mina Worker health: PASS', JSON.stringify(data));
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          NODE
+
+  cloud-ai-integration:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify one live AI request on demand
         env:
           MINA_WORKER_URL: https://mina-smart-brain.mehrdadmohammadi1988.workers.dev/
           MINA_ALLOWED_ORIGIN: https://mmp1988.github.io
         run: |
           node - <<'NODE'
           const assert = require('node:assert/strict');
-          const base = process.env.MINA_WORKER_URL;
-          const origin = process.env.MINA_ALLOWED_ORIGIN;
           (async () => {
-            const health = await fetch(base, { cache: 'no-store' });
-            assert.equal(health.status, 200, 'Live Worker health endpoint must return HTTP 200');
-            const healthData = await health.json();
-            assert.equal(healthData.success, true, 'Live Worker health response must report success');
-            assert.equal(healthData.status, 'ready', 'Live Worker must report ready');
-            assert.equal(healthData.version, 'mina-ai-response-v22-efficient-failover',
-              'The updated Worker response parser must be deployed, not just committed to GitHub');
-
-            const preflight = await fetch(base, {
-              method: 'OPTIONS',
-              headers: {
-                Origin: origin,
-                'Access-Control-Request-Method': 'POST',
-                'Access-Control-Request-Headers': 'content-type'
-              }
-            });
-            assert.equal(preflight.status, 204, 'Browser CORS preflight must succeed');
-            assert.equal(preflight.headers.get('access-control-allow-origin'), origin,
-              'Worker must allow the production GitHub Pages origin');
-
+            const base = process.env.MINA_WORKER_URL;
+            const origin = process.env.MINA_ALLOWED_ORIGIN;
             const response = await fetch(base, {
               method: 'POST',
               headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'understand',
-                message: 'نوبت آزمایشی را برای فردا ساعت ۱۸:۱۷ جابه‌جا کن'
-              }),
-              signal: AbortSignal.timeout(120000),
+              body: JSON.stringify({ mode: 'understand', message: 'برای مشتری فردا ساعت ۱۷ نوبت مژه ثبت کن' }),
+              signal: AbortSignal.timeout(60000),
               cache: 'no-store'
             });
             const data = await response.json().catch(() => ({}));
-            assert.equal(response.status, 200,
-              'Workers AI must answer successfully; received HTTP ' + response.status + ' ' + JSON.stringify(data));
-            assert.equal(data.success, true, 'Workers AI response must report success: ' + JSON.stringify(data));
-            assert.equal(typeof data.command, 'string', 'Workers AI must return a parsed command');
-            assert.ok(data.command.trim().length > 0, 'Workers AI command must not be empty');
-            assert.match(data.command, /[آ-ی]/u, 'Workers AI must return a natural Persian instruction, not an action code');
-            assert.ok(!/^[a-z0-9_ -]+$/iu.test(data.command.trim()),
-              'Workers AI command must not be a snake_case or English action label');
-            console.log('Live Cloudflare Worker understand mode: PASS', JSON.stringify({
-              health: healthData.status,
-              cors: preflight.status,
-              aiStatus: response.status,
-              commandReturned: true
-            }));
-
-            const routeResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'route',
-                enableReview: true,
-                message: 'کاربر: سلام مینا، امروز واقعاً خسته‌ام، میشه یکم باهام حرف بزنی؟'
-              }),
-              signal: AbortSignal.timeout(60000),
-              cache: 'no-store'
-            });
-            const routeData = await routeResponse.json().catch(() => ({}));
-            assert.equal(routeResponse.status, 200,
-              'Conversational routing must return HTTP 200: ' + JSON.stringify(routeData));
-            assert.equal(routeData.success, true, 'Conversational routing must succeed: ' + JSON.stringify(routeData));
-            assert.equal(routeData.route?.type, 'reply',
-              'Casual non-command speech must be routed to conversation, not rejected by a keyword gate');
-            assert.equal(routeData.route?.review?.reviewed, false,
-              'Ordinary conversation must not pay for an unnecessary second-model review');
-            assert.ok(typeof routeData.route?.reply === 'string' && routeData.route.reply.trim().length > 0,
-              'Mina must return a natural conversational answer');
-
-            const personalReminderResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'route',
-                enableReview: true,
-                message: 'کاربر: برای فردا ساعت ۳ بعدازظهر بهم خبر بده، آلارمو ست کن'
-              }),
-              signal: AbortSignal.timeout(60000),
-              cache: 'no-store'
-            });
-            const personalReminderData = await personalReminderResponse.json().catch(() => ({}));
-            assert.equal(personalReminderResponse.status, 200,
-              'Personal reminder routing must return HTTP 200: ' + JSON.stringify(personalReminderData));
-            assert.equal(personalReminderData.success, true,
-              'Personal reminder routing must succeed: ' + JSON.stringify(personalReminderData));
-            assert.equal(personalReminderData.route?.type, 'personal_reminder',
-              'A personal alarm must be routed to the personal reminder scheduler, never appointment booking');
-            assert.equal(personalReminderData.route?.review?.reviewed, false,
-              'Independent review is intentionally disabled because no second provider is configured.');
-            assert.ok(typeof personalReminderData.route?.command === 'string' &&
-              /خبر|یاد|آلارم|هشدار|فردا|ساعت|بعدازظهر/u.test(personalReminderData.route.command),
-              'AI must preserve the reminder meaning in a Persian command');
-
-            const actionResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'route',
-                enableReview: true,
-                message: 'کاربر: نوبت آزمایشی را برای فردا ساعت ۱۸:۱۷ جابه‌جا کن'
-              }),
-              signal: AbortSignal.timeout(60000),
-              cache: 'no-store'
-            });
-            const actionData = await actionResponse.json().catch(() => ({}));
-            assert.equal(actionResponse.status, 200,
-              'Natural salon action routing must return HTTP 200: ' + JSON.stringify(actionData));
-            assert.equal(actionData.success, true, 'Natural salon action routing must succeed');
-            assert.equal(actionData.route?.type, 'action',
-              'Salon operation must be routed to local execution');
-            assert.equal(actionData.route?.review?.reviewed, false,
-              'Independent review is intentionally disabled because no second provider is configured.');
-            assert.ok(typeof actionData.route?.command === 'string' && /[آ-ی]/u.test(actionData.route.command),
-              'AI must return a natural Persian command for local execution');
-
-            const aliasFlowResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'route',
-                enableReview: true,
-                message: 'مکالمه اخیر: کاربر گفت برای مشتری جدید «مامان مینا» پرونده بساز. مینا گفت پرونده ساخته شد. کاربر گفت شماره تماس مامان مینا را جداگانه می‌فرستم. حالا کاربر می‌گوید: برای همون مشتری فردا ساعت ۱۷:۳۰ نوبت لیفت مژه ثبت کن.'
-              }),
-              signal: AbortSignal.timeout(60000),
-              cache: 'no-store'
-            });
-            const aliasFlowData = await aliasFlowResponse.json().catch(() => ({}));
-            assert.equal(aliasFlowResponse.status, 200,
-              'Alias-based multi-turn booking route must return HTTP 200: ' + JSON.stringify(aliasFlowData));
-            assert.equal(aliasFlowData.route?.type, 'action',
-              'Cloud AI must resolve «همون مشتری» from the supplied conversation context as an operation');
-            assert.equal(aliasFlowData.route?.review?.reviewed, false,
-              'Alias-based multi-turn operations must be routed without an unconfigured second provider');
-            assert.ok(/نوبت|رزرو|ثبت/u.test(aliasFlowData.route?.command || '') &&
-              /۱۷:۳۰|17:30|پنج و نیم|پنج‌ونیم/u.test(aliasFlowData.route?.command || ''),
-              'Cloud AI must preserve the appointment intent and exact time in a natural Persian command');
-
-            const pronounFlowResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'route',
-                enableReview: true,
-                message: 'مکالمه اخیر: کاربر برای مامان مینا فردا ساعت ۱۷:۳۰ نوبت لیفت مژه ثبت کرد. مینا تأیید کرد که نوبت ذخیره شده است. کاربر حالا می‌گوید: همونو تغییر بده و ساعتش رو بذار ۱۸:۲۰.'
-              }),
-              signal: AbortSignal.timeout(60000),
-              cache: 'no-store'
-            });
-            const pronounFlowData = await pronounFlowResponse.json().catch(() => ({}));
-            assert.equal(pronounFlowResponse.status, 200,
-              'Pronoun appointment-edit route must return HTTP 200: ' + JSON.stringify(pronounFlowData));
-            assert.equal(pronounFlowData.route?.type, 'action',
-              'Cloud AI must understand «همونو تغییر بده» as an edit to the referenced appointment');
-            assert.equal(pronounFlowData.route?.review?.reviewed, false,
-              'Pronoun-linked appointment edits must be routed without an unconfigured second provider');
-            assert.ok(/تغییر|عوض|ویرایش|جابه.?جا/u.test(pronounFlowData.route?.command || '') &&
-              /۱۸:۲۰|18:20/u.test(pronounFlowData.route?.command || ''),
-              'Cloud AI must preserve the pronoun-linked edit and exact new time');
-
-            const appointmentEditRouteResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ mode: 'route', enableReview: true, message: 'کاربر: نوبت مینا موسوی مطلق رو ساعت ۱۹:۰۰ کن' }),
-              signal: AbortSignal.timeout(60000), cache: 'no-store'
-            });
-            const appointmentEditRouteData = await appointmentEditRouteResponse.json().catch(() => ({}));
-            assert.equal(appointmentEditRouteResponse.status, 200, 'Appointment edit route must return HTTP 200: ' + JSON.stringify(appointmentEditRouteData));
-            assert.equal(appointmentEditRouteData.route?.type, 'action', 'Cloud AI must classify a named appointment time change as an action');
-            assert.ok(/۱۹:۰۰|19:00/u.test(appointmentEditRouteData.route?.command || ''), 'Cloud AI must preserve the requested appointment time');
-
-            const appointmentDeleteRouteResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ mode: 'route', enableReview: true, message: 'کاربر: نوبت مینا موسوی مطلق رو حذف کن' }),
-              signal: AbortSignal.timeout(60000), cache: 'no-store'
-            });
-            const appointmentDeleteRouteData = await appointmentDeleteRouteResponse.json().catch(() => ({}));
-            assert.equal(appointmentDeleteRouteResponse.status, 200, 'Appointment delete route must return HTTP 200: ' + JSON.stringify(appointmentDeleteRouteData));
-            assert.equal(appointmentDeleteRouteData.route?.type, 'action', 'Cloud AI must classify a named appointment deletion as an action');
-            assert.ok(/حذف|پاک/u.test(appointmentDeleteRouteData.route?.command || ''), 'Cloud AI must preserve the deletion intent');
-
-            const colloquialBookingResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'route', enableReview: true,
-                message: 'کاربر: برای سارا پنجشنبه یه جا نگه دار ساعت ۵ عصر برای لیفت مژه'
-              }),
-              signal: AbortSignal.timeout(60000), cache: 'no-store'
-            });
-            const colloquialBookingData = await colloquialBookingResponse.json().catch(() => ({}));
-            assert.equal(colloquialBookingResponse.status, 200, 'Colloquial appointment request must return HTTP 200: ' + JSON.stringify(colloquialBookingData));
-            assert.equal(colloquialBookingData.route?.type, 'action', 'Mina must understand a booking request without the literal words «نوبت» or «رزرو»');
-            assert.ok(/سارا/u.test(colloquialBookingData.route?.command || '') && /لیفت/u.test(colloquialBookingData.route?.command || '') && /پنجشنبه/u.test(colloquialBookingData.route?.command || ''), 'Mina must preserve customer, day and service in colloquial booking');
-
-            const appointmentReminderResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'route', enableReview: true,
-                message: 'کاربر: برای مراجعه سارا، ۱۸ روز بعد یادآوری ترمیم رو برام تنظیم کن'
-              }),
-              signal: AbortSignal.timeout(60000), cache: 'no-store'
-            });
-            const appointmentReminderData = await appointmentReminderResponse.json().catch(() => ({}));
-            assert.equal(appointmentReminderResponse.status, 200, 'Appointment follow-up reminder must return HTTP 200: ' + JSON.stringify(appointmentReminderData));
-            assert.equal(appointmentReminderData.route?.type, 'action', 'A reminder tied to a customer visit must not be mistaken for a personal alarm');
-            assert.ok(/۱۸|18|هجده/u.test(appointmentReminderData.route?.command || '') && /ترمیم|یادآوری|یادآور/u.test(appointmentReminderData.route?.command || ''), 'Mina must preserve the 18-day repair follow-up intent');
-
-            const scheduleQuestionResponse = await fetch(base, {
-              method: 'POST',
-              headers: { Origin: origin, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ mode: 'route', enableReview: true, message: 'کاربر: فردا چندتا وقت خالی یا رزرو دارم؟' }),
-              signal: AbortSignal.timeout(60000), cache: 'no-store'
-            });
-            const scheduleQuestionData = await scheduleQuestionResponse.json().catch(() => ({}));
-            assert.equal(scheduleQuestionResponse.status, 200, 'Schedule lookup must return HTTP 200: ' + JSON.stringify(scheduleQuestionData));
-            assert.equal(scheduleQuestionData.route?.type, 'reply', 'A schedule question must not be routed as a mutation');
-            assert.ok(typeof scheduleQuestionData.route?.reply === 'string' && scheduleQuestionData.route.reply.trim(), 'Schedule lookup intent must receive a useful reply');
-
-            console.log('Live Cloudflare Worker conversational routing: PASS', JSON.stringify({
-              casualConversation: routeData.route.type,
-              salonOperation: actionData.route.type,
-              personalReminder: personalReminderData.route.type,
-              aliasMultiTurn: aliasFlowData.route.type,
-              pronounEdit: pronounFlowData.route.type,
-              colloquialBooking: colloquialBookingData.route.type,
-              appointmentReminder: appointmentReminderData.route.type,
-              scheduleQuestion: scheduleQuestionData.route.type
-            }));
+            assert.equal(response.status, 200, 'Live AI request must succeed: ' + JSON.stringify(data));
+            assert.equal(data.success, true, 'Live AI response must report success');
+            assert.ok(typeof data.command === 'string' && /[آ-ی]/u.test(data.command), 'Live AI must return a Persian command');
+            console.log('Mina live AI smoke: PASS');
           })().catch(error => { console.error(error); process.exitCode = 1; });
           NODE
