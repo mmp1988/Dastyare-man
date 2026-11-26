@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dastyare-man-final-v100';
+const CACHE_NAME = 'dastyare-man-final-v101';
 const CORE_ASSETS = [
   './',
   './index.html',
