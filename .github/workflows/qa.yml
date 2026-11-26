@@ -239,6 +239,30 @@ jobs:
               /۱۸:۲۰|18:20/u.test(pronounFlowData.route?.command || ''),
               'Cloud AI must preserve the pronoun-linked edit and exact new time');
 
+            const appointmentEditRouteResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mode: 'route', enableReview: true, message: 'کاربر: نوبت مینا موسوی مطلق رو ساعت ۱۹:۰۰ کن' }),
+              signal: AbortSignal.timeout(60000), cache: 'no-store'
+            });
+            const appointmentEditRouteData = await appointmentEditRouteResponse.json().catch(() => ({}));
+            assert.equal(appointmentEditRouteResponse.status, 200, 'Appointment edit route must return HTTP 200: ' + JSON.stringify(appointmentEditRouteData));
+            assert.equal(appointmentEditRouteData.route?.type, 'action', 'Cloud AI must classify a named appointment time change as an action');
+            assert.equal(appointmentEditRouteData.route?.review?.decision, 'approve', 'Appointment edit must pass independent review');
+            assert.ok(/۱۹:۰۰|19:00/u.test(appointmentEditRouteData.route?.command || ''), 'Cloud AI must preserve the requested appointment time');
+
+            const appointmentDeleteRouteResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mode: 'route', enableReview: true, message: 'کاربر: نوبت مینا موسوی مطلق رو حذف کن' }),
+              signal: AbortSignal.timeout(60000), cache: 'no-store'
+            });
+            const appointmentDeleteRouteData = await appointmentDeleteRouteResponse.json().catch(() => ({}));
+            assert.equal(appointmentDeleteRouteResponse.status, 200, 'Appointment delete route must return HTTP 200: ' + JSON.stringify(appointmentDeleteRouteData));
+            assert.equal(appointmentDeleteRouteData.route?.type, 'action', 'Cloud AI must classify a named appointment deletion as an action');
+            assert.equal(appointmentDeleteRouteData.route?.review?.decision, 'approve', 'Appointment deletion must pass independent review');
+            assert.ok(/حذف|پاک/u.test(appointmentDeleteRouteData.route?.command || ''), 'Cloud AI must preserve the deletion intent');
+
             const colloquialBookingResponse = await fetch(base, {
               method: 'POST',
               headers: { Origin: origin, 'Content-Type': 'application/json' },
