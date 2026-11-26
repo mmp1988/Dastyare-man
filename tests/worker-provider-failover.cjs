@@ -14,7 +14,7 @@ const post = async (worker, env, body) => {
 };
 
 (async () => {
-  // Capacity error on Cloudflare Qwen should fall through to the lighter Cloudflare model.
+  // Capacity error on the low-cost Cloudflare primary should fall through to Gemma.
   {
     const worker = await loadWorker("capacity-fallback");
     const models = [];
@@ -60,7 +60,7 @@ const post = async (worker, env, body) => {
     const result = await post(worker, env, { mode: "understand", message: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" });
     assert.equal(result.status, 200);
     assert.equal(result.data.success, true);
-    assert.deepEqual(models, ["@cf/google/gemma-4-26b-a4b-it"]);
+    assert.deepEqual(models, ["@cf/zai-org/glm-4.7-flash"]);
     assert.equal(groqCalls, 1);
   }
 
