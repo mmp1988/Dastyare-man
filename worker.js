@@ -1,9 +1,10 @@
 // Cloudflare Workers entry point; this comment also verifies Git-connected deployment.
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
-const MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
-const FALLBACK_MODEL = "@cf/zai-org/glm-4.7-flash";
+const MODEL = "@cf/zai-org/glm-4.7-flash";
+const FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it";
+const QWEN_FALLBACK_MODEL = "@cf/qwen/qwen3.8-27b";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v23-resilient-timeouts";
+const WORKER_VERSION = "mina-ai-response-v24-multi-model-failover";
 const requestWindows = new Map();
 // Per-isolate circuit breakers prevent repeated calls to a provider that is known to be failing.
 const providerCooldowns = new Map();
@@ -55,12 +56,14 @@ async function runMinaModel(env, cloudflareModel, input) {
   let attempted = 0;
   let quotaFailures = 0;
 
-  // 1) Cloudflare Workers AI: free daily allocation, with Qwen as the primary model.
-  // 2) A lighter Cloudflare model can absorb model-specific capacity/adapter failures.
-  // 3) Groq Qwen is the external fallback when Cloudflare is unavailable or out of quota.
+  // 1) Low-cost Cloudflare GLM is the primary model for routine Persian salon requests.
+  // 2) Gemma 4 is a second independent Cloudflare model for model-specific capacity issues.
+  // 3) Qwen 3.8 remains available as a higher-cost Cloudflare reserve.
+  // 4) Groq Qwen is the external fallback when Cloudflare is unavailable or out of quota.
   const cloudflareModels = [
-    { key: "cloudflare:qwen", model: cloudflareModel || MODEL },
-    { key: "cloudflare:glm", model: FALLBACK_MODEL }
+    { key: "cloudflare:primary", model: cloudflareModel || MODEL },
+    { key: "cloudflare:gemma", model: FALLBACK_MODEL },
+    { key: "cloudflare:qwen", model: QWEN_FALLBACK_MODEL }
   ];
 
   for (const provider of cloudflareModels) {
@@ -68,7 +71,7 @@ async function runMinaModel(env, cloudflareModel, input) {
     if (providerCoolingDown("cloudflare:quota") || providerCoolingDown(provider.key)) continue;
     attempted++;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), provider.key === "cloudflare:qwen" ? 18000 : 14000);
+    const timeout = setTimeout(() => controller.abort(), provider.key === "cloudflare:primary" ? 18000 : 14000);
     try {
       const timeoutPromise = new Promise((_, reject) => controller.signal.addEventListener("abort", () => reject(new Error(provider.key + " inference timeout")), { once: true }));
       const result = await Promise.race([env.AI.run(provider.model, input, { signal: controller.signal }), timeoutPromise]);
@@ -223,7 +226,7 @@ export default {
     const origin = request.headers.get("Origin") || "";
 
     if (request.method === "GET") {
-      return json({ success: true, status: "ready", version: WORKER_VERSION, providers: { cloudflareAI: !!env.AI?.run, groq: !!env.GROQ_API_KEY }, primaryModel: MODEL });
+      return json({ success: true, status: "ready", version: WORKER_VERSION, providers: { cloudflareAI: !!env.AI?.run, groq: !!env.GROQ_API_KEY }, primaryModel: MODEL, fallbackModels: [FALLBACK_MODEL, QWEN_FALLBACK_MODEL] });
     }
 
     if (!ALLOWED_ORIGINS.has(origin)) {
