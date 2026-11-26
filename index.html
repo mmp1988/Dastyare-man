@@ -6897,8 +6897,13 @@
         const saved = (appData.appointments || []).find(item => item && !beforeIds.has(item.id) &&
           item.createdBy === 'mina' && item.dateKey === expectedDate &&
           String(item.clientName || '').trim() === expectedName && item.customerOnly === true);
+        const alreadySaved = (appData.appointments || []).some(item => item &&
+          item.dateKey === expectedDate && item.time === '' && item.customerOnly === true &&
+          item.status !== 'canceled' && String(item.clientName || '').trim() === expectedName &&
+          String(item.service || '') === '');
         // A natural-language response is never proof of success: verify the exact new record.
-        if (!saved) {
+        // If it already existed, preserve the duplicate-safe response instead of reporting failure.
+        if (!saved && !alreadySaved) {
           reply = 'نتونستم تاریخ یا نام مشتری رو با اطمینان استخراج کنم؛ هیچ نوبتی ثبت نشد. لطفاً درخواست رو دوباره با تعداد روز و نام مشتری بفرست.';
           cloudOperationBlocked = true;
         }
