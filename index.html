@@ -6067,9 +6067,12 @@
         const relativeHours = t.match(new RegExp('(' + relativeNumber + ')\\s*ساعت(?:\\s*' + directionPattern + ')?', 'u'));
         const relativeMinutes = t.match(new RegExp('(' + relativeNumber + ')\\s*دقیقه(?:\\s*' + directionPattern + ')?', 'u'));
         const relativeValue = m => /^\\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
-        const globalDirection = (t.match(/(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)/u) || [])[0] || '';
+        const globalDirectionMatch = t.match(/(?:^|\\s)(پیش|قبل|گذشته|بعد(?!ازظهر|\\s*از\\s*ظهر)|دیگه|دیگر)(?=\\s|$)/u);
+        const globalDirection = globalDirectionMatch ? globalDirectionMatch[1] : '';
         const directionSign = cue => /^(?:پیش|قبل|گذشته)$/.test(cue || globalDirection) ? -1 : 1;
-        const hasRelativeExpression = !!(relativeDays || relativeWeeks || relativeMonths || relativeHours || relativeMinutes);
+        // A bare minute component in a fixed clock (18:45) is not a relative offset.
+        // Require a standalone before/after cue; never treat «بعدازظهر» as «بعد».
+        const hasRelativeExpression = !!(relativeDays || relativeWeeks || relativeMonths || relativeHours || relativeMinutes || monthOffset) && !!globalDirection;
         const monthOffset = relativeMonths ? relativeValue(relativeMonths) * directionSign(relativeMonths[2])
           : /ماه\\s*(?:پیش|قبل|گذشته)/u.test(t) ? -1 : /ماه\\s*(?:بعد|دیگه|دیگر)/u.test(t) ? 1 : 0;
         if (/پریروز/u.test(t)) dateKey = addDaysToJalaliKey(todayKey, -2);
