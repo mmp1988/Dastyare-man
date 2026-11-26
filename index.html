@@ -5524,18 +5524,40 @@
     function minaNormalizeConversationText(value) {
       return String(value || '').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[\s\u200c]+/g,' ').trim().toLocaleLowerCase('fa');
     }
+
+    function minaCustomerLabelMatchesText(message, label) {
+      const clean = value => minaNormalizeConversationText(value)
+        .replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+      const haystack = ' ' + clean(message) + ' ';
+      const needle = clean(label);
+      return !!needle && haystack.includes(' ' + needle + ' ');
+    }
+
+    function minaHasExplicitCustomerMention(message) {
+      const profiles = appData.clientProfiles || {};
+      return Object.entries(profiles).some(([key, profile]) =>
+        [profile?.name, key, ...(Array.isArray(profile?.aliases) ? profile.aliases : [])]
+          .filter(Boolean).some(label => minaCustomerLabelMatchesText(message, label))
+      );
+    }
+
     function minaResolveConversationClientKey(message) {
       const normalized = minaNormalizeConversationText(message);
       const profiles = appData.clientProfiles || {};
       const matches = [];
       Object.entries(profiles).forEach(([key, profile]) => {
         const labels = [profile?.name, key, ...(Array.isArray(profile?.aliases) ? profile.aliases : [])]
-          .map(minaNormalizeConversationText).filter(label => label.length >= 2);
-        if (labels.some(label => normalized.includes(label))) matches.push(key);
+          .filter(Boolean).map(label => ({ key, label: minaNormalizeConversationText(label) }))
+          .filter(item => item.label.length >= 2 && minaCustomerLabelMatchesText(normalized, item.label));
+        labels.forEach(item => matches.push(item));
       });
-      const unique = [...new Set(matches)];
-      if (unique.length === 1) return unique[0];
-      if (unique.length > 1) return null;
+      if (matches.length) {
+        // Prefer the longest complete name/alias. A short name such as «سارا» must
+        // not steal a message that explicitly says «سارا محمدی».
+        const longest = Math.max(...matches.map(item => item.label.length));
+        const bestKeys = [...new Set(matches.filter(item => item.label.length === longest).map(item => item.key))];
+        return bestKeys.length === 1 ? bestKeys[0] : null;
+      }
       const appointment = typeof minaFindReferencedAppointment === 'function' ? minaFindReferencedAppointment(message) : null;
       if (appointment) {
         const key = findClientProfileKeyForAppointment(appointment);
@@ -5548,18 +5570,23 @@
       if (openedKey && profiles[openedKey] && modal?.classList.contains('open')) return openedKey;
       return null;
     }
+
     function minaStoreClientConversationMessage(message, who) {
       const content = String(message || '').trim();
       if (!content || !['user','assistant'].includes(who)) return;
       if (who === 'user') {
         const resolved = minaResolveConversationClientKey(content);
+        const pronounFollowup = /(?:براش|برای\s*اون|شماره\s*شو|شماره\s*اش|اسمش|همون\s*مشتری|سوابقش|سابقه\s*اش)/u.test(minaNormalizeConversationText(content));
         if (resolved) minaConversationContextClientKey = resolved;
-        else if (!/(?:براش|برای\s*اون|شماره\s*شو|اسمش|همون\s*مشتری|سوابقش|سابقه\s*اش)/u.test(minaNormalizeConversationText(content))) {
-          // Do not attach an unrelated new topic to the previously mentioned customer.
+        else if (minaHasExplicitCustomerMention(content) || !pronounFollowup) {
+          // An explicit but ambiguous customer mention must clear old context; never attach it to the last customer.
           minaConversationContextClientKey = null;
         }
       }
-      const key = who === 'user' ? (minaResolveConversationClientKey(content) || minaConversationContextClientKey) : minaConversationContextClientKey;
+      const resolvedForMessage = who === 'user' ? minaResolveConversationClientKey(content) : null;
+      const key = who === 'user'
+        ? (resolvedForMessage || (/(?:براش|برای\s*اون|شماره\s*شو|شماره\s*اش|اسمش|همون\s*مشتری|سوابقش|سابقه\s*اش)/u.test(minaNormalizeConversationText(content)) ? minaConversationContextClientKey : null))
+        : minaConversationContextClientKey;
       if (!key || !appData.clientProfiles?.[key]) return;
       const profile = getClientProfile(key);
       if (!Array.isArray(profile.conversations)) profile.conversations = [];
@@ -5573,7 +5600,7 @@
       if (openedKey === key) renderClientConversationHistory(key);
     }
     function minaBuildCustomerMemoryContext(message) {
-      const key = minaResolveConversationClientKey(message) || minaConversationContextClientKey;
+      const key = minaResolveConversationClientKey(message);
       if (!key || !appData.clientProfiles?.[key]) return '';
       const profile = getClientProfile(key);
       const appointments = (appData.appointments || []).filter(a =>
@@ -6894,10 +6921,18 @@
       }
       if (!entries.length) return null;
       const phoneMatch = source.match(/(?:0098|\+?98)?[\s().-]*0?9(?:[\s().-]*\d){9}/u);
-      const target = entries
-        .flatMap(([key,p]) => [String(p?.name || key), ...(Array.isArray(p?.aliases) ? p.aliases : [])].map(alias => ({key,profile:p,alias:String(alias||'').trim()})))
-        .filter(x => x.alias.length > 1 && text.includes(normalize(x.alias)))
-        .sort((a,b) => b.alias.length-a.alias.length)[0];
+      const targetMatches = entries
+        .flatMap(([key,p]) => [String(p?.name || key), ...(Array.isArray(p?.aliases) ? p.aliases : [])]
+          .map(alias => ({key,profile:p,alias:String(alias||'').trim()})))
+        .filter(x => x.alias.length > 1 && minaCustomerLabelMatchesText(text, x.alias))
+        .sort((a,b) => b.alias.length-a.alias.length);
+      const bestAliasLength = targetMatches[0]?.alias.length || 0;
+      const bestTargets = targetMatches.filter(x => x.alias.length === bestAliasLength);
+      const bestTargetKeys = [...new Set(bestTargets.map(x => x.key))];
+      if (bestTargetKeys.length > 1) {
+        return 'چند مشتری با این اسم یا نام مستعار پیدا کردم؛ لطفاً اسم کامل یا شماره تماسش رو بگو تا پرونده اشتباهی رو تغییر ندم 💗';
+      }
+      const target = bestTargets[0] || null;
       if (!target) return null;
 
       const wantsDelete = /(?:پرونده|مشتری|اطلاعات)\s+.{0,45}(?:حذف|پاک)|(?:حذف|پاک)\s+(?:پرونده|مشتری)/u.test(text) ||
@@ -7400,7 +7435,7 @@
     function minaAnswerCustomerHistory(raw) {
       const t=minaCleanText(minaNormalizePersianTypos(minaNormalizeDigits(String(raw||''))))
         .replace(/[يى]/g,'ی').toLocaleLowerCase('fa');
-      const asksHistory=/(?:آخرین\s*بار|آخرین\s*مراجعه|کی\s*اومد|کی\s*آمد|چند\s*روز.*(?:گذشته|شده)|چقدر.*(?:گذشته|شده)|موعد\s*ترمیم|ترمیمش\s*کی|کی.*ترمیم)/u.test(t);
+      const asksHistory=/(?:(?:آخرین|اخرین)\s*بار|(?:آخرین|اخرین)\s*مراجعه|کی\s*اومد|کی\s*آمد|چند\s*روز.*(?:گذشته|شده)|چقدر.*(?:گذشته|شده)|موعد\s*ترمیم|ترمیمش\s*کی|کی.*ترمیم)/u.test(t);
       if(!asksHistory) return null;
       const profiles=appData.clientProfiles||{};
       const candidates=[];
@@ -7413,12 +7448,17 @@
         if(name.length>1&&!candidates.some(x=>x.name.toLocaleLowerCase('fa')===name.toLocaleLowerCase('fa')))
           candidates.push({key:'',name,aliases:[]});
       });
-      const matched=candidates.filter(x=>[x.name,...x.aliases].some(n=>n&&t.includes(String(n).toLocaleLowerCase('fa'))))
-        .sort((a,b)=>b.name.length-a.name.length);
+      const matched=candidates.flatMap(client => [client.name,...client.aliases]
+        .filter(Boolean).map(label => ({client,label:String(label)})))
+        .filter(item => minaCustomerLabelMatchesText(t,item.label))
+        .sort((a,b)=>b.label.length-a.label.length);
       if(!matched.length) return null;
-      if(matched.length>1&&matched[0].name.length===matched[1].name.length&&matched[0].name!==matched[1].name)
-        return 'چند مشتری با این اسم یا توضیح پیدا کردم؛ لطفاً اسم کامل سارا رو بگو تا پرونده اشتباهی رو بررسی نکنم 💗';
-      const client=matched[0], items=[];
+      const longestLabelLength=matched[0].label.length;
+      const bestMatches=matched.filter(item=>item.label.length===longestLabelLength);
+      const bestClientKeys=[...new Set(bestMatches.map(item=>item.client.key || 'appointment:'+minaNormalizeConversationText(item.client.name)))];
+      if(bestClientKeys.length>1)
+        return 'چند مشتری با این اسم یا نام مستعار پیدا کردم؛ لطفاً اسم کامل یا شماره تماسش رو بگو تا پرونده اشتباهی رو بررسی نکنم 💗';
+      const client=bestMatches[0].client, items=[];
       if(client.key){
         const p=profiles[client.key]||{};
         (p.records||[]).forEach(r=>{if(r&&r.dateKey)items.push({dateKey:r.dateKey,time:r.time||'',service:r.service||'خدمت ثبت‌شده',type:r.appointmentType||'',id:r.id||''});});

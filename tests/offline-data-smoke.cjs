@@ -52,6 +52,7 @@ const assert = require('assert');
       const oldProfiles = appData.clientProfiles;
       const oldAppointments = appData.appointments;
       const oldContextKey = minaConversationContextClientKey;
+      const oldConfirm = window.confirm;
       appData.clientProfiles = {
         'qa-memory-client': {
           name: 'مینا موسوی',
@@ -70,14 +71,53 @@ const assert = require('assert');
       const memoryHidesPhone = !memory.includes('09123456789');
       const safe = minaBuildCloudSafeCommand(memory);
       const cloudMasksIdentity = !safe.message.includes('مینا موسوی') && !safe.message.includes('مامان مینا');
+
+      // A complete saved name must beat a shorter name that is only its prefix.
+      appData.clientProfiles = {
+        'qa-short-name': { name: 'سارا', records: [], aliases: [] },
+        'qa-long-name': { name: 'سارا محمدی', records: [], aliases: [] }
+      };
+      const fullNamePrefersLongest = minaResolveConversationClientKey('برای سارا محمدی نوبت ثبت کن') === 'qa-long-name';
+      const shortNameStillResolves = minaResolveConversationClientKey('برای سارا نوبت ثبت کن') === 'qa-short-name';
+
+      // Two customers with the same alias must never inherit stale context or mutate one another.
+      appData.clientProfiles = {
+        'qa-ambiguous-one': {
+          name: 'مینا موسوی', aliases: ['مامان مینا'], records: [{ dateKey: '1405-09-01', service: 'کاشت مژه' }],
+          conversations: [{ role: 'user', text: 'پرونده اول', timestamp: Date.now() }]
+        },
+        'qa-ambiguous-two': {
+          name: 'مینا رضایی', aliases: ['مامان مینا'], records: [{ dateKey: '1405-09-02', service: 'لیفت مژه' }],
+          conversations: [{ role: 'user', text: 'پرونده دوم', timestamp: Date.now() }]
+        }
+      };
+      minaConversationContextClientKey = 'qa-ambiguous-one';
+      const ambiguousAliasRejected = minaResolveConversationClientKey('برای مامان مینا نوبت ثبت کن') === null;
+      const ambiguousMemoryNotLeaked = minaBuildCustomerMemoryContext('برای مامان مینا نوبت ثبت کن') === '';
+      const mutationReply = minaTryManageClientFromMessage('پرونده مامان مینا رو حذف کن');
+      const ambiguousMutationBlocked = /چند مشتری/u.test(String(mutationReply || '')) &&
+        Object.keys(appData.clientProfiles).length === 2;
+      const historyReply = minaAnswerCustomerHistory('آخرین مراجعه مامان مینا کی بود؟');
+      const ambiguousHistoryBlocked = /چند مشتری/u.test(String(historyReply || ''));
+      minaStoreClientConversationMessage('برای مامان مینا شماره‌ش رو ثبت کن', 'user');
+      const ambiguousConversationNotAttached = minaConversationContextClientKey === null &&
+        appData.clientProfiles['qa-ambiguous-one'].conversations.length === 1 &&
+        appData.clientProfiles['qa-ambiguous-two'].conversations.length === 1;
+
       appData.clientProfiles = oldProfiles;
       appData.appointments = oldAppointments;
       minaConversationContextClientKey = oldContextKey;
-      return { aliasResolved, memoryHasIdentity, memoryHasHistory, memoryHidesPhone, cloudMasksIdentity };
+      window.confirm = oldConfirm;
+      return {
+        aliasResolved, memoryHasIdentity, memoryHasHistory, memoryHidesPhone, cloudMasksIdentity,
+        fullNamePrefersLongest, shortNameStillResolves, ambiguousAliasRejected,
+        ambiguousMemoryNotLeaked, ambiguousMutationBlocked, ambiguousHistoryBlocked,
+        ambiguousConversationNotAttached
+      };
     });
     assert(Object.values(minaCustomerMemoryQA).every(Boolean),
-      'Mina must resolve saved aliases, include the right client history, and mask identity before cloud requests: ' + JSON.stringify(minaCustomerMemoryQA));
-    console.log('Mina customer memory:', JSON.stringify(minaCustomerMemoryQA));
+      'Mina must resolve the right customer, isolate ambiguous aliases, and never attach or mutate the wrong profile: ' + JSON.stringify(minaCustomerMemoryQA));
+    console.log('Mina customer identity and memory:', JSON.stringify(minaCustomerMemoryQA));
 
     // Mina cloud/local routing must reserve cloud calls for complex salon reasoning,
     // keep straightforward appointment entry local, and never expose client PII.
