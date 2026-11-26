@@ -6987,7 +6987,7 @@
         reply = minaBuildReply(routedCommand);
       } else if (navigator.onLine && !reply && !cloudOperationBlocked) {
         reply = 'ارتباط با هسته هوشمند برقرار نشد؛ هیچ تغییری در اطلاعات انجام ندادم. لطفاً اتصال اینترنت را بررسی کن و دوباره بفرست.';
-      } else if (!navigator.onLine && !reply) {
+      } else if ((!navigator.onLine || cloudRoutingUnavailable) && !reply) {
         if (dateTimeFact) {
           reply = dateTimeFact;
         } else if (customerHistoryFact) {
