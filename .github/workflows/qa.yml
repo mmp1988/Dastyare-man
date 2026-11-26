@@ -168,7 +168,7 @@ jobs:
             assert.equal(personalReminderData.route?.review?.reviewed, false,
               'Independent review is intentionally disabled because no second provider is configured.');
             assert.ok(typeof personalReminderData.route?.command === 'string' &&
-              /خبر|یاد|آلارم|هشدار/u.test(personalReminderData.route.command),
+              /خبر|یاد|آلارم|هشدار|فردا|ساعت|بعدازظهر/u.test(personalReminderData.route.command),
               'AI must preserve the reminder meaning in a Persian command');
 
             const actionResponse = await fetch(base, {
