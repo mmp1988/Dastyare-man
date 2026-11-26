@@ -671,10 +671,11 @@ public class MainActivity extends Activity {
                 if (releaseStamp.equals(savedStamp)) {
                     if (manual) {
                         long installed = getInstalledVersionCode();
+                        long pendingVersion = readyApk.exists() ? prefs.getLong("pending_apk_version", installed) : installed;
+                        boolean pendingExists = readyApk.exists();
                         runOnUiThread(() -> {
-                            notifyWebUpdateCheckResult(readyApk.exists() ? "available" : "latest",
-                                    installed, readyApk.exists() ? prefs.getLong("pending_apk_version", installed) : installed);
-                            if (readyApk.exists()) promptApkInstall(readyApk, prefs.getLong("pending_apk_version", installed));
+                            notifyWebUpdateCheckResult(pendingExists ? "available" : "latest", installed, pendingVersion);
+                            if (pendingExists) promptApkInstall(readyApk, pendingVersion);
                         });
                     }
                     return;
