@@ -2,7 +2,7 @@
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v15-cloud-first-routing";
+const WORKER_VERSION = "mina-ai-response-v16-cloud-first-reminder";
 
 function normalizeScopeText(value) {
   return String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").replace(/\s+/g, " ").trim();
