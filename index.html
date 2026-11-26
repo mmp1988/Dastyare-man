@@ -1381,17 +1381,29 @@
         <details id="customerHistoryArchivePanel" class="card" style="margin:12px 0;box-shadow:none;border-color:var(--accent);" ontoggle="if(this.open)renderCustomerHistoryArchive()">
           <summary style="cursor:pointer;font-weight:900;color:var(--accent);padding:4px 2px;">🗂️ تاریخچه کامل مشتریان <small id="customerHistoryArchiveCount" style="color:var(--text-secondary);font-weight:600;"></small></summary>
           <p style="font-size:.73rem;color:var(--text-secondary);line-height:1.8;margin:8px 0;">تمام نوبت‌های ثبت‌شده، انجام‌شده، لغوشده و حذف‌شده اینجا باقی می‌مانند؛ حذف پرونده مشتری یا نوبت، این سوابق را پاک نمی‌کند.</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0;">
-            <input id="customerHistorySearch" class="form-control" type="search" placeholder="🔎 جستجوی نام مشتری یا خدمت..." oninput="renderCustomerHistoryArchive()" />
-            <select id="customerHistoryStatus" class="form-control" onchange="renderCustomerHistoryArchive()">
-              <option value="all">همه وضعیت‌ها</option><option value="pending">در انتظار</option><option value="done">انجام‌شده</option><option value="canceled">لغوشده</option><option value="deleted">حذف‌شده از نوبت‌ها</option>
-            </select>
-            <select id="customerHistoryPeriod" class="form-control" onchange="renderCustomerHistoryArchive()">
-              <option value="all">همه تاریخ‌ها</option><option value="month">گروه‌بندی ماهانه</option><option value="year">گروه‌بندی سالانه</option>
-            </select>
-            <select id="customerHistorySort" class="form-control" onchange="renderCustomerHistoryArchive()">
-              <option value="newest">جدیدترین اول</option><option value="oldest">قدیمی‌ترین اول</option>
-            </select>
+          <div class="customer-history-controls" dir="rtl">
+            <label class="customer-history-search-wrap" for="customerHistorySearch">
+              <span>جستجوی سوابق</span>
+              <input id="customerHistorySearch" class="form-control" type="search" autocomplete="off" placeholder="نام مشتری، شماره تماس، نوع خدمت یا یادداشت..." oninput="renderCustomerHistoryArchive()" />
+            </label>
+            <label class="customer-history-filter" for="customerHistoryStatus">
+              <span>وضعیت نوبت</span>
+              <select id="customerHistoryStatus" class="form-control" onchange="renderCustomerHistoryArchive()">
+                <option value="all">همه وضعیت‌ها</option><option value="pending">در انتظار</option><option value="done">انجام‌شده</option><option value="canceled">لغوشده</option><option value="deleted">حذف‌شده از نوبت‌ها</option>
+              </select>
+            </label>
+            <label class="customer-history-filter" for="customerHistoryPeriod">
+              <span>نمایش تاریخ</span>
+              <select id="customerHistoryPeriod" class="form-control" onchange="renderCustomerHistoryArchive()">
+                <option value="all">همه تاریخ‌ها</option><option value="month">گروه‌بندی ماهانه</option><option value="year">گروه‌بندی سالانه</option>
+              </select>
+            </label>
+            <label class="customer-history-filter" for="customerHistorySort">
+              <span>ترتیب نمایش</span>
+              <select id="customerHistorySort" class="form-control" onchange="renderCustomerHistoryArchive()">
+                <option value="newest">جدیدترین اول</option><option value="oldest">قدیمی‌ترین اول</option>
+              </select>
+            </label>
           </div>
           <div id="customerHistoryArchiveList" style="display:flex;flex-direction:column;gap:8px;max-height:520px;overflow:auto;"></div>
         </details>
@@ -9114,6 +9126,14 @@
 
 </script>
 
+<style id="customerHistoryControlsStyles">
+  .customer-history-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 14px;align-items:end}
+  .customer-history-controls label{display:flex;flex-direction:column;gap:5px;min-width:0;margin:0;color:var(--text-secondary);font-size:.73rem;font-weight:800}
+  .customer-history-search-wrap{grid-column:1/-1}
+  .customer-history-controls .form-control{width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin:0;min-height:44px;font-size:.82rem}
+  .customer-history-controls input[type="search"]{text-align:right}
+  @media(max-width:480px){.customer-history-controls{grid-template-columns:minmax(0,1fr);gap:9px}.customer-history-search-wrap{grid-column:auto}.customer-history-controls .form-control{min-height:46px}}
+</style>
 <style id="minaPhotoLightboxStyles">
   #minaPhotoLightbox{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.92);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
   #minaPhotoLightbox.is-open{display:flex}
