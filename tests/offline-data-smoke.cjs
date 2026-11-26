@@ -982,7 +982,8 @@ console.log('Android alarm integration contract: PASS');
       minaConversationBooking = null;
       const originalFetch = window.fetch;
       let cloudCalls = 0;
-      window.fetch = async (...args) => { cloudCalls++; return originalFetch(...args); };
+      let cloudRouteDebug = null;
+      window.fetch = async (...args) => { cloudCalls++; const response = await originalFetch(...args); try { cloudRouteDebug = await response.clone().json(); } catch (error) {} return response; };
       const input = document.getElementById('minaInput');
       input.value = 'برای فردا ساعت ۱۸:۴۵ دقیقه نوبت کاشت مژه را به مینا موسوی مطلق بده';
       try { await sendMinaMessageCore(); }
@@ -991,6 +992,8 @@ console.log('Android alarm integration contract: PASS');
       const transcript = document.getElementById('minaChatMessages')?.innerText || '';
       return {
         cloudCalls,
+        cloudRouteDebug,
+        assistantReply: transcript,
         appointmentSaved: !!appointment && appointment.clientName === 'مینا موسوی مطلق' &&
           appointment.time === '18:45' && appointment.service.includes('کاشت مژه') &&
           appointment.dateKey > getTodayKey(),
