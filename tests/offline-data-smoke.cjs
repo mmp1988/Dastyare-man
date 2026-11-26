@@ -1772,6 +1772,71 @@ const minaAppointmentMutationFlow = await page.evaluate(async () => {
     assert(completedArchiveQA.explicitHistoryDelete, 'History records must be deletable only through the explicit history action');
     console.log('Completed appointment archive:', JSON.stringify(completedArchiveQA));
 
+    // Permanent customer archive integrity: every removal path must snapshot first,
+    // and explicit archive deletion must not be undone by saveData's automatic sync.
+    const historyIntegrityQA = await page.evaluate(async () => {
+      const originalData = JSON.parse(JSON.stringify(appData));
+      const originalConfirm = window.confirm;
+      window.confirm = () => true;
+      try {
+        appData.appointments = [];
+        appData.clientProfiles = {};
+        appData.clientNotes = {};
+        appData.customerHistory = [];
+        appData.customerHistoryDeletedIds = [];
+
+        const pending = { id:'qa-history-delete-pending', dateKey:getTodayKey(), time:'09:17', clientName:'مشتری حذف نوبت', phone:'09121110001', service:'کاشت مژه', status:'pending' };
+        appData.appointments.push(pending);
+        saveData();
+        deleteAppointment(pending.id);
+        const deletedAppointmentArchived = appData.customerHistory.some(x => x.id==='appointment_'+pending.id && x.clientName===pending.clientName && x.deletedFromSchedule===true);
+
+        const active = { id:'qa-history-manual-delete', dateKey:getTodayKey(), time:'10:18', clientName:'مشتری حذف سابقه', phone:'09121110002', service:'لیفت مژه', status:'pending' };
+        appData.appointments.push(active);
+        saveData();
+        deleteCustomerHistoryItem(encodeURIComponent('appointment_'+active.id));
+        saveData();
+        const manualDeleteNotResurrected = !appData.customerHistory.some(x => x.id==='appointment_'+active.id);
+
+        const keepActive = { id:'qa-history-clear-all', dateKey:getTodayKey(), time:'11:19', clientName:'مشتری پاکسازی آرشیو', phone:'09121110003', service:'ترمیم', status:'pending' };
+        appData.appointments.push(keepActive);
+        saveData();
+        const clearAllButtonPresent = !!document.querySelector('[onclick="clearCustomerHistoryArchive()"]');
+        clearCustomerHistoryArchive();
+        saveData();
+        const clearAllKeepsAppointments = appData.appointments.some(x => x.id===keepActive.id);
+        const clearAllStaysEmpty = appData.customerHistory.length===0;
+
+        const clearCalendarItem = { id:'qa-history-clear-calendar', dateKey:getTodayKey(), time:'12:20', clientName:'مشتری پاکسازی تقویم', phone:'09121110004', service:'اکستنشن', status:'pending' };
+        appData.appointments.push(clearCalendarItem);
+        saveData();
+        clearAllUserEntries();
+        const clearCalendarPreservesArchive = appData.customerHistory.some(x => x.id==='appointment_'+clearCalendarItem.id && x.deletedFromSchedule===true);
+
+        const clientKey = clientKeyFromFields('09121110005','مشتری حذف پرونده');
+        getClientProfile(clientKey).name = 'مشتری حذف پرونده';
+        const clientAppointment = { id:'qa-history-delete-client', dateKey:getTodayKey(), time:'13:21', clientName:'مشتری حذف پرونده', phone:'09121110005', service:'والیوم', status:'pending' };
+        appData.appointments.push(clientAppointment);
+        saveData();
+        await deleteClient(clientKey);
+        const deletingClientPreservesArchive = appData.customerHistory.some(x => x.id==='appointment_'+clientAppointment.id && x.clientName==='مشتری حذف پرونده');
+
+        return { deletedAppointmentArchived, manualDeleteNotResurrected, clearAllButtonPresent, clearAllKeepsAppointments, clearAllStaysEmpty, clearCalendarPreservesArchive, deletingClientPreservesArchive };
+      } finally {
+        appData = originalData;
+        saveData();
+        window.confirm = originalConfirm;
+        renderCalendar();
+        renderClientsTab();
+      }
+    });
+    assert(historyIntegrityQA.deletedAppointmentArchived, 'Deleting a pending appointment must leave a permanent archive record');
+    assert(historyIntegrityQA.manualDeleteNotResurrected, 'A user-deleted archive record must not reappear on the next save');
+    assert(historyIntegrityQA.clearAllButtonPresent && historyIntegrityQA.clearAllKeepsAppointments && historyIntegrityQA.clearAllStaysEmpty, 'Clear-all archive must be explicit and must not delete live appointments');
+    assert(historyIntegrityQA.clearCalendarPreservesArchive, 'Clearing all calendar entries must preserve their archive records');
+    assert(historyIntegrityQA.deletingClientPreservesArchive, 'Deleting a customer profile must preserve appointment archive records');
+    console.log('Permanent customer history integrity:', JSON.stringify(historyIntegrityQA));
+
 
     // Salon-wide exclusivity: two different customers/services cannot share one date and time.
     const duplicateResult = await page.evaluate(() => {
