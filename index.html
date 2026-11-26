@@ -6900,8 +6900,8 @@
         }
         if (cloudResult && cloudResult.type === 'personal_reminder') {
           // Semantic personal-alarm classification must never enter appointment booking.
-          reply = minaTrySetPersonalReminder(message) ||
-            'برای تنظیم یادآوری شخصی، لطفاً تاریخ و ساعت دقیق را بگو عزیزم.';
+          reply = minaTrySetPersonalReminder(cloudResult.command) ||
+            'دستور یادآوری از هسته هوشمند دریافت شد، اما اطلاعات لازم برای ذخیره‌سازی کامل نیست؛ لطفاً تاریخ و ساعت را دقیق‌تر بگو.';
           personalReminderHandled = true;
         } else if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
           const explicitCustomerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(message);
