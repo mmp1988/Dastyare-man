@@ -500,7 +500,7 @@ export default {
           }, 200, headers);
         }
 
-        return json({ success: true, route: { type, command: "", reply: routedReply, review: { reviewed: false } }, provider: providerMeta }, 200, headers);
+        return json({ success: true, route: { type, command, reply: routedReply, review: { reviewed: false } }, provider: providerMeta }, 200, headers);
       }
 
       if (understandMode) {
