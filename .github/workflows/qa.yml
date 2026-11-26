@@ -98,7 +98,7 @@ jobs:
           NODE
 
   cloud-ai-integration:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -123,6 +123,8 @@ jobs:
             assert.equal(response.status, 200, 'Live AI request must succeed: ' + JSON.stringify(data));
             assert.equal(data.success, true, 'Live AI response must report success');
             assert.ok(typeof data.command === 'string' && /[آ-ی]/u.test(data.command), 'Live AI must return a Persian command');
-            console.log('Mina live AI smoke: PASS');
+            console.log('Live provider:', JSON.stringify(data.provider || null));
+            assert.equal(data.provider?.provider, 'gemini', 'Live primary request must be served by Gemini, not silently by a fallback');
+            console.log('Mina live Gemini smoke: PASS');
           })().catch(error => { console.error(error); process.exitCode = 1; });
           NODE
