@@ -666,6 +666,7 @@ public class MainActivity extends Activity {
                 File updateDir = new File(getExternalFilesDir(null), "updates");
                 if (!updateDir.exists() && !updateDir.mkdirs()) throw new Exception("Cannot create update directory");
                 File readyApk = new File(updateDir, "Dastyare-man-update.apk");
+                prefs.edit().putLong("last_release_check_ms", System.currentTimeMillis()).apply();
                 String savedStamp = prefs.getString("last_release_stamp", "");
                 if (releaseStamp.equals(savedStamp)) {
                     if (manual) {
