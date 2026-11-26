@@ -3169,7 +3169,9 @@
 
     function syncAutomaticRepairReminder(appointment) {
       if (!appointment || !appointment.id) return;
-      if (appointment.customerOnly === true || !String(appointment.time || '').trim()) { cancelAutomaticRepairReminder(appointment.id); return; }
+      // Repair follow-up is date-based; an appointment may legitimately have no visit time.
+      // Customer-only profile records are not calendar visits and must never schedule a reminder.
+      if (appointment.customerOnly === true) { cancelAutomaticRepairReminder(appointment.id); return; }
       if (!Array.isArray(appData.reminders)) appData.reminders = [];
       const id = 'repair_' + String(appointment.id);
       const old = appData.reminders.find(r => r && r.id === id);
@@ -5885,6 +5887,7 @@
       const todayKey = getTodayKey();
       const today = minaTodayAppointments();
       const greeting = appData.settings.personalGreeting || 'عزیزم';
+      const customerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(t);
 
       if (/(?:الان|همین الان).*(?:ساعت|صبح|ظهر|عصر|شب)|(?:ساعت چنده|الان چه ساعتی|الان صبحه|الان ظهره|الان شبه)/.test(t)) {
         const now = getIranNow();
@@ -5990,7 +5993,7 @@
       }
 
       if ((/(?:نوبت|رزرو|وقت)/u.test(t) || (/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(t) && /(?:برای|واسه|خدمت|مینا|مشتری)/u.test(t))) && /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده|فیکس|فیکسش|قطعی\s*کن|نگه\s*دار|جورش\s*کن|اوکی\s*کن|هماهنگ\s*کن|اختصاص\s*بده|تعیین\s*کن|ردیف\s*کن|بچین|جا\s*بده|براش\s*بذار|براش\s*وقت\s*بذار)/u.test(t) &&
-          (/(?:امروز|فردا|پس\s*فردا|تاریخ)/.test(t) || /\d{1,2}(?::\d{1,2})?/.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/.test(t))) {
+          (/(?:امروز|فردا|پس\s*فردا|تاریخ)/.test(t) || /\d{1,2}(?::\d{1,2})?/.test(t) || /(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد|یکصد|دویست|سیصد|چهارصد|پانصد|ششصد|هفتصد|هشتصد|نهصد)\s*(?:روز|هفته|ماه|ساعت|دقیقه)/u.test(t) || /(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب)/.test(t))) {
         // Understand digital clocks and natural relative expressions such as "a quarter to 3".
         let clock = t.match(/(?:ساعت\s*)?(\d{1,2})\s*[:٫.]\s*(\d{1,2})\s*(?:دقیقه\s*)?(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
           t.match(/ساعت\s*(\d{1,2})(?:\s*و\s*(\d{1,2})\s*دقیقه)?\s*(بعد\s*از\s*ظهر|بعدازظهر|عصر|ظهر|شب|صبح)?/) ||
@@ -6009,7 +6012,8 @@
           clock = [relative[0], String(Math.floor(total / 60)), String(total % 60), relative[4] || ''];
           relativeTime = true;
         }
-        const sharedClock = minaParseReminderClock(t);
+        const hasRelativeClockOffset = /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد|یکصد|دویست|سیصد|چهارصد|پانصد|ششصد|هفتصد|هشتصد|نهصد)\s*(?:ساعت|دقیقه)\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)/u.test(t);
+        const sharedClock = hasRelativeClockOffset ? null : minaParseReminderClock(t);
         if (sharedClock) {
           const parts = sharedClock.split(':');
           clock = [sharedClock, parts[0], parts[1], ''];
@@ -6024,9 +6028,10 @@
         const hasExplicitDate = /\d{1,4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,4}/.test(t) ||
           jalaliMonthNames.some(m => t.includes(m)) ||
           /(?:ژانویه|فوریه|مارس|آوریل|مه|می|ژوئن|جولای|اوت|آگوست|سپتامبر|اکتبر|نوامبر|دسامبر)/.test(t);
-        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|دیروز|پریروز|پارسال|سال\s*(?:قبل|گذشته)|\d+\s*(?:روز|هفته|ماه)\s*(?:پیش|قبل|گذشته))/u.test(t) && !hasExplicitDate) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
+        if (!/(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|دیروز|پریروز|پارسال|سال\s*(?:قبل|گذشته)|(?:\d+|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی)\s*(?:روز|هفته|ماه|ساعت|دقیقه)\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)|ماه\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر))/u.test(t) && !hasExplicitDate) return 'برای چه روزی ثبتش کنم عزیزم؟ 🌸';
         let dateKey = /پس\s*فردا/.test(t) ? addDaysToJalaliKey(todayKey, 2)
           : (/فردا/.test(t) && !/امروز/.test(t) ? addDaysToJalaliKey(todayKey, 1) : todayKey);
+        let relativeDateTime = null;
         // Parse Jalali dates (1405/09/03 or 3 آذر 1405), and Gregorian numeric dates.
         let monthMatch = null;
         const numericDate = t.match(/(?:در تاریخ|تاریخ)?\s*(?:(\d{4})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{1,2})|(\d{1,2})\s*[-/٫.]\s*(\d{1,2})\s*[-/٫.]\s*(\d{4}))/);
@@ -6053,18 +6058,50 @@
         // Natural past-date language: yesterday, N days/weeks/months ago,
         // and explicit past month/day phrases. All dates remain Jalali and Iran-local.
         const pastCue = /(?:گذشته|قبل|پیش|پارسال|سال\s+قبل|سال\s+گذشته|دیروز|پریروز)/u.test(t);
-        const relativeDays = t.match(/(\d{1,3})\s*روز\s*(?:پیش|قبل|گذشته)/u);
-        const relativeWeeks = t.match(/(\d{1,2})\s*هفته\s*(?:پیش|قبل|گذشته)/u);
-        const relativeMonths = t.match(/(\d{1,2})\s*ماه\s*(?:پیش|قبل|گذشته)/u);
+        const numberToken = '(?:\\d{1,3}|(?:صفر|یک|یه|يك|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد|یکصد|دویست|سیصد|چهارصد|پانصد|ششصد|هفتصد|هشتصد|نهصد)(?:\\s*و\\s*(?:یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود))*)';
+        const relativeNumber = numberToken;
+        const directionPattern = '(پیش|قبل|گذشته|بعد|دیگه|دیگر)';
+        const relativeDays = t.match(new RegExp('(' + relativeNumber + ')\\s*روز(?:\\s*' + directionPattern + ')?', 'u'));
+        const relativeWeeks = t.match(new RegExp('(' + relativeNumber + ')\\s*هفته(?:\\s*' + directionPattern + ')?', 'u'));
+        const relativeMonths = t.match(new RegExp('(' + relativeNumber + ')\\s*ماه(?:\\s*' + directionPattern + ')?', 'u'));
+        const relativeHours = t.match(new RegExp('(' + relativeNumber + ')\\s*ساعت(?:\\s*' + directionPattern + ')?', 'u'));
+        const relativeMinutes = t.match(new RegExp('(' + relativeNumber + ')\\s*دقیقه(?:\\s*' + directionPattern + ')?', 'u'));
+        const relativeValue = m => /^\\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
+        const globalDirectionMatch = t.match(/(?:^|\s)(پیش|قبل|گذشته|بعد(?!ازظهر|\s*از\s*ظهر)|دیگه|دیگر)(?=\s|$)/u);
+        const globalDirection = globalDirectionMatch ? globalDirectionMatch[1] : '';
+        const directionSign = cue => /^(?:پیش|قبل|گذشته)$/.test(cue || globalDirection) ? -1 : 1;
+        const monthOffset = relativeMonths ? relativeValue(relativeMonths) * directionSign(relativeMonths[2])
+          : /ماه\\s*(?:پیش|قبل|گذشته)/u.test(t) ? -1 : /ماه\\s*(?:بعد|دیگه|دیگر)/u.test(t) ? 1 : 0;
+        // A bare minute component in a fixed clock (18:45) is not a relative offset.
+        // Require a standalone before/after cue; never treat «بعدازظهر» as «بعد».
+        const hasRelativeExpression = !!(relativeDays || relativeWeeks || relativeMonths || relativeHours || relativeMinutes || monthOffset) && !!globalDirection;
         if (/پریروز/u.test(t)) dateKey = addDaysToJalaliKey(todayKey, -2);
         else if (/دیروز/u.test(t)) dateKey = addDaysToJalaliKey(todayKey, -1);
-        else if (relativeDays) dateKey = addDaysToJalaliKey(todayKey, -Number(relativeDays[1]));
-        else if (relativeWeeks) dateKey = addDaysToJalaliKey(todayKey, -7 * Number(relativeWeeks[1]));
-        else if (relativeMonths) {
-          const [cy, cm, cd] = todayKey.split('-').map(Number);
-          const total = cy * 12 + (cm - 1) - Number(relativeMonths[1]);
-          const py = Math.floor(total / 12), pm = ((total % 12) + 12) % 12 + 1;
-          dateKey = py + '-' + pad2(pm) + '-' + pad2(Math.min(cd, jalaliMonthDays(py, pm)));
+        else if (hasRelativeExpression) {
+          const dayOffset = (relativeDays ? relativeValue(relativeDays) * directionSign(relativeDays[2]) : 0) +
+            (relativeWeeks ? relativeValue(relativeWeeks) * 7 * directionSign(relativeWeeks[2]) : 0);
+          let baseKey = todayKey;
+          if (relativeMonths || monthOffset) {
+            const [cy, cm, cd] = baseKey.split('-').map(Number);
+            const total = cy * 12 + (cm - 1) + monthOffset;
+            const py = Math.floor(total / 12), pm = ((total % 12) + 12) % 12 + 1;
+            baseKey = py + '-' + pad2(pm) + '-' + pad2(Math.min(cd, jalaliMonthDays(py, pm)));
+          }
+          if (dayOffset) baseKey = addDaysToJalaliKey(baseKey, dayOffset);
+          const minuteOffset = (relativeHours ? relativeValue(relativeHours) * 60 * directionSign(relativeHours[2]) : 0) +
+            (relativeMinutes ? relativeValue(relativeMinutes) * directionSign(relativeMinutes[2]) : 0);
+          if (minuteOffset) {
+            const [by,bm,bd] = baseKey.split('-').map(Number);
+            const [gy,gm,gd] = jalaliToGregorian(by,bm,bd);
+            const now = getIranNow();
+            relativeDateTime = new Date(gy,gm-1,gd,now.getHours(),now.getMinutes(),now.getSeconds(),now.getMilliseconds());
+            relativeDateTime = new Date(relativeDateTime.getTime() + minuteOffset * 60000);
+            const j = gregorianToJalali(relativeDateTime.getFullYear(),relativeDateTime.getMonth()+1,relativeDateTime.getDate());
+            dateKey = j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
+            hour = relativeDateTime.getHours();
+            minute = relativeDateTime.getMinutes();
+            clock = ['relative',String(hour),String(minute),''];
+          } else dateKey = baseKey;
         } else if (/پارسال|سال\s+قبل|سال\s+گذشته/u.test(t)) {
           const [cy, cm, cd] = dateKey.split('-').map(Number);
           dateKey = (cy - 1) + '-' + pad2(cm) + '-' + pad2(Math.min(cd, jalaliMonthDays(cy - 1, cm)));
@@ -6119,6 +6156,8 @@
           !servicePattern.test(name)
         );
         let clientName = clientCandidates.length ? clientCandidates[clientCandidates.length - 1] : '';
+        const explicitClientName = t.match(/(?:به\s*)?(?:اسم|نام)\s+([آ-یءئؤإأ‌\-]{2,40})(?=\s+(?:تو|در|داخل|قسمت|بخش|پرونده|برای|نوبت|رزرو|وقت|ثبت)|$)/u);
+        if (explicitClientName) clientName = explicitClientName[1].trim();
         // If the customer is mentioned without "برای"، match an exact saved client name.
         if (!clientName) {
           const savedNames = Object.values(appData.clientProfiles || {})
@@ -6132,7 +6171,6 @@
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
           const time = clock ? pad2(hour) + ':' + pad2(minute) : '';
-        const customerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(t);
         if (!service) service = '';
         const duplicate = (appData.appointments || []).some(a =>
           a.dateKey === dateKey && a.time === time && Boolean(a.customerOnly) === customerOnly && a.status !== 'canceled' &&
@@ -6827,12 +6865,12 @@
         const appointmentMutationAction = customerCreateAction || minaTryManageAppointment(message);
         const bookingText = minaNormalizePersianTypos(message);
         const bookingAction = /(?:نوبت|رزرو|وقت)/u.test(bookingText) &&
-          /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(bookingText) &&
-          /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ|فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) &&
-          (/(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(bookingText) ||
-           /\\d{1,2}\\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) ||
-           /(?:بدون\\s*(?:ساعت|زمان)|ساعت\\s*(?:ندارد|مشخص\\s*نیست)|بی\\s*ساعت)/u.test(bookingText) ||
-           /(?:قسمت|بخش)\\s*مشتریان|پرونده\\s+مشتری/u.test(bookingText));
+          /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\s*بده|بده|اختصاص\s*بده|هماهنگ\s*کن)/u.test(bookingText) &&
+          /(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ|(?:\d+|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی)\s*(?:روز|هفته|ماه|ساعت|دقیقه)\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)|ماه\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)|فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) &&
+          (/(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(bookingText) ||
+           /\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) ||
+           /(?:بدون\s*(?:ساعت|زمان)|ساعت\s*(?:ندارد|مشخص\s*نیست)|بی\s*ساعت)/u.test(bookingText) ||
+           /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(bookingText));
         const directBookingAction = appointmentMutationAction || (bookingAction ? minaBuildReply(message) : null);
         const localActionResult = personalReminderAction || customerMutationAction || customerCreateAction || appointmentMutationAction || directBookingAction;
         if (localActionResult) reply = localActionResult;
@@ -6894,13 +6932,19 @@
     let minaConversationBooking = null;
     function minaPersianNumberValue(value) {
       const word = minaCleanText(value).replace(/[‌ـ]/g, ' ').replace(/\s+/g, ' ').trim();
-      if (/^\d{1,2}$/.test(word)) return Number(word);
+      if (/^\d{1,3}$/.test(word)) return Number(word);
       const units = { 'صفر':0,'یک':1,'یه':1,'يك':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'شیش':6,'هفت':7,'هشت':8,'نه':9 };
-      const direct = { 'ده':10,'یازده':11,'دوازده':12,'سیزده':13,'چهارده':14,'پانزده':15,'شانزده':16,'هفده':17,'هجده':18,'نوزده':19,'بیست':20,'سی':30,'چهل':40,'پنجاه':50,'شصت':60 };
-      if (Object.prototype.hasOwnProperty.call(units, word)) return units[word];
-      if (Object.prototype.hasOwnProperty.call(direct, word)) return direct[word];
-      const compound = word.match(/^(بیست|سی|چهل|پنجاه)\s*و\s*(یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه)$/);
-      if (compound) return ({ 'بیست':20,'سی':30,'چهل':40,'پنجاه':50 }[compound[1]]) + units[compound[2]];
+      const values = {
+        ...units, 'ده':10,'یازده':11,'دوازده':12,'سیزده':13,'چهارده':14,'پانزده':15,'شانزده':16,'هفده':17,'هجده':18,'نوزده':19,
+        'بیست':20,'سی':30,'چهل':40,'پنجاه':50,'شصت':60,'هفتاد':70,'هشتاد':80,'نود':90,
+        'صد':100,'یکصد':100,'دویست':200,'سیصد':300,'چهارصد':400,'پانصد':500,'ششصد':600,'هفتصد':700,'هشتصد':800,'نهصد':900
+      };
+      if (Object.prototype.hasOwnProperty.call(values, word)) return values[word];
+      const parts = word.split(/\s*و\s*/);
+      if (parts.length > 1 && parts.every(part => Object.prototype.hasOwnProperty.call(values, part))) {
+        const total = parts.reduce((sum, part) => sum + values[part], 0);
+        if (total > 0 && total <= 999) return total;
+      }
       return NaN;
     }
     function minaExpandSpokenTime(value) {
@@ -7174,13 +7218,13 @@
         /(?:یک\s*ربع|ربع|نیم\s*ساعت|نیم\s*ربع|\d{1,2}\s*دقیقه)\s*(?:به|مونده\s*به|مانده\s*به|قبل\s*از|بعد\s*از|گذشته\s*از)\s*(?:\d{1,2}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده)/.test(normalized);
       // Whole-utterance intent detection: natural commands need not contain "ثبت نوبت".
       const bookingAction = /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|سیو|ذخیره|انجام\s*بده|انجامش\s*بده|بده|فیکس|فیکسش|قطعی\s*کن|نگه\s*دار|جورش\s*کن|اوکی\s*کن|هماهنگ\s*کن|اختصاص\s*بده|تعیین\s*کن|ردیف\s*کن|بچین|جا\s*بده|براش\s*بذار|براش\s*وقت\s*بذار)/u.test(normalized);
-      const hasAppointmentContext = /(?:نوبت|رزرو|وقت|مشتری|مینا|امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized);
+      const hasAppointmentContext = /(?:نوبت|رزرو|وقت|مشتری|مینا|امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|(?:\d+|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی)\s*(?:روز|هفته|ماه|ساعت|دقیقه)\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)|ماه\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر))/u.test(normalized);
       const isBookingIntent = bookingAction && (
         /(?:نوبت|رزرو|وقت)/u.test(normalized) ||
         ((hasClock || /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(normalized)) && hasAppointmentContext) ||
         (/(?:برای|واسه|واسه‌ی)/u.test(normalized) && /(?:خدمت|کاشت|لیفت|مژه|ابرو|ناخن|مو|رنگ|کوتاهی|اکستنشن|والیوم|کلاسیک|فیشیال|شینیون|کراتین)/u.test(normalized))
       );
-      const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|\d{4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,2}|\d{1,2}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{4})/u.test(normalized);
+      const hasDateOnly = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|(?:\d+|یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سی)\s*(?:روز|هفته|ماه|ساعت|دقیقه)\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)|ماه\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|\d{4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,2}|\d{1,2}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{4})/u.test(normalized);
       const hasDateAndService = /(?:امروز|فردا|پس\s*فردا|در تاریخ|تاریخ|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{1,2}\s*(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|\d{4}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{1,2}|\d{1,2}\s*[-/٫.]\s*\d{1,2}\s*[-/٫.]\s*\d{4})/u.test(normalized) &&
         /(?:برای|خدمت|نوبت|رزرو|وقت)/.test(normalized);
       // Multi-turn booking: preserve details when the user supplies date/time separately.

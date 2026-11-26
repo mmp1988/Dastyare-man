@@ -55,6 +55,8 @@ jobs:
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium webkit
+      - name: Verify all 365 Persian relative day offsets and combined time phrases
+        run: node tests/persian-relative-date-range.cjs
       - name: Run browser QA
         run: node tests/offline-data-smoke.cjs
       - name: Run mobile Safari WebKit smoke
