@@ -6134,6 +6134,8 @@
           !servicePattern.test(name)
         );
         let clientName = clientCandidates.length ? clientCandidates[clientCandidates.length - 1] : '';
+        const explicitClientName = t.match(/(?:به\\s*)?(?:اسم|نام)\\s+([آ-یءئؤإأ‌\\-]{2,40})(?=\\s+(?:تو|در|داخل|قسمت|بخش|پرونده|برای|نوبت|رزرو|وقت|ثبت)|$)/u);
+        if (explicitClientName) clientName = explicitClientName[1].trim();
         // If the customer is mentioned without "برای"، match an exact saved client name.
         if (!clientName) {
           const savedNames = Object.values(appData.clientProfiles || {})
