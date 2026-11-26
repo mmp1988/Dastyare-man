@@ -935,6 +935,45 @@ console.log('Android alarm integration contract: PASS');
     assert(minaDirectBookingFlow.cloudCalls === 1 && minaDirectBookingFlow.appointmentSaved &&
       minaDirectBookingFlow.replyConfirmsSaved && minaDirectBookingFlow.noFalseAccessDenial,
       'Complete appointment commands must be routed through cloud AI and then saved locally');
+    // Regression: «به اسم مینا یه نوبت تو قسمت مشتریان» must resolve the actual customer name,
+    // not create an invisible/misnamed «اسم مینا» profile or claim success without a linked record.
+    const minaCustomerSectionBookingQA = await page.evaluate(() => {
+      const previousAppointments = appData.appointments;
+      const previousProfiles = appData.clientProfiles;
+      const previousPendingBooking = minaPendingBooking;
+      const previousConversationBooking = minaConversationBooking;
+      const previousLastAppointment = minaLastReferencedAppointmentId;
+      try {
+        appData.appointments = [];
+        appData.clientProfiles = {};
+        minaPendingBooking = null;
+        minaConversationBooking = null;
+        minaLastReferencedAppointmentId = null;
+        const reply = minaBuildReply('برای ۶ روز دیگه به اسم مینا یه نوبت تو قسمت مشتریان ثبت کن');
+        const appointment = appData.appointments.find(item => item && item.clientName === 'مینا');
+        const profile = Object.values(appData.clientProfiles || {}).find(item => item && item.name === 'مینا');
+        return {
+          exactlyOneAppointment: appData.appointments.length === 1,
+          correctClientName: !!appointment && appointment.clientName === 'مینا',
+          noMisnamedProfile: !Object.values(appData.clientProfiles || {}).some(item => item && item.name === 'اسم مینا'),
+          customerSectionRecord: !!appointment && appointment.customerOnly === true,
+          dateIsSixDaysAhead: !!appointment && appointment.dateKey === addDaysToJalaliKey(getTodayKey(), 6),
+          linkedCustomerProfile: !!appointment && !!profile && !!appointment.clientId && appointment.clientId === profile.clientId,
+          successReply: typeof reply === 'string' && /نوبتت ثبت شد|نوبت با موفقیت ثبت شد/u.test(reply)
+        };
+      } finally {
+        appData.appointments = previousAppointments;
+        appData.clientProfiles = previousProfiles;
+        minaPendingBooking = previousPendingBooking;
+        minaConversationBooking = previousConversationBooking;
+        minaLastReferencedAppointmentId = previousLastAppointment;
+        saveData();
+      }
+    });
+    console.log('Mina customer-section booking:', JSON.stringify(minaCustomerSectionBookingQA));
+    assert(Object.values(minaCustomerSectionBookingQA).every(Boolean),
+      'A customer-section booking phrased as «به اسم مینا یه نوبت» must save exactly one correctly named appointment linked to Mina’s customer profile');
+
     const minaAppointmentMutationFlow = await page.evaluate(async () => {
       appData.appointments = [{
         id:'qa-local-mutation', dateKey:addDaysToJalaliKey(getTodayKey(),1),
