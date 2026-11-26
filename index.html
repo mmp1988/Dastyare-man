@@ -3212,8 +3212,9 @@
     }
 
     function clearAllUserEntries() {
-      if (!confirm('همه نوبت‌ها، یادداشت‌ها و چک‌لیست پاک شوند؟ اطلاعات پرونده مشتریان و نسخه‌های پشتیبان جداگانه باقی می‌مانند.')) return;
-      (appData.appointments || []).forEach(a => cancelAutomaticRepairReminder(a.id));
+      if (!confirm('همه نوبت‌ها، یادداشت‌ها و چک‌لیست پاک شوند؟ اطلاعات پرونده مشتریان و تاریخچه دائمی مشتریان باقی می‌مانند.')) return;
+      // Clearing the live calendar is still a deletion event: preserve every appointment first.
+      (appData.appointments || []).forEach(a => { archiveCustomerAppointment(a,'deleted'); cancelAutomaticRepairReminder(a.id); });
       appData.appointments = [];
       appData.notes = [];
       appData.todos = [];
