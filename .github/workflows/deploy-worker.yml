@@ -56,7 +56,7 @@ jobs:
             assert.equal(health.status, 200, 'Worker health request failed');
             const healthData = await health.json();
             assert.equal(healthData.status, 'ready');
-            assert.equal(healthData.version, 'mina-ai-response-v24-multi-model-failover',
+            assert.equal(healthData.version, 'mina-ai-response-v25-neuron-quota-failover',
               'Updated Worker version is not live yet');
 
             const preflight = await fetch(base, {
