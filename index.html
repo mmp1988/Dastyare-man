@@ -6093,7 +6093,9 @@
             relativeDateTime = new Date(relativeDateTime.getTime() + minuteOffset * 60000);
             const j = gregorianToJalali(relativeDateTime.getFullYear(),relativeDateTime.getMonth()+1,relativeDateTime.getDate());
             dateKey = j[0] + '-' + pad2(j[1]) + '-' + pad2(j[2]);
-            clock = ['relative',String(relativeDateTime.getHours()),String(relativeDateTime.getMinutes()),''];
+            hour = relativeDateTime.getHours();
+            minute = relativeDateTime.getMinutes();
+            clock = ['relative',String(hour),String(minute),''];
           } else dateKey = baseKey;
         } else if (/پارسال|سال\s+قبل|سال\s+گذشته/u.test(t)) {
           const [cy, cm, cd] = dateKey.split('-').map(Number);
