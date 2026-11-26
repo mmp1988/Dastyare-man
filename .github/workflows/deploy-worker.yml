@@ -56,7 +56,7 @@ jobs:
             assert.equal(health.status, 200, 'Worker health request failed');
             const healthData = await health.json();
             assert.equal(healthData.status, 'ready');
-            assert.equal(healthData.version, 'mina-ai-response-v15-cloud-first-routing',
+            assert.equal(healthData.version, 'mina-ai-response-v16-cloud-first-reminder',
               'Updated Worker version is not live yet');
 
             const preflight = await fetch(base, {
