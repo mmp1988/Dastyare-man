@@ -2403,6 +2403,7 @@
       services: [],
       clientNotes: {},
       clientProfiles: {},
+      minaConversationHistory: [],
       settings: {
         brandName: 'دستیار من',
         brandSub: 'همراه تو در دنیای زیبایی',
@@ -2525,6 +2526,11 @@
           }
         } catch (e) {}
       }
+      if (!Array.isArray(appData.minaConversationHistory)) appData.minaConversationHistory = [];
+      appData.minaConversationHistory = appData.minaConversationHistory
+        .filter(item => item && ['user','assistant'].includes(item.role) && typeof item.text === 'string')
+        .slice(-80)
+        .map(item => ({ role: item.role, text: item.text.slice(0, 3000), timestamp: Number(item.timestamp) || Date.now() }));
     }
 
     // Last known-good snapshot is used to roll back in-memory mutations if storage fails.
@@ -5686,8 +5692,20 @@
       }).join('');
       root.scrollTop = root.scrollHeight;
     }
-    function addMinaMessage(text, who) {
-      minaStoreClientConversationMessage(text, who);
+    function addMinaMessage(text, who, persist = true) {
+      if (persist && ['user','assistant'].includes(who)) {
+        const content = String(text || '').trim();
+        if (content) {
+          if (!Array.isArray(appData.minaConversationHistory)) appData.minaConversationHistory = [];
+          const last = appData.minaConversationHistory[appData.minaConversationHistory.length - 1];
+          if (!(last && last.role === who && last.text === content && Date.now() - Number(last.timestamp || 0) < 3000)) {
+            appData.minaConversationHistory.push({ role: who, text: content.slice(0, 3000), timestamp: Date.now() });
+            if (appData.minaConversationHistory.length > 80) appData.minaConversationHistory.splice(0, appData.minaConversationHistory.length - 80);
+            saveData();
+          }
+        }
+        minaStoreClientConversationMessage(text, who);
+      }
       const root = document.getElementById('minaChatMessages');
       if (!root) return;
       const row = document.createElement('div');
@@ -5747,8 +5765,23 @@
       root.appendChild(row);
       root.scrollTop = root.scrollHeight;
     }
+    function minaRenderStoredConversation() {
+      const history = Array.isArray(appData.minaConversationHistory) ? appData.minaConversationHistory : [];
+      if (!history.length) return;
+      const root = document.getElementById('minaChatMessages');
+      if (!root) return;
+      root.innerHTML = '';
+      history.slice(-80).forEach(item => addMinaMessage(item.text, item.role, false));
+    }
+    function minaBuildRecentConversationContext(maxChars = 5200) {
+      const history = Array.isArray(appData.minaConversationHistory) ? appData.minaConversationHistory : [];
+      const turns = history.slice(-24).map(item => (item.role === 'user' ? 'کاربر' : 'مینا') + ': ' + String(item.text || '').slice(0, 1400));
+      return turns.join('\\n').slice(-maxChars);
+    }
     function clearMinaChat() {
       minaConversationContextClientKey = null;
+      appData.minaConversationHistory = [];
+      saveData();
       const root = document.getElementById('minaChatMessages');
       if (root) root.innerHTML = '';
       addMinaMessage('گفتگوی تازه‌ای شروع کنیم عزیزم؟ 💗', 'assistant');
@@ -6815,22 +6848,18 @@
       let routedCommand = null;
       let cloudOperationBlocked = false;
       if (!reply && navigator.onLine) {
-        const root = document.getElementById('minaChatMessages');
-        const recent = root ? Array.from(root.querySelectorAll('.mina-message')).slice(-12).map(row => {
-          const role = row.classList.contains('user') ? 'کاربر' : 'مینا';
-          const bubble = row.querySelector('.mina-bubble');
-          return role + ': ' + (bubble ? bubble.textContent : '');
-        }).join('\n') : '';
+        const recent = minaBuildRecentConversationContext(5200) || ('کاربر: ' + message);
         const customerMemory = minaBuildCustomerMemoryContext(message);
         const trustedFacts = [dateTimeFact, customerHistoryFact, customerDateFact]
           .filter(value => typeof value === 'string' && value.trim())
           .map(value => 'نتیجه قطعی محاسبه/پرونده در برنامه: ' + value.trim())
-          .join('\n');
-        const cloudContext = (
-          String(recent || message).slice(-1500) +
-          (customerMemory ? '\n\n' + customerMemory.slice(0,2200) : '') +
-          (trustedFacts ? '\n\n' + trustedFacts.slice(-900) : '')
-        ).slice(-3900);
+          .join('\\n');
+        const cloudContext = [
+          'تاریخچه مکالمه محلی (جدیدترین پیام در انتها):',
+          recent,
+          customerMemory ? '\\n\\nحافظه واقعی پرونده مشتری:\\n' + customerMemory.slice(0,2400) : '',
+          trustedFacts ? '\\n\\nواقعیت‌های قطعی محاسبه‌شده در برنامه:\\n' + trustedFacts.slice(-1000) : ''
+        ].filter(Boolean).join('\\n').slice(-8800);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
         if (cloudResult?.type === 'review_unavailable') {
           cloudOperationBlocked = true;
@@ -8392,6 +8421,7 @@
     // Refresh the smart panel whenever existing data is saved or the customer record is opened.
 
     loadData();
+    minaRenderStoredConversation();
     saveData();
     renderClientBirthdays();
     Object.entries(appData.clientProfiles||{}).forEach(([key,p])=>{if(p&&p.birthDate&&!((appData.reminders||[]).some(r=>r&&r.birthdayClientKey===key)))scheduleNextClientBirthdayAlarm(key,p);});
