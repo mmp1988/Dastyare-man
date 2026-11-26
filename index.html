@@ -6584,6 +6584,13 @@
           if (response.status < 500 || attempt === 1) break;
           await new Promise(resolve => setTimeout(resolve, 700));
         }
+        if (response?.status === 429 && data?.code === 'MINA_RATE_LIMITED') {
+          return {
+            type: 'reply',
+            command: '',
+            reply: 'در چند دقیقه اخیر درخواست‌های زیادی فرستاده شده است؛ برای محافظت از اتصال، مینا موقتاً مکث کرده. حدود یک دقیقه صبر کن و دوباره بفرست. هیچ تغییری در اطلاعات انجام نشده است.'
+          };
+        }
         if (response?.status === 429 || data?.code === 'AI_QUOTA_EXHAUSTED') {
           try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 30 * 60 * 1000)); } catch (error) {}
           return null;
