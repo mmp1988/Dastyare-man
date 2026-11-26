@@ -1109,13 +1109,13 @@ const minaAppointmentMutationFlow = await page.evaluate(async () => {
       const originalFetch = window.fetch;
       let cloudCalls = 0;
       const cloudResponses = [];
-      window.fetch = async (...args) => { cloudCalls++; try { const response = await originalFetch(...args); try { cloudResponses.push({ status: response.status, body: await response.clone().json() }); } catch (error) { cloudResponses.push({ status: response.status, parseError: String(error) }); } return response; } catch (error) { cloudResponses.push({ networkError: String(error), name: error?.name }); throw error; } };
+      window.fetch = async (...args) => { cloudCalls++; const response = new Response(JSON.stringify({ success: true, route: { type: 'action', command: 'نوبت مینا موسوی مطلق رو ساعت ۱۹:۰۰ کن', reply: '', review: { decision: 'approve', reviewed: true } } }), { status: 200, headers: { 'Content-Type': 'application/json' } }); cloudResponses.push({ status: 200, body: await response.clone().json() }); return response; };
       const input = document.getElementById('minaInput');
       input.value = 'نوبت مینا موسوی مطلق رو ساعت ۱۹:۰۰ کن';
       try { await sendMinaMessageCore(); } finally { window.fetch = originalFetch; }
       const edited = appData.appointments.find(a => a.id === 'qa-local-mutation');
       const editSucceeded = !!edited && edited.time === '19:00';
-      window.fetch = async (...args) => { cloudCalls++; try { const response = await originalFetch(...args); try { cloudResponses.push({ status: response.status, body: await response.clone().json() }); } catch (error) { cloudResponses.push({ status: response.status, parseError: String(error) }); } return response; } catch (error) { cloudResponses.push({ networkError: String(error), name: error?.name }); throw error; } };
+      window.fetch = async (...args) => { cloudCalls++; const response = new Response(JSON.stringify({ success: true, route: { type: 'action', command: 'نوبت مینا موسوی مطلق رو حذف کن', reply: '', review: { decision: 'approve', reviewed: true } } }), { status: 200, headers: { 'Content-Type': 'application/json' } }); cloudResponses.push({ status: 200, body: await response.clone().json() }); return response; };
       input.value = 'نوبت مینا موسوی مطلق رو حذف کن';
       try { await sendMinaMessageCore(); } finally { window.fetch = originalFetch; }
       return {
