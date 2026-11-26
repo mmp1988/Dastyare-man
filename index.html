@@ -9144,6 +9144,7 @@
       });
       const monthNames=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
       const label=k=>{const p=String(k).split('-');return p.length>1?(monthNames[Number(p[1])-1]||'')+' '+p[0]:k;};
+      const historyPhotoRefs=[];
       root.innerHTML=Array.from(groups.entries()).map(([g,items])=>
         (period==='all'?'':'<div style="font-weight:900;color:var(--accent);padding:6px 2px;">'+escapeClientText(label(g))+'</div>')+
         items.map(x=>{
@@ -9159,6 +9160,7 @@
             (p.customFields||[]).forEach(f=>addDetail(f.label,f.value));
             addDetail('تعداد سوابق خدمات',(p.records||[]).length);
             addDetail('عکس پروفایل',p.photoRef?'عکس ذخیره‌شده':'');
+            if(p.photoRef)historyPhotoRefs.push(p.photoRef);
             addDetail('یادآوری‌های مرتبط',(x.relatedReminders||[]).map(r=>r.message||r.title||'یادآوری').join('، '));
           }
           if(x.recordType==='work'){
@@ -9166,6 +9168,7 @@
             addDetail('تاریخ انجام کار',date);addDetail('ساعت انجام کار',w.time||x.time);addDetail('توضیحات',w.notes);
             Object.values(w.customValues||{}).forEach(v=>addDetail(v?.label||'جزئیات',v?.value||v));
             addDetail('عکس کار',w.photoRef?'عکس پیوست‌شده':'');addDetail('عکس قبل',w.beforePhotoRef?'عکس قبل پیوست‌شده':'');addDetail('عکس بعد',w.afterPhotoRef?'عکس بعد پیوست‌شده':'');
+            [w.photoRef,w.beforePhotoRef,w.afterPhotoRef].filter(Boolean).forEach(ref=>historyPhotoRefs.push(ref));
           }
           if(x.recordType!=='profile'&&x.recordType!=='work'){
             const a=x.appointmentSnapshot||{};
@@ -9178,9 +9181,15 @@
             '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:.7rem;color:var(--text-secondary);"><span>📅 '+escapeClientText(date)+'</span><span>⏰ '+escapeClientText(toPersianDigits(x.time||'ثبت‌نشده'))+'</span><span>• '+state+'</span></div>'+
             (x.phone?'<small style="display:block;color:var(--text-secondary);margin-top:4px;">📞 '+escapeClientText(x.phone)+'</small>':'')+
             (detailRows.length?'<div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.73rem;color:var(--text-secondary);margin-top:7px;border-top:1px solid var(--border-subtle);padding-top:6px;">'+detailRows.join('')+'</div>':'')+
+            (x.recordType==='profile'&&x.profileSnapshot?.photoRef?'<img data-history-photo-ref="'+escapeClientText(x.profileSnapshot.photoRef)+'" alt="عکس پروفایل مشتری" style="width:84px;height:84px;object-fit:cover;border-radius:10px;margin-top:8px;" />':'')+
+            (x.recordType==='work'&&[x.workSnapshot?.photoRef,x.workSnapshot?.beforePhotoRef,x.workSnapshot?.afterPhotoRef].some(Boolean)?'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">'+[x.workSnapshot?.photoRef,x.workSnapshot?.beforePhotoRef,x.workSnapshot?.afterPhotoRef].filter(Boolean).map((ref,i)=>'<img data-history-photo-ref="'+escapeClientText(ref)+'" alt="'+['عکس کار','قبل','بعد'][i]+'" style="width:84px;height:84px;object-fit:cover;border-radius:10px;" />').join('')+'</div>':'')+
           '</article>';
         }).join('')
       ).join('');
+      root.querySelectorAll('[data-history-photo-ref]').forEach(async img=>{
+        try{const url=await getClientPhotoUrl(img.dataset.historyPhotoRef);if(url)img.src=url;else img.style.display='none';}
+        catch(e){img.style.display='none';}
+      });
     }
     async function handleClientArchivePhoto(event) {
       const input=event.target,file=input.files&&input.files[0];if(!file)return;
