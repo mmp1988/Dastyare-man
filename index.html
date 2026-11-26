@@ -1381,6 +1381,7 @@
         <details id="customerHistoryArchivePanel" class="card" style="margin:12px 0;box-shadow:none;border-color:var(--accent);" ontoggle="if(this.open)renderCustomerHistoryArchive()">
           <summary style="cursor:pointer;font-weight:900;color:var(--accent);padding:4px 2px;">🗂️ تاریخچه کامل مشتریان <small id="customerHistoryArchiveCount" style="color:var(--text-secondary);font-weight:600;"></small></summary>
           <p style="font-size:.73rem;color:var(--text-secondary);line-height:1.8;margin:8px 0;">تمام نوبت‌های ثبت‌شده، انجام‌شده، لغوشده و حذف‌شده اینجا باقی می‌مانند؛ حذف پرونده مشتری یا نوبت، این سوابق را پاک نمی‌کند.</p>
+          <button type="button" class="btn btn-secondary" style="width:100%;margin:0 0 10px;border-color:var(--danger,#d9534f);color:var(--danger,#d9534f);" onclick="clearCustomerHistoryArchive()">🧹 پاک کردن تمام تاریخچه</button>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0;">
             <input id="customerHistorySearch" class="form-control" type="search" placeholder="🔎 جستجوی نام مشتری یا خدمت..." oninput="renderCustomerHistoryArchive()" />
             <select id="customerHistoryStatus" class="form-control" onchange="renderCustomerHistoryArchive()">
@@ -2455,6 +2456,7 @@
       clientNotes: {},
       clientProfiles: {},
       customerHistory: [],
+      customerHistoryDeletedIds: [],
       minaConversationHistory: [],
       settings: {
         brandName: 'دستیار من',
@@ -2508,6 +2510,7 @@
           clientNotes: parsed.clientNotes && typeof parsed.clientNotes === 'object' ? parsed.clientNotes : {},
           clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles === 'object' ? parsed.clientProfiles : {},
           customerHistory: Array.isArray(parsed.customerHistory) ? parsed.customerHistory : [],
+          customerHistoryDeletedIds: Array.isArray(parsed.customerHistoryDeletedIds) ? parsed.customerHistoryDeletedIds : [],
           settings: { ...appData.settings, ...(parsed.settings || {}) }
         };
         if (!Array.isArray(parsed.customerHistory)) { try { const historyRaw=localStorage.getItem('dastyare_man_customer_history_v1'); const historyParsed=historyRaw?JSON.parse(historyRaw):[]; appData.customerHistory=Array.isArray(historyParsed)?historyParsed:[]; } catch(e) { appData.customerHistory=[]; } }
@@ -2580,6 +2583,7 @@
           }
         } catch (e) {}
       }
+      if (!Array.isArray(appData.customerHistoryDeletedIds)) appData.customerHistoryDeletedIds = [];
       if (!Array.isArray(appData.minaConversationHistory)) appData.minaConversationHistory = [];
       appData.minaConversationHistory = appData.minaConversationHistory
         .filter(item => item && ['user','assistant'].includes(item.role) && typeof item.text === 'string')
@@ -3816,6 +3820,8 @@
       const recordsCount = (profile && profile.records ? profile.records.length : 0) + appointments.length;
       const name = (profile && profile.name) || appointments[0]?.clientName || key;
       if (!confirm('مشتری «' + name + '» و پرونده، یادداشت‌ها، سوابق خدمات و نوبت‌های مرتبط حذف شوند؟ این کار برگشت‌پذیر نیست.')) return;
+      // Archive while the customer profile still exists, preserving its canonical identity.
+      appointments.forEach(a => archiveCustomerAppointment(a,'deleted'));
       if (profile) await deleteClientPhotoRefs(profile);
       delete appData.clientProfiles[key];
       if (appData.clientNotes) delete appData.clientNotes[key];
@@ -7227,7 +7233,7 @@
         entries.forEach(([,profile]) => {
           if (typeof deleteClientPhotoRefs === 'function') Promise.resolve(deleteClientPhotoRefs(profile)).catch(()=>{});
         });
-        (appData.appointments || []).filter(a => (a?.clientId && clientIds.has(String(a.clientId))) || keys.has(String(clientKeyFromFields(a?.phone,a?.clientName)||'')) || names.has(normalize(a?.clientName)) || (String(a?.phone||'').replace(/\D/g,'') && phones.has(String(a?.phone||'').replace(/\D/g,'')))).forEach(a => cancelAutomaticRepairReminder(a.id));
+        (appData.appointments || []).filter(a => (a?.clientId && clientIds.has(String(a.clientId))) || keys.has(String(clientKeyFromFields(a?.phone,a?.clientName)||'')) || names.has(normalize(a?.clientName)) || (String(a?.phone||'').replace(/\D/g,'') && phones.has(String(a?.phone||'').replace(/\D/g,'')))).forEach(a => { archiveCustomerAppointment(a,'deleted'); cancelAutomaticRepairReminder(a.id); });
         appData.appointments = (appData.appointments || []).filter(a => {
           if (a?.clientId && clientIds.has(String(a.clientId))) return false;
           const apptKey = String(clientKeyFromFields(a?.phone, a?.clientName) || '');
@@ -7275,7 +7281,7 @@
         delete profiles[key];
         if (appData.clientNotes) delete appData.clientNotes[key];
         const removedAppointments = (appData.appointments || []).filter(a => clientMatchesAppointment(key,a) || clientKeyFromFields(a.phone,a.clientName)===key);
-        removedAppointments.forEach(a => cancelAutomaticRepairReminder(a.id));
+        removedAppointments.forEach(a => { archiveCustomerAppointment(a,'deleted'); cancelAutomaticRepairReminder(a.id); });
         appData.appointments = (appData.appointments || []).filter(a => !clientMatchesAppointment(key,a) && clientKeyFromFields(a.phone,a.clientName)!==key);
         if (typeof minaLastReferencedAppointmentId !== 'undefined' && minaLastReferencedAppointmentId) {
           if (!(appData.appointments || []).some(a=>a.id===minaLastReferencedAppointmentId)) minaLastReferencedAppointmentId=null;
@@ -8425,6 +8431,7 @@
       }
       if (isDelete) {
         if (minaLastReferencedAppointmentId === appt.id) minaLastReferencedAppointmentId = null;
+        archiveCustomerAppointment(appt,'deleted');
         appData.appointments = appData.appointments.filter(a => a.id !== appt.id);
         cancelAutomaticRepairReminder(appt.id);
         saveData(); renderPersonalReminders(); renderCalendar(); renderDaySchedule();
@@ -9006,8 +9013,10 @@
     function archiveCustomerAppointment(a, forcedStatus) {
       if (!a || !a.id || a.customerOnly === true) return null;
       if (!Array.isArray(appData.customerHistory)) appData.customerHistory=[];
+      if (!Array.isArray(appData.customerHistoryDeletedIds)) appData.customerHistoryDeletedIds=[];
       const identity=customerHistoryIdentity(a);
       const id='appointment_'+String(a.id);
+      if (appData.customerHistoryDeletedIds.includes(id)) return null;
       let item=appData.customerHistory.find(x=>x && x.id===id);
       if (item && item.deletedByUser) return item;
       const now=Date.now();
@@ -9033,11 +9042,25 @@
       const item=(appData.customerHistory||[]).find(x=>x && x.id===id);
       if(!item)return;
       if(!confirm('این سابقه برای همیشه از تاریخچه مشتریان حذف شود؟ فقط خود کاربر می‌تواند این کار را انجام دهد و قابل بازگشت نیست.'))return;
-      item.deletedByUser=true;
+      if(!Array.isArray(appData.customerHistoryDeletedIds))appData.customerHistoryDeletedIds=[];
+      if(!appData.customerHistoryDeletedIds.includes(id))appData.customerHistoryDeletedIds.push(id);
       appData.customerHistory=appData.customerHistory.filter(x=>x.id!==id);
       saveData();
       renderCustomerHistoryArchive();
       if(typeof showToast==='function')showToast('سابقه انتخاب‌شده از آرشیو حذف شد.');
+    }
+    function clearCustomerHistoryArchive() {
+      const all=Array.isArray(appData.customerHistory)?appData.customerHistory:[];
+      const live=Array.isArray(appData.appointments)?appData.appointments:[];
+      if(!all.length && !live.length){if(typeof showToast==='function')showToast('تاریخچه خالی است.');return;}
+      if(!confirm('تمام سوابق تاریخچه مشتریان برای همیشه پاک شوند؟ نوبت‌های فعال حذف نمی‌شوند، اما سوابق فعلی آن‌ها هم از آرشیو پاک می‌شود. این کار قابل بازگشت نیست.'))return;
+      if(!Array.isArray(appData.customerHistoryDeletedIds))appData.customerHistoryDeletedIds=[];
+      const ids=new Set([...all.map(x=>x&&x.id).filter(Boolean),...live.filter(a=>a&&a.id).map(a=>'appointment_'+String(a.id))]);
+      ids.forEach(id=>{if(!appData.customerHistoryDeletedIds.includes(id))appData.customerHistoryDeletedIds.push(id);});
+      appData.customerHistory=[];
+      saveData();
+      renderCustomerHistoryArchive();
+      if(typeof showToast==='function')showToast('تمام تاریخچه پاک شد؛ نوبت‌های فعال همچنان در تقویم باقی ماندند.');
     }
     function renderCustomerHistoryArchive() {
       const root=document.getElementById('customerHistoryArchiveList'); if(!root)return;
