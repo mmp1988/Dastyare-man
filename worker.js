@@ -4,7 +4,7 @@ const MODEL = "@cf/zai-org/glm-4.7-flash";
 const FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 const QWEN_FALLBACK_MODEL = "@cf/qwen/qwen3.8-27b";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v25-neuron-quota-failover";
+const WORKER_VERSION = "mina-ai-response-v26-neuron-quota-failover";
 const requestWindows = new Map();
 // Per-isolate circuit breakers prevent repeated calls to a provider that is known to be failing.
 const providerCooldowns = new Map();
@@ -21,7 +21,7 @@ function providerCoolingDown(name, now = Date.now()) {
 
 function coolDownProvider(name, error, quotaMs = 10 * 60 * 1000) {
   const detail = String(error && (error.message || error) || "").toLowerCase();
-  const quota = /(?:quota|rate.?limit|too many requests|\\b429\\b|daily limit|daily free allocation|free allocation|neurons?.*(?:used|exhausted)|\\b4006\\b|exceeded.*(?:request|token|limit)|resource exhausted)/i.test(detail);
+  const quota = /(?:quota|rate.?limit|too many requests|429|daily limit|daily free allocation|free allocation|neurons?.*(?:used|exhausted)|4006|exceeded.*(?:request|token|limit)|resource exhausted)/i.test(detail);
   providerCooldowns.set(name, Date.now() + (quota ? quotaMs : 45 * 1000));
   return quota;
 }
@@ -347,7 +347,7 @@ export default {
       // Some Workers AI failures are returned in the result object instead of being thrown.
       if (result?.success === false || (Array.isArray(result?.errors) && result.errors.length)) {
         const detail = JSON.stringify(result.errors || result).toLowerCase();
-        const quotaExceeded = /(?:quota|rate.?limit|too many requests|429|exceeded.*(?:request|token|limit)|daily limit|resource exhausted)/i.test(detail);
+        const quotaExceeded = /(?:quota|rate.?limit|too many requests|429|daily limit|daily free allocation|free allocation|neurons?.*(?:used|exhausted)|4006|exceeded.*(?:request|token|limit)|resource exhausted)/i.test(detail);
         if (quotaExceeded) {
           return json({ success: false, code: "AI_QUOTA_EXHAUSTED", error: "سهمیه رایگان هوش ابری فعلاً به پایان رسیده است." }, 429, headers);
         }
