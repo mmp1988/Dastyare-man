@@ -6876,6 +6876,7 @@
       let personalReminderHandled = !!reply;
       let routedCommand = null;
       let cloudOperationBlocked = false;
+      let cloudRoutingUnavailable = false;
       // A fully specified customer-list booking with a relative Jalali date is deterministic:
       // do not let a cloud paraphrase change its date/name or merely promise an action.
       const directCustomerOnlyBooking = /(?:قسمت|بخش)\s*مشتریان/u.test(minaNormalizePersianTypos(message)) &&
@@ -6923,6 +6924,10 @@
           trustedFacts ? '\n\nواقعیت‌های قطعی محاسبه‌شده در برنامه:\n' + trustedFacts.slice(-1000) : ''
         ].filter(Boolean).join('\n').slice(-8800);
         const cloudResult = await minaAskSmartBrain(cloudContext, 'route');
+        // If the cloud model is exhausted or unreachable, allow only the existing
+        // deterministic local executors to handle clearly recognized explicit commands.
+        // Ambiguous requests remain blocked and cannot create or change records.
+        cloudRoutingUnavailable = !cloudResult;
         if (cloudResult?.type === 'review_unavailable') {
           cloudOperationBlocked = true;
           reply = cloudResult.reply || 'بازبینی مستقل انجام نشد؛ برای جلوگیری از اشتباه، درخواست اجرا نشد.';
@@ -6957,7 +6962,7 @@
       // Safety net for explicit operations: the cloud decides the intent first, but it cannot
       // veto a well-formed operation that the trusted local executor can actually complete.
       // Every executor is guarded and must return a result before its reply replaces the AI answer.
-      if (!navigator.onLine && !personalReminderHandled && !routedCommand && !cloudOperationBlocked && reply && minaIsClearlyLocalAction(message)) {
+      if ((!navigator.onLine || cloudRoutingUnavailable) && !personalReminderHandled && !routedCommand && !cloudOperationBlocked && minaIsClearlyLocalAction(message)) {
         const personalReminderAction = minaTrySetPersonalReminder(message);
         const customerMutationAction = personalReminderAction || minaTryManageClientFromMessage(message);
         const customerCreateAction = customerMutationAction || minaTryAddClientFromMessage(message);
