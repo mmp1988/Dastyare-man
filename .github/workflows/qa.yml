@@ -82,13 +82,13 @@ jobs:
               try {
                 response = await fetch(url, { cache: 'no-store' });
                 data = await response.json();
-                if (response.ok && data.version === 'mina-ai-response-v22-efficient-failover') break;
+                if (response.ok && data.version === 'mina-ai-response-v23-resilient-timeouts') break;
               } catch (_) {}
               await new Promise(resolve => setTimeout(resolve, 5000));
             }
             assert.equal(response?.status, 200, 'Worker health endpoint must return HTTP 200');
             assert.equal(data?.status, 'ready', 'Worker must report ready');
-            assert.equal(data?.version, 'mina-ai-response-v22-efficient-failover', 'Latest failover release must be deployed');
+            assert.equal(data?.version, 'mina-ai-response-v23-resilient-timeouts', 'Latest failover release must be deployed');
             assert.equal(data?.providers?.cloudflareAI, true, 'Cloudflare AI binding must be present');
             assert.equal(data?.providers?.groq, true, 'Groq fallback secret must be present');
             console.log('Mina Worker health: PASS', JSON.stringify(data));
