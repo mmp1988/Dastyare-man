@@ -1116,6 +1116,43 @@ console.log('Android alarm integration contract: PASS');
     assert(Object.values(minaColloquialThirteenDayBookingQA).every(Boolean),
       'Mina must save «۱۳ روز دیگه ... یه نوبت بده» in the customer section without cloud dependency');
 
+    const minaTransientCloudRetryQA = await page.evaluate(async () => {
+      const originalFetch = window.fetch;
+      let cloudCalls = 0;
+      try {
+        window.fetch = async () => {
+          cloudCalls++;
+          if (cloudCalls === 1) {
+            return new Response(JSON.stringify({
+              success: false, code: 'AI_TEMPORARILY_UNAVAILABLE',
+              error: 'سرویس هوش مصنوعی فعلاً در دسترس نیست.'
+            }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+          }
+          return new Response(JSON.stringify({
+            success: true,
+            route: {
+              type: 'action',
+              command: 'نوبت مینا را به ۱۸ آذر تغییر بده و خدمت اکستنشن مژه ساعت ۱۹:۰۰ باشد',
+              reply: '',
+              review: { decision: 'approve', reviewed: true }
+            }
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        };
+        const result = await minaAskSmartBrain('نوبت مینا را به ۱۸ آذر تغییر بده و خدمت اکستنشن مژه ساعت ۱۹:۰۰ باشد', 'route');
+        return {
+          retriedAfterTemporary503: cloudCalls === 2,
+          recoveredAction: !!result && result.type === 'action',
+          preservedTimeAndService: !!result && /۱۹:۰۰/u.test(result.command) && /اکستنشن مژه/u.test(result.command),
+          independentReviewPassed: !!result && result.review?.reviewed === true && result.review.decision === 'approve'
+        };
+      } finally {
+        window.fetch = originalFetch;
+      }
+    });
+    console.log('Mina transient cloud retry:', JSON.stringify(minaTransientCloudRetryQA));
+    assert(Object.values(minaTransientCloudRetryQA).every(Boolean),
+      'Mina must retry a transient cloud 503 once and continue only after an approved route');
+
     const minaFalseCloudSuccessQA = await page.evaluate(async () => {
       const previousAppointments = appData.appointments;
       const previousProfiles = appData.clientProfiles;
