@@ -6093,7 +6093,7 @@
           }
           dateKey = addDaysToJalaliKey(dateKey, delta);
         }
-        if (!clock && dateKey >= todayKey && !/(?:بدون\s*(?:ساعت|زمان)|ساعت\s*(?:ندارد|مشخص\s*نیست)|بی\s*ساعت)/u.test(t)) return 'حتماً عزیزم 💗 ساعت رو هم بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر». ';
+        if (!clock && dateKey >= todayKey && !customerOnly && !/(?:بدون\s*(?:ساعت|زمان)|ساعت\s*(?:ندارد|مشخص\s*نیست)|بی\s*ساعت)/u.test(t)) return 'حتماً عزیزم 💗 ساعت رو هم بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر». ';
         const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*(?:صورت|پوست)|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
         const serviceMatch = t.match(servicePattern);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
@@ -6152,7 +6152,7 @@
           clientName: clientName || '⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing: !clientName,
           phone: phoneMatch ? phoneMatch[0] : '', service,
           notes: '',
-          alarm: appointmentStatus === 'done' ? 'none' : '15', status: appointmentStatus, notified: false
+          alarm: (appointmentStatus === 'done' || !time || customerOnly) ? 'none' : '15', status: appointmentStatus, notified: false
         };
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
@@ -6811,8 +6811,9 @@
           routedCommand = cloudResult.command + (explicitCustomerOnly ? ' فقط در قسمت مشتریان' : explicitCalendar ? ' در تقویم' : '');
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
           // A cloud clarification/rejection for an operation must never fall through to a local mutation.
-          if (minaIsClearlyLocalAction(message)) cloudOperationBlocked = true;
-          reply = cloudResult.reply;
+          const explicitCustomerOnlyBooking = /(?:نوبت|رزرو|وقت)/u.test(message) && /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(message) && /(?:ثبت|بذار|بزار|اضافه|ذخیره|انجام)/u.test(message);
+          if (minaIsClearlyLocalAction(message) && !explicitCustomerOnlyBooking) cloudOperationBlocked = true;
+          if (explicitCustomerOnlyBooking) { cloudOperationBlocked = false; reply = ''; } else reply = cloudResult.reply;
         }
       }
 
@@ -6829,7 +6830,9 @@
           /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(bookingText) &&
           /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ|فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) &&
           (/(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(bookingText) ||
-           /\\d{1,2}\\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText));
+           /\\d{1,2}\\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) ||
+           /(?:بدون\\s*(?:ساعت|زمان)|ساعت\\s*(?:ندارد|مشخص\\s*نیست)|بی\\s*ساعت)/u.test(bookingText) ||
+           /(?:قسمت|بخش)\\s*مشتریان|پرونده\\s+مشتری/u.test(bookingText));
         const directBookingAction = appointmentMutationAction || (bookingAction ? minaBuildReply(message) : null);
         const localActionResult = personalReminderAction || customerMutationAction || customerCreateAction || appointmentMutationAction || directBookingAction;
         if (localActionResult) reply = localActionResult;
