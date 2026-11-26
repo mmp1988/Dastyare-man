@@ -41,7 +41,7 @@ function modelResultError(result) {
 function isRequestRateLimited(ip, now = Date.now()) {
   const key = String(ip || "unknown").slice(0, 80);
   const recent = (requestWindows.get(key) || []).filter(ts => now - ts < 10 * 60 * 1000);
-  if (recent.length >= 60) {
+  if (recent.length >= 120) {
     requestWindows.set(key, recent);
     return true;
   }
