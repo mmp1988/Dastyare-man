@@ -6881,7 +6881,7 @@
       // do not let a cloud paraphrase change its date/name or merely promise an action.
       const directCustomerOnlyBooking = /(?:قسمت|بخش)\s*مشتریان/u.test(minaNormalizePersianTypos(message)) &&
         /(?:نوبت|وقت|رزرو)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:ثبت|ذخیره|اضافه|بذار|بزار)/u.test(minaNormalizePersianTypos(message)) &&
+        /(?:ثبت|ذخیره|اضافه|بذار|بزار|بده|اختصاص\s*بده)/u.test(minaNormalizePersianTypos(message)) &&
         /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*روز\s*(?:بعد|دیگه|دیگر)/u.test(minaNormalizePersianTypos(minaNormalizeDigits(message))) &&
         /(?:به\s*)?(?:اسم|نام)\s+[آ-یءئؤإأ‌\-]{2,40}/u.test(minaNormalizePersianTypos(message));
       if (navigator.onLine && !reply && directCustomerOnlyBooking) {
