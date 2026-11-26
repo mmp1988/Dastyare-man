@@ -45,6 +45,31 @@ console.log('Android alarm integration contract: PASS');
     await page.waitForTimeout(1500);
     await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && typeof renderCalendar === 'function', null, { timeout: 20000 });
 
+    // Persistent local conversation memory must survive a full page reload and restore the visible transcript.
+    const previousMinaConversationHistory = await page.evaluate(() =>
+      JSON.stringify(appData.minaConversationHistory || [])
+    );
+    await page.evaluate(() => addMinaMessage('آزمون حافظه پایدار مینا - پیام آزمایشی', 'user'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!document.querySelector('#calendarGrid') && Array.isArray(appData.minaConversationHistory), null, { timeout: 20000 });
+    await page.waitForTimeout(500);
+    const minaPersistentMemoryQA = await page.evaluate(() => ({
+      persistedAfterReload: (appData.minaConversationHistory || []).some(item =>
+        item.role === 'user' && item.text === 'آزمون حافظه پایدار مینا - پیام آزمایشی'
+      ),
+      restoredInVisibleChat: Array.from(document.querySelectorAll('#minaChatMessages .mina-bubble'))
+        .some(node => node.textContent.includes('آزمون حافظه پایدار مینا - پیام آزمایشی')),
+      boundedHistory: (appData.minaConversationHistory || []).length <= 80
+    }));
+    assert(Object.values(minaPersistentMemoryQA).every(Boolean),
+      'Mina conversation memory must persist locally across reload, restore the transcript, and remain bounded: ' + JSON.stringify(minaPersistentMemoryQA));
+    console.log('Mina persistent local memory:', JSON.stringify(minaPersistentMemoryQA));
+    await page.evaluate(previous => {
+      appData.minaConversationHistory = JSON.parse(previous);
+      saveData();
+      minaRenderStoredConversation();
+    }, previousMinaConversationHistory);
+
     const minaDateTimeQA = await page.evaluate(() => {
       const clock = minaTryAnswerDateTimeQuestion('الان ساعت چنده؟');
       const weekday = minaTryAnswerDateTimeQuestion('امروز چند شنبه است؟');
