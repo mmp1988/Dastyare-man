@@ -1,9 +1,37 @@
 // Cloudflare Workers entry point; this comment also verifies Git-connected deployment.
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
-const MODEL = "@cf/zai-org/glm-4.7-flash";
+const MODEL = "@cf/qwen/qwen3.8-27b";
+const FALLBACK_MODEL = "@cf/zai-org/glm-4.7-flash";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v20-groq-ready";
+const WORKER_VERSION = "mina-ai-response-v21-resilient-failover";
 const requestWindows = new Map();
+// Per-isolate circuit breakers prevent repeated calls to a provider that is known to be failing.
+const providerCooldowns = new Map();
+const CLOUDFLARE_QUOTA_COOLDOWN_MS = 30 * 60 * 1000;
+
+function providerCoolingDown(name, now = Date.now()) {
+  const until = providerCooldowns.get(name) || 0;
+  if (until <= now) {
+    providerCooldowns.delete(name);
+    return false;
+  }
+  return true;
+}
+
+function coolDownProvider(name, error, quotaMs = 10 * 60 * 1000) {
+  const detail = String(error && (error.message || error) || "").toLowerCase();
+  const quota = /(?:quota|rate.?limit|too many requests|\\b429\\b|daily limit|resource exhausted|exceeded.*(?:request|token|limit))/i.test(detail);
+  providerCooldowns.set(name, Date.now() + (quota ? quotaMs : 45 * 1000));
+  return quota;
+}
+
+function modelResultError(result) {
+  if (result?.success === false || (Array.isArray(result?.errors) && result.errors.length)) {
+    return new Error(JSON.stringify(result.errors || result).slice(0, 700));
+  }
+  if (!extractModelText(result)) return new Error("Provider returned an empty model response");
+  return null;
+}
 
 function isRequestRateLimited(ip, now = Date.now()) {
   const key = String(ip || "unknown").slice(0, 80);
@@ -23,12 +51,48 @@ function isRequestRateLimited(ip, now = Date.now()) {
 }
 
 async function runMinaModel(env, cloudflareModel, input) {
-  // Preferred free external inference provider for Mina's short Persian salon commands.
-  // Install GROQ_API_KEY as a Worker secret; no key is ever exposed to the browser.
-  if (env.GROQ_API_KEY) {
-    const model = env.GROQ_MODEL || "qwen/qwen3.8-27b";
+  const failures = [];
+  let attempted = 0;
+  let quotaFailures = 0;
+
+  // 1) Cloudflare Workers AI: free daily allocation, with Qwen as the primary model.
+  // 2) A lighter Cloudflare model can absorb model-specific capacity/adapter failures.
+  // 3) Groq Qwen is the external fallback when Cloudflare is unavailable or out of quota.
+  const cloudflareModels = [
+    { key: "cloudflare:qwen", model: cloudflareModel || MODEL },
+    { key: "cloudflare:glm", model: FALLBACK_MODEL }
+  ];
+
+  for (const provider of cloudflareModels) {
+    if (!env.AI?.run) break;
+    if (providerCoolingDown("cloudflare:quota") || providerCoolingDown(provider.key)) continue;
+    attempted++;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const result = await env.AI.run(provider.model, input, { signal: controller.signal });
+      const failure = modelResultError(result);
+      if (failure) throw failure;
+      return result;
+    } catch (error) {
+      const quota = coolDownProvider(provider.key, error, 5 * 60 * 1000);
+      if (quota) {
+        quotaFailures++;
+        // Workers AI daily Neurons are shared across models: don't waste another call
+        // against a second model after the account-level daily allocation is exhausted.
+        providerCooldowns.set("cloudflare:quota", Date.now() + CLOUDFLARE_QUOTA_COOLDOWN_MS);
+      }
+      failures.push(provider.key + ": " + String(error?.message || error).slice(0, 240));
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // Groq is deliberately a fallback, not the first destination, to preserve its free quota.
+  if (env.GROQ_API_KEY && !providerCoolingDown("groq:qwen")) {
+    attempted++;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 35000);
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -37,9 +101,9 @@ async function runMinaModel(env, cloudflareModel, input) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model,
+          model: env.GROQ_MODEL || "qwen/qwen3.8-27b",
           messages: input.messages,
-          max_completion_tokens: Math.min(Number(input.max_tokens) || 700, 1200),
+          max_completion_tokens: Math.min(Number(input.max_tokens) || 700, 900),
           temperature: input.temperature ?? 0.1,
           ...(input.response_format ? { response_format: input.response_format } : {})
         }),
@@ -53,53 +117,19 @@ async function runMinaModel(env, cloudflareModel, input) {
       const content = payload?.choices?.[0]?.message?.content;
       if (typeof content !== "string" || !content.trim()) throw new Error("Groq returned an empty response");
       return { response: content.trim() };
+    } catch (error) {
+      const quota = coolDownProvider("groq:qwen", error, 10 * 60 * 1000);
+      if (quota) quotaFailures++;
+      failures.push("groq:qwen: " + String(error?.message || error).slice(0, 240));
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  // Optional OpenRouter compatibility path; Cloudflare remains the final fallback.
-
-  // If configured, OpenRouter is the independent provider; Cloudflare AI remains
-  // a compatibility fallback until the external key is installed as a Worker secret.
-  const apiKey = env.OPENROUTER_API_KEY;
-  if (!apiKey) return env.AI.run(cloudflareModel, input);
-
-  const model = cloudflareModel === REVIEW_MODEL
-    ? (env.OPENROUTER_REVIEW_MODEL || "google/gemini-2.5-flash")
-    : (env.OPENROUTER_MODEL || "openai/gpt-4.1-mini");
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
-  try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://mmp1988.github.io",
-        "X-Title": "Mina Salon Assistant"
-      },
-      body: JSON.stringify({
-        model,
-        messages: input.messages,
-        max_tokens: input.max_tokens,
-        temperature: input.temperature,
-        ...(input.response_format ? { response_format: input.response_format } : {})
-      }),
-      signal: controller.signal
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = payload?.error?.message || payload?.message || `HTTP ${response.status}`;
-      throw new Error(`OpenRouter ${response.status}: ${String(detail).slice(0, 500)}`);
-    }
-    const content = payload?.choices?.[0]?.message?.content;
-    if (typeof content !== "string" || !content.trim()) throw new Error("OpenRouter returned an empty response");
-    return { response: content.trim() };
-  } finally {
-    clearTimeout(timeout);
+  if (attempted > 0 && quotaFailures === attempted) {
+    throw new Error("All AI providers quota exhausted: " + failures.join(" | "));
   }
+  throw new Error("All AI providers temporarily unavailable: " + (failures.join(" | ") || "providers are cooling down"));
 }
 
 function normalizeScopeText(value) {
