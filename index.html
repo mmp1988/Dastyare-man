@@ -4354,6 +4354,8 @@
         }
       } catch(e) {
         showToast('ذخیره عکس انجام نشد. فضای خالی گوشی را بررسی کن.');
+      } finally {
+        if (event && event.target) event.target.value = '';
       }
     }
     function renderClientCustomFields(key) {
@@ -9088,6 +9090,7 @@
         saveData();input.value='';document.getElementById('clientArchivePhotoCaption').value='';
         renderClientPhotoArchive(key);showToast('عکس به آرشیو مستقل مشتری اضافه شد 🖼️');
       }catch(e){showToast('ذخیره عکس در آرشیو انجام نشد؛ فضای گوشی را بررسی کن.');}
+      finally{input.value='';}
     }
     function renderClientPhotoArchive(key) {
       const root=document.getElementById('clientPhotoArchiveList');if(!root)return;
