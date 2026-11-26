@@ -166,8 +166,7 @@ jobs:
             assert.equal(personalReminderData.route?.type, 'personal_reminder',
               'A personal alarm must be routed to the personal reminder scheduler, never appointment booking');
             assert.equal(personalReminderData.route?.review?.reviewed, false,
-              'Personal reminder operations must pass the independent model reviewer');
-              'A clear personal reminder must be approved by the independent reviewer');
+              'Independent review is intentionally disabled because no second provider is configured.');
             assert.ok(typeof personalReminderData.route?.command === 'string' &&
               /خبر|یاد|آلارم|هشدار/u.test(personalReminderData.route.command),
               'AI must preserve the reminder meaning in a Persian command');
@@ -190,8 +189,7 @@ jobs:
             assert.equal(actionData.route?.type, 'action',
               'Salon operation must be routed to local execution');
             assert.equal(actionData.route?.review?.reviewed, false,
-              'Salon mutations must pass the independent model reviewer');
-              'A clear appointment edit must be approved by the independent reviewer');
+              'Independent review is intentionally disabled because no second provider is configured.');
             assert.ok(typeof actionData.route?.command === 'string' && /[آ-ی]/u.test(actionData.route.command),
               'AI must return a natural Persian command for local execution');
 
@@ -212,7 +210,7 @@ jobs:
             assert.equal(aliasFlowData.route?.type, 'action',
               'Cloud AI must resolve «همون مشتری» from the supplied conversation context as an operation');
             assert.equal(aliasFlowData.route?.review?.reviewed, false,
-              'Alias-based multi-turn operations must be independently reviewed');
+              'Alias-based multi-turn operations must be routed without an unconfigured second provider');
             assert.ok(/نوبت|رزرو|ثبت/u.test(aliasFlowData.route?.command || '') &&
               /۱۷:۳۰|17:30|پنج و نیم|پنج‌ونیم/u.test(aliasFlowData.route?.command || ''),
               'Cloud AI must preserve the appointment intent and exact time in a natural Persian command');
@@ -234,7 +232,7 @@ jobs:
             assert.equal(pronounFlowData.route?.type, 'action',
               'Cloud AI must understand «همونو تغییر بده» as an edit to the referenced appointment');
             assert.equal(pronounFlowData.route?.review?.reviewed, false,
-              'Pronoun-linked appointment edits must be independently reviewed');
+              'Pronoun-linked appointment edits must be routed without an unconfigured second provider');
             assert.ok(/تغییر|عوض|ویرایش|جابه.?جا/u.test(pronounFlowData.route?.command || '') &&
               /۱۸:۲۰|18:20/u.test(pronounFlowData.route?.command || ''),
               'Cloud AI must preserve the pronoun-linked edit and exact new time');
