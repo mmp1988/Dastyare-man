@@ -983,7 +983,12 @@ console.log('Android alarm integration contract: PASS');
       const originalFetch = window.fetch;
       let cloudCalls = 0;
       let cloudRouteDebug = null;
-      window.fetch = async (...args) => { cloudCalls++; const response = await originalFetch(...args); try { cloudRouteDebug = await response.clone().json(); } catch (error) {} return response; };
+      window.fetch = async (...args) => {
+        cloudCalls++;
+        const response = new Response(JSON.stringify({ success: true, route: { type: 'action', command: 'برای فردا ساعت ۱۸:۴۵ دقیقه نوبت کاشت مژه را به مینا موسوی مطلق بده', reply: '', review: { decision: 'approve', reviewed: true } } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        try { cloudRouteDebug = await response.clone().json(); } catch (error) {}
+        return response;
+      };
       const input = document.getElementById('minaInput');
       input.value = 'برای فردا ساعت ۱۸:۴۵ دقیقه نوبت کاشت مژه را به مینا موسوی مطلق بده';
       try { await sendMinaMessageCore(); }
