@@ -6877,16 +6877,26 @@
       let personalReminderHandled = !!reply;
       // A fully specified customer-list booking with a relative Jalali date is deterministic:
       // do not let a cloud paraphrase change its date/name or merely promise an action.
-      const directCustomerOnlyBooking = /(?:قسمت|بخش)\\s*مشتریان/u.test(minaNormalizePersianTypos(message)) &&
+      const directCustomerOnlyBooking = /(?:قسمت|بخش)\s*مشتریان/u.test(minaNormalizePersianTypos(message)) &&
         /(?:نوبت|وقت|رزرو)/u.test(minaNormalizePersianTypos(message)) &&
         /(?:ثبت|ذخیره|اضافه|بذار|بزار)/u.test(minaNormalizePersianTypos(message)) &&
-        /(?:\\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\\s*روز\\s*(?:بعد|دیگه|دیگر)/u.test(minaNormalizePersianTypos(minaNormalizeDigits(message))) &&
-        /(?:به\\s*)?(?:اسم|نام)\\s+[آ-یءئؤإأ‌\\-]{2,40}/u.test(minaNormalizePersianTypos(message));
+        /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*روز\s*(?:بعد|دیگه|دیگر)/u.test(minaNormalizePersianTypos(minaNormalizeDigits(message))) &&
+        /(?:به\s*)?(?:اسم|نام)\s+[آ-یءئؤإأ‌\-]{2,40}/u.test(minaNormalizePersianTypos(message));
       if (navigator.onLine && !reply && directCustomerOnlyBooking) {
+        const beforeIds = new Set((appData.appointments || []).map(item => item && item.id));
+        const normalizedDirect = minaNormalizePersianTypos(minaNormalizeDigits(message));
+        const relativeDayMatch = normalizedDirect.match(/(\\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\\s*روز\\s*(?:بعد|دیگه|دیگر)/u);
+        const expectedDays = relativeDayMatch ? (/^\\d+$/.test(relativeDayMatch[1]) ? Number(relativeDayMatch[1]) : minaPersianNumberValue(relativeDayMatch[1])) : NaN;
+        const nameMatch = normalizedDirect.match(/(?:به\\s*)?(?:اسم|نام)\\s+([آ-یءئؤإأ‌\\-]{2,40})/u);
+        const expectedName = nameMatch ? nameMatch[1].trim() : '';
+        const expectedDate = Number.isInteger(expectedDays) && expectedDays >= 1 && expectedDays <= 365
+          ? addDaysToJalaliKey(getTodayKey(), expectedDays) : '';
         reply = minaBuildReply(message);
-        // The local executor is the source of truth for this exact, fully specified operation.
-        // If it cannot produce a result, fail closed rather than asking the model to claim success.
-        if (!reply || /برای چه روزی|ساعت رو هم بگو|متوجه نشدم/u.test(reply)) {
+        const saved = (appData.appointments || []).find(item => item && !beforeIds.has(item.id) &&
+          item.createdBy === 'mina' && item.dateKey === expectedDate &&
+          String(item.clientName || '').trim() === expectedName && item.customerOnly === true);
+        // A natural-language response is never proof of success: verify the exact new record.
+        if (!saved) {
           reply = 'نتونستم تاریخ یا نام مشتری رو با اطمینان استخراج کنم؛ هیچ نوبتی ثبت نشد. لطفاً درخواست رو دوباره با تعداد روز و نام مشتری بفرست.';
           cloudOperationBlocked = true;
         }
