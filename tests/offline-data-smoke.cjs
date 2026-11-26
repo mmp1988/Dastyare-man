@@ -70,6 +70,33 @@ console.log('Android alarm integration contract: PASS');
       minaRenderStoredConversation();
     }, previousMinaConversationHistory);
 
+    // Persistent memory is sent to cloud only through the existing privacy masker.
+    const minaMemoryPrivacyQA = await page.evaluate(() => {
+      const oldHistory = appData.minaConversationHistory;
+      const oldProfiles = appData.clientProfiles;
+      try {
+        appData.clientProfiles = {
+          'qa-memory-private': { name: 'سارا نمونه', aliases: ['مامان سارا'], records: [], conversations: [] }
+        };
+        appData.minaConversationHistory = [
+          { role: 'user', text: 'برای سارا نمونه شماره 09123456789 را در نظر بگیر', timestamp: Date.now() }
+        ];
+        const context = minaBuildRecentConversationContext(5200);
+        const safe = minaBuildCloudSafeCommand(context).message;
+        return {
+          nameMasked: !safe.includes('سارا نمونه'),
+          phoneMasked: !safe.includes('09123456789'),
+          contextRetained: safe.includes('برای') && safe.includes('[CLIENT_1]')
+        };
+      } finally {
+        appData.minaConversationHistory = oldHistory;
+        appData.clientProfiles = oldProfiles;
+      }
+    });
+    assert(Object.values(minaMemoryPrivacyQA).every(Boolean),
+      'Persistent conversation context must preserve intent while masking customer names and phone numbers before cloud transmission: ' + JSON.stringify(minaMemoryPrivacyQA));
+    console.log('Mina memory privacy:', JSON.stringify(minaMemoryPrivacyQA));
+
     const minaDateTimeQA = await page.evaluate(() => {
       const clock = minaTryAnswerDateTimeQuestion('الان ساعت چنده؟');
       const weekday = minaTryAnswerDateTimeQuestion('امروز چند شنبه است؟');
