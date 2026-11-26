@@ -671,11 +671,27 @@ public class MainActivity extends Activity {
                 if (releaseStamp.equals(savedStamp)) {
                     if (manual) {
                         long installed = getInstalledVersionCode();
-                        long pendingVersion = readyApk.exists() ? prefs.getLong("pending_apk_version", installed) : installed;
-                        boolean pendingExists = readyApk.exists();
+                        long pendingVersion = -1L;
+                        if (readyApk.isFile()) {
+                            android.content.pm.PackageInfo pendingInfo =
+                                    getPackageManager().getPackageArchiveInfo(readyApk.getAbsolutePath(), 0);
+                            if (pendingInfo != null && EXPECTED_PACKAGE.equals(pendingInfo.packageName)) {
+                                long archiveVersion = Build.VERSION.SDK_INT >= 28
+                                        ? pendingInfo.getLongVersionCode() : pendingInfo.versionCode;
+                                if (archiveVersion > installed) pendingVersion = archiveVersion;
+                            }
+                        }
+                        boolean pendingExists = pendingVersion > installed;
+                        if (pendingExists) {
+                            prefs.edit().putLong("pending_apk_version", pendingVersion).apply();
+                        } else {
+                            if (readyApk.exists()) readyApk.delete();
+                            prefs.edit().remove("pending_apk_version").apply();
+                        }
+                        final long reportedVersion = pendingExists ? pendingVersion : installed;
                         runOnUiThread(() -> {
-                            notifyWebUpdateCheckResult(pendingExists ? "available" : "latest", installed, pendingVersion);
-                            if (pendingExists) promptApkInstall(readyApk, pendingVersion);
+                            notifyWebUpdateCheckResult(pendingExists ? "available" : "latest", installed, reportedVersion);
+                            if (pendingExists) promptApkInstall(readyApk, reportedVersion);
                         });
                     }
                     return;
@@ -836,13 +852,22 @@ public class MainActivity extends Activity {
     private void promptPendingApkUpdateIfNeeded() {
         try {
             File pending = new File(new File(getExternalFilesDir(null), "updates"), "Dastyare-man-update.apk");
-            if (!pending.exists()) return;
-            android.content.SharedPreferences prefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
-            long candidate = prefs.getLong("pending_apk_version", 0L);
-            if (candidate > getInstalledVersionCode()) promptApkInstall(pending, candidate);
-            else {
+            if (!pending.isFile()) return;
+            android.content.pm.PackageInfo archive =
+                    getPackageManager().getPackageArchiveInfo(pending.getAbsolutePath(), 0);
+            long installed = getInstalledVersionCode();
+            if (archive == null || !EXPECTED_PACKAGE.equals(archive.packageName)) {
                 pending.delete();
-                prefs.edit().remove("pending_apk_version").apply();
+                getSharedPreferences("apk_updates", MODE_PRIVATE).edit().remove("pending_apk_version").apply();
+                return;
+            }
+            long candidate = Build.VERSION.SDK_INT >= 28 ? archive.getLongVersionCode() : archive.versionCode;
+            if (candidate > installed) {
+                getSharedPreferences("apk_updates", MODE_PRIVATE).edit().putLong("pending_apk_version", candidate).apply();
+                promptApkInstall(pending, candidate);
+            } else {
+                pending.delete();
+                getSharedPreferences("apk_updates", MODE_PRIVATE).edit().remove("pending_apk_version").apply();
             }
         } catch (Exception ignored) { }
     }
