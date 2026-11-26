@@ -1069,6 +1069,53 @@ console.log('Android alarm integration contract: PASS');
       'A cloud-approved customer-section booking must be saved under the exact Persian customer name and linked profile');
 
     
+    const minaColloquialThirteenDayBookingQA = await page.evaluate(async () => {
+      const previousAppointments = appData.appointments;
+      const previousProfiles = appData.clientProfiles;
+      const previousPendingBooking = minaPendingBooking;
+      const previousConversationBooking = minaConversationBooking;
+      const previousLastAppointment = minaLastReferencedAppointmentId;
+      const originalFetch = window.fetch;
+      let cloudCalls = 0;
+      try {
+        appData.appointments = [];
+        appData.clientProfiles = {};
+        minaPendingBooking = null;
+        minaConversationBooking = null;
+        minaLastReferencedAppointmentId = null;
+        window.fetch = async () => {
+          cloudCalls++;
+          throw new Error('Cloud should not be needed for this fully specified customer-list booking');
+        };
+        const input = document.getElementById('minaInput');
+        input.value = 'سلام برای ۱۳ روز دیگه تو قسمت مشتریان به اسم مینا یه نوبت بده';
+        await sendMinaMessageCore();
+        const appointment = appData.appointments.find(item => item && item.clientName === 'مینا');
+        const profile = Object.values(appData.clientProfiles || {}).find(item => item && item.name === 'مینا');
+        const transcript = document.getElementById('minaChatMessages')?.innerText || '';
+        return {
+          noCloudDependency: cloudCalls === 0,
+          exactlyOneAppointment: appData.appointments.length === 1,
+          exactCustomerName: !!appointment && appointment.clientName === 'مینا',
+          customerOnlyRecord: !!appointment && appointment.customerOnly === true,
+          correctThirteenDayDate: !!appointment && appointment.dateKey === addDaysToJalaliKey(getTodayKey(), 13),
+          linkedCustomerProfile: !!appointment && !!profile && appointment.clientId === profile.clientId,
+          successOnlyAfterSave: !!appointment && /نوبتت ثبت شد/u.test(transcript)
+        };
+      } finally {
+        window.fetch = originalFetch;
+        appData.appointments = previousAppointments;
+        appData.clientProfiles = previousProfiles;
+        minaPendingBooking = previousPendingBooking;
+        minaConversationBooking = previousConversationBooking;
+        minaLastReferencedAppointmentId = previousLastAppointment;
+        saveData();
+      }
+    });
+    console.log('Mina colloquial 13-day customer booking:', JSON.stringify(minaColloquialThirteenDayBookingQA));
+    assert(Object.values(minaColloquialThirteenDayBookingQA).every(Boolean),
+      'Mina must save «۱۳ روز دیگه ... یه نوبت بده» in the customer section without cloud dependency');
+
     const minaFalseCloudSuccessQA = await page.evaluate(async () => {
       const previousAppointments = appData.appointments;
       const previousProfiles = appData.clientProfiles;
