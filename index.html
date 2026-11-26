@@ -2726,7 +2726,7 @@
         if (dateKey === todayKey) cell.classList.add('today');
         if (dateKey === selectedDateKey) cell.classList.add('selected');
 
-        const dayAppts = appData.appointments.filter(a => a.dateKey === dateKey && a.status !== 'canceled');
+        const dayAppts = appData.appointments.filter(a => a.dateKey === dateKey && a.status !== 'canceled' && a.customerOnly !== true);
         const hReason = getOfficialHolidayReason(dateKey);
         if (hReason) {
           cell.classList.add('holiday-day');
@@ -2782,7 +2782,7 @@
         var bm = bt ? Number(bt[1])*60+Number(bt[2]) : 9999;
         return am-bm || String(a.clientName||'').localeCompare(String(b.clientName||''),'fa');
       };
-      var list = appData.appointments.filter(function(a){return a.dateKey === selectedDateKey;}).sort(compareAppointmentTime);
+      var list = appData.appointments.filter(function(a){return a.dateKey === selectedDateKey && a.customerOnly !== true;}).sort(compareAppointmentTime);
       var summary = document.getElementById('selectedDaySummary');
       if (summary) summary.textContent = toPersianDigits(list.filter(function(a){return a.status !== 'canceled';}).length) + ' نوبت ثبت‌شده';
       if (!list.length) {
@@ -3169,6 +3169,7 @@
 
     function syncAutomaticRepairReminder(appointment) {
       if (!appointment || !appointment.id) return;
+      if (appointment.customerOnly === true || !String(appointment.time || '').trim()) { cancelAutomaticRepairReminder(appointment.id); return; }
       if (!Array.isArray(appData.reminders)) appData.reminders = [];
       const id = 'repair_' + String(appointment.id);
       const old = appData.reminders.find(r => r && r.id === id);
@@ -5348,8 +5349,8 @@
     function updateDashboardStats() {
       const todayKey = getTodayKey();
       const todayMonthPrefix = todayKey.slice(0,7) + '-';
-      const todayCount = appData.appointments.filter(a => a.dateKey === todayKey && a.status !== 'canceled').length;
-      const monthCount = appData.appointments.filter(a => String(a.dateKey||'').startsWith(todayMonthPrefix) && a.status !== 'canceled').length;
+      const todayCount = appData.appointments.filter(a => a.dateKey === todayKey && a.status !== 'canceled' && a.customerOnly !== true).length;
+      const monthCount = appData.appointments.filter(a => String(a.dateKey||'').startsWith(todayMonthPrefix) && a.status !== 'canceled' && a.customerOnly !== true).length;
       document.getElementById('statTodayCount').textContent = toPersianDigits(todayCount);
       document.getElementById('statMonthCount').textContent = toPersianDigits(monthCount);
       if (typeof renderSmartDashboard === 'function') renderSmartDashboard();
@@ -5756,7 +5757,7 @@
     }
     function minaTodayAppointments() {
       const key = getTodayKey();
-      return (appData.appointments || []).filter(a => a.dateKey === key && a.status !== 'canceled')
+      return (appData.appointments || []).filter(a => a.dateKey === key && a.status !== 'canceled' && a.customerOnly !== true)
         .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
     }
     let minaPendingBooking = null;
@@ -6092,7 +6093,7 @@
           }
           dateKey = addDaysToJalaliKey(dateKey, delta);
         }
-        if (!clock && dateKey >= todayKey) return 'حتماً عزیزم 💗 ساعت رو هم بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر». ';
+        if (!clock && dateKey >= todayKey && !customerOnly && !/(?:بدون\s*(?:ساعت|زمان)|ساعت\s*(?:ندارد|مشخص\s*نیست)|بی\s*ساعت)/u.test(t)) return 'حتماً عزیزم 💗 ساعت رو هم بگو؛ مثلاً «۱۳:۴۳» یا «یک ربع به ۳ ظهر». ';
         const servicePattern = /(کوتاهی\s*مو|اصلاح\s*مو|رنگ\s*مو|مش\s*مو|بالیاژ|آمبره|سامبره|هایلایت|دکلره|کراتین(?:\s*مو)?|بوتاکس\s*مو|پروتئین\s*تراپی|احیا(?:ی\s*مو)?|شینیون|براشینگ|سشوار|بافت\s*مو|اکستنشن\s*مو|فر\s*مو|صافی\s*مو|کاشت\s*مژه|کاشت\s*ابرو|لیفت\s*مژه|لیفت\s*ابرو|اکستنشن(?:\s*مژه)?|لمینت\s*مژه|لمینت\s*ابرو|لیفت\s*و\s*لمینت|اصلاح\s*ابرو|قرینه\s*سازی\s*ابرو|فیبروز|میکروبلیدینگ|میکروپیگمنتیشن|تاتو|پاک\s*کردن\s*تاتو|کاشت\s*ناخن|ترمیم\s*ناخن|ژلیش|لمینت\s*ناخن|مانیکور|پدیکور|طراحی\s*ناخن|پاراافین\s*تراپی|فیشیال|پاکسازی\s*(?:صورت|پوست)|میکرودرم|میکرونیدلینگ|ماساژ|اپیلاسیون|وکس|اصلاح\s*صورت|میکاپ|آرایش\s*عروس|گریم|کلاسیک|والیوم|مگا\s*والیوم|ترمیم)/;
         const serviceMatch = t.match(servicePattern);
         let service = serviceMatch ? serviceMatch[1].trim() : '';
@@ -6131,9 +6132,10 @@
         if (service && clientName === service) clientName = '';
         const phoneMatch = q.match(/09\d{9}/);
           const time = clock ? pad2(hour) + ':' + pad2(minute) : '';
+        const customerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(t);
         if (!service) service = '';
         const duplicate = (appData.appointments || []).some(a =>
-          a.dateKey === dateKey && a.time === time && a.status !== 'canceled' &&
+          a.dateKey === dateKey && a.time === time && Boolean(a.customerOnly) === customerOnly && a.status !== 'canceled' &&
           (clientName ? String(a.clientName || '').trim() === clientName :
             (a.clientNameMissing === true || !String(a.clientName || '').trim() || a.clientName === '—' ||
              a.clientName === 'نام درج نشده' || a.clientName === '⚠️ نام درج نشده (قابل تکمیل)')) &&
@@ -6146,11 +6148,11 @@
         const conflict = appointmentStatus !== 'done' && hasAppointmentSlotConflict(dateKey, time, null);
         if (conflict) return 'این ساعت قبلاً رزرو شده عزیزم؛ برای اینکه دو مشتری هم‌زمان ثبت نشن، لطفاً ساعت دیگری انتخاب کن 💗';
         const appointment = {
-          id: 'appt_mina_' + Date.now(), createdBy: 'mina', source: 'mina', dateKey, time,
+          id: 'appt_mina_' + Date.now(), createdBy: 'mina', source: 'mina', dateKey, time, customerOnly,
           clientName: clientName || '⚠️ نام درج نشده (قابل تکمیل)', clientNameMissing: !clientName,
           phone: phoneMatch ? phoneMatch[0] : '', service,
           notes: '',
-          alarm: appointmentStatus === 'done' ? 'none' : '15', status: appointmentStatus, notified: false
+          alarm: (appointmentStatus === 'done' || !time || customerOnly) ? 'none' : '15', status: appointmentStatus, notified: false
         };
         const appointmentProfileKey = ensureClientProfileForAppointment(appointment);
         appData.appointments.push(appointment);
@@ -6804,11 +6806,14 @@
             'برای تنظیم یادآوری شخصی، لطفاً تاریخ و ساعت دقیق را بگو عزیزم.';
           personalReminderHandled = true;
         } else if (cloudResult && cloudResult.type === 'action' && cloudResult.command) {
-          routedCommand = cloudResult.command;
+          const explicitCustomerOnly = /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(message);
+          const explicitCalendar = /(?:توی|تو|در|داخل)?\s*تقویم/u.test(message);
+          routedCommand = cloudResult.command + (explicitCustomerOnly ? ' فقط در قسمت مشتریان' : explicitCalendar ? ' در تقویم' : '');
         } else if (cloudResult && cloudResult.type === 'reply' && cloudResult.reply) {
           // A cloud clarification/rejection for an operation must never fall through to a local mutation.
-          if (minaIsClearlyLocalAction(message)) cloudOperationBlocked = true;
-          reply = cloudResult.reply;
+          const explicitCustomerOnlyBooking = /(?:نوبت|رزرو|وقت)/u.test(message) && /(?:قسمت|بخش)\s*مشتریان|پرونده\s+مشتری/u.test(message) && /(?:ثبت|بذار|بزار|اضافه|ذخیره|انجام)/u.test(message);
+          if (minaIsClearlyLocalAction(message) && !explicitCustomerOnlyBooking) cloudOperationBlocked = true;
+          if (explicitCustomerOnlyBooking) { cloudOperationBlocked = false; reply = ''; } else reply = cloudResult.reply;
         }
       }
 
@@ -6825,7 +6830,9 @@
           /(?:ثبت|بذار|بزار|بگیر|رزرو|اضافه|ذخیره|انجام\\s*بده|بده|اختصاص\\s*بده|هماهنگ\\s*کن)/u.test(bookingText) &&
           /(?:امروز|فردا|پس\\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|در تاریخ|تاریخ|فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) &&
           (/(?:\\d{1,2}\\s*[:٫.]\\s*\\d{1,2}|\\d{1,2}\\s+و\\s+\\d{1,2}\\s*دقیقه|صبح|ظهر|بعدازظهر|عصر|شب)/u.test(bookingText) ||
-           /\\d{1,2}\\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText));
+           /\\d{1,2}\\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)/u.test(bookingText) ||
+           /(?:بدون\\s*(?:ساعت|زمان)|ساعت\\s*(?:ندارد|مشخص\\s*نیست)|بی\\s*ساعت)/u.test(bookingText) ||
+           /(?:قسمت|بخش)\\s*مشتریان|پرونده\\s+مشتری/u.test(bookingText));
         const directBookingAction = appointmentMutationAction || (bookingAction ? minaBuildReply(message) : null);
         const localActionResult = personalReminderAction || customerMutationAction || customerCreateAction || appointmentMutationAction || directBookingAction;
         if (localActionResult) reply = localActionResult;
@@ -8525,7 +8532,7 @@
   const root=document.getElementById('appointmentHubList');if(!root||typeof appData==='undefined')return;
   const q=(document.getElementById('appointmentHubSearch')?.value||'').trim().toLocaleLowerCase('fa');
   const filter=document.getElementById('appointmentHubFilter')?.value||'upcoming',today=typeof getTodayKey==='function'?getTodayKey():'';
-  const all=(appData.appointments||[]).filter(a=>a&&a.status!=='deleted');
+  const all=(appData.appointments||[]).filter(a=>a&&a.status!=='deleted'&&a.customerOnly!==true);
   const typed=all.filter(a=>(typeof isFollowupAppointment==='function'&&isFollowupAppointment(a))===(appointmentHubType==='followup'));
   const active=typed.filter(a=>a.status!=='canceled'&&a.status!=='done');
   const todayCount=active.filter(a=>a.dateKey===today).length;
