@@ -7435,7 +7435,7 @@
     function minaAnswerCustomerHistory(raw) {
       const t=minaCleanText(minaNormalizePersianTypos(minaNormalizeDigits(String(raw||''))))
         .replace(/[يى]/g,'ی').toLocaleLowerCase('fa');
-      const asksHistory=/(?:آخرین\s*بار|آخرین\s*مراجعه|کی\s*اومد|کی\s*آمد|چند\s*روز.*(?:گذشته|شده)|چقدر.*(?:گذشته|شده)|موعد\s*ترمیم|ترمیمش\s*کی|کی.*ترمیم)/u.test(t);
+      const asksHistory=/(?:(?:آخرین|اخرین)\s*بار|(?:آخرین|اخرین)\s*مراجعه|کی\s*اومد|کی\s*آمد|چند\s*روز.*(?:گذشته|شده)|چقدر.*(?:گذشته|شده)|موعد\s*ترمیم|ترمیمش\s*کی|کی.*ترمیم)/u.test(t);
       if(!asksHistory) return null;
       const profiles=appData.clientProfiles||{};
       const candidates=[];
