@@ -6562,25 +6562,29 @@
       if (!navigator.onLine) return null;
       const safe = minaBuildCloudSafeCommand(message);
       try {
-        const controller = new AbortController();
-        // Cloud routing plus independent review can take longer than a single model call.
-        // Keep a bounded wait, but never switch to local NLP while the device is online.
-        const timeout = setTimeout(() => controller.abort(), 60000);
-        let response;
-        let data;
-        try {
-          response = await fetch(MINA_SMART_BRAIN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...(mode !== 'reply' ? { mode } : {}), ...(mode === 'route' ? { enableReview: true } : {}), message: safe.message }),
-            signal: controller.signal,
-            cache: 'no-store'
-          });
-          data = await response.json().catch(() => ({}));
-        } finally {
-          clearTimeout(timeout);
+        let response = null;
+        let data = {};
+        // Routing is read-only: retry one transient 5xx response before giving up.
+        // Never fall back to online local NLP; only the cloud may interpret online requests.
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 60000);
+          try {
+            response = await fetch(MINA_SMART_BRAIN_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...(mode !== 'reply' ? { mode } : {}), ...(mode === 'route' ? { enableReview: true } : {}), message: safe.message }),
+              signal: controller.signal,
+              cache: 'no-store'
+            });
+            data = await response.json().catch(() => ({}));
+          } finally {
+            clearTimeout(timeout);
+          }
+          if (response.status < 500 || attempt === 1) break;
+          await new Promise(resolve => setTimeout(resolve, 700));
         }
-        if (response.status === 429 || data?.code === 'AI_QUOTA_EXHAUSTED') {
+        if (response?.status === 429 || data?.code === 'AI_QUOTA_EXHAUSTED') {
           try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 30 * 60 * 1000)); } catch (error) {}
           return null;
         }
@@ -6591,12 +6595,7 @@
             reply: safe.restore(String(data.error || 'بازبینی مستقل انجام نشد؛ برای جلوگیری از اشتباه، درخواست اجرا نشد.'))
           };
         }
-        if (!response.ok || !data?.success) {
-          if (response.status >= 500) {
-            try { localStorage.setItem('mina_cloud_quota_retry_at', String(Date.now() + 2 * 60 * 1000)); } catch (error) {}
-          }
-          return null;
-        }
+        if (!response?.ok || !data?.success) return null;
         if (mode === 'understand') {
           return typeof data.command === 'string' && data.command.trim()
             ? safe.restore(data.command.trim())
