@@ -6067,7 +6067,7 @@
         const relativeHours = t.match(new RegExp('(' + relativeNumber + ')\\s*ساعت(?:\\s*' + directionPattern + ')?', 'u'));
         const relativeMinutes = t.match(new RegExp('(' + relativeNumber + ')\\s*دقیقه(?:\\s*' + directionPattern + ')?', 'u'));
         const relativeValue = m => /^\\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
-        const globalDirectionMatch = t.match(/(?:^|\\s)(پیش|قبل|گذشته|بعد(?!ازظهر|\\s*از\\s*ظهر)|دیگه|دیگر)(?=\\s|$)/u);
+        const globalDirectionMatch = t.match(/(?:^|\s)(پیش|قبل|گذشته|بعد(?!ازظهر|\s*از\s*ظهر)|دیگه|دیگر)(?=\s|$)/u);
         const globalDirection = globalDirectionMatch ? globalDirectionMatch[1] : '';
         const directionSign = cue => /^(?:پیش|قبل|گذشته)$/.test(cue || globalDirection) ? -1 : 1;
         // A bare minute component in a fixed clock (18:45) is not a relative offset.
