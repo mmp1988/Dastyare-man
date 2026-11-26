@@ -8943,7 +8943,8 @@
         clientName:identity.name, phone:identity.phone, service:String(a.service||'خدمت ثبت‌نشده'),
         dateKey:String(a.dateKey||''), time:String(a.time||''), notes:String(a.notes||''),
         appointmentType:a.appointmentType || (typeof isFollowupAppointment==='function'&&isFollowupAppointment(a)?'followup':'primary'),
-        status, createdAt:item?.createdAt || a.createdAt || a.updatedAt || now, updatedAt:now,
+        status, lastAppointmentStatus:forcedStatus==='deleted' ? (a.status==='done'?'done':a.status==='canceled'?'canceled':'pending') : status,
+        createdAt:item?.createdAt || a.createdAt || a.updatedAt || now, updatedAt:now,
         deletedFromSchedule:forcedStatus==='deleted' || !!item?.deletedFromSchedule
       };
       if(item) Object.assign(item,snapshot); else appData.customerHistory.unshift(snapshot);
@@ -8991,7 +8992,8 @@
       root.innerHTML=Array.from(groups.entries()).map(([g,items])=>
         (period==='all'?'':'<div style="font-weight:900;color:var(--accent);padding:6px 2px;">'+escapeClientText(label(g))+'</div>')+
         items.map(x=>{
-          const state=x.deletedFromSchedule?'حذف‌شده از نوبت‌ها':x.status==='done'?'انجام‌شده':x.status==='canceled'?'لغوشده':'در انتظار';
+          const prior=x.lastAppointmentStatus==='done'?'انجام‌شده':x.lastAppointmentStatus==='canceled'?'لغوشده':'در انتظار';
+          const state=x.deletedFromSchedule?'حذف‌شده از نوبت‌ها • '+prior:x.status==='done'?'انجام‌شده':x.status==='canceled'?'لغوشده':'در انتظار';
           const date=x.dateKey&&typeof formatJalaliFull==='function'?formatJalaliFull(x.dateKey):'تاریخ ثبت نشده';
           return '<article style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:12px;padding:10px;">'+
             '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><div style="min-width:0;"><strong>'+escapeClientText(x.clientName||'مشتری بدون نام')+'</strong><div style="font-size:.77rem;color:var(--accent);margin-top:3px;">'+escapeClientText(x.service||'خدمت ثبت‌نشده')+'</div></div>'+
