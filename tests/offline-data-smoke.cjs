@@ -1108,17 +1108,19 @@ const minaAppointmentMutationFlow = await page.evaluate(async () => {
       minaLastReferencedAppointmentId = null;
       const originalFetch = window.fetch;
       let cloudCalls = 0;
-      window.fetch = async (...args) => { cloudCalls++; return originalFetch(...args); };
+      const cloudResponses = [];
+      window.fetch = async (...args) => { cloudCalls++; const response = await originalFetch(...args); try { cloudResponses.push(await response.clone().json()); } catch (error) { cloudResponses.push({ parseError: String(error) }); } return response; };
       const input = document.getElementById('minaInput');
       input.value = 'نوبت مینا موسوی مطلق رو ساعت ۱۹:۰۰ کن';
       try { await sendMinaMessageCore(); } finally { window.fetch = originalFetch; }
       const edited = appData.appointments.find(a => a.id === 'qa-local-mutation');
       const editSucceeded = !!edited && edited.time === '19:00';
-      window.fetch = async (...args) => { cloudCalls++; return originalFetch(...args); };
+      window.fetch = async (...args) => { cloudCalls++; const response = await originalFetch(...args); try { cloudResponses.push(await response.clone().json()); } catch (error) { cloudResponses.push({ parseError: String(error) }); } return response; };
       input.value = 'نوبت مینا موسوی مطلق رو حذف کن';
       try { await sendMinaMessageCore(); } finally { window.fetch = originalFetch; }
       return {
         cloudCalls,
+        cloudResponses,
         editSucceeded,
         deleteSucceeded: !appData.appointments.some(a => a.id === 'qa-local-mutation'),
         transcript: document.getElementById('minaChatMessages')?.innerText || ''
