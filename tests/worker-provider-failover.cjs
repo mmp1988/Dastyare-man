@@ -14,6 +14,51 @@ const post = async (worker, env, body) => {
 };
 
 (async () => {
+  // Gemini is the primary AI brain and receives the Persian system/user prompt.
+  {
+    const worker = await loadWorker("gemini-primary");
+    let cloudflareCalls = 0;
+    global.fetch = async (url, options) => {
+      assert.match(url, /models\/gemini-3\.5-flash-lite:generateContent$/);
+      assert.equal(options.headers["x-goog-api-key"], "gemini-test-key");
+      const payload = JSON.parse(options.body);
+      assert.ok(payload.systemInstruction?.parts?.[0]?.text);
+      assert.equal(payload.contents[0].parts[0].text, "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن");
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: JSON.stringify({ command: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" }) }] } }]
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    };
+    const env = {
+      GEMINI_API_KEY: "gemini-test-key",
+      AI: { async run() { cloudflareCalls++; throw new Error("Cloudflare should not be called"); } }
+    };
+    const result = await post(worker, env, { mode: "understand", message: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" });
+    assert.equal(result.status, 200);
+    assert.equal(result.data.success, true);
+    assert.equal(cloudflareCalls, 0);
+  }
+
+  // A temporary Gemini outage should fall through to the existing Cloudflare backup.
+  {
+    const worker = await loadWorker("gemini-fallback");
+    let cloudflareCalls = 0;
+    global.fetch = async () => new Response(JSON.stringify({ error: { message: "temporary service unavailable" } }), { status: 503 });
+    const env = {
+      GEMINI_API_KEY: "gemini-test-key",
+      AI: {
+        async run(model) {
+          cloudflareCalls++;
+          assert.equal(model, "@cf/zai-org/glm-4.7-flash");
+          return { response: JSON.stringify({ command: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" }) };
+        }
+      }
+    };
+    const result = await post(worker, env, { mode: "understand", message: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" });
+    assert.equal(result.status, 200);
+    assert.equal(result.data.success, true);
+    assert.equal(cloudflareCalls, 1);
+  }
+
   // Capacity error on the low-cost Cloudflare primary should fall through to Gemma.
   {
     const worker = await loadWorker("capacity-fallback");
