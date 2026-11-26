@@ -6891,7 +6891,7 @@
         /(?:ثبت|ذخیره|اضافه|بذار|بزار|بده|اختصاص\s*بده)/u.test(minaNormalizePersianTypos(message)) &&
         /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*روز\s*(?:بعد|دیگه|دیگر)/u.test(minaNormalizePersianTypos(minaNormalizeDigits(message))) &&
         /(?:به\s*)?(?:اسم|نام)\s+[آ-یءئؤإأ‌\-]{2,40}/u.test(minaNormalizePersianTypos(message));
-      if (navigator.onLine && !reply && directCustomerOnlyBooking) {
+      if (!navigator.onLine && !reply && directCustomerOnlyBooking) {
         const beforeIds = new Set((appData.appointments || []).map(item => item && item.id));
         const normalizedDirect = minaNormalizePersianTypos(minaNormalizeDigits(message));
         const relativeDayMatch = normalizedDirect.match(/(\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*روز\s*(?:بعد|دیگه|دیگر)/u);
@@ -6993,7 +6993,7 @@
       if (routedCommand) {
         reply = minaBuildReply(routedCommand);
       } else if (navigator.onLine && !reply && !cloudOperationBlocked) {
-        reply = 'ارتباط با هسته هوشمند برقرار نشد؛ هیچ تغییری در اطلاعات انجام ندادم. لطفاً اتصال اینترنت را بررسی کن و دوباره بفرست.';
+        reply = 'هسته هوشمند پاسخ قابل‌اجرایی برای این درخواست برنگرداند؛ هیچ نوبت یا تغییری ذخیره نشده است. لطفاً کمی بعد دوباره تلاش کن.';
       } else if ((!navigator.onLine || cloudRoutingUnavailable) && !reply) {
         if (dateTimeFact) {
           reply = dateTimeFact;
