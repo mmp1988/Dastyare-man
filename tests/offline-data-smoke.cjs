@@ -4,6 +4,21 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
+// Static Android integration contract: notifications must be permitted, alarm
+// receivers must survive process death/reboot, and pending alarms must be re-armed.
+const androidManifest = fs.readFileSync(path.join(__dirname, '../app/src/main/AndroidManifest.xml'), 'utf8');
+const androidMainActivity = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/MainActivity.java'), 'utf8');
+const androidReminderReceiver = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/PersonalReminderReceiver.java'), 'utf8');
+assert.match(androidManifest, /android\.permission\.POST_NOTIFICATIONS/, 'Android notification permission must be declared');
+assert.match(androidManifest, /android\.permission\.SCHEDULE_EXACT_ALARM/, 'Android exact alarm permission must be declared');
+assert.match(androidManifest, /android\.permission\.RECEIVE_BOOT_COMPLETED/, 'Android reboot receiver permission must be declared');
+assert.match(androidManifest, /\.PersonalReminderReceiver[\s\S]*?BOOT_COMPLETED/, 'Personal reminder receiver must subscribe to BOOT_COMPLETED');
+assert.match(androidReminderReceiver, /ACTION_BOOT_COMPLETED[\s\S]*?scheduleSystemAlarm/, 'Pending alarms must be restored after device reboot');
+assert.match(androidReminderReceiver, /setExactAndAllowWhileIdle/, 'Exact alarms must be scheduled when Android permits them');
+assert.match(androidReminderReceiver, /setAndAllowWhileIdle/, 'An inexact fallback must be scheduled when exact alarms are denied');
+assert.match(androidMainActivity, /onResume\(\)[\s\S]*?PersonalReminderReceiver\.rescheduleAll\(this\)/, 'Returning to the app must re-arm pending alarms');
+console.log('Android alarm integration contract: PASS');
+
 (async () => {
   const server = spawn('python3', ['-m', 'http.server', '4173', '--bind', '127.0.0.1'], { stdio: 'ignore' });
   let browser;
