@@ -15,7 +15,7 @@ const categories = new Map();
 for (const item of benchmark.cases) {
   assert.ok(item.id && !ids.has(item.id), 'Every case needs a unique id');
   ids.add(item.id);
-  assert.ok(Array.isArray(item.conversation) && item.conversation.length > 0, item.id + ': conversation is missing');
+  assert.ok(Array.isArray(item.conversation) && item.conversation.length >= 3, item.id + ': each case must be a multi-turn conversation');
   assert.ok(item.conversation.every(turn => ['user','assistant'].includes(turn.role) && typeof turn.text === 'string' && turn.text.trim()), item.id + ': invalid conversation turn');
   assert.ok(item.expected && item.expected.goal && item.expected.operation, item.id + ': expected outcome is incomplete');
   assert.equal(item.isolation?.synthetic_data_only, true, item.id + ': test data must be synthetic');
