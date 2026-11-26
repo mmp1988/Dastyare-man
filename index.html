@@ -6010,7 +6010,8 @@
           clock = [relative[0], String(Math.floor(total / 60)), String(total % 60), relative[4] || ''];
           relativeTime = true;
         }
-        const sharedClock = minaParseReminderClock(t);
+        const hasRelativeClockOffset = /(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد|یکصد|دویست|سیصد|چهارصد|پانصد|ششصد|هفتصد|هشتصد|نهصد)\s*(?:ساعت|دقیقه)\s*(?:پیش|قبل|گذشته|بعد|دیگه|دیگر)/u.test(t);
+        const sharedClock = hasRelativeClockOffset ? null : minaParseReminderClock(t);
         if (sharedClock) {
           const parts = sharedClock.split(':');
           clock = [sharedClock, parts[0], parts[1], ''];
