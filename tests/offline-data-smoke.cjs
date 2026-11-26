@@ -1169,7 +1169,7 @@ console.log('Android alarm integration contract: PASS');
           route: { type: 'reply', reply: 'بله، نوبت مینا را ثبت کردم و ذخیره شد.' }
         }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         const input = document.getElementById('minaInput');
-        input.value = 'برای ۶ روز دیگه به اسم مینا یه نوبت تو قسمت مشتریان ثبت کن';
+        input.value = 'برای ۶ روز دیگه به اسم مینا یه نوبت ثبت کن';
         await sendMinaMessageCore();
         const transcript = document.getElementById('minaChatMessages')?.innerText || '';
         return {
