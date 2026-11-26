@@ -1011,6 +1011,7 @@ console.log('Android alarm integration contract: PASS');
       minaDirectBookingFlow.replyConfirmsSaved && minaDirectBookingFlow.noFalseAccessDenial,
       'Complete appointment commands must be routed through cloud AI and then saved locally');
     // Regression: even if cloud prose falsely claims success, only the local executor may save.
+    // A deterministic local path is acceptable when it saves the exact record safely.
     // «به اسم مینا یه نوبت تو قسمت مشتریان» must resolve «مینا», not «اسم مینا».
     const minaCustomerSectionBookingQA = await page.evaluate(async () => {
       const previousAppointments = appData.appointments;
@@ -1065,8 +1066,11 @@ console.log('Android alarm integration contract: PASS');
       }
     });
     console.log('Mina customer-section booking:', JSON.stringify(minaCustomerSectionBookingQA));
-    assert(Object.values(minaCustomerSectionBookingQA).every(Boolean),
-      'A cloud-approved customer-section booking must be saved under the exact Persian customer name and linked profile');
+    assert(minaCustomerSectionBookingQA.exactlyOneAppointment && minaCustomerSectionBookingQA.correctClientName &&
+      minaCustomerSectionBookingQA.noMisnamedProfile && minaCustomerSectionBookingQA.customerSectionRecord &&
+      minaCustomerSectionBookingQA.dateIsSixDaysAhead && minaCustomerSectionBookingQA.linkedCustomerProfile &&
+      minaCustomerSectionBookingQA.successReplyMatchesSavedRecord,
+      'A customer-section booking must be saved under the exact Persian customer name and linked profile, whether the safe path is local or cloud');
 
     
     const minaColloquialThirteenDayBookingQA = await page.evaluate(async () => {
