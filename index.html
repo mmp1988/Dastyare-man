@@ -3169,7 +3169,9 @@
 
     function syncAutomaticRepairReminder(appointment) {
       if (!appointment || !appointment.id) return;
-      if (appointment.customerOnly === true || !String(appointment.time || '').trim()) { cancelAutomaticRepairReminder(appointment.id); return; }
+      // Repair follow-up is date-based; an appointment may legitimately have no visit time.
+      // Customer-only profile records are not calendar visits and must never schedule a reminder.
+      if (appointment.customerOnly === true) { cancelAutomaticRepairReminder(appointment.id); return; }
       if (!Array.isArray(appData.reminders)) appData.reminders = [];
       const id = 'repair_' + String(appointment.id);
       const old = appData.reminders.find(r => r && r.id === id);
