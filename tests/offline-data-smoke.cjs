@@ -1821,7 +1821,30 @@ const minaAppointmentMutationFlow = await page.evaluate(async () => {
         await deleteClient(clientKey);
         const deletingClientPreservesArchive = appData.customerHistory.some(x => x.id==='appointment_'+clientAppointment.id && x.clientName==='مشتری حذف پرونده');
 
-        return { deletedAppointmentArchived, manualDeleteNotResurrected, clearAllButtonPresent, clearAllKeepsAppointments, clearAllStaysEmpty, clearCalendarPreservesArchive, deletingClientPreservesArchive };
+        const fullKey='09121110006';
+        const fullProfile=getClientProfile(fullKey);
+        fullProfile.name='مشتری تاریخچه کامل';
+        fullProfile.phone=fullKey;
+        fullProfile.notes='یادداشت کامل پرونده';
+        fullProfile.birthDate='1375-04-12';
+        fullProfile.aliases=['اسم مستعار آزمایشی'];
+        fullProfile.customFields=[{id:'cf1',label:'حساسیت',value:'چسب خاص'}];
+        fullProfile.photoRef='qa-profile-photo-ref';
+        fullProfile.records=[{id:'qa-work-full',dateKey:getTodayKey(),time:'14:35',service:'اکستنشن مژه',notes:'توضیح کار کامل',customValues:{w1:{label:'مدل',value:'گربه‌ای'}},photoRef:'qa-work-photo',beforePhotoRef:'qa-before-photo',afterPhotoRef:'qa-after-photo',createdAt:Date.now()}];
+        appData.reminders.push({id:'qa-reminder-full',clientId:fullProfile.clientId,clientKey:fullKey,message:'یادآوری آزمایشی'});
+        const fullAppointment={id:'qa-appt-full',dateKey:getTodayKey(),time:'15:45',clientName:fullProfile.name,phone:fullKey,clientId:fullProfile.clientId,service:'ترمیم والیوم',notes:'یادداشت نوبت',alarm:'30',status:'pending',appointmentType:'followup',parentAppointmentId:'qa-parent'};
+        appData.appointments.push(fullAppointment);
+        saveData();
+        const profileArchive=appData.customerHistory.find(x=>x.recordType==='profile'&&x.clientId===fullProfile.clientId);
+        const workArchive=appData.customerHistory.find(x=>x.id==='work_qa-work-full');
+        const fullAppointmentArchive=appData.customerHistory.find(x=>x.id==='appointment_qa-appt-full');
+        const fullProfileDetailsArchived=!!(profileArchive?.profileSnapshot?.notes==='یادداشت کامل پرونده'&&profileArchive?.profileSnapshot?.birthDate==='1375-04-12'&&profileArchive?.profileSnapshot?.customFields?.[0]?.value==='چسب خاص'&&profileArchive?.relatedReminders?.some(x=>x.message==='یادآوری آزمایشی'));
+        const workDetailsArchived=!!(workArchive?.workSnapshot?.customValues?.w1?.value==='گربه‌ای'&&workArchive?.workSnapshot?.beforePhotoRef==='qa-before-photo'&&workArchive?.workSnapshot?.afterPhotoRef==='qa-after-photo');
+        const appointmentDetailsArchived=!!(fullAppointmentArchive?.appointmentSnapshot?.alarm==='30'&&fullAppointmentArchive?.appointmentSnapshot?.parentAppointmentId==='qa-parent');
+        await deleteClient(fullKey);
+        const fullSnapshotSurvivesProfileDelete=appData.customerHistory.some(x=>x.id===profileArchive?.id&&x.profileSnapshot?.notes==='یادداشت کامل پرونده');
+
+        return { deletedAppointmentArchived, manualDeleteNotResurrected, clearAllButtonPresent, clearAllKeepsAppointments, clearAllStaysEmpty, clearCalendarPreservesArchive, deletingClientPreservesArchive, fullProfileDetailsArchived, workDetailsArchived, appointmentDetailsArchived, fullSnapshotSurvivesProfileDelete };
       } finally {
         appData = originalData;
         saveData();
@@ -1835,6 +1858,10 @@ const minaAppointmentMutationFlow = await page.evaluate(async () => {
     assert(historyIntegrityQA.clearAllButtonPresent && historyIntegrityQA.clearAllKeepsAppointments && historyIntegrityQA.clearAllStaysEmpty, 'Clear-all archive must be explicit and must not delete live appointments');
     assert(historyIntegrityQA.clearCalendarPreservesArchive, 'Clearing all calendar entries must preserve their archive records');
     assert(historyIntegrityQA.deletingClientPreservesArchive, 'Deleting a customer profile must preserve appointment archive records');
+    assert(historyIntegrityQA.fullProfileDetailsArchived, 'Full profile notes, birthday, custom fields and linked reminders must be archived');
+    assert(historyIntegrityQA.workDetailsArchived, 'Work records must preserve custom fields and before/after photo references');
+    assert(historyIntegrityQA.appointmentDetailsArchived, 'Appointments must preserve all additional fields in their archive snapshot');
+    assert(historyIntegrityQA.fullSnapshotSurvivesProfileDelete, 'Full customer profile snapshots must survive customer deletion');
     console.log('Permanent customer history integrity:', JSON.stringify(historyIntegrityQA));
 
 
