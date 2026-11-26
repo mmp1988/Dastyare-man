@@ -2527,33 +2527,74 @@
       }
     }
 
+    // Last known-good snapshot is used to roll back in-memory mutations if storage fails.
+    let lastVerifiedAppDataSnapshot = null;
+
     function saveData() {
       const serialized = JSON.stringify(appData);
-      // Browser storage is the primary store; Android's private backup is a second recovery layer.
-      try { localStorage.setItem(STORAGE_KEY, serialized); } catch (e) {}
-      // Appointment records get their own durable local backup so they survive app restarts/offline use.
-      try { localStorage.setItem('dastyare_man_appointments_v1', JSON.stringify(appData.appointments || [])); } catch (e) {}
-      // Keep birthday data independently recoverable, including explicit empty values as deletion tombstones.
+      const appointmentSnapshot = JSON.stringify(appData.appointments || []);
+      const birthdaySnapshot = {};
+      Object.entries(appData.clientProfiles || {}).forEach(([key, profile]) => {
+        if (!profile || typeof profile !== 'object') return;
+        birthdaySnapshot[key] = {
+          birthDate: String(profile.birthDate || ''),
+          birthdayAlertYear: profile.birthdayAlertYear || '',
+          clientId: profile.clientId || '',
+          name: profile.name || '',
+          phone: profile.phone || ''
+        };
+      });
+      const birthdaySerialized = JSON.stringify(birthdaySnapshot);
+      const keys = [STORAGE_KEY, 'dastyare_man_appointments_v1', 'dastyare_man_client_birthdays_v1'];
+      const previous = {};
       try {
-        const birthdaySnapshot = {};
-        Object.entries(appData.clientProfiles || {}).forEach(([key, profile]) => {
-          if (!profile || typeof profile !== 'object') return;
-          birthdaySnapshot[key] = {
-            birthDate: String(profile.birthDate || ''),
-            birthdayAlertYear: profile.birthdayAlertYear || '',
-            clientId: profile.clientId || '',
-            name: profile.name || '',
-            phone: profile.phone || ''
-          };
+        keys.forEach(key => { previous[key] = localStorage.getItem(key); });
+      } catch (readError) {
+        try { showToast('ذخیره اطلاعات انجام نشد؛ دسترسی به حافظه گوشی ممکن نیست. هیچ موفقیتی ثبت نشد. ⚠️'); } catch (ignored) {}
+        const error = new Error('MINA_PERSISTENCE_READ_FAILED');
+        error.code = 'MINA_PERSISTENCE_READ_FAILED';
+        throw error;
+      }
+
+      try {
+        // localStorage writes are synchronous. Read every critical key back before
+        // any caller is allowed to report that a customer or appointment was saved.
+        localStorage.setItem(STORAGE_KEY, serialized);
+        if (localStorage.getItem(STORAGE_KEY) !== serialized) throw new Error('Main data read-back mismatch');
+        localStorage.setItem('dastyare_man_appointments_v1', appointmentSnapshot);
+        if (localStorage.getItem('dastyare_man_appointments_v1') !== appointmentSnapshot) throw new Error('Appointment read-back mismatch');
+        localStorage.setItem('dastyare_man_client_birthdays_v1', birthdaySerialized);
+        if (localStorage.getItem('dastyare_man_client_birthdays_v1') !== birthdaySerialized) throw new Error('Birthday read-back mismatch');
+      } catch (writeError) {
+        // Best-effort storage rollback: do not leave a partially written set of snapshots.
+        keys.forEach(key => {
+          try {
+            if (previous[key] === null) localStorage.removeItem(key);
+            else localStorage.setItem(key, previous[key]);
+          } catch (ignored) {}
         });
-        localStorage.setItem('dastyare_man_client_birthdays_v1', JSON.stringify(birthdaySnapshot));
-      } catch (e) {}
+        if (lastVerifiedAppDataSnapshot) {
+          try { appData = JSON.parse(lastVerifiedAppDataSnapshot); } catch (ignored) {}
+        } else if (previous[STORAGE_KEY]) {
+          try { appData = JSON.parse(previous[STORAGE_KEY]); } catch (ignored) {}
+        }
+        try { showToast('ذخیره اطلاعات ناموفق بود؛ تغییر انجام‌نشده برگردانده شد. دوباره تلاش کن. ⚠️'); } catch (ignored) {}
+        const error = new Error('MINA_PERSISTENCE_FAILED');
+        error.code = 'MINA_PERSISTENCE_FAILED';
+        error.cause = writeError;
+        throw error;
+      }
+
+      lastVerifiedAppDataSnapshot = serialized;
+      // Native backup is an additional asynchronous recovery copy, not the success
+      // criterion. The verified WebView storage above is the primary local record.
       try {
         if (window.AndroidApp && typeof window.AndroidApp.backupData === 'function') {
           window.AndroidApp.backupData(serialized);
         }
       } catch (e) {}
       updateDashboardStats();
+      return true;
     }
 
     // Flush the latest local data whenever the app is backgrounded or closed.
