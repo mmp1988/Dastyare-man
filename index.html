@@ -6870,9 +6870,9 @@
       // Cloud-first interaction: every online message reaches the same semantic router.
       // The router receives recent turns and relevant customer facts; local code only executes
       // an action after the model explicitly classifies it as an action.
-      // Explicit first-person plans with reminder language are personal alarms,
-      // not salon appointments; execute them before cloud routing can misclassify them.
-      let reply = minaTrySetPersonalReminder(message);
+      // Online intent must be interpreted by the cloud model, including personal alarms.
+      // The local reminder executor is used only after cloud classification or in offline mode.
+      let reply = navigator.onLine ? '' : minaTrySetPersonalReminder(message);
       let personalReminderHandled = !!reply;
       let routedCommand = null;
       let cloudOperationBlocked = false;
@@ -6918,7 +6918,7 @@
       // Safety net for explicit operations: the cloud decides the intent first, but it cannot
       // veto a well-formed operation that the trusted local executor can actually complete.
       // Every executor is guarded and must return a result before its reply replaces the AI answer.
-      if (!personalReminderHandled && !routedCommand && !cloudOperationBlocked && reply && minaIsClearlyLocalAction(message)) {
+      if (!navigator.onLine && !personalReminderHandled && !routedCommand && !cloudOperationBlocked && reply && minaIsClearlyLocalAction(message)) {
         const personalReminderAction = minaTrySetPersonalReminder(message);
         const customerMutationAction = personalReminderAction || minaTryManageClientFromMessage(message);
         const customerCreateAction = customerMutationAction || minaTryAddClientFromMessage(message);
@@ -6936,11 +6936,14 @@
         if (localActionResult) reply = localActionResult;
       }
 
-      // Offline fallback: deterministic data queries and guarded local workflows remain available.
-      // No online operation is claimed complete unless its local executor confirms the result.
+      // Cloud intent is authoritative while online. If the cloud router is unavailable,
+      // fail visibly instead of silently switching back to local pattern-based interpretation.
+      // The local adapter below only executes the cloud-approved canonical operation.
       if (routedCommand) {
         reply = minaBuildReply(routedCommand);
-      } else if (!reply) {
+      } else if (navigator.onLine && !reply && !cloudOperationBlocked) {
+        reply = 'ارتباط با هسته هوشمند برقرار نشد؛ هیچ تغییری در اطلاعات انجام ندادم. لطفاً اتصال اینترنت را بررسی کن و دوباره بفرست.';
+      } else if (!navigator.onLine && !reply) {
         if (dateTimeFact) {
           reply = dateTimeFact;
         } else if (customerHistoryFact) {
