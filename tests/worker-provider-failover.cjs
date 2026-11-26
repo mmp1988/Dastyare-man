@@ -53,7 +53,7 @@ const post = async (worker, env, body) => {
       AI: {
         async run(model) {
           models.push(model);
-          return { success: false, errors: [{ code: 429, message: "daily quota exceeded" }] };
+          return { success: false, errors: [{ code: 4006, message: "you have used up your daily free allocation of 10,000 neurons" }] };
         }
       }
     };
