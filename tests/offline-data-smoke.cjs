@@ -660,6 +660,11 @@ const assert = require('assert');
         fullNameBooking.dateKey > getTodayKey() &&
         /نوبتت ثبت شد/.test(fullNameBookingReply) &&
         !minaPendingBooking;
+      const repeatedFullNameReply = minaBuildReply('برای فردا ساعت ۱۸:۴۵ دقیقه نوبت کاشت مژه را به مینا موسوی مطلق بده');
+      const repeatedFullNameBlocked = appData.appointments.filter(a =>
+        a.dateKey === fullNameBooking.dateKey && a.time === '18:45' &&
+        a.clientName === 'مینا موسوی مطلق' && a.service.includes('کاشت مژه')).length === 1 &&
+        /تکراری|از قبل ثبت/.test(repeatedFullNameReply);
 
       appData.appointments = [];
       const naturalTomorrowReply = minaBuildReply('برای فردا ساعت ۴ بعد از ظهر نوبت لیفت مژه انجام بده');
@@ -715,12 +720,13 @@ const assert = require('assert');
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply) && !!minaConversationBooking;
-      return { fullNameBookingOk, fullNameBookingReply, fullNameBooking, contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { repeatedFullNameBlocked, fullNameBookingOk, fullNameBookingReply, fullNameBooking, contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
     assert(minaBookingResult.fullNameBookingOk, 'Mina must immediately save a full-name lash booking for tomorrow at 18:45 from the exact natural Persian phrasing');
+    assert(minaBookingResult.repeatedFullNameBlocked, 'Repeating the same natural-language booking must not create a second appointment');
     assert(minaBookingResult.naturalTomorrowOk, 'Mina must understand “انجام بده” and save tomorrow 4 PM lash-lift booking without a client name');
     assert(minaBookingResult.spokenTimeOk, 'Mina must parse Persian spoken half-hour times and tag the appointment as assistant-created');
     assert(minaBookingResult.exactUserCommandOk, 'Mina must parse the exact natural-language command with 5:30 PM and client name after the date');
@@ -1905,6 +1911,36 @@ const assert = require('assert');
     const malformed = { appointments:'not-an-array' };
     const acceptedMalformed = await page.evaluate(value => validateBackupData(value), malformed);
     assert.strictEqual(acceptedMalformed, false, 'Malformed backup passed validation');
+
+    // Force a real localStorage write failure and require rollback plus an explicit failure.
+    const persistenceFailureQA = await page.evaluate(() => {
+      saveData();
+      const beforeStored = localStorage.getItem(STORAGE_KEY);
+      const beforeAppointments = localStorage.getItem('dastyare_man_appointments_v1');
+      const beforeAppData = JSON.stringify(appData);
+      const originalSetItem = Storage.prototype.setItem;
+      let failureCode = '';
+      Storage.prototype.setItem = function(key, value) {
+        if (key === STORAGE_KEY) throw new DOMException('Injected quota failure', 'QuotaExceededError');
+        return originalSetItem.call(this, key, value);
+      };
+      try {
+        appData.notes.unshift({ id:'qa-injected-save-failure', title:'نباید ذخیره شود', body:'failure test' });
+        try { saveData(); } catch (error) { failureCode = error && error.code || error.message || 'thrown'; }
+      } finally {
+        Storage.prototype.setItem = originalSetItem;
+      }
+      return {
+        failedClosed: failureCode === 'MINA_PERSISTENCE_FAILED',
+        memoryRolledBack: JSON.stringify(appData) === beforeAppData,
+        mainStorageUnchanged: localStorage.getItem(STORAGE_KEY) === beforeStored,
+        appointmentStorageUnchanged: localStorage.getItem('dastyare_man_appointments_v1') === beforeAppointments,
+        noFalseSuccess: !appData.notes.some(note => note.id === 'qa-injected-save-failure')
+      };
+    });
+    assert(Object.values(persistenceFailureQA).every(Boolean),
+      'A forced storage failure must throw, restore the last verified in-memory state, preserve stored snapshots, and never leave the mutation committed');
+    console.log('Mina verified persistence failure injection:', JSON.stringify(persistenceFailureQA));
 
     assert.deepStrictEqual(pageErrors, [], 'Uncaught browser errors were reported');
     console.log(JSON.stringify({
