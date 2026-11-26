@@ -1,9 +1,9 @@
 // Cloudflare Workers entry point; this comment also verifies Git-connected deployment.
 const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets.androidplatform.net"]);
-const MODEL = "@cf/qwen/qwen3.8-27b";
+const MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 const FALLBACK_MODEL = "@cf/zai-org/glm-4.7-flash";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v21-resilient-failover";
+const WORKER_VERSION = "mina-ai-response-v22-efficient-failover";
 const requestWindows = new Map();
 // Per-isolate circuit breakers prevent repeated calls to a provider that is known to be failing.
 const providerCooldowns = new Map();
@@ -222,7 +222,7 @@ export default {
     const origin = request.headers.get("Origin") || "";
 
     if (request.method === "GET") {
-      return json({ success: true, status: "ready", version: WORKER_VERSION });
+      return json({ success: true, status: "ready", version: WORKER_VERSION, providers: { cloudflareAI: !!env.AI?.run, groq: !!env.GROQ_API_KEY }, primaryModel: MODEL });
     }
 
     if (!ALLOWED_ORIGINS.has(origin)) {
