@@ -827,7 +827,23 @@ public class MainActivity extends Activity {
             updatePrefs.edit().putBoolean("install_after_permission", false).apply();
             File pending = new File(new File(getExternalFilesDir(null), "updates"), "Dastyare-man-update.apk");
             if (pending.exists()) launchApkInstaller(pending);
+        } else {
+            promptPendingApkUpdateIfNeeded();
         }
+    }
+
+    private void promptPendingApkUpdateIfNeeded() {
+        try {
+            File pending = new File(new File(getExternalFilesDir(null), "updates"), "Dastyare-man-update.apk");
+            if (!pending.exists()) return;
+            android.content.SharedPreferences prefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
+            long candidate = prefs.getLong("pending_apk_version", 0L);
+            if (candidate > getInstalledVersionCode()) promptApkInstall(pending, candidate);
+            else {
+                pending.delete();
+                prefs.edit().remove("pending_apk_version").apply();
+            }
+        } catch (Exception ignored) { }
     }
 
     private static final String APPOINTMENT_CHANNEL_ID = "dastyare_appointments_v1";
