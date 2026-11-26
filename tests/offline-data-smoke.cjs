@@ -605,7 +605,7 @@ const assert = require('assert');
     assert(appointmentReloadQA.created && appointmentReloadQA.initialReminder,
       'Appointment form must create a linked repair reminder before reload: ' + JSON.stringify(appointmentReloadQA));
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(id => !!appData.appointments?.some(a => a.id === id), appointmentReloadQA.id, { timeout: 15000 });
+    await page.waitForFunction(id => typeof appData !== 'undefined' && !!appData.appointments?.some(a => a.id === id), appointmentReloadQA.id, { timeout: 15000 });
     const afterCreateReload = await page.evaluate(id => {
       const a = appData.appointments.find(x => x.id === id);
       const r = appData.reminders.find(x => x.id === 'repair_' + id);
@@ -631,7 +631,7 @@ const assert = require('assert');
     assert(editReloadQA.edited && editReloadQA.reminderStillLinked,
       'Editing an appointment must update only requested fields and preserve its linked repair reminder');
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(id => appData.appointments?.some(a => a.id === id && a.time === '11:42'), appointmentReloadQA.id, { timeout: 15000 });
+    await page.waitForFunction(id => typeof appData !== 'undefined' && appData.appointments?.some(a => a.id === id && a.time === '11:42'), appointmentReloadQA.id, { timeout: 15000 });
     const afterEditReload = await page.evaluate(id => {
       const a = appData.appointments.find(x => x.id === id);
       const r = appData.reminders.find(x => x.id === 'repair_' + id);
@@ -645,6 +645,8 @@ const assert = require('assert');
       deleteAppointment(id);
       const a = appData.appointments.find(x => x.id === id);
       const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      appData.settings = { ...appData.settings, ...appointmentReloadQA.previousSettings };
+      saveData();
       return {
         appointmentRemoved: !a,
         reminderCancelled: !!r && r.cancelled === true && r.enabled === false
