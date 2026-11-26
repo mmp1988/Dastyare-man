@@ -234,8 +234,12 @@ export default {
           return json({ success: false, error: "پاسخ مسیریابی معتبر نبود." }, 502, headers);
         }
         const type = parsed.type === "personal_reminder" ? "personal_reminder" : parsed.type === "action" ? "action" : "reply";
-        const command = typeof parsed.command === "string" ? parsed.command.trim() : "";
+        let command = typeof parsed.command === "string" ? parsed.command.trim() : "";
         const routedReply = typeof parsed.reply === "string" ? parsed.reply.trim() : "";
+        // A personal reminder can safely reuse the exact user instruction if the model
+        // classifies it correctly but omits the normalized command. The app still validates
+        // and executes it; this is not a success claim or a mutation by the Worker.
+        if (type === "personal_reminder" && !command && /[آ-ی]/u.test(message)) command = message;
         if ((type === "action" || type === "personal_reminder") && (!command || command.length > 4000 || !/[آ-ی]/u.test(command))) {
           return json({ success: false, error: "دستور عملیاتی معتبر نبود." }, 502, headers);
         }
