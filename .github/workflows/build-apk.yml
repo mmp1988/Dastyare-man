@@ -33,14 +33,15 @@ jobs:
           import json, re
           from pathlib import Path
           html = Path("index.html").read_text(encoding="utf-8")
-          scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, flags=re.I | re.S)
-          if len(scripts) != 1:
-              raise SystemExit(f"Expected one inline app script, found {len(scripts)}")
-          Path("/tmp/dastyare-app.js").write_text(scripts[0], encoding="utf-8")
+          scripts = re.findall(r"<script\\b[^>]*>(.*?)</script\\s*>", html, flags=re.I | re.S)
+          if not scripts:
+              raise SystemExit("No inline JavaScript blocks found")
+          for index, script in enumerate(scripts, 1):
+              Path(f"/tmp/dastyare-app-{index}.js").write_text(script, encoding="utf-8")
           json.loads(Path("manifest.json").read_text(encoding="utf-8"))
-          print("Inline JavaScript extracted; manifest JSON is valid.")
+          print(f"Extracted {len(scripts)} inline JavaScript blocks; manifest JSON is valid.")
           PY
-          node --check /tmp/dastyare-app.js
+          for script in /tmp/dastyare-app-*.js; do node --check "$script"; done
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
