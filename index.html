@@ -9085,5 +9085,53 @@
     }
 
 </script>
+
+<style id="minaPhotoLightboxStyles">
+  #minaPhotoLightbox{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.92);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+  #minaPhotoLightbox.is-open{display:flex}
+  #minaPhotoLightbox img{display:block;max-width:100%;max-height:calc(100dvh - 100px);width:auto;height:auto;object-fit:contain;border-radius:10px;box-shadow:0 12px 48px #0009}
+  #minaPhotoLightboxClose{position:absolute;top:max(14px,env(safe-area-inset-top));left:14px;width:42px;height:42px;border:1px solid #ffffff55;border-radius:50%;background:#252936;color:#fff;font-size:26px;line-height:1;cursor:pointer;display:grid;place-items:center}
+  img[data-photo-ref],img[data-client-photo-ref],img[data-client-archive-ref],#clientProfileFullPhoto,#clientBeforePhotoPreview img,#clientAfterPhotoPreview img,#clientWorkPhotoPreview img{cursor:zoom-in}
+  @media(hover:hover){img[data-photo-ref]:hover,img[data-client-photo-ref]:hover,img[data-client-archive-ref]:hover{filter:brightness(1.06)}}
+</style>
+<div id="minaPhotoLightbox" role="dialog" aria-modal="true" aria-label="نمایش بزرگ عکس">
+  <button id="minaPhotoLightboxClose" type="button" aria-label="بستن عکس">×</button>
+  <img id="minaPhotoLightboxImage" alt="نمایش بزرگ عکس" />
+</div>
+<script id="minaPhotoLightboxScript">
+(function(){
+  const layer=document.getElementById('minaPhotoLightbox');
+  const large=document.getElementById('minaPhotoLightboxImage');
+  const close=document.getElementById('minaPhotoLightboxClose');
+  if(!layer||!large||!close)return;
+  let previousOverflow='';
+  function closePhoto(){
+    layer.classList.remove('is-open');
+    large.removeAttribute('src');
+    document.body.style.overflow=previousOverflow;
+  }
+  function openPhoto(img){
+    const src=img.currentSrc||img.src;
+    if(!src)return;
+    large.src=src;
+    large.alt=img.alt||'نمایش بزرگ عکس';
+    previousOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    layer.classList.add('is-open');
+  }
+  document.addEventListener('click',function(event){
+    const img=event.target.closest&&event.target.closest('img');
+    if(!img||img===large||img.dataset.noLightbox==='true')return;
+    if(!img.complete||!img.naturalWidth)return;
+    event.preventDefault();
+    event.stopPropagation();
+    openPhoto(img);
+  },true);
+  close.addEventListener('click',closePhoto);
+  layer.addEventListener('click',function(event){if(event.target===layer)closePhoto();});
+  document.addEventListener('keydown',function(event){if(event.key==='Escape'&&layer.classList.contains('is-open'))closePhoto();});
+})();
+</script>
+
 </body>
 </html>
