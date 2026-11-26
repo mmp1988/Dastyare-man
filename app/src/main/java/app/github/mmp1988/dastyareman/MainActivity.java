@@ -59,6 +59,7 @@ import org.json.JSONArray;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+// Rebuild trigger: validate the corrected multi-script APK workflow.
 public class MainActivity extends Activity {
     private static final int REQUEST_MEDIA_PERMISSION = 701;
     private static final int REQUEST_FILE = 703;
