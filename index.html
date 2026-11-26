@@ -9054,12 +9054,21 @@
       const clientId=String(profile.clientId||key);
       const identity={key,clientId,name:String(profile.name||key||'مشتری بدون نام'),phone:String(profile.phone||'')};
       const profileData=customerHistoryClone(profile)||{};
+      if(!profileData.notes&&appData.clientNotes&&appData.clientNotes[key])profileData.notes=String(appData.clientNotes[key]);
       const profileHash=customerHistoryHash(profileData);
       const profileId='profile_'+encodeURIComponent(clientId)+'_'+profileHash;
       if(!appData.customerHistoryDeletedIds.includes(profileId)){
         const old=appData.customerHistory.find(x=>x&&x.id===profileId);
         const now=Date.now();
-        const reminders=(appData.reminders||[]).filter(r=>r&&(r.clientId===clientId||r.clientKey===key||r.birthdayClientKey===key));
+        const normalizedName=String(identity.name||'').trim().toLocaleLowerCase('fa');
+        const normalizedPhone=String(identity.phone||'').replace(/\D/g,'');
+        const reminders=(appData.reminders||[]).filter(r=>{
+          if(!r)return false;
+          const reminderPhone=String(r.phone||'').replace(/\D/g,'');
+          const reminderName=String(r.clientName||r.customerName||'').trim().toLocaleLowerCase('fa');
+          return r.clientId===clientId||r.clientKey===key||r.birthdayClientKey===key||
+            (!!normalizedPhone&&reminderPhone===normalizedPhone)|| (!!normalizedName&&reminderName===normalizedName);
+        });
         const snapshot={
           id:profileId,recordType:'profile',clientKey:key,clientId,
           clientName:identity.name,phone:identity.phone,service:'اطلاعات پرونده مشتری',
@@ -9159,6 +9168,10 @@
             addDetail('تاریخ تولد',p.birthDate);addDetail('یادداشت پرونده',p.notes);
             (p.customFields||[]).forEach(f=>addDetail(f.label,f.value));
             addDetail('تعداد سوابق خدمات',(p.records||[]).length);
+            Object.entries(p).forEach(([field,value])=>{
+              if(['name','phone','aliases','birthDate','notes','customFields','records','photoRef','photo','clientId','createdAt','updatedAt','notesUpdatedAt'].includes(field))return;
+              if(value!==undefined&&value!==null&&value!==''&&typeof value!=='object')addDetail(field,value);
+            });
             addDetail('عکس پروفایل',p.photoRef?'عکس ذخیره‌شده':'');
             if(p.photoRef)historyPhotoRefs.push(p.photoRef);
             addDetail('یادآوری‌های مرتبط',(x.relatedReminders||[]).map(r=>r.message||r.title||'یادآوری').join('، '));
