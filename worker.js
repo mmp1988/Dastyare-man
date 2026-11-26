@@ -55,6 +55,18 @@ function isRequestRateLimited(ip, now = Date.now()) {
   return false;
 }
 
+function cleanGeminiSchema(value) {
+  if (Array.isArray(value)) return value.map(cleanGeminiSchema);
+  if (!value || typeof value !== "object") return value;
+  const cleaned = {};
+  for (const [key, item] of Object.entries(value)) {
+    // Gemini's Schema API rejects JSON-Schema-only keywords such as additionalProperties.
+    if (key === "additionalProperties" || key === "$schema") continue;
+    cleaned[key] = cleanGeminiSchema(item);
+  }
+  return cleaned;
+}
+
 async function runGeminiModel(env, input) {
   const messages = Array.isArray(input.messages) ? input.messages : [];
   const systemText = messages.filter(item => item.role === "system").map(item => String(item.content || "")).join("\n\n");
@@ -70,7 +82,7 @@ async function runGeminiModel(env, input) {
   const schema = input.response_format?.json_schema?.schema;
   if (input.response_format && schema) {
     generationConfig.responseMimeType = "application/json";
-    generationConfig.responseSchema = schema;
+    generationConfig.responseSchema = cleanGeminiSchema(schema);
   } else if (input.response_format?.type === "json_object") {
     generationConfig.responseMimeType = "application/json";
   }
