@@ -3,7 +3,7 @@ const ALLOWED_ORIGINS = new Set(["https://mmp1988.github.io", "https://appassets
 const MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 const FALLBACK_MODEL = "@cf/zai-org/glm-4.7-flash";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v22-efficient-failover";
+const WORKER_VERSION = "mina-ai-response-v23-resilient-timeouts";
 const requestWindows = new Map();
 // Per-isolate circuit breakers prevent repeated calls to a provider that is known to be failing.
 const providerCooldowns = new Map();
@@ -68,9 +68,10 @@ async function runMinaModel(env, cloudflareModel, input) {
     if (providerCoolingDown("cloudflare:quota") || providerCoolingDown(provider.key)) continue;
     attempted++;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), provider.key === "cloudflare:qwen" ? 18000 : 14000);
     try {
-      const result = await env.AI.run(provider.model, input, { signal: controller.signal });
+      const timeoutPromise = new Promise((_, reject) => controller.signal.addEventListener("abort", () => reject(new Error(provider.key + " inference timeout")), { once: true }));
+      const result = await Promise.race([env.AI.run(provider.model, input, { signal: controller.signal }), timeoutPromise]);
       const failure = modelResultError(result);
       if (failure) throw failure;
       return result;
@@ -92,7 +93,7 @@ async function runMinaModel(env, cloudflareModel, input) {
   if (env.GROQ_API_KEY && !providerCoolingDown("groq:qwen")) {
     attempted++;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 35000);
+    const timeout = setTimeout(() => controller.abort(), 22000);
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
