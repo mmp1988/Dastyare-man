@@ -6060,9 +6060,9 @@
         const relativeMonths = t.match(new RegExp('(' + relativeNumber + ')\\s*ماه\\s*(پیش|قبل|گذشته|بعد|دیگه|دیگر)', 'u'));
         const relativeHours = t.match(new RegExp('(' + relativeNumber + ')\\s*ساعت\\s*(پیش|قبل|گذشته|بعد|دیگه|دیگر)', 'u'));
         const relativeMinutes = t.match(new RegExp('(' + relativeNumber + ')\\s*دقیقه\\s*(پیش|قبل|گذشته|بعد|دیگه|دیگر)', 'u'));
-        const relativeValue = m => /^\\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
+        const relativeValue = m => /^\d+$/.test(m[1]) ? Number(m[1]) : minaPersianNumberValue(m[1]);
         const monthOffset = relativeMonths ? relativeValue(relativeMonths) * (/^(?:پیش|قبل|گذشته)$/.test(relativeMonths[2]) ? -1 : 1)
-          : /ماه\\s*(?:پیش|قبل|گذشته)/u.test(t) ? -1 : /ماه\\s*(?:بعد|دیگه|دیگر)/u.test(t) ? 1 : 0;
+          : /ماه\s*(?:پیش|قبل|گذشته)/u.test(t) ? -1 : /ماه\s*(?:بعد|دیگه|دیگر)/u.test(t) ? 1 : 0;
         if (relativeHours || relativeMinutes) {
           const amount = relativeHours ? relativeValue(relativeHours) * 60 : relativeValue(relativeMinutes);
           const cue = (relativeHours || relativeMinutes)[2];
@@ -6134,7 +6134,7 @@
           !servicePattern.test(name)
         );
         let clientName = clientCandidates.length ? clientCandidates[clientCandidates.length - 1] : '';
-        const explicitClientName = t.match(/(?:به\\s*)?(?:اسم|نام)\\s+([آ-یءئؤإأ‌\\-]{2,40})(?=\\s+(?:تو|در|داخل|قسمت|بخش|پرونده|برای|نوبت|رزرو|وقت|ثبت)|$)/u);
+        const explicitClientName = t.match(/(?:به\s*)?(?:اسم|نام)\s+([آ-یءئؤإأ‌\-]{2,40})(?=\s+(?:تو|در|داخل|قسمت|بخش|پرونده|برای|نوبت|رزرو|وقت|ثبت)|$)/u);
         if (explicitClientName) clientName = explicitClientName[1].trim();
         // If the customer is mentioned without "برای"، match an exact saved client name.
         if (!clientName) {
