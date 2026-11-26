@@ -4,6 +4,21 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
+// Static Android integration contract: notifications must be permitted, alarm
+// receivers must survive process death/reboot, and pending alarms must be re-armed.
+const androidManifest = fs.readFileSync(path.join(__dirname, '../app/src/main/AndroidManifest.xml'), 'utf8');
+const androidMainActivity = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/MainActivity.java'), 'utf8');
+const androidReminderReceiver = fs.readFileSync(path.join(__dirname, '../app/src/main/java/app/github/mmp1988/dastyareman/PersonalReminderReceiver.java'), 'utf8');
+assert.match(androidManifest, /android\.permission\.POST_NOTIFICATIONS/, 'Android notification permission must be declared');
+assert.match(androidManifest, /android\.permission\.SCHEDULE_EXACT_ALARM/, 'Android exact alarm permission must be declared');
+assert.match(androidManifest, /android\.permission\.RECEIVE_BOOT_COMPLETED/, 'Android reboot receiver permission must be declared');
+assert.match(androidManifest, /\.PersonalReminderReceiver[\s\S]*?BOOT_COMPLETED/, 'Personal reminder receiver must subscribe to BOOT_COMPLETED');
+assert.match(androidReminderReceiver, /ACTION_BOOT_COMPLETED[\s\S]*?scheduleSystemAlarm/, 'Pending alarms must be restored after device reboot');
+assert.match(androidReminderReceiver, /setExactAndAllowWhileIdle/, 'Exact alarms must be scheduled when Android permits them');
+assert.match(androidReminderReceiver, /setAndAllowWhileIdle/, 'An inexact fallback must be scheduled when exact alarms are denied');
+assert.match(androidMainActivity, /onResume\(\)[\s\S]*?PersonalReminderReceiver\.rescheduleAll\(this\)/, 'Returning to the app must re-arm pending alarms');
+console.log('Android alarm integration contract: PASS');
+
 (async () => {
   const server = spawn('python3', ['-m', 'http.server', '4173', '--bind', '127.0.0.1'], { stdio: 'ignore' });
   let browser;
@@ -573,6 +588,103 @@ const assert = require('assert');
     assert(customerBookingAndVipQA.vipSaved && customerBookingAndVipQA.vipOnly, 'VIP marker and VIP-only filter must persist and work');
     console.log('Customer booking and VIP:', JSON.stringify(customerBookingAndVipQA));
 
+
+    // End-to-end browser persistence: create an appointment through the real form,
+    // reload, edit it, reload, then delete it and reload again. Its linked repair
+    // reminder must be recalculated on edit and cancelled on deletion.
+    const appointmentReloadQA = await page.evaluate(() => {
+      const previousSettings = { ...appData.settings };
+      const targetDate = addDaysToJalaliKey(getTodayKey(), 10);
+      appData.settings = { ...appData.settings, repairReminderDays: 7, repairReminderTime: '10:15', repairReminderEnabled: true };
+      selectedDateKey = targetDate;
+      openApptModal();
+      document.getElementById('apptClientName').value = 'مشتری پایداری پس از بارگذاری';
+      document.getElementById('apptPhone').value = '09120000077';
+      document.getElementById('apptTime').value = '09:30';
+      document.getElementById('apptService').value = 'کاشت مژه';
+      document.getElementById('apptNotes').value = 'آزمایش ماندگاری';
+      document.getElementById('apptAlarm').value = '15';
+      document.getElementById('apptStatus').value = 'pending';
+      saveAppointment();
+      const created = appData.appointments.find(a => a.clientName === 'مشتری پایداری پس از بارگذاری');
+      const reminder = created && appData.reminders.find(r => r.id === 'repair_' + created.id);
+      return {
+        created: !!created,
+        id: created?.id || '',
+        dateKey: created?.dateKey || '',
+        initialReminder: !!reminder && reminder.appointmentDateKey === targetDate &&
+          reminder.daysAfter === 7 && reminder.time === '10:15' && reminder.enabled === true,
+        previousSettings
+      };
+    });
+    assert(appointmentReloadQA.created && appointmentReloadQA.initialReminder,
+      'Appointment form must create a linked repair reminder before reload: ' + JSON.stringify(appointmentReloadQA));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(id => typeof appData !== 'undefined' && !!appData.appointments?.some(a => a.id === id), appointmentReloadQA.id, { timeout: 15000 });
+    const afterCreateReload = await page.evaluate(id => {
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      return !!a && !!r && a.clientName === 'مشتری پایداری پس از بارگذاری' &&
+        a.dateKey === r.appointmentDateKey && r.daysAfter === 7 && r.time === '10:15' && r.enabled === true;
+    }, appointmentReloadQA.id);
+    assert(afterCreateReload, 'Created appointment and its reminder must survive a full page reload');
+
+    const editReloadQA = await page.evaluate(id => {
+      openApptModal(id);
+      document.getElementById('apptTime').value = '11:42';
+      document.getElementById('apptService').value = 'لیفت مژه';
+      document.getElementById('apptNotes').value = 'ویرایش بعد از بارگذاری';
+      saveAppointment();
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      return {
+        edited: !!a && a.time === '11:42' && a.service === 'لیفت مژه' && a.notes === 'ویرایش بعد از بارگذاری',
+        reminderStillLinked: !!r && r.appointmentId === id && r.appointmentDateKey === a?.dateKey &&
+          r.daysAfter === 7 && r.time === '10:15' && r.enabled === true
+      };
+    }, appointmentReloadQA.id);
+    assert(editReloadQA.edited && editReloadQA.reminderStillLinked,
+      'Editing an appointment must update only requested fields and preserve its linked repair reminder');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(id => typeof appData !== 'undefined' && appData.appointments?.some(a => a.id === id && a.time === '11:42'), appointmentReloadQA.id, { timeout: 15000 });
+    const afterEditReload = await page.evaluate(id => {
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      return !!a && a.time === '11:42' && a.service === 'لیفت مژه' &&
+        !!r && r.appointmentId === id && r.enabled === true;
+    }, appointmentReloadQA.id);
+    assert(afterEditReload, 'Edited appointment and reminder link must survive a second reload');
+
+    const deleteReloadQA = await page.evaluate(({ id, previousSettings }) => {
+      window.confirm = () => true;
+      deleteAppointment(id);
+      const a = appData.appointments.find(x => x.id === id);
+      const r = appData.reminders.find(x => x.id === 'repair_' + id);
+      appData.settings = { ...appData.settings, ...previousSettings };
+      saveData();
+      return {
+        appointmentRemoved: !a,
+        reminderCancelled: !!r && r.cancelled === true && r.enabled === false
+      };
+    }, { id: appointmentReloadQA.id, previousSettings: appointmentReloadQA.previousSettings });
+    assert(deleteReloadQA.appointmentRemoved && deleteReloadQA.reminderCancelled,
+      'Deleting an appointment must cancel only its linked repair reminder');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!document.querySelector('#calendarGrid'));
+    const afterDeleteReload = await page.evaluate(id => ({
+      appointmentStillAbsent: !appData.appointments.some(a => a.id === id),
+      reminderStillCancelled: appData.reminders.some(r => r.id === 'repair_' + id && r.cancelled && !r.enabled)
+    }), appointmentReloadQA.id);
+    assert(afterDeleteReload.appointmentStillAbsent && afterDeleteReload.reminderStillCancelled,
+      'Deleted appointment and cancelled reminder state must remain consistent after reload');
+    console.log('Appointment create/edit/delete reload lifecycle:', JSON.stringify({
+      created: appointmentReloadQA.created,
+      afterCreateReload,
+      edited: editReloadQA.edited,
+      afterEditReload,
+      deleted: deleteReloadQA.appointmentRemoved,
+      afterDeleteReload
+    }));
 
     // Seed local data, then prove the installed Service Worker can reopen the app offline.
     await page.evaluate(() => {
