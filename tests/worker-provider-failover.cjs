@@ -36,6 +36,7 @@ const post = async (worker, env, body) => {
     assert.equal(result.status, 200);
     assert.equal(result.data.success, true);
     assert.equal(cloudflareCalls, 0);
+    assert.equal(result.data.provider?.provider, "gemini");
   }
 
   // A temporary Gemini outage should fall through to the existing Cloudflare backup.
@@ -57,6 +58,7 @@ const post = async (worker, env, body) => {
     assert.equal(result.status, 200);
     assert.equal(result.data.success, true);
     assert.equal(cloudflareCalls, 1);
+    assert.equal(result.data.provider?.provider, "cloudflare:primary");
   }
 
   // Capacity error on the low-cost Cloudflare primary should fall through to Gemma.
@@ -78,6 +80,7 @@ const post = async (worker, env, body) => {
     assert.equal(result.status, 200);
     assert.equal(result.data.success, true);
     assert.deepEqual(models, ["@cf/zai-org/glm-4.7-flash", "@cf/google/gemma-4-26b-a4b-it"]);
+    assert.equal(result.data.provider?.provider, "cloudflare:gemma");
   }
 
   // Daily Cloudflare quota exhaustion should skip its second model and use Groq Qwen.
@@ -107,6 +110,7 @@ const post = async (worker, env, body) => {
     assert.equal(result.data.success, true);
     assert.deepEqual(models, ["@cf/zai-org/glm-4.7-flash"]);
     assert.equal(groqCalls, 1);
+    assert.equal(result.data.provider?.provider, "groq");
   }
 
   // A healthy Cloudflare primary should return immediately and preserve Groq quota.
@@ -127,6 +131,7 @@ const post = async (worker, env, body) => {
     assert.equal(result.status, 200);
     assert.equal(result.data.success, true);
     assert.equal(groqCalls, 0);
+    assert.equal(result.data.provider?.provider, "cloudflare:primary");
   }
 
   console.log("Worker AI provider failover: PASS");
