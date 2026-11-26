@@ -1906,6 +1906,36 @@ const assert = require('assert');
     const acceptedMalformed = await page.evaluate(value => validateBackupData(value), malformed);
     assert.strictEqual(acceptedMalformed, false, 'Malformed backup passed validation');
 
+    // Force a real localStorage write failure and require rollback plus an explicit failure.
+    const persistenceFailureQA = await page.evaluate(() => {
+      saveData();
+      const beforeStored = localStorage.getItem(STORAGE_KEY);
+      const beforeAppointments = localStorage.getItem('dastyare_man_appointments_v1');
+      const beforeAppData = JSON.stringify(appData);
+      const originalSetItem = Storage.prototype.setItem;
+      let failureCode = '';
+      Storage.prototype.setItem = function(key, value) {
+        if (key === STORAGE_KEY) throw new DOMException('Injected quota failure', 'QuotaExceededError');
+        return originalSetItem.call(this, key, value);
+      };
+      try {
+        appData.notes.unshift({ id:'qa-injected-save-failure', title:'نباید ذخیره شود', body:'failure test' });
+        try { saveData(); } catch (error) { failureCode = error && error.code || error.message || 'thrown'; }
+      } finally {
+        Storage.prototype.setItem = originalSetItem;
+      }
+      return {
+        failedClosed: failureCode === 'MINA_PERSISTENCE_FAILED',
+        memoryRolledBack: JSON.stringify(appData) === beforeAppData,
+        mainStorageUnchanged: localStorage.getItem(STORAGE_KEY) === beforeStored,
+        appointmentStorageUnchanged: localStorage.getItem('dastyare_man_appointments_v1') === beforeAppointments,
+        noFalseSuccess: !appData.notes.some(note => note.id === 'qa-injected-save-failure')
+      };
+    });
+    assert(Object.values(persistenceFailureQA).every(Boolean),
+      'A forced storage failure must throw, restore the last verified in-memory state, preserve stored snapshots, and never leave the mutation committed');
+    console.log('Mina verified persistence failure injection:', JSON.stringify(persistenceFailureQA));
+
     assert.deepStrictEqual(pageErrors, [], 'Uncaught browser errors were reported');
     console.log(JSON.stringify({
       result:'PASS',
