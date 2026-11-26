@@ -1031,8 +1031,10 @@ console.log('Android alarm integration contract: PASS');
           return new Response(JSON.stringify({
             success: true,
             route: {
-              type: 'reply',
-              reply: 'بله، نوبت مینا را برای ۶ روز دیگر ثبت کردم. حالا خدمت موردنظرش چیست؟'
+              type: 'action',
+              command: 'برای ۶ روز دیگه به اسم مینا یه نوبت تو قسمت مشتریان ثبت کن فقط در قسمت مشتریان',
+              reply: '',
+              review: { decision: 'approve', reviewed: true }
             }
           }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         };
@@ -1064,9 +1066,41 @@ console.log('Android alarm integration contract: PASS');
     });
     console.log('Mina customer-section booking:', JSON.stringify(minaCustomerSectionBookingQA));
     assert(Object.values(minaCustomerSectionBookingQA).every(Boolean),
-      'A cloud success claim must be ignored until the exact Persian customer-section booking is saved under the correct linked customer profile');
+      'A cloud-approved customer-section booking must be saved under the exact Persian customer name and linked profile');
 
-    const minaAppointmentMutationFlow = await page.evaluate(async () => {
+    
+    const minaFalseCloudSuccessQA = await page.evaluate(async () => {
+      const previousAppointments = appData.appointments;
+      const previousProfiles = appData.clientProfiles;
+      const originalFetch = window.fetch;
+      try {
+        appData.appointments = [];
+        appData.clientProfiles = {};
+        window.fetch = async () => new Response(JSON.stringify({
+          success: true,
+          route: { type: 'reply', reply: 'بله، نوبت مینا را ثبت کردم و ذخیره شد.' }
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        const input = document.getElementById('minaInput');
+        input.value = 'برای ۶ روز دیگه به اسم مینا یه نوبت تو قسمت مشتریان ثبت کن';
+        await sendMinaMessageCore();
+        const transcript = document.getElementById('minaChatMessages')?.innerText || '';
+        return {
+          noAppointmentCreated: appData.appointments.length === 0,
+          noProfileCreated: Object.keys(appData.clientProfiles || {}).length === 0,
+          explicitNoSuccessClaim: /هیچ نوبتی ثبت یا تغییری ذخیره نشده/u.test(transcript)
+        };
+      } finally {
+        window.fetch = originalFetch;
+        appData.appointments = previousAppointments;
+        appData.clientProfiles = previousProfiles;
+        saveData();
+      }
+    });
+    console.log('Mina false cloud success guard:', JSON.stringify(minaFalseCloudSuccessQA));
+    assert(Object.values(minaFalseCloudSuccessQA).every(Boolean),
+      'A cloud reply that merely claims success must never mutate records or be shown as completion');
+
+const minaAppointmentMutationFlow = await page.evaluate(async () => {
       appData.appointments = [{
         id:'qa-local-mutation', dateKey:addDaysToJalaliKey(getTodayKey(),1),
         time:'18:45', clientName:'مینا موسوی مطلق', service:'کاشت مژه', status:'pending'
