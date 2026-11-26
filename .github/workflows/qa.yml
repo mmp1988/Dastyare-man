@@ -239,12 +239,56 @@ jobs:
               /۱۸:۲۰|18:20/u.test(pronounFlowData.route?.command || ''),
               'Cloud AI must preserve the pronoun-linked edit and exact new time');
 
+            const colloquialBookingResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'route', enableReview: true,
+                message: 'کاربر: برای سارا پنجشنبه یه جا نگه دار ساعت ۵ عصر برای لیفت مژه'
+              }),
+              signal: AbortSignal.timeout(60000), cache: 'no-store'
+            });
+            const colloquialBookingData = await colloquialBookingResponse.json().catch(() => ({}));
+            assert.equal(colloquialBookingResponse.status, 200, 'Colloquial appointment request must return HTTP 200: ' + JSON.stringify(colloquialBookingData));
+            assert.equal(colloquialBookingData.route?.type, 'action', 'Mina must understand a booking request without the literal words «نوبت» or «رزرو»');
+            assert.equal(colloquialBookingData.route?.review?.decision, 'approve', 'Colloquial booking must pass independent review');
+            assert.ok(/سارا/u.test(colloquialBookingData.route?.command || '') && /لیفت/u.test(colloquialBookingData.route?.command || '') && /پنجشنبه/u.test(colloquialBookingData.route?.command || ''), 'Mina must preserve customer, day and service in colloquial booking');
+
+            const appointmentReminderResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: 'route', enableReview: true,
+                message: 'کاربر: برای مراجعه سارا، ۱۸ روز بعد یادآوری ترمیم رو برام تنظیم کن'
+              }),
+              signal: AbortSignal.timeout(60000), cache: 'no-store'
+            });
+            const appointmentReminderData = await appointmentReminderResponse.json().catch(() => ({}));
+            assert.equal(appointmentReminderResponse.status, 200, 'Appointment follow-up reminder must return HTTP 200: ' + JSON.stringify(appointmentReminderData));
+            assert.equal(appointmentReminderData.route?.type, 'action', 'A reminder tied to a customer visit must not be mistaken for a personal alarm');
+            assert.equal(appointmentReminderData.route?.review?.decision, 'approve', 'Appointment follow-up must pass independent review');
+            assert.ok(/۱۸|18|هجده/u.test(appointmentReminderData.route?.command || '') && /ترمیم|یادآوری|یادآور/u.test(appointmentReminderData.route?.command || ''), 'Mina must preserve the 18-day repair follow-up intent');
+
+            const scheduleQuestionResponse = await fetch(base, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mode: 'route', enableReview: true, message: 'کاربر: فردا چندتا وقت خالی یا رزرو دارم؟' }),
+              signal: AbortSignal.timeout(60000), cache: 'no-store'
+            });
+            const scheduleQuestionData = await scheduleQuestionResponse.json().catch(() => ({}));
+            assert.equal(scheduleQuestionResponse.status, 200, 'Schedule lookup must return HTTP 200: ' + JSON.stringify(scheduleQuestionData));
+            assert.equal(scheduleQuestionData.route?.type, 'reply', 'A schedule question must not be routed as a mutation');
+            assert.ok(typeof scheduleQuestionData.route?.reply === 'string' && scheduleQuestionData.route.reply.trim(), 'Schedule lookup intent must receive a useful reply');
+
             console.log('Live Cloudflare Worker conversational routing: PASS', JSON.stringify({
               casualConversation: routeData.route.type,
               salonOperation: actionData.route.type,
               personalReminder: personalReminderData.route.type,
               aliasMultiTurn: aliasFlowData.route.type,
-              pronounEdit: pronounFlowData.route.type
+              pronounEdit: pronounFlowData.route.type,
+              colloquialBooking: colloquialBookingData.route.type,
+              appointmentReminder: appointmentReminderData.route.type,
+              scheduleQuestion: scheduleQuestionData.route.type
             }));
           })().catch(error => { console.error(error); process.exitCode = 1; });
           NODE
