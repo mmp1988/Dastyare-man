@@ -7632,7 +7632,103 @@
       return String(value || '').replace(/\\r\\n|\\n|\\r/g, '\n').replace(/\r\n?/g, '\n');
     }
 
-    function renderPersonalReminders(){const root=document.getElementById("personalReminderList");if(!root)return;const items=(appData.reminders||[]).filter(x=>x&&x.enabled!==false&&!x.cancelled).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||""));root.innerHTML="";if(!items.length){root.textContent="هنوز هشداری ثبت نشده است.";return;}let migratedMessage=false;items.forEach(x=>{const normalizedMessage=normalizeReminderMessage(x.message);if(normalizedMessage!==String(x.message||'')){x.message=normalizedMessage;migratedMessage=true;}const card=document.createElement("div");card.style.cssText="padding:10px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-input)";const p=(x.date||"").split("-").map(Number);const j=p.length===3?gregorianToJalali(p[0],p[1],p[2]):null;const key=j?j[0]+"-"+pad2(j[1])+"-"+pad2(j[2]):"";const head=document.createElement("strong");head.textContent="⏰ "+toPersianDigits(x.time||"")+" • "+(key?formatJalaliFull(key):"");const msg=document.createElement("div");msg.style.cssText="white-space:pre-wrap;line-height:1.7;margin:6px 0";msg.textContent=normalizeReminderMessage(x.message);if(x.kind==="automatic-repair"&&x.date){const todayG=jalaliKeyToGregorianDate(getTodayKey());const tp=todayG.split("-").map(Number),dp=x.date.split("-").map(Number);const remaining=Math.round((Date.UTC(dp[0],dp[1]-1,dp[2])-Date.UTC(tp[0],tp[1]-1,tp[2]))/86400000);const left=document.createElement("div");left.style.cssText="font-size:.76rem;font-weight:800;color:var(--accent)";left.textContent=remaining===0?"📍 موعد پیگیری امروز است":remaining>0?"⏳ "+toPersianDigits(String(remaining))+" روز مانده":"⚠️ "+toPersianDigits(String(Math.abs(remaining)))+" روز از موعد گذشته";card.append(head,msg,left);}const actions=document.createElement("div");actions.style.cssText="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px";const edit=document.createElement("button");edit.className="mini-btn";edit.textContent="✏️ ویرایش";edit.onclick=()=>editPersonalReminder(x.id);const del=document.createElement("button");del.className="mini-btn del";del.textContent="🗑 حذف";del.onclick=()=>deletePersonalReminder(x.id);const status=document.createElement("small");status.textContent=x.notified?"اعلان داده شده":(x.kind==="automatic-repair"?"یادآوری خودکار ترمیم":"فعال");actions.append(status,edit,del);card.append(actions);root.appendChild(card);});if(migratedMessage)saveData();}
+    function renderPersonalReminders(){
+      const root=document.getElementById("personalReminderList");
+      if(!root)return;
+      const items=(appData.reminders||[])
+        .filter(x=>x&&x.enabled!==false&&!x.cancelled)
+        .slice()
+        .sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||""));
+      root.innerHTML="";
+      if(!items.length){
+        root.textContent="هنوز هشداری ثبت نشده است.";
+        return;
+      }
+      let migratedMessage=false;
+      items.forEach(x=>{
+        const normalizedMessage=normalizeReminderMessage(x.message);
+        if(normalizedMessage!==String(x.message||'')){
+          x.message=normalizedMessage;
+          migratedMessage=true;
+        }
+        const p=(x.date||"").split("-").map(Number);
+        const j=p.length===3?gregorianToJalali(p[0],p[1],p[2]):null;
+        const key=j?j[0]+"-"+pad2(j[1])+"-"+pad2(j[2]):"";
+        const dateLabel=key?formatJalaliFull(key):"تاریخ ثبت نشده";
+        const card=document.createElement("article");
+        card.style.cssText="padding:13px;border:1px solid var(--border-color);border-radius:15px;background:linear-gradient(145deg,var(--bg-card),var(--bg-input));box-shadow:0 5px 16px rgba(0,0,0,.12);";
+        const title=document.createElement("div");
+        title.style.cssText="display:flex;align-items:center;gap:7px;font-weight:900;color:var(--accent);margin-bottom:10px;";
+        title.textContent=x.kind==="automatic-repair"?"🔔 یادآوری پیگیری ترمیم":"🔔 هشدار شخصی";
+        card.appendChild(title);
+        const details=document.createElement("div");
+        details.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;";
+        const dateBox=document.createElement("div");
+        dateBox.style.cssText="padding:9px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border-subtle);min-width:0;";
+        const dateCaption=document.createElement("small");
+        dateCaption.style.cssText="display:block;color:var(--text-secondary);font-size:.68rem;margin-bottom:4px;";
+        dateCaption.textContent="📅 تاریخ هشدار";
+        const dateValue=document.createElement("strong");
+        dateValue.style.cssText="display:block;font-size:.78rem;line-height:1.6;";
+        dateValue.textContent=dateLabel;
+        dateBox.append(dateCaption,dateValue);
+        const timeBox=document.createElement("div");
+        timeBox.style.cssText="padding:9px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border-subtle);";
+        const timeCaption=document.createElement("small");
+        timeCaption.style.cssText="display:block;color:var(--text-secondary);font-size:.68rem;margin-bottom:4px;";
+        timeCaption.textContent="⏰ ساعت هشدار";
+        const timeValue=document.createElement("strong");
+        timeValue.style.cssText="display:block;font-size:.9rem;direction:ltr;text-align:right;color:var(--accent);";
+        timeValue.textContent=toPersianDigits(x.time||"ثبت نشده");
+        timeBox.append(timeCaption,timeValue);
+        details.append(dateBox,timeBox);
+        card.appendChild(details);
+        const reasonBox=document.createElement("div");
+        reasonBox.style.cssText="padding:10px 11px;border-radius:11px;background:var(--bg-secondary);border-right:3px solid var(--accent);";
+        const reasonCaption=document.createElement("small");
+        reasonCaption.style.cssText="display:block;color:var(--text-secondary);font-size:.7rem;font-weight:800;margin-bottom:5px;";
+        reasonCaption.textContent="📝 علت هشدار / برای چه کاری؟";
+        const msg=document.createElement("div");
+        msg.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font-size:.82rem;color:var(--text-primary);";
+        msg.textContent=normalizedMessage||"علت یا متن یادآوری وارد نشده است.";
+        reasonBox.append(reasonCaption,msg);
+        card.appendChild(reasonBox);
+        if(x.kind==="automatic-repair"){
+          const appointment=(appData.appointments||[]).find(a=>String(a.id)===String(x.appointmentId));
+          const context=document.createElement("div");
+          context.style.cssText="font-size:.74rem;line-height:1.8;color:var(--text-secondary);margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--accent-glow);";
+          const appointmentDate=appointment&&appointment.dateKey?formatJalaliFull(appointment.dateKey):"ثبت نشده";
+          context.textContent="👩🏻 مشتری: "+(appointment&&appointment.clientName||"نامشخص")+"  •  💅 خدمت: "+(appointment&&appointment.service||"ثبت نشده")+"  •  📆 تاریخ نوبت اصلی: "+appointmentDate;
+          card.appendChild(context);
+          if(x.date){
+            const todayG=jalaliKeyToGregorianDate(getTodayKey());
+            const tp=todayG.split("-").map(Number),dp=x.date.split("-").map(Number);
+            const remaining=Math.round((Date.UTC(dp[0],dp[1]-1,dp[2])-Date.UTC(tp[0],tp[1]-1,tp[2]))/86400000);
+            const left=document.createElement("div");
+            left.style.cssText="font-size:.75rem;font-weight:800;color:var(--accent);margin-top:7px;";
+            left.textContent=remaining===0?"📍 موعد پیگیری امروز است":remaining>0?"⏳ "+toPersianDigits(String(remaining))+" روز مانده":"⚠️ "+toPersianDigits(String(Math.abs(remaining)))+" روز از موعد گذشته";
+            card.appendChild(left);
+          }
+        }
+        const actions=document.createElement("div");
+        actions.style.cssText="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;";
+        const edit=document.createElement("button");
+        edit.className="mini-btn";
+        edit.textContent="✏️ ویرایش";
+        edit.onclick=()=>editPersonalReminder(x.id);
+        const del=document.createElement("button");
+        del.className="mini-btn del";
+        del.textContent="🗑 حذف";
+        del.onclick=()=>deletePersonalReminder(x.id);
+        const status=document.createElement("small");
+        status.style.cssText="margin-right:auto;color:var(--text-secondary);font-size:.7rem;";
+        status.textContent=x.notified?"اعلان داده شده":(x.kind==="automatic-repair"?"یادآوری خودکار ترمیم":"فعال");
+        actions.append(status,edit,del);
+        card.appendChild(actions);
+        root.appendChild(card);
+      });
+      if(migratedMessage)saveData();
+    }
     async function savePersonalReminder(){const date=document.getElementById("personalReminderDate").value;const time=document.getElementById("personalReminderTime").value;const message=document.getElementById("personalReminderText").value.trim();if(!date||!time||!message){showToast("تاریخ، ساعت و متن یادآوری را کامل کن.");return;}const targetAt=iranDateTimeToEpoch(date,time);if(!Number.isFinite(targetAt)||targetAt<=Date.now()){showToast("زمان هشدار باید در آینده به وقت ایران باشد.");return;}if("Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission();}catch(e){}}if(!Array.isArray(appData.reminders))appData.reminders=[];const reminderId=editingPersonalReminderId||"rem_"+Date.now();const existing=editingPersonalReminderId?appData.reminders.find(x=>x.id===editingPersonalReminderId):null;if(editingPersonalReminderId&&!existing){showToast("یادآوری پیدا نشد؛ فهرست را تازه‌سازی کن.");return;}if(existing?.kind==="automatic-repair"){const appointment=(appData.appointments||[]).find(a=>String(a.id)===String(existing.appointmentId));if(!appointment){showToast("نوبت اصلی این یادآوری پیدا نشد؛ ابتدا پرونده مشتری را بررسی کن.");return;}appointment.repairReminderDisabled=false;appointment.repairReminderOverride={date,time,message};Object.assign(existing,{date,time,message,notified:false,enabled:true,cancelled:false,timezone:"Asia/Tehran",manualOverride:true});}else if(existing){Object.assign(existing,{date,time,message,notified:false,enabled:true,timezone:"Asia/Tehran"});}else{appData.reminders.push({id:reminderId,date,time,message,notified:false,enabled:true,createdAt:Date.now(),timezone:"Asia/Tehran"});}saveData();let nativeStatus="web";try{if(window.AndroidApp&&typeof AndroidApp.schedulePersonalReminder==="function")nativeStatus=String(AndroidApp.schedulePersonalReminder(String(reminderId),targetAt,message)||"failed");}catch(e){nativeStatus="failed";}renderPersonalReminders();resetPersonalReminderForm();showToast(nativeStatus==="exact"?"تغییر ذخیره و هشدار گوشی زمان‌بندی شد 🔔":nativeStatus==="approximate"?"تغییر ذخیره شد؛ ممکن است اعلان چند دقیقه تأخیر داشته باشد.":nativeStatus==="web"?"تغییر یادآوری ذخیره شد.":"تغییر ذخیره شد، اما زمان‌بندی اعلان گوشی تأیید نشد.");}
     function editPersonalReminder(id){const x=(appData.reminders||[]).find(a=>a.id===id);if(!x)return;editingPersonalReminderId=id;document.getElementById("personalReminderDate").value=x.date||"";{const p=(x.date||"").split("-").map(Number);if(p.length===3&&p.every(Number.isFinite)){const j=gregorianToJalali(p[0],p[1],p[2]);document.getElementById("personalReminderDateDisplay").textContent=formatJalaliFull(j[0]+"-"+pad2(j[1])+"-"+pad2(j[2]));}}document.getElementById("personalReminderTime").value=x.time||"";document.getElementById("personalReminderText").value=normalizeReminderMessage(x.message);document.getElementById("savePersonalReminderBtn").textContent="💾 ذخیره تغییرات";document.getElementById("cancelPersonalReminderEditBtn").style.display="inline-flex";document.getElementById("personalRemindersCard").scrollIntoView({behavior:"smooth",block:"start"});}
     function deletePersonalReminder(id){const item=(appData.reminders||[]).find(x=>x&&x.id===id);if(!item)return;if(!confirm(item.kind==="automatic-repair"?"یادآوری ترمیم این نوبت حذف شود؟ فقط همین مشتری و همین نوبت غیرفعال می‌شود.":"این هشدار حذف شود؟"))return;if(item.kind==="automatic-repair"){const appointment=(appData.appointments||[]).find(a=>String(a.id)===String(item.appointmentId));if(appointment){appointment.repairReminderDisabled=true;delete appointment.repairReminderOverride;}}appData.reminders=(appData.reminders||[]).filter(x=>x.id!==id);try{if(window.AndroidApp&&typeof AndroidApp.cancelPersonalReminder==="function")AndroidApp.cancelPersonalReminder(String(id));}catch(e){}saveData();renderPersonalReminders();if(editingPersonalReminderId===id)resetPersonalReminderForm();showToast("یادآوری حذف شد؛ سایر مشتریان و نوبت‌ها تغییری نکردند.");}
