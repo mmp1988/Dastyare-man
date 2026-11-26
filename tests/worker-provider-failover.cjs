@@ -24,6 +24,9 @@ const post = async (worker, env, body) => {
       const payload = JSON.parse(options.body);
       assert.ok(payload.systemInstruction?.parts?.[0]?.text);
       assert.equal(payload.contents[0].parts[0].text, "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن");
+      assert.equal(payload.generationConfig.responseMimeType, "application/json");
+      assert.equal(payload.generationConfig.responseSchema.additionalProperties, undefined,
+        "Gemini schema must not contain unsupported JSON Schema additionalProperties");
       return new Response(JSON.stringify({
         candidates: [{ content: { parts: [{ text: JSON.stringify({ command: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" }) }] } }]
       }), { status: 200, headers: { "Content-Type": "application/json" } });
