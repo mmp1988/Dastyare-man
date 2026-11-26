@@ -5773,6 +5773,35 @@
       root.innerHTML = '';
       history.slice(-80).forEach(item => addMinaMessage(item.text, item.role, false));
     }
+    // Live inventory of this exact salon workspace; it is context, not permission to invent actions.
+    function minaBuildWorkspaceCapabilityContext() {
+      const appointments = Array.isArray(appData.appointments) ? appData.appointments : [];
+      const profiles = Object.values(appData.clientProfiles || {});
+      const reminders = Array.isArray(appData.reminders) ? appData.reminders : [];
+      const notes = Array.isArray(appData.notes) ? appData.notes : [];
+      const todos = Array.isArray(appData.todos) ? appData.todos : [];
+      const services = Array.isArray(appData.services) ? appData.services : [];
+      const today = getTodayKey();
+      const activeAppointments = appointments.filter(a => a && a.status !== 'canceled');
+      const upcoming = activeAppointments.filter(a => String(a.dateKey || '') >= today).slice().sort((a,b) => (String(a.dateKey||'') + String(a.time||'')).localeCompare(String(b.dateKey||'') + String(b.time||''))).slice(0,8);
+      const reminderItems = reminders.filter(x => x && x.enabled !== false && !x.cancelled).slice().sort((a,b) => (String(a.date||'') + String(a.time||'')).localeCompare(String(b.date||'') + String(b.time||''))).slice(0,8);
+      const activeTab = document.querySelector('.tab-section.active')?.id || 'unknown';
+      const lines = [
+        'نقشه واقعی محیط کاری مینا: تقویم و نوبت‌ها؛ پرونده مشتریان؛ گفت‌وگو با مینا؛ دفتر یادداشت و چک‌لیست؛ پیام‌ها؛ تنظیمات و شخصی‌سازی.',
+        'تقویم/نوبت: مشاهده برنامه روز و بازه‌ها، جست‌وجوی نوبت، ثبت، تغییر تاریخ/ساعت/خدمت، جابه‌جایی، لغو، حذف، ثبت انجام‌شدن، جلوگیری از تداخل و اتصال به پرونده مشتری.',
+        'پرونده مشتری: ایجاد و جست‌وجو، اصلاح نام و نام مستعار و تلفن، سوابق خدمات و مراجعه، یادداشت و فیلد سفارشی، تاریخ تولد، تصاویر و گالری، مکالمه‌های متصل و نوبت‌های اصلی و پیگیری.',
+        'هشدارها سه نوع مستقل دارند: یادآوری شخصی؛ هشدار متصل به نوبت مشتری؛ پیگیری خودکار ترمیم بر مبنای تاریخ همان نوبت و تنظیمات روز/ساعت. این سه را با هم اشتباه نگیر.',
+        'دفتر کار: ثبت یادداشت و مدیریت چک‌لیست؛ خدمات سفارشی تعریف‌شده؛ پیام‌ها و تنظیمات ظاهری/شخصی‌سازی.',
+        'مرز اجرا: فقط عملیاتی را اجراشدنی اعلام کن که پردازشگر محلی نسخه فعلی پشتیبانی می‌کند. برای قابلیت بدون مجری گفت‌وگویی، راهنمای مسیر بده یا صادقانه بگو از چت قابل تغییر نیست؛ هرگز وانمود نکن تغییرش دادی.',
+        'معناشناسی: «یه جا براش نگه دار»، «وقت جور کن»، «قرار بذار»، «فیکس کن»، «بنداز پنجشنبه» در زمینه مشتری و سالن می‌تواند نوبت باشد حتی بدون واژه نوبت. «یادم بنداز/آلارم/زنگ/خبرم کن» را با توجه به صاحب یادآوری و مرجعش تفکیک کن.',
+        'وضعیت واقعی: بخش باز=' + activeTab + '؛ مشتریان=' + profiles.length + '؛ کل نوبت‌ها=' + appointments.length + '؛ نوبت‌های فعال=' + activeAppointments.length + '؛ هشدارهای فعال=' + reminderItems.length + '؛ یادداشت‌ها=' + notes.length + '؛ کارهای چک‌لیست=' + todos.length + '؛ خدمات سفارشی=' + services.length + '.'
+      ];
+      if (upcoming.length) lines.push('نمونه برنامه نزدیک برای حل ارجاع قبلی/بعدی: ' + upcoming.map(a => [a.clientName || 'مشتری بدون نام', a.dateKey || 'بدون تاریخ', a.time || 'بدون ساعت', a.service || 'خدمت نامشخص', a.status || 'pending', a.id || 'بدون شناسه'].join(' | ')).join(' ؛ '));
+      if (reminderItems.length) lines.push('نمونه هشدارهای فعال: ' + reminderItems.map(x => [x.message || 'یادآوری', x.date || 'بدون تاریخ', x.time || 'بدون ساعت', x.kind || 'personal', x.appointmentId || ''].join(' | ')).join(' ؛ '));
+      if (services.length) lines.push('خدمات تعریف‌شده: ' + services.map(x => String(x?.name || '')).filter(Boolean).slice(0,20).join('، '));
+      if (todos.length) lines.push('کارهای باز: ' + todos.filter(x => !x.done).slice(0,8).map(x => String(x.text || '')).join('؛ '));
+      return lines.join('\n').slice(0,6500);
+    }
     function minaBuildRecentConversationContext(maxChars = 5200) {
       const history = Array.isArray(appData.minaConversationHistory) ? appData.minaConversationHistory : [];
       const turns = history.slice(-24).map(item => (item.role === 'user' ? 'کاربر' : 'مینا') + ': ' + String(item.text || '').slice(0, 1400));
@@ -6850,11 +6879,13 @@
       if (!reply && navigator.onLine) {
         const recent = minaBuildRecentConversationContext(5200) || ('کاربر: ' + message);
         const customerMemory = minaBuildCustomerMemoryContext(message);
+        const workspaceCapabilities = minaBuildWorkspaceCapabilityContext();
         const trustedFacts = [dateTimeFact, customerHistoryFact, customerDateFact]
           .filter(value => typeof value === 'string' && value.trim())
           .map(value => 'نتیجه قطعی محاسبه/پرونده در برنامه: ' + value.trim())
           .join('\n');
         const cloudContext = [
+          workspaceCapabilities,
           'تاریخچه مکالمه محلی (جدیدترین پیام در انتها):',
           recent,
           customerMemory ? '\n\nحافظه واقعی پرونده مشتری:\n' + customerMemory.slice(0,2400) : '',
