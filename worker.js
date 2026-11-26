@@ -4,7 +4,8 @@ const MODEL = "@cf/zai-org/glm-4.7-flash";
 const FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 const QWEN_FALLBACK_MODEL = "@cf/qwen/qwen3.8-27b";
 const REVIEW_MODEL = "@cf/openai/gpt-oss-20b";
-const WORKER_VERSION = "mina-ai-response-v27-daily-quota-circuit-breaker";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
+const WORKER_VERSION = "mina-ai-response-v28-gemini-primary";
 const requestWindows = new Map();
 // Per-isolate circuit breakers prevent repeated calls to a provider that is known to be failing.
 const providerCooldowns = new Map();
@@ -54,10 +55,71 @@ function isRequestRateLimited(ip, now = Date.now()) {
   return false;
 }
 
+async function runGeminiModel(env, input) {
+  const messages = Array.isArray(input.messages) ? input.messages : [];
+  const systemText = messages.filter(item => item.role === "system").map(item => String(item.content || "")).join("\n\n");
+  const contents = messages.filter(item => item.role === "user" || item.role === "assistant").map(item => ({
+    role: item.role === "assistant" ? "model" : "user",
+    parts: [{ text: String(item.content || "") }]
+  }));
+  if (!contents.length) throw new Error("Gemini request has no user content");
+  const generationConfig = {
+    maxOutputTokens: Math.min(Number(input.max_tokens) || 700, 1000),
+    temperature: input.temperature ?? 0.2
+  };
+  const schema = input.response_format?.json_schema?.schema;
+  if (input.response_format && schema) {
+    generationConfig.responseMimeType = "application/json";
+    generationConfig.responseSchema = schema;
+  } else if (input.response_format?.type === "json_object") {
+    generationConfig.responseMimeType = "application/json";
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+      body: JSON.stringify({
+        ...(systemText ? { systemInstruction: { parts: [{ text: systemText }] } } : {}),
+        contents,
+        generationConfig
+      }),
+      signal: controller.signal
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = payload?.error?.message || payload?.message || `HTTP ${response.status}`;
+      throw new Error(`Gemini ${response.status}: ${String(detail).slice(0, 500)}`);
+    }
+    const text = (payload?.candidates?.[0]?.content?.parts || []).map(part => typeof part.text === "string" ? part.text : "").join("").trim();
+    if (!text) throw new Error("Gemini returned an empty response");
+    return { response: text };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function runMinaModel(env, cloudflareModel, input) {
   const failures = [];
   let attempted = 0;
   let quotaFailures = 0;
+
+  // Gemini is the primary language brain; its API key is held only as a Worker secret.
+  if (env.GEMINI_API_KEY && !providerCoolingDown("gemini:primary")) {
+    attempted++;
+    try {
+      const result = await runGeminiModel(env, input);
+      const failure = modelResultError(result);
+      if (failure) throw failure;
+      return result;
+    } catch (error) {
+      const quota = coolDownProvider("gemini:primary", error, 10 * 60 * 1000);
+      if (quota) quotaFailures++;
+      failures.push("gemini:primary: " + String(error?.message || error).slice(0, 240));
+    }
+  }
+
 
   // 1) Low-cost Cloudflare GLM is the primary model for routine Persian salon requests.
   // 2) Gemma 4 is a second independent Cloudflare model for model-specific capacity issues.
@@ -233,7 +295,7 @@ export default {
     const origin = request.headers.get("Origin") || "";
 
     if (request.method === "GET") {
-      return json({ success: true, status: "ready", version: WORKER_VERSION, providers: { cloudflareAI: !!env.AI?.run, groq: !!env.GROQ_API_KEY }, primaryModel: MODEL, fallbackModels: [FALLBACK_MODEL, QWEN_FALLBACK_MODEL] });
+      return json({ success: true, status: "ready", version: WORKER_VERSION, providers: { gemini: !!env.GEMINI_API_KEY, cloudflareAI: !!env.AI?.run, groq: !!env.GROQ_API_KEY }, primaryModel: GEMINI_MODEL, fallbackModels: [MODEL, FALLBACK_MODEL, QWEN_FALLBACK_MODEL, "groq/qwen3.8-27b"] });
     }
 
     if (!ALLOWED_ORIGINS.has(origin)) {
