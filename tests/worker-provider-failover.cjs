@@ -24,7 +24,7 @@ const post = async (worker, env, body) => {
       AI: {
         async run(model) {
           models.push(model);
-          if (model === "@cf/qwen/qwen3-30b-a3b-fp8") throw new Error("3040 out of capacity");
+          if (model === "@cf/zai-org/glm-4.7-flash") throw new Error("3040 out of capacity");
           return { response: JSON.stringify({ command: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" }) };
         }
       }
@@ -32,7 +32,7 @@ const post = async (worker, env, body) => {
     const result = await post(worker, env, { mode: "understand", message: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" });
     assert.equal(result.status, 200);
     assert.equal(result.data.success, true);
-    assert.deepEqual(models, ["@cf/qwen/qwen3-30b-a3b-fp8", "@cf/zai-org/glm-4.7-flash"]);
+    assert.deepEqual(models, ["@cf/zai-org/glm-4.7-flash", "@cf/google/gemma-4-26b-a4b-it"]);
   }
 
   // Daily Cloudflare quota exhaustion should skip its second model and use Groq Qwen.
@@ -60,7 +60,7 @@ const post = async (worker, env, body) => {
     const result = await post(worker, env, { mode: "understand", message: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" });
     assert.equal(result.status, 200);
     assert.equal(result.data.success, true);
-    assert.deepEqual(models, ["@cf/qwen/qwen3-30b-a3b-fp8"]);
+    assert.deepEqual(models, ["@cf/google/gemma-4-26b-a4b-it"]);
     assert.equal(groqCalls, 1);
   }
 
@@ -73,7 +73,7 @@ const post = async (worker, env, body) => {
       GROQ_API_KEY: "test-only",
       AI: {
         async run(model) {
-          assert.equal(model, "@cf/qwen/qwen3-30b-a3b-fp8");
+          assert.equal(model, "@cf/zai-org/glm-4.7-flash");
           return { response: JSON.stringify({ command: "برای مشتری فردا ساعت ۱۷ نوبت ثبت کن" }) };
         }
       }
