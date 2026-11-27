@@ -1039,7 +1039,8 @@
     .nav-inner { grid-template-columns:repeat(6,minmax(0,1fr)); }
     .mina-hero { text-align:center; padding:22px 16px 18px; background:linear-gradient(145deg,#fff0f6,#f4edff 58%,#fff5eb); border:1px solid #f0d6e2; color:#63465a; overflow:hidden; }
     .mina-orbit { width:92px;height:92px;margin:0 auto 9px;border-radius:50%;display:grid;place-items:center;position:relative;background:linear-gradient(145deg,#f7c9dc,#e5d8f8);box-shadow:0 10px 28px rgba(191,126,160,.22); }
-    .mina-avatar { width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#fff,#ffe7f0);border:2px solid rgba(255,255,255,.9);font-family:Georgia,serif;font-size:2rem;font-weight:700;color:#bd6f94;box-shadow:inset 0 0 0 1px #eec8d8; }
+    .mina-avatar { width:66px;height:66px;border-radius:50%;display:block;overflow:hidden;background:#fff0f6;border:2px solid rgba(255,255,255,.95);box-shadow:0 0 0 2px #e8b7cf,0 5px 16px rgba(169,91,130,.24); }
+    .mina-avatar img { width:100%;height:100%;display:block;object-fit:cover;object-position:center 35%; }
     .mina-spark { position:absolute;color:#c17c9d;font-size:1.2rem; }.mina-spark.s1{top:0;right:4px}.mina-spark.s2{bottom:4px;left:0}.mina-spark.s3{top:28px;left:-8px}
     .mina-brand {font-size:1.65rem;font-weight:900;color:#a9567b}.mina-brand span{font:italic 1rem Georgia,serif;color:#b58ca9;margin-right:5px}
     .mina-tagline{font-size:.78rem;color:#96758a;margin-top:2px}.mina-welcome{margin:13px auto 0;max-width:420px;padding:10px 13px;border-radius:15px;background:rgba(255,255,255,.68);font-size:.82rem;line-height:1.9}
@@ -1440,7 +1441,7 @@
 <!-- ==================== MINA PERSONAL ASSISTANT ==================== -->
     <section id="tab-mina" class="tab-section">
       <div class="mina-hero card">
-        <div class="mina-orbit"><div class="mina-avatar">💗</div><span class="mina-spark s1">✦</span><span class="mina-spark s2">✧</span><span class="mina-spark s3">♡</span></div>
+        <div class="mina-orbit"><div class="mina-avatar"><img src="https://d2ol7oe51mr4n9.cloudfront.net/user_3Lw3P3lUkNJwU0oQUfHiI7EOfHq/f2e329e3-fe60-4a00-9d5e-1b2f236dd46a.png" alt="تصویر مینا" decoding="async" fetchpriority="high" /></div><span class="mina-spark s1">✦</span><span class="mina-spark s2">✧</span><span class="mina-spark s3">♡</span></div>
         <div class="mina-brand">مینا <span>Mina</span></div>
         <div class="mina-tagline">دستیار هوشمند، مطمئن و خوش‌انرژی تو 🌷</div>
         <div class="mina-welcome" id="minaWelcome">سلام عزیزم! من مینام؛ حواسم به نوبت‌ها، مشتری‌ها و ریزه‌کاری‌های کارته. تو فقط بگو چی می‌خوای! 😉💗</div>
