@@ -1044,7 +1044,8 @@
     .mina-spark { position:absolute;color:#c17c9d;font-size:1.2rem; }.mina-spark.s1{top:0;right:4px}.mina-spark.s2{bottom:4px;left:0}.mina-spark.s3{top:28px;left:-8px}
     .mina-identity{min-width:0;flex:1}.mina-brand {font-size:1.45rem;font-weight:900;color:#a9567b;line-height:1.45}.mina-brand span{font:italic 1rem Georgia,serif;color:#b58ca9;margin-right:5px}
     .mina-tagline{font-size:.76rem;color:#96758a;margin-top:1px}.mina-welcome{margin:4px 0 0;padding:0;background:transparent;font-size:.72rem;line-height:1.65;color:#96758a}
-    .mina-mode-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0 10px}
+    .mina-mode-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0 8px;padding:8px;background:rgba(255,255,255,.82);border:1px solid #f0d6e2;border-radius:14px}
+    html[data-theme="dark"] .mina-mode-picker{background:#292431;border-color:#574254}
     .mina-mode-picker .mina-mode-btn{min-width:0;min-height:36px;padding:6px 4px!important;border-radius:11px!important;font-size:.76rem!important;line-height:1.35;white-space:nowrap}
     .mina-mode-picker .mina-mode-btn.active{background:#f6dce9!important;border-color:#d99ab8!important;color:#8e315d!important;box-shadow:inset 0 0 0 1px rgba(181,76,126,.12)}
     .mina-clear-chat{white-space:nowrap;flex:0 0 auto}
@@ -1456,19 +1457,13 @@
           <div class="mina-welcome" id="minaWelcome">سلام عزیزم! آماده‌ام کمکت کنم 🌸</div>
         </div>
       </div>
+      <div class="mina-mode-picker" role="group" aria-label="حالت گفت‌وگوی مینا">
+        <button type="button" class="btn-secondary mina-mode-btn active" id="minaModeFriendly" aria-pressed="true" onclick="setMinaMode('friendly')">💗 صمیمی</button>
+        <button type="button" class="btn-secondary mina-mode-btn" id="minaModeProfessional" aria-pressed="false" onclick="setMinaMode('professional')">💼 حرفه‌ای</button>
+        <button type="button" class="btn-secondary mina-mode-btn" id="minaModeFast" aria-pressed="false" onclick="setMinaMode('fast')">⚡ سریع</button>
+      </div>
       <div class="mina-chat-card card">
-        <div class="mina-chat-head"><div><strong>گفت‌وگو با مینا</strong><small id="minaModeDescription">صمیمی، باهوش و همراهتم؛ هر طور راحتی بگو یا بنویس 💗</small></div><button type="button" class="mini-btn mina-clear-chat" onclick="clearMinaChat()" aria-label="پاک کردن گفتگو">🗑 پاک کردن گفتگو</button></div>
-        <div class="mina-mode-picker" role="group" aria-label="حالت گفت‌وگوی مینا">
-          <button type="button" class="btn-secondary mina-mode-btn active" id="minaModeFriendly" aria-pressed="true" onclick="setMinaMode('friendly')">💗 صمیمی</button>
-          <button type="button" class="btn-secondary mina-mode-btn" id="minaModeProfessional" aria-pressed="false" onclick="setMinaMode('professional')">💼 حرفه‌ای</button>
-          <button type="button" class="btn-secondary mina-mode-btn" id="minaModeFast" aria-pressed="false" onclick="setMinaMode('fast')">⚡ سریع</button>
-        </div>
-        <div class="mina-quick-actions" aria-label="میانبرهای گفت‌وگو با مینا" style="display:flex;flex-wrap:wrap;gap:7px;margin:0 0 10px;">
-          <button type="button" class="btn-pill" onclick="askMina('مینا امروز چه نوبت‌هایی دارم؟')">📅 برنامه امروز</button>
-          <button type="button" class="btn-pill" onclick="askMina('مینا برنامه نوبت‌های این هفته رو نشون بده')">🗓️ این هفته</button>
-          <button type="button" class="btn-pill" onclick="askMina('مینا یادداشت‌هام رو نشون بده')">📝 یادداشت‌ها</button>
-          <button type="button" class="btn-pill" onclick="askMina('مینا موعد نوبت‌های بعدی رو بگو')">🔔 نوبت‌های بعدی</button>
-        </div>
+        <div class="mina-chat-head"><strong>گفت‌وگو با مینا</strong><button type="button" class="mini-btn mina-clear-chat" onclick="clearMinaChat()" aria-label="پاک کردن گفتگو">🗑 پاک کردن گفتگو</button></div>
         <div id="minaChatMessages" class="mina-messages" aria-live="polite">
           <div class="mina-message assistant"><span class="mina-message-avatar">M</span><div class="mina-bubble">سلام عزیزم! من مینام؛ حواسم به نوبت‌ها، مشتری‌ها و ریزه‌کاری‌های کارته! تو فقط بگو چی می‌خوای، بقیه‌ش با من! 😉💗</div></div>
         </div>
@@ -1479,16 +1474,7 @@
             <button type="button" class="btn-primary mina-send-btn" onclick="sendMinaMessage()">ارسال <span>➤</span></button>
           </div>
         </div>
-        <div class="mina-hint">🎀 می‌تونی حرف بزنی، تایپ کنی یا از میانبرها استفاده کنی؛ مینا با توجه به حالت انتخابی جواب می‌ده 💕</div>
-      </div>
-      <div class="card">
-        <div class="section-title">✨ سریع از مینا بپرس</div>
-        <div class="mina-suggestions">
-          <button onclick="askMina('مینا امروز چه نوبت‌هایی دارم؟')">📅 برنامه امروز من</button>
-          <button onclick="askMina('مینا برنامه نوبت‌های این هفته رو نشون بده')">📅 نوبت‌های این هفته</button>
-          <button onclick="askMina('مینا مشتری‌های موعد نوبت بعدی رو بگو')">🔔 موعد نوبت‌های بعدی</button>
-          <button onclick="askMina('مینا یادداشت‌هام رو نشون بده')">📝 یادداشت‌هام</button>
-        </div>
+        <div class="mina-hint">🎀 می‌تونی حرف بزنی یا تایپ کنی؛ مینا با توجه به حالت انتخابی جواب می‌ده 💕</div>
       </div>
     </section>
 
