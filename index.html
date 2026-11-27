@@ -337,6 +337,14 @@
     }
     .section-title { font-size: 1.02rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 6px; }
 
+    .customer-count-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:2px 0 13px; }
+    .customer-count-card { min-width:0; min-height:76px; padding:11px 7px; border-radius:14px; border:1px solid var(--border-subtle); background:var(--bg-input); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; }
+    .customer-count-label { color:var(--text-secondary); font-size:.69rem; font-weight:750; line-height:1.45; }
+    .customer-count-card strong { color:var(--accent); font-size:1.28rem; font-weight:950; line-height:1.1; font-variant-numeric:tabular-nums; }
+    .customer-count-vip { border-color:rgba(212,175,55,.38); background:linear-gradient(145deg,rgba(212,175,55,.12),var(--bg-input)); }
+    .customer-count-regular { border-color:rgba(167,139,250,.28); background:linear-gradient(145deg,rgba(167,139,250,.10),var(--bg-input)); }
+    @media (max-width:360px) { .customer-count-summary { gap:5px; } .customer-count-card { padding:9px 3px; min-height:70px; } .customer-count-label { font-size:.62rem; } .customer-count-card strong { font-size:1.12rem; } }
+
     .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 13px; }
     .stat-card {
       background: var(--bg-card); border: 1px solid var(--border-subtle);
@@ -1373,6 +1381,11 @@
         <div class="section-head">
           <div class="section-title">👥 پرونده مشتریان و سوابق</div>
           <button class="btn-primary" type="button" onclick="openAddClientModal()">➕ افزودن مشتری</button>
+        </div>
+        <div id="customerCountSummary" class="customer-count-summary" aria-live="polite" aria-atomic="true">
+          <div class="customer-count-card customer-count-total"><span class="customer-count-label">👥 کل مشتریان</span><strong id="customerCountTotal">۰</strong></div>
+          <div class="customer-count-card customer-count-vip"><span class="customer-count-label">💎 مشتریان VIP</span><strong id="customerCountVip">۰</strong></div>
+          <div class="customer-count-card customer-count-regular"><span class="customer-count-label">🌸 مشتریان معمولی</span><strong id="customerCountRegular">۰</strong></div>
         </div>
         <div class="form-group">
           <input type="text" id="globalSearchInput" class="form-control" placeholder="🔎 جستجوی نام مشتری، شماره تماس یا خدمت..." oninput="renderClientsTab()" />
@@ -3661,6 +3674,17 @@
         if (!map[key]) map[key] = { key, name: p.name || key, phone: p.phone || '', visits: [] };
         else { map[key].name = p.name || map[key].name; map[key].phone = p.phone || map[key].phone; }
       });
+      // Count unique customer records, not appointments or visit-history rows.
+      const allCustomerEntries = Object.entries(map);
+      const totalCustomerCount = allCustomerEntries.length;
+      const vipCustomerCount = allCustomerEntries.filter(([key]) => (appData.clientProfiles || {})[key]?.vip === true).length;
+      const regularCustomerCount = totalCustomerCount - vipCustomerCount;
+      const countTotalNode = document.getElementById('customerCountTotal');
+      const countVipNode = document.getElementById('customerCountVip');
+      const countRegularNode = document.getElementById('customerCountRegular');
+      if (countTotalNode) countTotalNode.textContent = toPersianDigits(totalCustomerCount);
+      if (countVipNode) countVipNode.textContent = toPersianDigits(vipCustomerCount);
+      if (countRegularNode) countRegularNode.textContent = toPersianDigits(regularCustomerCount);
       // Give legacy customer profiles and their existing appointments a durable shared identity.
       let migratedClientIdentity = false;
       Object.values(map).forEach(cl => {
