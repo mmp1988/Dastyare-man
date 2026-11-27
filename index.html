@@ -4332,7 +4332,6 @@
       const file = event.target.files && event.target.files[0];
       if (!file) return;
       if (!file.type.startsWith('image/')) { showToast('لطفاً یک فایل عکس انتخاب کن.'); event.target.value=''; return; }
-      if (file.size > 30 * 1024 * 1024) { showToast('حجم فایل بیشتر از ۳۰ مگابایت است؛ عکس دیگری انتخاب کن.'); event.target.value=''; return; }
       try {
         const photoRef = await saveClientPhotoBlob(file);
         if (target === 'profile') {
