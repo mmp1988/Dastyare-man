@@ -4338,6 +4338,11 @@
         if(input) input.value='';
         return;
       }
+      if(target==='profile') {
+        openProfilePhotoEditor(file);
+        if(input) input.value='';
+        return;
+      }
       try {
         const photoRef = await saveClientPhotoBlob(file);
         if (target === 'profile') {
@@ -9299,6 +9304,121 @@
   close.addEventListener('click',closePhoto);
   layer.addEventListener('click',function(event){if(event.target===layer)closePhoto();});
   document.addEventListener('keydown',function(event){if(event.key==='Escape'&&layer.classList.contains('is-open'))closePhoto();});
+})();
+</script>
+
+
+<!-- ویرایشگر عکس پروفایل؛ کاملاً محلی و بدون ارسال عکس به سرور -->
+<style>
+#clientPhotoEditor{position:fixed;inset:0;z-index:100050;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
+#clientPhotoEditor.open{display:flex}
+#clientPhotoEditor .editor-card{width:min(100%,440px);max-height:94dvh;overflow:auto;background:var(--bg-card,#fff);color:var(--text-primary,#222);border-radius:18px;padding:14px;box-sizing:border-box}
+#clientPhotoEditorCanvas{display:block;width:min( min(78vw,320px),100%);height:auto;aspect-ratio:1/1;background:#222;border-radius:14px;margin:12px auto;touch-action:none;cursor:grab}
+#clientPhotoEditorCanvas:active{cursor:grabbing}
+#clientPhotoEditor input[type=range]{width:100%;accent-color:var(--accent)}
+#clientPhotoEditor .editor-actions{display:flex;gap:8px;margin-top:12px}
+#clientPhotoEditor .editor-actions button{flex:1;min-height:44px}
+</style>
+<div id="clientPhotoEditor" role="dialog" aria-modal="true" aria-label="ویرایش عکس پروفایل">
+  <div class="editor-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <strong>✂️ تنظیم عکس پروفایل</strong>
+      <button type="button" class="icon-btn" onclick="closeProfilePhotoEditor()">✕</button>
+    </div>
+    <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.8;margin-top:6px">با کشیدن عکس، جای آن را تنظیم کن؛ با بزرگ‌نمایی اندازه کادر را تغییر بده. بخش داخل مربع برای پروفایل ذخیره می‌شود.</div>
+    <canvas id="clientPhotoEditorCanvas" width="320" height="320"></canvas>
+    <label for="clientPhotoEditorZoom" style="display:block;font-size:.78rem;font-weight:700">بزرگ‌نمایی عکس</label>
+    <input id="clientPhotoEditorZoom" type="range" min="1" max="3" step=".01" value="1" oninput="renderProfilePhotoEditor()" />
+    <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-secondary)"><span>کامل</span><span>نزدیک</span></div>
+    <div class="editor-actions">
+      <button type="button" class="btn-secondary" onclick="closeProfilePhotoEditor()">انصراف</button>
+      <button type="button" class="btn-primary" id="clientPhotoEditorSave" onclick="saveEditedProfilePhoto()">ذخیره عکس</button>
+    </div>
+  </div>
+</div>
+<script id="clientProfilePhotoEditorScript">
+(function(){
+  let sourceImage=null, sourceUrl='', sourceFile=null, centerX=.5, centerY=.5, dragging=false, lastX=0,lastY=0,busy=false;
+  const layer=()=>document.getElementById('clientPhotoEditor');
+  const canvas=()=>document.getElementById('clientPhotoEditorCanvas');
+  function cropRect(){
+    const w=sourceImage.naturalWidth,h=sourceImage.naturalHeight;
+    const zoom=Number(document.getElementById('clientPhotoEditorZoom').value)||1;
+    const side=Math.min(w,h)/zoom;
+    const x=Math.max(0,Math.min(w-side,centerX*w-side/2));
+    const y=Math.max(0,Math.min(h-side,centerY*h-side/2));
+    return {x,y,side};
+  }
+  window.renderProfilePhotoEditor=function(){
+    if(!sourceImage)return;
+    const c=canvas(),ctx=c.getContext('2d'),r=cropRect();
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.drawImage(sourceImage,r.x,r.y,r.side,r.side,0,0,c.width,c.height);
+  };
+  window.openProfilePhotoEditor=function(file){
+    closeProfilePhotoEditor();
+    sourceFile=file;centerX=.5;centerY=.5;
+    const url=URL.createObjectURL(file);sourceUrl=url;
+    const img=new Image();
+    img.onload=function(){
+      sourceImage=img;
+      const z=document.getElementById('clientPhotoEditorZoom');z.value='1';
+      layer().classList.add('open');renderProfilePhotoEditor();
+    };
+    img.onerror=function(){
+      URL.revokeObjectURL(url);sourceUrl='';sourceImage=null;
+      showToast('این تصویر با فرمت فعلی قابل ویرایش نیست؛ لطفاً آن را به JPG یا PNG تبدیل کن.');
+    };
+    img.src=url;
+  };
+  window.closeProfilePhotoEditor=function(){
+    layer().classList.remove('open');
+    if(sourceUrl){URL.revokeObjectURL(sourceUrl);sourceUrl='';}
+    sourceImage=null;sourceFile=null;dragging=false;busy=false;
+    const b=document.getElementById('clientPhotoEditorSave');if(b){b.disabled=false;b.textContent='ذخیره عکس';}
+  };
+  window.saveEditedProfilePhoto=async function(){
+    if(!sourceImage||busy)return;
+    busy=true;const button=document.getElementById('clientPhotoEditorSave');button.disabled=true;button.textContent='در حال ذخیره…';
+    try{
+      const r=cropRect(),out=document.createElement('canvas');out.width=1024;out.height=1024;
+      const ctx=out.getContext('2d',{alpha:false});
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      ctx.drawImage(sourceImage,r.x,r.y,r.side,r.side,0,0,1024,1024);
+      const blob=await new Promise((resolve,reject)=>out.toBlob(v=>v?resolve(v):reject(new Error('Image encoding failed')),'image/jpeg',.9));
+      const key=document.getElementById('clientRecordKey').value;
+      if(!key)throw new Error('Customer profile is not open');
+      const photoRef=await saveClientPhotoBlob(blob),profile=getClientProfile(key),oldRef=profile.photoRef;
+      profile.photoRef=photoRef;profile.photo='';profile.photoZoom=100;profile.photoUpdatedAt=Date.now();saveData();
+      const url=URL.createObjectURL(blob),preview=document.getElementById('clientProfilePhotoPreview'),full=document.getElementById('clientProfileFullPhoto');
+      preview.src=url;preview.style.display='block';full.src=url;
+      document.getElementById('clientProfileFullPhotoPanel').style.display='block';
+      document.getElementById('clientProfilePhotoEmpty').style.display='none';
+      if(oldRef&&oldRef!==photoRef){
+        try{const db=await openClientPhotoDB();await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(oldRef);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();}catch(e){}
+      }
+      closeProfilePhotoEditor();showToast('عکس ویرایش‌شده و مربعِ پروفایل ذخیره شد ✨');
+    }catch(e){
+      console.error('Profile photo edit failed:',e);busy=false;button.disabled=false;button.textContent='ذخیره عکس';
+      showToast('ذخیره عکس انجام نشد؛ فضای خالی گوشی را بررسی کن.');
+    }
+  };
+  const c=canvas();
+  c.addEventListener('pointerdown',e=>{if(!sourceImage)return;dragging=true;lastX=e.clientX;lastY=e.clientY;c.setPointerCapture(e.pointerId);});
+  c.addEventListener('pointermove',e=>{
+    if(!dragging||!sourceImage)return;
+    const r=c.getBoundingClientRect(),side=cropRect().side;
+    const scale=side/Math.min(sourceImage.naturalWidth,sourceImage.naturalHeight);
+    const dx=(e.clientX-lastX)*sourceImage.naturalWidth/(r.width||320)*scale;
+    const dy=(e.clientY-lastY)*sourceImage.naturalHeight/(r.height||320)*scale;
+    centerX-=dx/sourceImage.naturalWidth;centerY-=dy/sourceImage.naturalHeight;
+    centerX=Math.max(0,Math.min(1,centerX));centerY=Math.max(0,Math.min(1,centerY));
+    lastX=e.clientX;lastY=e.clientY;renderProfilePhotoEditor();
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(n=>c.addEventListener(n,()=>dragging=false));
+  layer().addEventListener('click',e=>{if(e.target===layer())closeProfilePhotoEditor();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&layer().classList.contains('open'))closeProfilePhotoEditor();});
 })();
 </script>
 
