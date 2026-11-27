@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dastyare-man-final-v104-customer-counts';
+const CACHE_NAME = 'dastyare-man-final-v105-mina-avatar';
 const PHOTO_CODEC_CACHE = 'mina-photo-codecs-v1';
 const CORE_ASSETS = [
   './',
@@ -45,7 +45,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request, { cache: 'no-store' })
       .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
+        if (networkResponse && (networkResponse.status === 200 || (requestUrl.includes('f2e329e3-fe60-4a00-9d5e-1b2f236dd46a.png') && networkResponse.type === 'opaque'))) {
           const responseClone = networkResponse.clone();
           event.waitUntil(
             caches.open(targetCache)
