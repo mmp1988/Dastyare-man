@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dastyare-man-final-v103-heic-photo-support';
+const CACHE_NAME = 'dastyare-man-final-v104-customer-counts';
 const PHOTO_CODEC_CACHE = 'mina-photo-codecs-v1';
 const CORE_ASSETS = [
   './',
