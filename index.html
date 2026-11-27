@@ -9295,17 +9295,47 @@
     ctx.clearRect(0,0,c.width,c.height);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
     ctx.drawImage(sourceImage,r.x,r.y,r.side,r.side,0,0,c.width,c.height);
   };
-  window.openProfilePhotoEditor=function(file,target='profile'){
+  async function loadHeicDecoder(){
+    if(typeof window.heic2any==='function')return window.heic2any;
+    if(window.__minaHeicDecoderPromise)return window.__minaHeicDecoderPromise;
+    window.__minaHeicDecoderPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+      script.async=true;script.crossOrigin='anonymous';
+      script.onload=()=>typeof window.heic2any==='function'?resolve(window.heic2any):reject(new Error('HEIC decoder unavailable'));
+      script.onerror=()=>reject(new Error('HEIC decoder download failed'));
+      document.head.appendChild(script);
+    });
+    try{return await window.__minaHeicDecoderPromise;}catch(e){window.__minaHeicDecoderPromise=null;throw e;}
+  }
+  window.openProfilePhotoEditor=async function(file,target='profile'){
     window.closeProfilePhotoEditor();
     sourceTarget=target||'profile';centerX=.5;centerY=.5;
-    const url=URL.createObjectURL(file);sourceUrl=url;
+    let imageBlob=file;
+    const filename=String(file&&file.name||'').toLowerCase();
+    const mime=String(file&&file.type||'').toLowerCase();
+    const isHeic=/\\.(heic|heif)$/i.test(filename)||mime.includes('heic')||mime.includes('heif');
+    if(isHeic){
+      try{
+        showToast('در حال آماده‌سازی عکس HEIC…');
+        const decoder=await loadHeicDecoder();
+        imageBlob=await decoder({blob:file,toType:'image/jpeg',quality:.95});
+        if(Array.isArray(imageBlob))imageBlob=imageBlob[0];
+        if(!imageBlob)throw new Error('HEIC conversion returned no image');
+      }catch(error){
+        console.error('HEIC decode failed:',error);
+        showToast(navigator.onLine?'باز کردن این عکس HEIC ممکن نشد؛ یک نسخه JPG از آن انتخاب کن.':'برای باز کردن HEIC، یک‌بار با اینترنت عکس را باز کن تا مبدل ذخیره شود.');
+        return;
+      }
+    }
+    const url=URL.createObjectURL(imageBlob);sourceUrl=url;
     const img=new Image();
     img.onload=function(){
       sourceImage=img;document.getElementById('clientPhotoEditorZoom').value='1';
       document.getElementById('clientPhotoEditorTitle').textContent=titles[sourceTarget]||'✂️ تنظیم عکس';
       layer().classList.add('open');window.renderProfilePhotoEditor();
     };
-    img.onerror=function(){URL.revokeObjectURL(url);sourceUrl='';sourceImage=null;showToast('این تصویر در گوشی قابل ویرایش نیست؛ لطفاً عکس JPG یا PNG انتخاب کن.');};
+    img.onerror=function(){URL.revokeObjectURL(url);sourceUrl='';sourceImage=null;showToast('این قالب تصویر در مرورگر گوشی پشتیبانی نمی‌شود؛ لطفاً آن را به JPG یا PNG تبدیل کن.');};
     img.src=url;
   };
   window.closeProfilePhotoEditor=function(){
