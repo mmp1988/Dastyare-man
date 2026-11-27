@@ -5122,15 +5122,10 @@
     }
 
     function handleLogoUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        appData.settings.customLogo = e.target.result;
-        saveData(); applySettingsUI();
-        showToast('عکس داخلی برنامه تغییر کرد ✨');
-      };
-      reader.readAsDataURL(file);
+      const input=event&&event.target,file=input&&input.files&&input.files[0];if(!file)return;
+      const valid=String(file.type||'').toLowerCase().startsWith('image/')||/\\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
+      if(!valid){showToast('لطفاً یک فایل تصویری انتخاب کن.');input.value='';return;}
+      openProfilePhotoEditor(file,'logo');input.value='';
     }
 
     function resetInternalLogo() {
@@ -9288,7 +9283,7 @@
   let sourceImage=null,sourceUrl='',sourceTarget='profile',centerX=.5,centerY=.5,dragging=false,lastX=0,lastY=0,busy=false;
   const layer=()=>document.getElementById('clientPhotoEditor');
   const canvas=()=>document.getElementById('clientPhotoEditorCanvas');
-  const titles={profile:'✂️ تنظیم عکس پروفایل',before:'✂️ تنظیم عکس قبل از کار',after:'✂️ تنظیم عکس بعد از کار',work:'✂️ تنظیم عکس تکمیلی',archive:'✂️ تنظیم عکس آرشیو'};
+  const titles={logo:'✂️ تنظیم لوگوی برنامه',profile:'✂️ تنظیم عکس پروفایل',before:'✂️ تنظیم عکس قبل از کار',after:'✂️ تنظیم عکس بعد از کار',work:'✂️ تنظیم عکس تکمیلی',archive:'✂️ تنظیم عکس آرشیو'};
   function cropRect(){
     const w=sourceImage.naturalWidth,h=sourceImage.naturalHeight,zoom=Number(document.getElementById('clientPhotoEditorZoom').value)||1;
     const side=Math.min(w,h)/zoom;
@@ -9326,8 +9321,13 @@
       const ctx=out.getContext('2d',{alpha:false});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
       ctx.drawImage(sourceImage,r.x,r.y,r.side,r.side,0,0,1024,1024);
       const blob=await new Promise((resolve,reject)=>out.toBlob(v=>v?resolve(v):reject(new Error('Image encoding failed')),'image/jpeg',.9));
+      const target=sourceTarget;
+      if(target==='logo'){
+        appData.settings.customLogo=out.toDataURL('image/jpeg',.9);saveData();applySettingsUI();
+        window.closeProfilePhotoEditor();showToast('لوگوی برنامه با برش دلخواه ذخیره شد ✨');return;
+      }
       const key=String(document.getElementById('clientRecordKey')?.value||'');if(!key)throw new Error('Customer profile is not open');
-      const ref=await saveClientPhotoBlob(blob),p=getClientProfile(key),target=sourceTarget;
+      const ref=await saveClientPhotoBlob(blob),p=getClientProfile(key);
       if(target==='profile'){
         const old=p.photoRef;p.photoRef=ref;p.photo='';p.photoZoom=100;p.photoUpdatedAt=Date.now();saveData();
         const url=URL.createObjectURL(blob),preview=document.getElementById('clientProfilePhotoPreview'),full=document.getElementById('clientProfileFullPhoto');
