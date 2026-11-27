@@ -8823,12 +8823,10 @@
       if(button){button.disabled=false;button.textContent='🔄 بروزرسانی';}
       if(nativeContentUpdateResult==='error'||nativeApkUpdateResult==='error'){
         showToast('بررسی نسخه کامل نشد؛ وضعیت به‌روز بودن قابل تأیید نیست.');
-      }else if(nativeApkUpdateResult==='available'){
-        showToast('یک نسخه جدید واقعی اندروید منتشر شده است (نسخه '+nativeApkUpdateDetails.latest+'). تغییرات عادی برنامه خودکار اعمال می‌شوند و برای آن‌ها نصب APK لازم نیست.');
       }else if(nativeContentUpdateResult==='updated'){
-        showToast('تغییرات برنامه دریافت و خودکار اعمال شد؛ نصب مجدد اپ لازم نیست ✅');
+        showToast('تغییرات برنامه در پس‌زمینه دریافت و اعمال شد؛ نصب مجدد لازم نیست ✅');
       }else{
-        showToast('برنامه به‌روز است؛ نسخه جدید اندروید یا تغییر محتوایی تازه‌ای وجود ندارد ✅');
+        showToast('محتوای برنامه به‌روز است؛ نیازی به نصب نسخه جدید نیست ✅');
       }
     }
     window.onNativeContentCheckResult=function(result){
