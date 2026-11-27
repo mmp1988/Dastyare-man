@@ -4329,23 +4329,38 @@
       img.dataset.previewUrl=url;img.src=url;box.style.display='block';
     }
     async function handleClientPhoto(event, target) {
-      const file = event.target.files && event.target.files[0];
+      const input=event&&event.target, file=input&&input.files&&input.files[0];
       if (!file) return;
-      if (!file.type.startsWith('image/')) { showToast('لطفاً یک فایل عکس انتخاب کن.'); event.target.value=''; return; }
+      // بعضی گالری‌ها در Android WebView نوع MIME را خالی برمی‌گردانند؛ پسوند فایل را هم بررسی کن.
+      const imageExtension=/\\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
+      if (!(String(file.type||'').toLowerCase().startsWith('image/') || imageExtension)) {
+        showToast('این فایل به‌عنوان تصویر شناخته نشد؛ از گالری یک عکس انتخاب کن.');
+        if(input) input.value='';
+        return;
+      }
       try {
         const photoRef = await saveClientPhotoBlob(file);
         if (target === 'profile') {
           const key = document.getElementById('clientRecordKey').value;
+          if(!key) throw new Error('پرونده مشتری باز نیست');
           const p = getClientProfile(key);
-          if (p.photoRef) { try { const db=await openClientPhotoDB(); const tx=db.transaction('photos','readwrite'); tx.objectStore('photos').delete(p.photoRef); db.close(); } catch(e){} }
+          const previousRef=p.photoRef;
           p.photoRef = photoRef; p.photo = ''; p.photoZoom=p.photoZoom||100; p.photoUpdatedAt = Date.now();
           saveData();
           const preview = document.getElementById('clientProfilePhotoPreview');
-          preview.src = URL.createObjectURL(file); preview.style.display = 'block';
-          document.getElementById('clientProfileFullPhoto').src=preview.src;
+          const full=document.getElementById('clientProfileFullPhoto');
+          const url=URL.createObjectURL(file);
+          preview.onload=()=>{ preview.style.display='block'; };
+          preview.onerror=()=>{ preview.style.display='none'; showToast('فایل انتخاب شد اما قالب تصویر در این گوشی قابل نمایش نیست؛ عکس را با فرمت JPG یا PNG انتخاب کن.'); };
+          full.onerror=()=>{ showToast('تصویر ذخیره شد، اما نمایش این قالب در گوشی پشتیبانی نمی‌شود.'); };
+          preview.src=url; full.src=url;
+          preview.style.display='block';
           document.getElementById('clientProfileFullPhotoPanel').style.display='block';
           document.getElementById('clientProfilePhotoEmpty').style.display = 'none';
-          showToast('عکس اصلی با کیفیت دوربین ذخیره شد 📷');
+          if(previousRef && previousRef!==photoRef) {
+            try { const db=await openClientPhotoDB(); await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(previousRef);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);}); db.close(); } catch(e){}
+          }
+          showToast('عکس پروفایل در حافظه گوشی ذخیره شد 📷');
         } else if (target === 'before') {
           showClientUploadPreview('before',file);
           pendingClientBeforePhoto = photoRef;
@@ -4363,9 +4378,10 @@
           showToast('عکس تکمیلی جلسه آماده شد 📷');
         }
       } catch(e) {
-        showToast('ذخیره عکس انجام نشد. فضای خالی گوشی را بررسی کن.');
+        console.error('Customer photo upload failed:',e);
+        showToast('ذخیره عکس انجام نشد. دسترسی گالری و فضای خالی گوشی را بررسی کن.');
       } finally {
-        if (event && event.target) event.target.value = '';
+        if (input) input.value = '';
       }
     }
     function renderClientCustomFields(key) {
