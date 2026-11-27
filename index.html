@@ -4332,7 +4332,7 @@
       const input=event&&event.target, file=input&&input.files&&input.files[0];
       if (!file) return;
       // بعضی گالری‌ها در Android WebView نوع MIME را خالی برمی‌گردانند؛ پسوند فایل را هم بررسی کن.
-      const imageExtension=/\\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
+      const imageExtension=/\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
       if (!(String(file.type||'').toLowerCase().startsWith('image/') || imageExtension)) {
         showToast('این فایل به‌عنوان تصویر شناخته نشد؛ از گالری یک عکس انتخاب کن.');
         if(input) input.value='';
@@ -5123,7 +5123,7 @@
 
     function handleLogoUpload(event) {
       const input=event&&event.target,file=input&&input.files&&input.files[0];if(!file)return;
-      const valid=String(file.type||'').toLowerCase().startsWith('image/')||/\\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
+      const valid=String(file.type||'').toLowerCase().startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
       if(!valid){showToast('لطفاً یک فایل تصویری انتخاب کن.');input.value='';return;}
       openProfilePhotoEditor(file,'logo');input.value='';
     }
@@ -9174,7 +9174,7 @@
     }
     async function handleClientArchivePhoto(event) {
       const input=event&&event.target,file=input&&input.files&&input.files[0];if(!file)return;
-      const isImage=String(file.type||'').toLowerCase().startsWith('image/')||/\\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
+      const isImage=String(file.type||'').toLowerCase().startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(String(file.name||''));
       if(!isImage){showToast('لطفاً یک عکس انتخاب کن.');input.value='';return;}
       const key=String(document.getElementById('clientRecordKey')?.value||'');if(!key){showToast('ابتدا پرونده مشتری را باز کن.');input.value='';return;}
       openProfilePhotoEditor(file,'archive');input.value='';
@@ -9314,7 +9314,7 @@
     let imageBlob=file;
     const filename=String(file&&file.name||'').toLowerCase();
     const mime=String(file&&file.type||'').toLowerCase();
-    const isHeic=/\\.(heic|heif)$/i.test(filename)||mime.includes('heic')||mime.includes('heif');
+    const isHeic=/\.(heic|heif)$/i.test(filename)||mime.includes('heic')||mime.includes('heif');
     if(isHeic){
       try{
         showToast('در حال آماده‌سازی عکس HEIC…');
