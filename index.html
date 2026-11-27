@@ -9206,7 +9206,6 @@
     async function handleClientArchivePhoto(event) {
       const input=event.target,file=input.files&&input.files[0];if(!file)return;
       if(!file.type.startsWith('image/')){showToast('لطفاً یک عکس انتخاب کن.');input.value='';return;}
-      if(file.size>30*1024*1024){showToast('حجم عکس بیشتر از ۳۰ مگابایت است.');input.value='';return;}
       const key=String(document.getElementById('clientRecordKey')?.value||'');if(!key){showToast('ابتدا پرونده مشتری را باز کن.');return;}
       try{
         const ref=await saveClientPhotoBlob(file),p=getClientProfile(key);
