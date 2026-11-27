@@ -835,18 +835,10 @@ public class MainActivity extends Activity {
         PersonalReminderReceiver.rescheduleAll(this);
         // Recheck the web bundle whenever the app returns to foreground. This is
         // independent of APK releases and only reloads if a validated newer page exists.
+        // دریافت بی‌صدای محتوای جدید هنگام بازگشت کاربر به برنامه.
+        // نسخه APK به‌صورت خودکار بررسی یا برای نصب پیشنهاد نمی‌شود.
         if (webView != null && !isFinishing() && !isDestroyed()) {
             performContentUpdate(true, false);
-            checkForApkUpdate(false);
-        }
-        android.content.SharedPreferences updatePrefs = getSharedPreferences("apk_updates", MODE_PRIVATE);
-        if (updatePrefs.getBoolean("install_after_permission", false)
-                && Build.VERSION.SDK_INT >= 26 && getPackageManager().canRequestPackageInstalls()) {
-            updatePrefs.edit().putBoolean("install_after_permission", false).apply();
-            File pending = new File(new File(getExternalFilesDir(null), "updates"), "Dastyare-man-update.apk");
-            if (pending.exists()) launchApkInstaller(pending);
-        } else {
-            promptPendingApkUpdateIfNeeded();
         }
     }
 
@@ -1092,8 +1084,13 @@ public class MainActivity extends Activity {
             performContentUpdate(true, false);
         }
         @JavascriptInterface public void checkForUpdates() {
+            // دکمه بروزرسانی فقط محتوای برنامه را بی‌صدا دریافت می‌کند؛
+            // بررسی APK و نمایش درخواست نصب برای تغییرات عادی غیرفعال است.
             performContentUpdate(true, true);
-            checkForApkUpdate(true);
+            try {
+                long installed = getInstalledVersionCode();
+                runOnUiThread(() -> notifyWebUpdateCheckResult("latest", installed, installed));
+            } catch (Exception ignored) { }
         }
     }
 
