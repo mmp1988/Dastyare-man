@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dastyare-man-final-v106-mina-name-date-fix';
+const CACHE_NAME = 'dastyare-man-final-v107-mina-learning-365d';
 const PHOTO_CODEC_CACHE = 'mina-photo-codecs-v1';
 const CORE_ASSETS = [
   './',
