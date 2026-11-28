@@ -6321,6 +6321,7 @@
         else if (hasRelativeExpression) {
           const dayOffset = (relativeDays ? relativeValue(relativeDays) * directionSign(relativeDays[2]) : 0) +
             (relativeWeeks ? relativeValue(relativeWeeks) * 7 * directionSign(relativeWeeks[2]) : 0);
+          if (Math.abs(dayOffset) > 365) return 'محدوده ثبت تاریخ نسبی از ۳۶۵ روز قبل تا ۳۶۵ روز بعد است؛ تاریخ رو داخل این بازه بگو 💗';
           let baseKey = todayKey;
           if (relativeMonths || monthOffset) {
             const [cy, cm, cd] = baseKey.split('-').map(Number);
