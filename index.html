@@ -5950,7 +5950,7 @@
       if (p && !blocked.test(p[1])) { add(m.preferences,{text:p[1].trim()},30); changed=true; }
       const rule = source.match(/(?:وقتی\s+(?:میگم|می\s*گم|می\s*گویم)|هر\s*وقت\s+(?:گفتم|میگم))\s+(.{2,100}?)\s+(?:منظورم|یعنی)\s+(.{2,100}?)(?:\s*(?:است|هست|بود))?[.!؟]*$/u);
       if (rule && rule[1].trim() !== rule[2].trim() && !blocked.test(rule[1]+rule[2])) { add(m.corrections,{from:rule[1].trim(),to:rule[2].trim()},60); changed=true; }
-      const nameCorrection = source.match(/(?:اسم|نام)(?:\\s+درست(?:ش)?|\\s+مشتری|\\s*ش)?\\s+(.{2,40}?)\\s+(?:است|هست)[،, ]+نه\\s+(.{2,40})$/u);
+      const nameCorrection = source.match(/(?:اسم|نام)(?:\s+درست(?:ش)?|\s+مشتری|\s*ش)?\s+(.{2,40}?)\s+(?:است|هست)[،, ]+نه\s+(.{2,40})$/u);
       if (nameCorrection) {
         const correctName = nameCorrection[1].trim(), mistakenName = nameCorrection[2].trim();
         if (correctName && mistakenName && correctName !== mistakenName && !blocked.test(correctName + mistakenName)) {
@@ -5966,9 +5966,9 @@
     function minaResolveLearnedClientName(name) {
       const value = String(name || '').trim();
       const memory = minaLearningStore();
-      const key = value.replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\\u064B-\\u065F]/g,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase('fa');
+      const key = value.replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\u064B-\u065F]/g,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fa');
       const rule = memory.corrections.slice().reverse().find(item => item && item.kind === 'customer-name' &&
-        String(item.from || '').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\\u064B-\\u065F]/g,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase('fa') === key);
+        String(item.from || '').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\u064B-\u065F]/g,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('fa') === key);
       return rule ? String(rule.to || value).trim() : value;
     }
     function minaBuildLearningContext() {
