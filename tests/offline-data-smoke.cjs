@@ -829,6 +829,32 @@ console.log('Android alarm integration contract: PASS');
         named.time === '14:00' && named.service.includes('کاشت مژه') && !minaPendingBooking;
       appData.appointments = [];
       minaPendingBooking = null;
+      const prepositionNameReply = minaBuildReply('برای مینا فردا ساعت ۱۷ نوبت کاشت مژه ثبت کن');
+      const prepositionName = appData.appointments[0];
+      const prepositionNameOk = !!prepositionName && prepositionName.clientName === 'مینا' &&
+        !prepositionName.clientName.includes('برای') && prepositionName.time === '17:00' &&
+        /مشتری: مینا/.test(prepositionNameReply);
+
+      appData.appointments = [];
+      minaPendingBooking = null;
+      const past365Reply = minaBuildReply('برای مینا ۳۶۵ روز پیش ساعت ۱۰ نوبت کاشت مژه ثبت کن');
+      const past365 = appData.appointments[0];
+      const past365Ok = !!past365 && past365.dateKey === addDaysToJalaliKey(getTodayKey(), -365) &&
+        past365.clientName === 'مینا' && past365.status === 'done' && /مینا/.test(past365Reply);
+      appData.appointments = [];
+      minaPendingBooking = null;
+      const future365Reply = minaBuildReply('برای مینا ۳۶۵ روز بعد ساعت ۱۰ نوبت کاشت مژه ثبت کن');
+      const future365 = appData.appointments[0];
+      const future365Ok = !!future365 && future365.dateKey === addDaysToJalaliKey(getTodayKey(), 365) &&
+        future365.clientName === 'مینا' && future365.status === 'pending' && /مینا/.test(future365Reply);
+      appData.appointments = [];
+      minaPendingBooking = null;
+      const outside365Reply = minaBuildReply('برای مینا ۳۶۶ روز بعد ساعت ۱۰ نوبت کاشت مژه ثبت کن');
+      const outside365Ok = appData.appointments.length === 0 &&
+        /۳۶۵ روز/.test(outside365Reply);
+
+      appData.appointments = [];
+      minaPendingBooking = null;
       const alefNameReply = minaBuildReply('برای آسیه پس فردا ساعت ۲ ظهر نوبت کاشت مژه ثبت کن');
       const alefName = appData.appointments[0];
       const alefNameOk = !!alefName && alefName.clientName === 'آسیه' &&
@@ -934,11 +960,15 @@ console.log('Android alarm integration contract: PASS');
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply) && !!minaConversationBooking;
-      return { repeatedFullNameBlocked, fullNameBookingOk, fullNameBookingReply, fullNameBooking, contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, alefNameOk, explicitAlefNameOk, weekMoveOk, cancelFollowupOk, deleteFollowupOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { prepositionNameOk, past365Ok, future365Ok, outside365Ok, repeatedFullNameBlocked, fullNameBookingOk, fullNameBookingReply, fullNameBooking, contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, alefNameOk, explicitAlefNameOk, weekMoveOk, cancelFollowupOk, deleteFollowupOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
+    assert(minaBookingResult.prepositionNameOk, 'The preposition «برای» must never be stored as part of the customer name');
+    assert(minaBookingResult.past365Ok, 'Mina must save an appointment exactly 365 days in the past with completed status');
+    assert(minaBookingResult.future365Ok, 'Mina must save an appointment exactly 365 days in the future');
+    assert(minaBookingResult.outside365Ok, 'Mina must reject dates beyond the 365-day supported horizon');
     assert(minaBookingResult.alefNameOk, 'Mina must preserve the exact «آسیه» spelling in a natural booking');
     assert(minaBookingResult.explicitAlefNameOk, 'Mina must preserve the exact «آسیه» spelling after «به اسم»');
     assert(minaBookingResult.weekMoveOk, 'Mina must move the selected appointment to one week after today');
