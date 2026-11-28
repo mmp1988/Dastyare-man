@@ -70,6 +70,8 @@ assert.match(source, /else newDate = minaParseRelativeJalaliDate\(text, getToday
   'Appointment edits must use the relative Jalali date parser');
 assert.match(source, /pronounAppointmentMutationFollowup[\s\S]*?pronounAppointmentFollowup \|\| pronounAppointmentMutationFollowup/,
   'Short cancel/delete/edit follow-ups must resolve through the last selected appointment');
+assert.match(source, /const pronounAppointmentMutationFollowup = !hasAppointmentWord && !!minaLastReferencedAppointmentId/,
+  'An explicit customer name must override any stale last-appointment pointer');
 assert.match(source, /لغو\(\?:ش\|\\s\*کردن\|\\s\*کن\)/,
   'The «لغوش کن» cancellation form must be recognized');
 console.log('Mina exact-name and relative-date regression tests: PASS');
