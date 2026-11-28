@@ -24,6 +24,13 @@ assert.equal(normalizeContext.normalizeName('مینا'), 'مینا',
   'Customer names must remain unchanged by command typo correction');
 assert.equal(normalizeContext.normalizeName('فرداا'), 'فردا',
   'Command typo correction must continue to work');
+const bookingParserSource = section('function minaBuildReply(raw)', 'if (/فردا/.test(t)');
+assert.match(bookingParserSource, /const nameMatches = Array\.from\(q\.matchAll/,
+  'New customer names must be extracted from the spelling-preserving text, not comparison-normalized text');
+assert.match(bookingParserSource, /const explicitClientName = q\.match/,
+  'The «به اسم آسیه» path must preserve the exact customer name');
+assert.match(bookingParserSource, /t\.includes\(minaCleanText\(name\)\.toLowerCase\(\)\)/,
+  'Existing names must compare canonically while retaining their saved spelling');
 
 const maskSource = section('function minaBuildCloudSafeCommand(message)', 'function minaNeedsCloudUnderstanding(message)');
 const maskContext = {
