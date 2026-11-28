@@ -2477,6 +2477,7 @@
       customerHistory: [],
       customerHistoryDeletedIds: [],
       minaConversationHistory: [],
+      minaLearningMemory: { version: 1, corrections: [], preferences: [], updatedAt: 0 },
       settings: {
         brandName: 'دستیار من',
         brandSub: 'همراه تو در دنیای زیبایی',
@@ -2530,6 +2531,7 @@
           clientProfiles: parsed.clientProfiles && typeof parsed.clientProfiles === 'object' ? parsed.clientProfiles : {},
           customerHistory: Array.isArray(parsed.customerHistory) ? parsed.customerHistory : [],
           customerHistoryDeletedIds: Array.isArray(parsed.customerHistoryDeletedIds) ? parsed.customerHistoryDeletedIds : [],
+          minaLearningMemory: parsed.minaLearningMemory && typeof parsed.minaLearningMemory === 'object' ? { version: 1, corrections: Array.isArray(parsed.minaLearningMemory.corrections) ? parsed.minaLearningMemory.corrections.slice(-60) : [], preferences: Array.isArray(parsed.minaLearningMemory.preferences) ? parsed.minaLearningMemory.preferences.slice(-30) : [], updatedAt: Number(parsed.minaLearningMemory.updatedAt) || 0 } : { version: 1, corrections: [], preferences: [], updatedAt: 0 },
           settings: { ...appData.settings, ...(parsed.settings || {}) }
         };
         if (!Array.isArray(parsed.customerHistory)) { try { const historyRaw=localStorage.getItem('dastyare_man_customer_history_v1'); const historyParsed=historyRaw?JSON.parse(historyRaw):[]; appData.customerHistory=Array.isArray(historyParsed)?historyParsed:[]; } catch(e) { appData.customerHistory=[]; } }
@@ -5924,6 +5926,42 @@
       if (todos.length) lines.push('کارهای باز: ' + todos.filter(x => !x.done).slice(0,8).map(x => String(x.text || '')).join('؛ '));
       return lines.join('\n').slice(0,6500);
     }
+    // Local per-installation learning: retain only explicit corrections and durable preferences.
+    function minaLearningStore() {
+      if (!appData.minaLearningMemory || typeof appData.minaLearningMemory !== 'object') appData.minaLearningMemory = { version: 1, corrections: [], preferences: [], updatedAt: 0 };
+      const m = appData.minaLearningMemory;
+      if (!Array.isArray(m.corrections)) m.corrections = [];
+      if (!Array.isArray(m.preferences)) m.preferences = [];
+      return m;
+    }
+    function minaLearnFromUserMessage(raw) {
+      const source = String(raw || '').replace(/[\\u064B-\\u065F\\u0670\\u0640]/g, '').replace(/[\\s\\u200c]+/g, ' ').trim();
+      if (source.length < 5 || source.length > 500) return false;
+      const m = minaLearningStore(); let changed = false;
+      const add = (list, item, max) => {
+        const key = String(item.text || item.from || '').toLocaleLowerCase('fa');
+        const at = list.findIndex(x => String(x.text || x.from || '').toLocaleLowerCase('fa') === key);
+        if (at >= 0) list.splice(at, 1);
+        list.push({ ...item, learnedAt: Date.now(), source: 'explicit-user-feedback' });
+        if (list.length > max) list.splice(0, list.length - max);
+      };
+      const blocked = /(?:رمز|گذرواژه|کد\\s*ملی|شماره\\s*کارت|آدرس\\s*خانه)/u;
+      const p = source.match(/(?:از\\s*این\\s*به\\s*بعد|همیشه|هر\\s*وقت)\\s+(.{3,180}?)(?:\\s*(?:رو|را)?\\s*(?:در\\s*نظر\\s*بگیر|رعایت\\s*کن|یادت\\s*باشه|یادت\\s*بمونه|انجام\\s*بده))?$/u);
+      if (p && !blocked.test(p[1])) { add(m.preferences,{text:p[1].trim()},30); changed=true; }
+      const rule = source.match(/(?:وقتی\\s+(?:میگم|می\\s*گم|می\\s*گویم)|هر\\s*وقت\\s+(?:گفتم|میگم))\\s+(.{2,100}?)\\s+(?:منظورم|یعنی)\\s+(.{2,100}?)(?:\\s*(?:است|هست|بود))?[.!؟]*$/u);
+      if (rule && rule[1].trim() !== rule[2].trim() && !blocked.test(rule[1]+rule[2])) { add(m.corrections,{from:rule[1].trim(),to:rule[2].trim()},60); changed=true; }
+      const correction = source.match(/^(?:نه[،, ]*)?(?:اشتباه\\s*گرفتی|درستش\\s+این(?:ه|هست|هستش)|اصلاح\\s*کن|منظورم\\s+این\\s+بود)[:، ]*(.{3,180})$/u);
+      if (correction && !blocked.test(correction[1])) { add(m.corrections,{from:'اصلاح صریح کاربر',to:correction[1].trim()},60); changed=true; }
+      if (changed) { m.updatedAt=Date.now(); saveData(); }
+      return changed;
+    }
+    function minaBuildLearningContext() {
+      const m=minaLearningStore(), lines=[];
+      m.preferences.slice(-12).forEach(x=>{if(x?.text)lines.push('ترجیح ثابت و صریح کاربر: '+String(x.text).slice(0,180));});
+      m.corrections.slice(-20).forEach(x=>{if(x&&(x.from||x.to))lines.push('درس حاصل از اصلاح کاربر: «'+String(x.from||'').slice(0,100)+'» یعنی «'+String(x.to||'').slice(0,140)+'»');});
+      return lines.length?'حافظه تجربی تأییدشده همین کاربر (فقط ترجیح و اصلاح را اعمال کن؛ داده یا عملیات را حدس نزن):\\n'+lines.join('\\n'):'';
+    }
+
     function minaBuildRecentConversationContext(maxChars = 5200) {
       const history = Array.isArray(appData.minaConversationHistory) ? appData.minaConversationHistory : [];
       const turns = history.slice(-24).map(item => (item.role === 'user' ? 'کاربر' : 'مینا') + ': ' + String(item.text || '').slice(0, 1400));
@@ -6342,9 +6380,14 @@
             !name.toLowerCase().includes(service.toLowerCase()))) &&
           !servicePattern.test(name)
         );
-        let clientName = clientCandidates.length ? clientCandidates[clientCandidates.length - 1] : '';
-        const explicitClientName = q.match(/(?:به\s*)?(?:اسم|نام)\s+([آ-یءئؤإأ‌\-]{2,40})(?=\s+(?:یه|یک|تو|در|داخل|قسمت|بخش|پرونده|برای|نوبت|رزرو|وقت|ثبت|ذخیره|بذار|بزار|اضافه|کن|بده|انجام)|$)/u);
-        if (explicitClientName) clientName = explicitClientName[1].trim();
+        const cleanClientName = value => String(value || '').trim()
+          .replace(/^(?:(?:برای|واسه|واسه‌ی|به)\\s+)+/u, '')
+          .replace(/\\s+(?:نوبت|رزرو|وقت|ثبت|بده|بگیر|کن|بذار|بزار)$/u, '')
+          .replace(/^[،,:؛.!؟\\s]+|[،,:؛.!؟\\s]+$/gu, '').trim();
+        let clientName = clientCandidates.length ? cleanClientName(clientCandidates[clientCandidates.length - 1]) : '';
+        const explicitClientName = q.match(/(?:به\\s*)?(?:اسم|نام)\\s+([آ-یءئؤإأ‌\\-]{2,40})(?=\\s+(?:یه|یک|تو|در|داخل|قسمت|بخش|پرونده|برای|نوبت|رزرو|وقت|ثبت|ذخیره|بذار|بزار|اضافه|کن|بده|انجام)|$)/u);
+        if (explicitClientName) clientName = cleanClientName(explicitClientName[1]);
+        clientName = cleanClientName(clientName);
         // If the customer is mentioned without "برای"، match an exact saved client name.
         if (!clientName) {
           const savedNames = Object.values(appData.clientProfiles || {})
@@ -6983,6 +7026,7 @@
       const message = input.value.trim();
       if (!message) return;
       addMinaMessage(message, 'user');
+      minaLearnFromUserMessage(message);
       input.value = '';
 
       // User frustration or criticism directed at Mina is acknowledged first, without Instagram or cloud quota.
@@ -7055,6 +7099,7 @@
           .join('\n');
         const cloudContext = [
           workspaceCapabilities,
+          minaBuildLearningContext(),
           'تاریخچه مکالمه محلی (جدیدترین پیام در انتها):',
           recent,
           customerMemory ? '\n\nحافظه واقعی پرونده مشتری:\n' + customerMemory.slice(0,2400) : '',
@@ -8311,13 +8356,17 @@
     function minaParseRelativeJalaliDate(text, baseKey) {
       const value = minaCleanText(text).toLowerCase();
       const base = baseKey || getTodayKey();
-      const amountMatch = value.match(/(\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*(روز|هفته)\s*(?:بعد|دیگه|دیگر|آینده)/u);
+      const amountMatch = value.match(/(\\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\\s*(روز|هفته)\\s*(?:بعد|دیگه|دیگر|آینده|پیش|قبل|گذشته)/u);
       if (amountMatch) {
         const amount = minaPersianNumberValue(amountMatch[1]);
-        if (!Number.isInteger(amount) || amount < 1 || amount > 365) return null;
-        return addDaysToJalaliKey(base, amount * (amountMatch[2] === 'هفته' ? 7 : 1));
+        const unitDays = amountMatch[2] === 'هفته' ? 7 : 1;
+        const direction = /(?:پیش|قبل|گذشته)/u.test(amountMatch[0]) ? -1 : 1;
+        const offset = amount * unitDays * direction;
+        if (!Number.isInteger(amount) || amount < 1 || Math.abs(offset) > 365) return null;
+        return addDaysToJalaliKey(base, offset);
       }
-      if (/هفته\s*(?:بعد|دیگه|دیگر|آینده)/u.test(value)) return addDaysToJalaliKey(base, 7);
+      if (/هفته\\s*(?:بعد|دیگه|دیگر|آینده)/u.test(value)) return addDaysToJalaliKey(base, 7);
+      if (/هفته\\s*(?:پیش|قبل|گذشته)/u.test(value)) return addDaysToJalaliKey(base, -7);
       return null;
     }
 
@@ -8345,7 +8394,7 @@
       // Recognize standalone clock expressions such as «۶ عصر» / «سه بعدازظهر»
       // as an explicit new time, not as another request for clarification.
       const asksTime = /(?:ساعت|دقیقه|ربع|نیم\s*ساعت|\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|بعد\s*از\s*ظهر|عصر|شب))/u.test(text);
-      const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*(?:روز|هفته)\s*(?:بعد|دیگه|دیگر|آینده)|هفته\s*(?:بعد|دیگه|دیگر|آینده))/u.test(text);
+      const asksDate = /(?:فردا|پس\s*فردا|امروز|پسفردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)|(?:\d{1,3}|یک|یه|دو|سه|چهار|پنج|شش|شیش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد)\s*(?:روز|هفته)\s*(?:بعد|دیگه|دیگر|آینده|پیش|قبل|گذشته)|هفته\s*(?:بعد|دیگه|دیگر|آینده))/u.test(text);
       const terminalDestinationPhrase = /(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو|را)\s+(?:(?:برای)\s*)?(?:امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}|\d{1,2}\s+(?:فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|اذر|دی|بهمن|اسفند)).*(?:\s)(?:کن|بکن|بشه|باشه)$/u.test(text);
       const namedSlotChange = /(?:نوبت|رزرو|وقت)\s+[آ-یءئؤإأ‌\-]{2,30}\s+(?:رو|را)\s+(?:(?:ساعت|روز|تاریخ)\s*)?(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|امروز|فردا|پس\s*فردا|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text);
       const isMove = contextualFollowup || terminalDestinationPhrase || namedSlotChange ||
