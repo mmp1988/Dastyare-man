@@ -8328,15 +8328,19 @@
       const hasClockLikeValue = /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|\d{1,2}\s*(?:صبح|ظهر|بعدازظهر|عصر|شب)|یک\s*ربع|ربع|نیم\s*ساعت)/u.test(text);
       const pronounAppointmentFollowup = !!minaLastReferencedAppointmentId && hasClockLikeValue &&
         /(?:همونو|همون\s+رو|همان\s+را|همان\s+رو|اونو|اون\s+رو)/u.test(text);
+      // Short follow-ups such as «کنسلش کن»، «حذفش کن» or «تغییرش بده»
+      // must target only the last explicitly selected appointment, never an arbitrary record.
+      const pronounAppointmentMutationFollowup = !!minaLastReferencedAppointmentId &&
+        /(?:کنسلش|لغوش|حذفش|پاکش|بردارش|تغییرش|عوضش|جابجاش|منتقلش|کنسل\s*کن|لغو\s*کن|حذف\s*کن|پاک\s*کن|تغییر\s*بده|عوض\s*کن|جابجا\s*کن|جابه.?جا\s*کن)/u.test(text);
       const contextualFollowup = (!hasAppointmentWord && (
         (/(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|ساعت|دقیقه|فردا|پس\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text)) ||
         (!!minaLastReferencedAppointmentId && hasClockLikeValue && !/(?:برای|ثبت|رزرو|بده|بگیر|خدمت|کاشت|لیفت|مژه|ابرو|ناخن|مو|فیشیال|شینیون|کراتین)/u.test(text))
       )) || (/(?:نوبتشو|نوبت\s*ش\s*رو|نوبتش\s*رو|نوبت\s*رو)/u.test(text) && hasClockLikeValue) ||
-        pronounAppointmentFollowup;
+        pronounAppointmentFollowup || pronounAppointmentMutationFollowup;
       if (!hasAppointmentWord && !contextualFollowup) return null;
 
       const isDelete = /(?:حذف|پاک(?:\s*کردن|\s*کن|ش\s*کن)?|بردار|از\s*تقویم\s*پاک|کلاً\s*حذف)/u.test(text);
-      const isCancel = !isDelete && /(?:لغو(?:\s*کردن|\s*کن)?|کنسل(?:\s*کردن|\s*کن|ش)?|بی\s*خیال\s*نوبت|منتفی|دیگه\s*نمیاد)/u.test(text);
+      const isCancel = !isDelete && /(?:لغو(?:ش|\s*کردن|\s*کن)?|کنسل(?:\s*کردن|\s*کن|ش)?|بی\s*خیال\s*نوبت|منتفی|دیگه\s*نمیاد)/u.test(text);
       const isDone = /(?:انجام\s*شد|تموم\s*شد|تمام\s*شد|انجامش\s*دادم|مراجعه\s*کرد|کارش\s*انجام)/u.test(text);
       // Recognize standalone clock expressions such as «۶ عصر» / «سه بعدازظهر»
       // as an explicit new time, not as another request for clarification.
