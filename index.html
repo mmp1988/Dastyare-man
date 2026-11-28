@@ -8330,7 +8330,7 @@
         /(?:همونو|همون\s+رو|همان\s+را|همان\s+رو|اونو|اون\s+رو)/u.test(text);
       // Short follow-ups such as «کنسلش کن»، «حذفش کن» or «تغییرش بده»
       // must target only the last explicitly selected appointment, never an arbitrary record.
-      const pronounAppointmentMutationFollowup = !!minaLastReferencedAppointmentId &&
+      const pronounAppointmentMutationFollowup = !hasAppointmentWord && !!minaLastReferencedAppointmentId &&
         /(?:کنسلش|لغوش|حذفش|پاکش|بردارش|تغییرش|عوضش|جابجاش|منتقلش|کنسل\s*کن|لغو\s*کن|حذف\s*کن|پاک\s*کن|تغییر\s*بده|عوض\s*کن|جابجا\s*کن|جابه.?جا\s*کن)/u.test(text);
       const contextualFollowup = (!hasAppointmentWord && (
         (/(?:ساعتش|تاریخش|روزش|خدمتش|همون ساعت|همان ساعت|اون ساعت|این ساعت)/u.test(text) && /(?:\d{1,2}\s*[:٫.]\s*\d{1,2}|\d{1,2}\s+و\s+\d{1,2}\s*دقیقه|ساعت|دقیقه|فردا|پس\s*فردا|امروز|شنبه|یکشنبه|دوشنبه|سه.?شنبه|چهارشنبه|پنجشنبه|جمعه)/u.test(text)) ||
