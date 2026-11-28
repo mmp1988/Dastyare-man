@@ -39,6 +39,8 @@ jobs:
         run: node tests/validate-mina-blind-benchmark.cjs
       - name: Check Worker JavaScript syntax
         run: node --check worker.js
+      - name: Verify exact Persian customer names and relative appointment dates
+        run: node tests/mina-name-date-regressions.cjs
       - name: Verify automatic AI provider failover
         run: node tests/worker-provider-failover.cjs
       - name: Check inline JavaScript syntax
