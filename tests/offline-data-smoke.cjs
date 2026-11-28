@@ -829,6 +829,41 @@ console.log('Android alarm integration contract: PASS');
         named.time === '14:00' && named.service.includes('کاشت مژه') && !minaPendingBooking;
       appData.appointments = [];
       minaPendingBooking = null;
+      const alefNameReply = minaBuildReply('برای آسیه پس فردا ساعت ۲ ظهر نوبت کاشت مژه ثبت کن');
+      const alefName = appData.appointments[0];
+      const alefNameOk = !!alefName && alefName.clientName === 'آسیه' &&
+        alefName.time === '14:00' && alefName.service.includes('کاشت مژه') &&
+        /آسیه/.test(alefNameReply);
+      appData.appointments = [];
+      minaPendingBooking = null;
+      const explicitAlefNameReply = minaBuildReply('برای پس فردا ساعت ۱۴ نوبت کاشت مژه به اسم آسیه ثبت کن');
+      const explicitAlefName = appData.appointments[0];
+      const explicitAlefNameOk = !!explicitAlefName && explicitAlefName.clientName === 'آسیه' &&
+        explicitAlefName.time === '14:00' && /آسیه/.test(explicitAlefNameReply);
+
+      appData.appointments = [];
+      minaLastReferencedAppointmentId = null;
+      const cancelTargetReply = minaBuildReply('برای فردا ساعت ۴ بعدازظهر برای آسیه نوبت لیفت مژه ثبت کن');
+      const cancelTarget = appData.appointments[0];
+      const weekMoveReply = minaBuildReply('نوبتش رو ببر هفته بعد');
+      const expectedWeekDate = addDaysToJalaliKey(getTodayKey(), 7);
+      const weekMoveOk = !!cancelTarget && cancelTarget.dateKey === expectedWeekDate &&
+        /همان نوبت/.test(weekMoveReply);
+      const cancelFollowupReply = minaBuildReply('کنسلش کن');
+      const cancelFollowupOk = !!cancelTarget && cancelTarget.status === 'canceled' &&
+        /لغو شد/.test(cancelFollowupReply);
+
+      appData.appointments = [];
+      minaLastReferencedAppointmentId = null;
+      minaBuildReply('برای فردا ساعت ۵ عصر برای مینا نوبت لیفت ابرو ثبت کن');
+      const deleteTarget = appData.appointments[0];
+      const deleteFollowupReply = minaBuildReply('حذفش کن');
+      const deleteFollowupOk = !!deleteTarget &&
+        !appData.appointments.some(item => item.id === deleteTarget.id) &&
+        /از تقویم حذف شد/.test(deleteFollowupReply);
+
+      appData.appointments = [];
+      minaPendingBooking = null;
       minaConversationBooking = null;
       const fullNameBookingReply = minaBuildReply('برای فردا ساعت ۱۸:۴۵ دقیقه نوبت کاشت مژه را به مینا موسوی مطلق بده');
       const fullNameBooking = appData.appointments[0];
@@ -899,11 +934,16 @@ console.log('Android alarm integration contract: PASS');
       const missingTimeReply = minaBuildReply('برای پس فردا نوبت کاشت مژه ثبت کن');
       const missingTimeOk = appData.appointments.length === 0 &&
         /ساعت/.test(missingTimeReply) && !!minaConversationBooking;
-      return { repeatedFullNameBlocked, fullNameBookingOk, fullNameBookingReply, fullNameBooking, contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
+      return { repeatedFullNameBlocked, fullNameBookingOk, fullNameBookingReply, fullNameBooking, contextualEditOk, contextBookingReply, contextFollowupReply, noNameOk, namedOk, alefNameOk, explicitAlefNameOk, weekMoveOk, cancelFollowupOk, deleteFollowupOk, naturalTomorrowOk, spokenTimeOk, exactUserCommandOk, broadBeautyServiceOk, broadBeautyReply, broadBeautyAppt, exactUserCommandReply, exactUserCommandAppt, spokenTimeReply, conversationalFollowupOk, firstTurnReply, followupReply, calendarSourceLabelOk, missingTimeOk, noNameReply, namedReply, missingTimeReply };
     });
     console.log('Mina regression details:', JSON.stringify(minaBookingResult));
     assert(minaBookingResult.noNameOk, 'Mina must save a no-name booking immediately and parse date/time/service');
     assert(minaBookingResult.namedOk, 'Mina must save a named booking immediately without confirmation');
+    assert(minaBookingResult.alefNameOk, 'Mina must preserve the exact «آسیه» spelling in a natural booking');
+    assert(minaBookingResult.explicitAlefNameOk, 'Mina must preserve the exact «آسیه» spelling after «به اسم»');
+    assert(minaBookingResult.weekMoveOk, 'Mina must move the selected appointment to one week after today');
+    assert(minaBookingResult.cancelFollowupOk, 'Mina must cancel the last selected appointment on «کنسلش کن»');
+    assert(minaBookingResult.deleteFollowupOk, 'Mina must delete the last selected appointment on «حذفش کن»');
     assert(minaBookingResult.fullNameBookingOk, 'Mina must immediately save a full-name lash booking for tomorrow at 18:45 from the exact natural Persian phrasing');
     assert(minaBookingResult.repeatedFullNameBlocked, 'Repeating the same natural-language booking must not create a second appointment');
     assert(minaBookingResult.naturalTomorrowOk, 'Mina must understand “انجام بده” and save tomorrow 4 PM lash-lift booking without a client name');
