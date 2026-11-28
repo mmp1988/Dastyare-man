@@ -63,11 +63,27 @@ assert.equal(relativeDateContext.parseRelativeDate('هفته بعد', '1405-09-0
 assert.equal(relativeDateContext.parseRelativeDate('یک هفته دیگه', '1405-09-07'), '1405-09-07+7');
 assert.equal(relativeDateContext.parseRelativeDate('دو هفته آینده', '1405-09-07'), '1405-09-07+14');
 assert.equal(relativeDateContext.parseRelativeDate('سه روز دیگه', '1405-09-07'), '1405-09-07+3');
+assert.equal(relativeDateContext.parseRelativeDate('365 روز بعد', '1405-09-07'), '1405-09-07+365');
+assert.equal(relativeDateContext.parseRelativeDate('365 روز پیش', '1405-09-07'), '1405-09-07+-365');
+assert.equal(relativeDateContext.parseRelativeDate('یک هفته پیش', '1405-09-07'), '1405-09-07+-7');
+assert.equal(relativeDateContext.parseRelativeDate('366 روز بعد', '1405-09-07'), null);
+assert.equal(relativeDateContext.parseRelativeDate('53 هفته پیش', '1405-09-07'), null);
+
 assert.equal(relativeDateContext.parseRelativeDate('فردا', '1405-09-07'), null,
   'Explicit tomorrow remains handled by the existing exact-date branch');
 
 assert.match(source, /else newDate = minaParseRelativeJalaliDate\(text, getTodayKey\(\)\)/,
   'Appointment edits must use the relative Jalali date parser');
+assert.match(source, /minaLearningMemory: parsed\\.minaLearningMemory/,
+  'Mina learning memory must migrate and persist with local app data');
+assert.match(source, /minaBuildLearningContext\\(\\)/,
+  'Confirmed user corrections and preferences must be supplied to the conversation router');
+assert.match(source, /minaLearnFromUserMessage\\(message\\)/,
+  'Mina must learn from explicit user corrections during chat');
+assert.match(source, /minaResolveLearnedClientName\\(cleanClientName/,
+  'Previously corrected customer-name spellings must be applied to later bookings');
+assert.match(source, /const cleanClientName = value =>/,
+  'Booking name extraction must strip prepositions from customer names');
 assert.match(source, /pronounAppointmentMutationFollowup[\s\S]*?pronounAppointmentFollowup \|\| pronounAppointmentMutationFollowup/,
   'Short cancel/delete/edit follow-ups must resolve through the last selected appointment');
 assert.match(source, /const pronounAppointmentMutationFollowup = !hasAppointmentWord && !!minaLastReferencedAppointmentId/,
