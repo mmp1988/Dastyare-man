@@ -5950,10 +5950,26 @@
       if (p && !blocked.test(p[1])) { add(m.preferences,{text:p[1].trim()},30); changed=true; }
       const rule = source.match(/(?:وقتی\s+(?:میگم|می\s*گم|می\s*گویم)|هر\s*وقت\s+(?:گفتم|میگم))\s+(.{2,100}?)\s+(?:منظورم|یعنی)\s+(.{2,100}?)(?:\s*(?:است|هست|بود))?[.!؟]*$/u);
       if (rule && rule[1].trim() !== rule[2].trim() && !blocked.test(rule[1]+rule[2])) { add(m.corrections,{from:rule[1].trim(),to:rule[2].trim()},60); changed=true; }
+      const nameCorrection = source.match(/(?:اسم|نام)(?:\\s+درست(?:ش)?|\\s+مشتری|\\s*ش)?\\s+(.{2,40}?)\\s+(?:است|هست)[،, ]+نه\\s+(.{2,40})$/u);
+      if (nameCorrection) {
+        const correctName = nameCorrection[1].trim(), mistakenName = nameCorrection[2].trim();
+        if (correctName && mistakenName && correctName !== mistakenName && !blocked.test(correctName + mistakenName)) {
+          add(m.corrections, { kind: 'customer-name', from: mistakenName, to: correctName }, 60);
+          changed = true;
+        }
+      }
       const correction = source.match(/^(?:نه[،, ]*)?(?:اشتباه\s*گرفتی|درستش\s+این(?:ه|هست|هستش)|اصلاح\s*کن|منظورم\s+این\s+بود)[:، ]*(.{3,180})$/u);
       if (correction && !blocked.test(correction[1])) { add(m.corrections,{from:'اصلاح صریح کاربر',to:correction[1].trim()},60); changed=true; }
       if (changed) { m.updatedAt=Date.now(); saveData(); }
       return changed;
+    }
+    function minaResolveLearnedClientName(name) {
+      const value = String(name || '').trim();
+      const memory = minaLearningStore();
+      const key = value.replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\\u064B-\\u065F]/g,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase('fa');
+      const rule = memory.corrections.slice().reverse().find(item => item && item.kind === 'customer-name' &&
+        String(item.from || '').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\\u064B-\\u065F]/g,'').replace(/\\s+/g,' ').trim().toLocaleLowerCase('fa') === key);
+      return rule ? String(rule.to || value).trim() : value;
     }
     function minaBuildLearningContext() {
       const m=minaLearningStore(), lines=[];
@@ -6384,9 +6400,9 @@
           .replace(/^(?:(?:برای|واسه|واسه‌ی|به)\s+)+/u, '')
           .replace(/\s+(?:نوبت|رزرو|وقت|ثبت|بده|بگیر|کن|بذار|بزار)$/u, '')
           .replace(/^[،,:؛.!؟\s]+|[،,:؛.!؟\s]+$/gu, '').trim();
-        let clientName = clientCandidates.length ? cleanClientName(clientCandidates[clientCandidates.length - 1]) : '';
+        let clientName = clientCandidates.length ? minaResolveLearnedClientName(cleanClientName(clientCandidates[clientCandidates.length - 1])) : '';
         const explicitClientName = q.match(/(?:به\s*)?(?:اسم|نام)\s+([آ-یءئؤإأ‌\-]{2,40})(?=\s+(?:یه|یک|تو|در|داخل|قسمت|بخش|پرونده|برای|نوبت|رزرو|وقت|ثبت|ذخیره|بذار|بزار|اضافه|کن|بده|انجام)|$)/u);
-        if (explicitClientName) clientName = cleanClientName(explicitClientName[1]);
+        if (explicitClientName) clientName = minaResolveLearnedClientName(cleanClientName(explicitClientName[1]));
         clientName = cleanClientName(clientName);
         // If the customer is mentioned without "برای"، match an exact saved client name.
         if (!clientName) {
