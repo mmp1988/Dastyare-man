@@ -61,4 +61,8 @@ assert.equal(relativeDateContext.parseRelativeDate('فردا', '1405-09-07'), nu
 
 assert.match(source, /else newDate = minaParseRelativeJalaliDate\(text, getTodayKey\(\)\)/,
   'Appointment edits must use the relative Jalali date parser');
+assert.match(source, /pronounAppointmentMutationFollowup[\s\S]*?pronounAppointmentFollowup \|\| pronounAppointmentMutationFollowup/,
+  'Short cancel/delete/edit follow-ups must resolve through the last selected appointment');
+assert.match(source, /لغو\(\?:ش\|\\s\*کردن\|\\s\*کن\)/,
+  'The «لغوش کن» cancellation form must be recognized');
 console.log('Mina exact-name and relative-date regression tests: PASS');
