@@ -55,7 +55,7 @@ const learningContext = {
   appData: { minaLearningMemory: { version: 1, corrections: [], preferences: [], updatedAt: 0 } },
   saveData: () => { learningContext.saved = (learningContext.saved || 0) + 1; }
 };
-vm.runInNewContext(learningSource + '\\nthis.learn = minaLearnFromUserMessage; this.learningText = minaBuildLearningContext; this.resolveLearnedName = minaResolveLearnedClientName;', learningContext);
+vm.runInNewContext(learningSource + '\nthis.learn = minaLearnFromUserMessage; this.learningText = minaBuildLearningContext; this.resolveLearnedName = minaResolveLearnedClientName;', learningContext);
 assert.equal(learningContext.learn('اسم درستش آسیه است، نه اسیه'), true,
   'An explicit customer-name correction must be learned');
 assert.equal(learningContext.resolveLearnedName('اسیه'), 'آسیه',
@@ -92,13 +92,13 @@ assert.equal(relativeDateContext.parseRelativeDate('فردا', '1405-09-07'), nu
 
 assert.match(source, /else newDate = minaParseRelativeJalaliDate\(text, getTodayKey\(\)\)/,
   'Appointment edits must use the relative Jalali date parser');
-assert.match(source, /minaLearningMemory: parsed\\.minaLearningMemory/,
+assert.match(source, /minaLearningMemory: parsed\.minaLearningMemory/,
   'Mina learning memory must migrate and persist with local app data');
-assert.match(source, /minaBuildLearningContext\\(\\)/,
+assert.match(source, /minaBuildLearningContext\(\)/,
   'Confirmed user corrections and preferences must be supplied to the conversation router');
-assert.match(source, /minaLearnFromUserMessage\\(message\\)/,
+assert.match(source, /minaLearnFromUserMessage\(message\)/,
   'Mina must learn from explicit user corrections during chat');
-assert.match(source, /minaResolveLearnedClientName\\(cleanClientName/,
+assert.match(source, /minaResolveLearnedClientName\(cleanClientName/,
   'Previously corrected customer-name spellings must be applied to later bookings');
 assert.match(source, /const cleanClientName = value =>/,
   'Booking name extraction must strip prepositions from customer names');
