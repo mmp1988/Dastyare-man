@@ -50,6 +50,24 @@ for (const phrase of ['برای آسیه فردا ساعت ۱۷ نوبت ثبت 
     'The exact original customer name must be restored locally: ' + phrase);
 }
 
+const learningSource = section('function minaLearningStore()', 'function minaBuildRecentConversationContext(maxChars = 5200)');
+const learningContext = {
+  appData: { minaLearningMemory: { version: 1, corrections: [], preferences: [], updatedAt: 0 } },
+  saveData: () => { learningContext.saved = (learningContext.saved || 0) + 1; }
+};
+vm.runInNewContext(learningSource + '\\nthis.learn = minaLearnFromUserMessage; this.learningText = minaBuildLearningContext; this.resolveLearnedName = minaResolveLearnedClientName;', learningContext);
+assert.equal(learningContext.learn('اسم درستش آسیه است، نه اسیه'), true,
+  'An explicit customer-name correction must be learned');
+assert.equal(learningContext.resolveLearnedName('اسیه'), 'آسیه',
+  'The learned correct spelling must be applied in future bookings');
+assert.match(learningContext.learningText(), /آسیه/,
+  'The learned correction must be available to later AI turns');
+assert.equal(learningContext.learn('از این به بعد تاریخ شمسی رو رعایت کن'), true,
+  'A durable user preference must be learned');
+assert.match(learningContext.learningText(), /تاریخ شمسی/,
+  'The durable preference must remain in persistent learning context');
+assert.ok(learningContext.saved >= 2,
+  'Learning must persist to the app data store');
 const relativeDateSource = section('function minaParseRelativeJalaliDate(text, baseKey)', 'function minaTryManageAppointment(raw)');
 const relativeDateContext = {
   minaCleanText: value => String(value || '').replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[\s\u200c]+/g, ' ').trim(),
